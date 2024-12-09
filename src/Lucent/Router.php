@@ -105,7 +105,9 @@ abstract class Router
             //if we only have one section then return based on the first check.
             //Not sure why i need this, but it was causing an error
             if(count($routeKey) === 1){
-                $checks = [$checks[0]];
+                if(isset($checks[0])){
+                    $checks = [$checks[0]];
+                }
             }
 
             if(!in_array(false,$checks,true)){
