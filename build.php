@@ -20,7 +20,7 @@ $stub = <<<'EOF'
 Phar::mapPhar();
 
 // Load the framework's autoloader and program
-require 'phar://' . __FILE__ . '/autoloader.php';
+require 'phar://' . __FILE__ . '/boostrap.php';
 
 __HALT_COMPILER();
 EOF;
