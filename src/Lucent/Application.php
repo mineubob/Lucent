@@ -2,6 +2,8 @@
 
 namespace Lucent;
 
+use Lucent\Commandline\MigrationController;
+use Lucent\Facades\CommandLine;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Facades\App;
@@ -240,13 +242,13 @@ class Application
 
         $this->boot();
 
+        CommandLine::register("Migration make {class}","make", MigrationController::class);
+
         if($args === []){
             $args = $_SERVER["argv"];
         }
 
         $response = $this->consoleRouter->AnalyseRouteAndLookup($args);
-
-        var_dump($response);
 
         if(!$response["outcome"]){
             echo "Invalid command, please try again!";
