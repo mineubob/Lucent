@@ -2,13 +2,31 @@
 
 if (Phar::running()) {
     define("ROOT", Phar::running() . "/");
-    define("EXTERNAL_ROOT", dirname(getcwd()) . DIRECTORY_SEPARATOR);
+
+    $pharPath = Phar::running(false);
+    $runningLocation = dirname($pharPath,2);
+
+     define("EXTERNAL_ROOT",$runningLocation . DIRECTORY_SEPARATOR);
+
 } else {
     define("ROOT", getcwd() . DIRECTORY_SEPARATOR);
     define("EXTERNAL_ROOT", dirname(ROOT));
 }
 
+const APP =  ROOT . 'App'.DIRECTORY_SEPARATOR;
+const FRAMEWORK  = APP . 'Framework'.DIRECTORY_SEPARATOR;
+const CONTROLLERS = APP.'Controllers'.DIRECTORY_SEPARATOR;
+const MODELS = APP.'Models'.DIRECTORY_SEPARATOR;
+const ROUTES = ROOT .'Routes'.DIRECTORY_SEPARATOR;
+const FACADES = APP .'Facades'.DIRECTORY_SEPARATOR;
+const VIEWS = APP .'Views'.DIRECTORY_SEPARATOR;
+const MIDDLEWARE = APP.'Middleware'.DIRECTORY_SEPARATOR;
+const SERVICES = APP .'Services'.DIRECTORY_SEPARATOR;
+const OBJECTS = APP .'ValueObjects'.DIRECTORY_SEPARATOR;
+const STORAGE = ROOT .'Storage'.DIRECTORY_SEPARATOR;
+
 const LUCENT  = ROOT . 'Lucent'.DIRECTORY_SEPARATOR;
+
 $modules = [LUCENT,EXTERNAL_ROOT];
 
 set_include_path(get_include_path().PATH_SEPARATOR.implode(PATH_SEPARATOR,$modules));
