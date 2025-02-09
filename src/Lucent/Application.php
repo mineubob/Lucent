@@ -257,7 +257,7 @@ class Application
 
         CommandLine::register("Migration make {class}","make", MigrationController::class);
       
-        CommandLine::register("update check", "checkUpdate", UpdateController::class);
+        CommandLine::register("update check", "check", UpdateController::class);
         CommandLine::register("update install","install", UpdateController::class);
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
