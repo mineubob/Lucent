@@ -59,6 +59,15 @@ abstract class Router
 
         $uri = $route;
 
+        $response = [
+            "route"=>null,
+            "outcome"=>false
+        ];
+
+        if(!isset($this->routes[$_SERVER["REQUEST_METHOD"]])){
+            return $response;
+        }
+
         $routes = $this->routes[$_SERVER["REQUEST_METHOD"]];
         $separator = "/";
 
@@ -66,11 +75,6 @@ abstract class Router
             $separator = " ";
             array_shift($uri);
         }
-
-        $response = [
-            "route"=>null,
-            "outcome"=>false
-        ];
 
         foreach ($routes as $key => $route){
 
