@@ -8,57 +8,59 @@ on:
       - 'src/**'
       - 'build.php'
 
+# Add permissions to create releases and upload assets
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: phar
-        tools: composer:v2
-        ini-values: phar.readonly=0  # This line disables the read-only restriction
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: phar
+          tools: composer:v2
+          ini-values: phar.readonly=0
 
-    - name: Generate Version
-      id: version
-      run: |
-        # Generate version using date and run number
-        VERSION="v0.$(date +'%y%m%d').${GITHUB_RUN_NUMBER}"
-        echo "Generated version: $VERSION"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Generate Version
+        id: version
+        run: |
+          VERSION="v0.$(date +'%y%m%d').${GITHUB_RUN_NUMBER}"
+          echo "Generated version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Modify Build Script to Include Version Metadata
-      env:
-        VERSION: ${{ steps.version.outputs.version }}
-      run: |
-        # Modify the build script to add version metadata
-        sed -i "s/\$phar->setStub(\$stub);/\$phar->setMetadata(['version' => '$VERSION']);\n    \$phar->setStub(\$stub);/" build.php
+      - name: Modify Build Script to Include Version Metadata
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          sed -i "s/\$phar->setStub(\$stub);/\$phar->setMetadata(['version' => '$VERSION']);\n    \$phar->setStub(\$stub);/" build.php
 
-    - name: Build PHAR
-      run: php build.php
+      - name: Build PHAR
+        run: php build.php
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.version.outputs.version }}
-        release_name: Release ${{ steps.version.outputs.version }}
-        draft: false
-        prerelease: false
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
 
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./lucent.phar
-        asset_name: lucent.phar
-        asset_content_type: application/octet-stream
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./lucent.phar
+          asset_name: lucent.phar
+          asset_content_type: application/octet-stream
