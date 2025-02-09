@@ -4,6 +4,7 @@ namespace Lucent;
 
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
+use Lucent\Database\DB;
 use Lucent\Facades\Log;
 use ReflectionClass;
 
