@@ -124,10 +124,3 @@ try {
 // Calculate file size
 $fileSize = round(filesize($pharFile) / 1024, 2);
 log_success("Build complete! PHAR size: {$fileSize}KB");
-
-// Output copy instructions
-log_header("Next Steps");
-echo "To use the new build:\n";
-echo COLORS['BLUE'] . "1. " . COLORS['RESET'] . "Copy " . COLORS['YELLOW'] . $pharFile . COLORS['RESET'] . " to your project\n";
-echo COLORS['BLUE'] . "2. " . COLORS['RESET'] . "Run " . COLORS['YELLOW'] . "composer dump-autoload" . COLORS['RESET'] . " in your project\n";
-echo COLORS['BLUE'] . "3. " . COLORS['RESET'] . "You're ready to go!\n\n";
