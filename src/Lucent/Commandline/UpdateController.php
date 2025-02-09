@@ -46,7 +46,7 @@ class UpdateController
                         $latestRelease['body'] ?? 'No release notes available.'
                     );
                 } else {
-                    return "You're running the latest version of Lucent (v{$currentVersion}). 👍";
+                    return "You're running the latest version of Lucent ({$currentVersion}). 👍\n";
                 }
             }
 
@@ -109,7 +109,7 @@ class UpdateController
                         $latestRelease['body'] ?? 'No release notes available.'
                     );
                 } else {
-                    return "You're running the latest version of Lucent (v{$currentVersion}). 👍";
+                    return "You're running the latest version of Lucent ({$currentVersion}). 👍\n";
                 }
             }
 
