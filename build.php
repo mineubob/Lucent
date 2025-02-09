@@ -1,6 +1,9 @@
 <?php
 
 // build.php
+if (ini_get('phar.readonly')) {
+    ini_set('phar.readonly', 0);
+}
 
 // ANSI color codes for output
 const COLORS = [
