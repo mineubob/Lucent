@@ -3,6 +3,7 @@
 namespace Lucent;
 
 use Lucent\Commandline\MigrationController;
+use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
@@ -255,6 +256,9 @@ class Application
         $this->boot();
 
         CommandLine::register("Migration make {class}","make", MigrationController::class);
+        CommandLine::register("update install","install", UpdateController::class);
+        CommandLine::register("update rollback", "rollback", UpdateController::class);
+
 
         if($args === []){
             $args = $_SERVER["argv"];
