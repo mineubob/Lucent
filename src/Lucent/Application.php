@@ -218,22 +218,34 @@ class Application
 
     private function LoadEnv(string $file): array
     {
-        $file = fopen(EXTERNAL_ROOT.$file,"r");
+        $file = fopen(EXTERNAL_ROOT.$file, "r");
         $output = [];
 
-        if($file){
-            while(($line = fgets($file)) !== false){
-                if(!str_contains($line,"#")) {
-                    if (trim($line) !== "") {
-                        $input = explode("=", $line);
-                        $output[$input[0]] = $input[1];
+        if($file) {
+            while(($line = fgets($file)) !== false) {
+                // Skip comments and empty lines
+                $line = trim($line);
+                if(empty($line) || str_starts_with($line, '#')) {
+                    continue;
+                }
+
+                // Find position of first equals sign
+                $pos = strpos($line, '=');
+                if($pos !== false) {
+                    $key = trim(substr($line, 0, $pos));
+                    $value = trim(substr($line, $pos + 1));
+
+                    // Remove quotes if present
+                    $value = trim($value, '"\'');
+
+                    if(!empty($key)) {
+                        $output[$key] = $value;
                     }
                 }
             }
         }
 
         fclose($file);
-
         return $output;
     }
 
