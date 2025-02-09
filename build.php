@@ -1,20 +1,94 @@
 <?php
 
 // build.php
+
+// ANSI color codes for output
+const COLORS = [
+    'GREEN' => "\033[32m",
+    'RED' => "\033[31m",
+    'YELLOW' => "\033[33m",
+    'BLUE' => "\033[34m",
+    'RESET' => "\033[0m",
+    'BOLD' => "\033[1m"
+];
+
+function log_step(string $message): void {
+    echo COLORS['BLUE'] . "→ " . COLORS['RESET'] . $message . PHP_EOL;
+}
+
+function log_success(string $message): void {
+    echo COLORS['GREEN'] . "✓ " . COLORS['RESET'] . $message . PHP_EOL;
+}
+
+function log_error(string $message): void {
+    echo COLORS['RED'] . "✗ " . COLORS['RESET'] . $message . PHP_EOL;
+}
+
+function log_warning(string $message): void {
+    echo COLORS['YELLOW'] . "! " . COLORS['RESET'] . $message . PHP_EOL;
+}
+
+function log_header(string $message): void {
+    echo PHP_EOL . COLORS['BOLD'] . COLORS['BLUE'] . "=== " . $message . " ===" . COLORS['RESET'] . PHP_EOL;
+}
+
+// Start build process
+log_header("Starting Lucent Framework Build Process");
+
 $pharFile = 'lucent.phar';
+$sourceDir = __DIR__ . DIRECTORY_SEPARATOR . "src";
+
+// Verify source directory exists
+if (!is_dir($sourceDir)) {
+    log_error("Source directory not found: $sourceDir");
+    exit(1);
+}
 
 // Clean up existing PHAR
 if (file_exists($pharFile)) {
-    unlink($pharFile);
+    log_step("Removing existing PHAR file...");
+    try {
+        unlink($pharFile);
+        log_success("Removed existing PHAR file");
+    } catch (Exception $e) {
+        log_error("Failed to remove existing PHAR: " . $e->getMessage());
+        exit(1);
+    }
 }
 
 // Create new PHAR
-$phar = new Phar($pharFile);
+log_step("Creating new PHAR archive...");
+try {
+    $phar = new Phar($pharFile);
+} catch (Exception $e) {
+    log_error("Failed to create PHAR: " . $e->getMessage());
+    exit(1);
+}
+
+// Count files to be added
+$fileCount = iterator_count(
+    new RegexIterator(
+        new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($sourceDir)
+        ),
+        '/\.(php|env)$/'
+    )
+);
+
+log_step("Found $fileCount files to package");
 
 // Start adding files
-$phar->buildFromDirectory(__DIR__.DIRECTORY_SEPARATOR."src", '/\.(php|env)$/');
+log_step("Adding files to PHAR...");
+try {
+    $phar->buildFromDirectory($sourceDir, '/\.(php|env)$/');
+    log_success("Successfully added all files to PHAR");
+} catch (Exception $e) {
+    log_error("Failed to build PHAR: " . $e->getMessage());
+    exit(1);
+}
 
-// Create custom stub
+// Create and set stub
+log_step("Creating PHAR stub...");
 $stub = <<<'EOF'
 <?php
 Phar::mapPhar();
@@ -25,5 +99,32 @@ require 'phar://' . __FILE__ . '/boostrap.php';
 __HALT_COMPILER();
 EOF;
 
-// Set the stub
-$phar->setStub($stub);
+try {
+    $phar->setStub($stub);
+    log_success("Successfully set PHAR stub");
+} catch (Exception $e) {
+    log_error("Failed to set PHAR stub: " . $e->getMessage());
+    exit(1);
+}
+
+// Verify PHAR
+log_step("Verifying PHAR file...");
+try {
+    $verify = new Phar($pharFile);
+    $fileCount = count($verify);
+    log_success("PHAR verification successful ($fileCount files)");
+} catch (Exception $e) {
+    log_error("PHAR verification failed: " . $e->getMessage());
+    exit(1);
+}
+
+// Calculate file size
+$fileSize = round(filesize($pharFile) / 1024, 2);
+log_success("Build complete! PHAR size: {$fileSize}KB");
+
+// Output copy instructions
+log_header("Next Steps");
+echo "To use the new build:\n";
+echo COLORS['BLUE'] . "1. " . COLORS['RESET'] . "Copy " . COLORS['YELLOW'] . $pharFile . COLORS['RESET'] . " to your project\n";
+echo COLORS['BLUE'] . "2. " . COLORS['RESET'] . "Run " . COLORS['YELLOW'] . "composer dump-autoload" . COLORS['RESET'] . " in your project\n";
+echo COLORS['BLUE'] . "3. " . COLORS['RESET'] . "You're ready to go!\n\n";
