@@ -5,12 +5,23 @@ if (Phar::running()) {
 
     $pharPath = Phar::running(false);
     $runningLocation = dirname($pharPath,2);
-
      define("EXTERNAL_ROOT",$runningLocation . DIRECTORY_SEPARATOR);
 
 } else {
     define("ROOT", getcwd() . DIRECTORY_SEPARATOR);
     define("EXTERNAL_ROOT", dirname(ROOT));
+}
+
+// Define the path to packages directory
+if (!defined('PACKAGES_ROOT')) {
+    define('PACKAGES_ROOT', EXTERNAL_ROOT . 'packages' . DIRECTORY_SEPARATOR);
+}
+
+// Check for Composer's autoloader in packages directory
+$composerAutoloader = PACKAGES_ROOT . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
+
+if (file_exists($composerAutoloader)) {
+    require_once $composerAutoloader;
 }
 
 const APP =  ROOT . 'App'.DIRECTORY_SEPARATOR;
