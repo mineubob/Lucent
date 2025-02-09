@@ -7,6 +7,8 @@ on:
     paths:
       - 'src/**'
       - 'build.php'
+      -
+  workflow_dispatch:
 
 # Explicitly set permissions
 permissions:
