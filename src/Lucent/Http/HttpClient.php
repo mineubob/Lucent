@@ -78,7 +78,7 @@ class HttpClient
         return $this->request('DELETE', $url, $data);
     }
 
-    private function request(string $method, string $url, array|string $data = null): HttpResponse
+    private function request(string $method, string $url, array|string|null $data = null): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
 
