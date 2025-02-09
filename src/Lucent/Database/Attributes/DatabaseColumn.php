@@ -45,4 +45,9 @@ class DatabaseColumn
         return $this->column;
     }
 
+    public function shouldSkip() : bool
+    {
+        return $this->column["AUTO_INCREMENT"];
+    }
+
 }
