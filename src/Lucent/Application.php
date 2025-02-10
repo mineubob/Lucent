@@ -85,7 +85,7 @@ class Application
 
     public function boot(): void
     {
-        date_default_timezone_set(App::Env("TIME_ZONE","Australia/Melbourne"));
+        date_default_timezone_set(App::env("TIME_ZONE","Australia/Melbourne"));
 
         foreach ($this->routes as $route){
             $this->httpRouter->setPrefix($route["prefix"]);

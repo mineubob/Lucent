@@ -58,11 +58,11 @@ class Database
     private static function getConnection(): mysqli
     {
 
-        $username = App::Env("DB_USERNAME");
-        $password = App::Env("DB_PASSWORD");
-        $host = App::Env("DB_HOST");
-        $port = App::Env("DB_PORT");
-        $database = App::Env("DB_DATABASE");
+        $username = App::env("DB_USERNAME");
+        $password = App::env("DB_PASSWORD");
+        $host = App::env("DB_HOST");
+        $port = App::env("DB_PORT");
+        $database = App::env("DB_DATABASE");
 
         return new mysqli($host,$username,$password,$database,$port);
     }
