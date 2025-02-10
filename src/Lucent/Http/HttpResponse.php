@@ -8,7 +8,7 @@ class HttpResponse
         private string|bool $body,
         private int $statusCode,
         private array $headers,
-        private string $error = '',
+        private ?string $error = null,
         private int $errorCode = 0
     ) {}
 
@@ -45,7 +45,7 @@ class HttpResponse
         return $this->headers;
     }
 
-    public function error(): string
+    public function error(): ?string
     {
         return $this->error;
     }
