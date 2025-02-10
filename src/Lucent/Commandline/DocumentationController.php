@@ -48,20 +48,47 @@ class DocumentationController
     {
         $documentation = [];
 
-        $controllers = glob(CONTROLLERS . '*.php');
-        foreach ($controllers as $file) {
-            $className = 'App\\Controllers\\' . basename($file, '.php');
-            $reflection = new ReflectionClass($className);
+        // Recursive function to scan directories
+        $scanDirectory = function(string $dir, string $namespace) use (&$scanDirectory, &$documentation) {
+            $files = scandir($dir);
 
-            foreach ($reflection->getMethods() as $method) {
-                $attributes = $method->getAttributes(ApiEndpoint::class);
+            foreach ($files as $file) {
+                // Skip . and .. directories
+                if ($file === '.' || $file === '..') {
+                    continue;
+                }
 
-                foreach ($attributes as $attribute) {
-                    $endpoint = $attribute->newInstance();
-                    $documentation[] = $this->processEndpoint($endpoint);
+                $path = $dir . DIRECTORY_SEPARATOR . $file;
+
+                if (is_dir($path)) {
+                    // Recursively scan subdirectories
+                    // Build the namespace based on PSR-4
+                    $subNamespace = $namespace . '\\' . $file;
+                    $scanDirectory($path, $subNamespace);
+                }
+                elseif (str_ends_with($file, '.php')) {
+                    try {
+                        // Build class name from namespace and filename
+                        $className = $namespace . '\\' . basename($file, '.php');
+                        $reflection = new ReflectionClass($className);
+
+                        foreach ($reflection->getMethods() as $method) {
+                            $attributes = $method->getAttributes(ApiEndpoint::class);
+
+                            foreach ($attributes as $attribute) {
+                                $endpoint = $attribute->newInstance();
+                                $documentation[] = $this->processEndpoint($endpoint);
+                            }
+                        }
+                    } catch (\ReflectionException $e) {
+                        echo "Warning: Could not reflect class {$className}: {$e->getMessage()}\n";
+                    }
                 }
             }
-        }
+        };
+
+        // Start scanning from the controllers directory with base namespace
+        $scanDirectory(CONTROLLERS, 'App\\Controllers');
 
         return $documentation;
     }
