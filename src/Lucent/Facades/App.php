@@ -10,11 +10,12 @@ namespace Lucent\Facades;
 
 use Lucent\Application;
 use Lucent\Commandline\MigrationController;
+use Phar;
 
 class App
 {
 
-    public static function Env(string $key, $default = null)
+    public static function env(string $key, $default = null)
     {
 
         $env = Application::getInstance()->getEnv();
@@ -27,24 +28,27 @@ class App
 
     }
 
-
-    public static function CurrentRequest(): array
+    public static function getLucentVersion() : ?string
     {
-        return Application::getInstance()->getResponse();
+        $currentPharPath = Phar::running(false);
+        $phar = new Phar($currentPharPath);
+        $metadata = $phar->getMetadata();
+
+        return $metadata['version'] ?? null;
     }
 
 
-    public static function RegisterRoutes(string $routeFile, $prefix = null): void
+    public static function registerRoutes(string $routeFile, $prefix = null): void
     {
         Application::getInstance()->loadRoutes($routeFile,$prefix);
     }
 
-    public static function RegisterCommands(string $commandFile): void
+    public static function registerCommands(string $commandFile): void
     {
         Application::getInstance()->loadCommands($commandFile);
     }
 
-    public static function Execute() : void
+    public static function execute() : void
     {
         if(PHP_SAPI === 'cli'){
             $_SERVER["REQUEST_METHOD"] = "CLI";
