@@ -5,7 +5,7 @@ namespace Lucent\Http;
 class HttpResponse
 {
     public function __construct(
-        private string|bool $body,
+        private string|bool|null $body,
         private int $statusCode,
         private array $headers,
         private ?string $error = null,
