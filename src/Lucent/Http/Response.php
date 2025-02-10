@@ -26,38 +26,46 @@ abstract class Response
         $this->statusCode = 200;
     }
 
-    public function setOutcome(bool $outcome){
+    public function setOutcome(bool $outcome) : Response
+    {
         $this->outcome = $outcome;
+        return $this;
     }
 
     public function getOutcome(){
         return $this->outcome;
     }
 
-    public function setMessage(string $message){
+    public function setMessage(string $message) : Response
+    {
         $this->message = $message;
+        return $this;
     }
 
-    public function setStatusCode(int $statusCode){
+    public function setStatusCode(int $statusCode) : Response
+    {
         $this->statusCode = $statusCode;
+        return $this;
     }
 
     public function getStatusCode(): int{
         return $this->statusCode;
     }
 
-    public function addContent(string $key, $content): void
+    public function addContent(string $key, $content): Response
     {
         $this->content[$key] = $content;
+        return $this;
     }
 
-    public function addError(string $key, $error){
+    public function addError(string $key, $error) : Response{
         $this->outcome = false;
         $this->statusCode = 400;
         $this->errors[$key] = $error;
+        return $this;
     }
 
-    public function addErrors(array $errors ,$message = ""): void
+    public function addErrors(array $errors ,$message = ""): Response
     {
         $this->outcome = false;
         $this->statusCode = 400;
@@ -65,6 +73,7 @@ abstract class Response
             $this->errors[$error] = $message;
 
         }
+        return $this;
     }
 
     public function getArray(): array
