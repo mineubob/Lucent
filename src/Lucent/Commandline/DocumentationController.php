@@ -16,7 +16,7 @@ class DocumentationController
         $documentation = $this->scanControllers();
 
         // Load our template
-        $template = file_get_contents(LUCENT . 'Templates' . DIRECTORY_SEPARATOR . 'api-docs.html');
+        $template = file_get_contents(LUCENT . 'Templates' . DIRECTORY_SEPARATOR . 'api-docs.php');
 
         // Replace our template variables
         $template = str_replace(
@@ -34,7 +34,7 @@ class DocumentationController
         );
 
         // Save to file
-        $outputPath = STORAGE . 'documentation' . DIRECTORY_SEPARATOR;
+        $outputPath = EXTERNAL_ROOT."storage" .DIRECTORY_SEPARATOR. 'documentation' . DIRECTORY_SEPARATOR;
         if (!file_exists($outputPath)) {
             mkdir($outputPath, 0755, true);
         }
