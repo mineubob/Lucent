@@ -3,24 +3,18 @@
 namespace Lucent\Commandline;
 
 use Exception;
+use Lucent\Facades\App;
 use Lucent\Http\HttpClient;
 use Phar;
 
 class UpdateController
 {
 
-    public function getCurrentVersion(){
-        $currentPharPath = Phar::running(false);
-        $phar = new Phar($currentPharPath);
-        $metadata = $phar->getMetadata();
-
-        return $metadata['version'] ?? null;
-    }
 
     public function check(): string
     {
         // Directly get version from PHAR metadata
-        $currentVersion = $this->getCurrentVersion();
+        $currentVersion = App::getLucentVersion();
 
         if (!$currentVersion) {
             return "Unable to determine current version.";
@@ -58,7 +52,7 @@ class UpdateController
 
     public function install(): string
     {
-        $currentVersion = $this->getCurrentVersion();
+        $currentVersion = App::getLucentVersion();
         $currentPharPath = Phar::running(false);
 
         if (!$currentVersion) {
