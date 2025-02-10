@@ -58,7 +58,6 @@ class UpdateController
 
     public function install(): string
     {
-        // Directly get version from PHAR metadata
         $currentVersion = $this->getCurrentVersion();
         $currentPharPath = Phar::running(false);
 
@@ -75,21 +74,20 @@ class UpdateController
                 $latestVersion = $latestRelease['tag_name'];
 
                 if (version_compare($currentVersion, $latestVersion, '<')) {
-                    // Prepare for update
+                    // Prepare paths
                     $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
                     $newPharPath = dirname($currentPharPath) . "/lucent-{$latestVersion}.phar";
                     $backupPharPath = dirname($currentPharPath) . "/lucent-{$currentVersion}.phar.old";
 
-                    // Download new PHAR
-                    $downloadResponse = new HttpClient()->get($downloadUrl);
+                    // Download new PHAR using the new download method
+                    $downloadResponse = $client->download($downloadUrl, $newPharPath);
 
                     if (!$downloadResponse->successful()) {
                         return "Failed to download update: " . $downloadResponse->error();
                     }
 
-                    // Save new PHAR
-                    file_put_contents($newPharPath, $downloadResponse->body());
-                    chmod($newPharPath, 0755); // Make executable
+                    // Make executable
+                    chmod($newPharPath, 0755);
 
                     // Backup current PHAR
                     copy($currentPharPath, $backupPharPath);
@@ -115,10 +113,13 @@ class UpdateController
 
             return "Unable to check for updates. Please check your internet connection.";
         } catch (Exception $e) {
+            // Clean up temporary files if they exist
+            if (isset($newPharPath) && file_exists($newPharPath)) {
+                unlink($newPharPath);
+            }
             return "Update check failed: " . $e->getMessage();
         }
     }
-
     public function rollback(): string
     {
         // Get the current running PHAR path
