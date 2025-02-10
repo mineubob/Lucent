@@ -87,18 +87,15 @@ class HttpClient
         $ch = curl_init();
         $options = [
             CURLOPT_URL => $fullUrl,
-            CURLOPT_RETURNTRANSFER => false, // Don't return the body
+            CURLOPT_RETURNTRANSFER => true, // Changed to true to check response
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
             CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 5
+            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_HEADER => true // Get headers in response
         ];
-
-        // Open file for writing
-        $fileHandle = fopen($destinationPath, 'wb');
-        $options[CURLOPT_FILE] = $fileHandle;
 
         // Handle headers
         $headers = [];
@@ -118,28 +115,85 @@ class HttpClient
         $error = curl_error($ch);
         $errno = curl_errno($ch);
 
-        // Close file handle
-        fclose($fileHandle);
+        // Check for curl errors first
+        if ($errno) {
+            Log::channel("db")->error("Download Error ({$errno}): {$error}");
+            return new HttpResponse(
+                body: null,
+                statusCode: 0,
+                headers: $info,
+                error: $error,
+                errorCode: $errno
+            );
+        }
+
+        // Check HTTP status code
+        if ($info['http_code'] !== 200) {
+            $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
+            Log::channel("db")->error($errorMsg);
+
+            // Try to parse response body for error details
+            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            $body = substr($response, $headerSize);
+
+            if ($json = json_decode($body, true)) {
+                $errorMsg .= " - " . ($json['message'] ?? 'Unknown error');
+            }
+
+            curl_close($ch);
+
+            return new HttpResponse(
+                body: null,
+                statusCode: $info['http_code'],
+                headers: $info,
+                error: $errorMsg,
+                errorCode: $info['http_code']
+            );
+        }
+
+        // Extract body without headers
+        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        $body = substr($response, $headerSize);
+
+        // Validate response body
+        if (empty($body)) {
+            $errorMsg = "Empty response received";
+            Log::channel("db")->error($errorMsg);
+            curl_close($ch);
+            return new HttpResponse(
+                body: null,
+                statusCode: $info['http_code'],
+                headers: $info,
+                error: $errorMsg,
+                errorCode: -1
+            );
+        }
+
+        // Write to file
+        if (file_put_contents($destinationPath, $body) === false) {
+            $errorMsg = "Failed to write to {$destinationPath}";
+            Log::channel("db")->error($errorMsg);
+            curl_close($ch);
+            return new HttpResponse(
+                body: null,
+                statusCode: $info['http_code'],
+                headers: $info,
+                error: $errorMsg,
+                errorCode: -1
+            );
+        }
 
         curl_close($ch);
 
-        // Handle download errors
-        if ($errno) {
-            // Remove the file if download failed
-            if (file_exists($destinationPath)) {
-                unlink($destinationPath);
-            }
-            Log::channel("db")->error("Download Error ({$errno}): {$error}");
-        }
-
         return new HttpResponse(
-            body: $destinationPath, // Return the path of the downloaded file
+            body: $destinationPath,
             statusCode: $info['http_code'],
             headers: $info,
-            error: $error,
-            errorCode: $errno
+            error: null,
+            errorCode: 0
         );
     }
+
 
     private function request(string $method, string $url, array|string|null $data = null): HttpResponse
     {
