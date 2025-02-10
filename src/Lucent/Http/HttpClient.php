@@ -78,6 +78,69 @@ class HttpClient
         return $this->request('DELETE', $url, $data);
     }
 
+    public function download(string $url, string $destinationPath): HttpResponse
+    {
+        $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
+
+        Log::channel("db")->info("Starting download from {$fullUrl}");
+
+        $ch = curl_init();
+        $options = [
+            CURLOPT_URL => $fullUrl,
+            CURLOPT_RETURNTRANSFER => false, // Don't return the body
+            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_USERAGENT => $this->userAgent,
+            CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
+            CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 5
+        ];
+
+        // Open file for writing
+        $fileHandle = fopen($destinationPath, 'wb');
+        $options[CURLOPT_FILE] = $fileHandle;
+
+        // Handle headers
+        $headers = [];
+        foreach ($this->headers as $key => $value) {
+            $headers[] = "{$key}: {$value}";
+        }
+
+        if (!empty($headers)) {
+            $options[CURLOPT_HTTPHEADER] = $headers;
+        }
+
+        curl_setopt_array($ch, $options);
+
+        // Execute request
+        $response = curl_exec($ch);
+        $info = curl_getinfo($ch);
+        $error = curl_error($ch);
+        $errno = curl_errno($ch);
+
+        // Close file handle
+        fclose($fileHandle);
+
+        curl_close($ch);
+
+        // Handle download errors
+        if ($errno) {
+            // Remove the file if download failed
+            if (file_exists($destinationPath)) {
+                unlink($destinationPath);
+            }
+            Log::channel("db")->error("Download Error ({$errno}): {$error}");
+        }
+
+        return new HttpResponse(
+            body: $destinationPath, // Return the path of the downloaded file
+            statusCode: $info['http_code'],
+            headers: $info,
+            error: $error,
+            errorCode: $errno
+        );
+    }
+
     private function request(string $method, string $url, array|string|null $data = null): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
