@@ -2,6 +2,7 @@
 
 namespace Lucent;
 
+use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
@@ -260,6 +261,8 @@ class Application
         CommandLine::register("update check", "check", UpdateController::class);
         CommandLine::register("update install","install", UpdateController::class);
         CommandLine::register("update rollback", "rollback", UpdateController::class);
+
+        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
 
         if($args === []){
             $args = $_SERVER["argv"];
