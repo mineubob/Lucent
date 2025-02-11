@@ -39,7 +39,7 @@ if (file_exists($originalPharFile)) {
 
     $app = Application::getInstance();
 
-    $log = new Channel("","local_file","phpunit.log");
+    $log = new Channel("phpunit","local_file","phpunit.log");
 
     $app->addLoggingChannel("phpunit",$log);
 
