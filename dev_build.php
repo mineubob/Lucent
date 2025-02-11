@@ -7,7 +7,7 @@ if (!is_dir($buildDir)) {
     mkdir($buildDir, 0777, true);
 }
 
-$version = 'v0.' . date('ymd')  . '.' . time();
+$version = 'v0.' . date('ymd')  . '.local';
 
 // Define the original pharFile path and our new path
 $originalPharFile = 'lucent.phar';
