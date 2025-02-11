@@ -92,12 +92,20 @@
             border-bottom: 1px solid var(--border-color);
             display: flex;
             align-items: center;
-            gap: 1rem;
+            flex-wrap: nowrap;
+            gap: 0.5rem;
         }
 
         .endpoint-path {
             font-family: 'SFMono-Regular', Consolas, monospace;
             color: #666;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .endpoint-path .parameter {
+            color: var(--primary-color);
         }
 
         .endpoint-content {
