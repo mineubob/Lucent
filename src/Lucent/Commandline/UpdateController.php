@@ -60,16 +60,17 @@ class UpdateController
         }
 
         try {
-            $client = new HttpClient('https://api.github.com');
-            $response = $client->get('/repos/jackharrispeninsulainteractive/Lucent/releases/latest');
+            $client = new HttpClient();
+            $response = $client->get('https://api.github.com/repos/jackharrispeninsulainteractive/Lucent/releases/latest');
 
             if ($response->successful()) {
                 $latestRelease = $response->json();
                 $latestVersion = $latestRelease['tag_name'];
 
-                if (version_compare($currentVersion, $latestVersion, '<')) {
+                if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion,"local")) {
                     // Prepare paths
                     $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
+
                     $newPharPath = dirname($currentPharPath) . "/lucent-{$latestVersion}.phar";
                     $backupPharPath = dirname($currentPharPath) . "/lucent-{$currentVersion}.phar.old";
 
@@ -121,7 +122,7 @@ class UpdateController
         $pharDirectory = dirname($currentPharPath);
 
         // Find backup PHARs
-        $backupFiles = glob($pharDirectory . '/lucent-*.phar.backup');
+        $backupFiles = glob($pharDirectory . '/lucent-*.phar.old');
 
         if (empty($backupFiles)) {
             return "No backup versions found to roll back to.";
@@ -135,20 +136,19 @@ class UpdateController
         $backupPharPath = $backupFiles[0];
 
         // Extract version from backup filename
-        preg_match('/lucent-(.+)\.phar\.backup/', $backupPharPath, $matches);
+        preg_match('/lucent-(.+)\.phar\.old/', $backupPharPath, $matches);
         $backupVersion = $matches[1] ?? 'unknown';
 
         try {
             // Create a backup of the current version (just in case)
-            $currentVersion = null;
             try {
                 $phar = new Phar($currentPharPath);
                 $metadata = $phar->getMetadata();
-                $currentVersion = $metadata['version'] ?? 'current';
+                $currentVersion = $metadata['version'];
             } catch (Exception $e) {
                 $currentVersion = 'unknown';
             }
-            $safetyBackupPath = $pharDirectory . "/lucent-{$currentVersion}.phar.safety-backup";
+            $safetyBackupPath = $pharDirectory . "/lucent-{$currentVersion}.phar.rollback.old";
             copy($currentPharPath, $safetyBackupPath);
 
             // Replace current PHAR with backup
