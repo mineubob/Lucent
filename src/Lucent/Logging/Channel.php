@@ -93,7 +93,21 @@ class Channel {
         $formattedMessage = $this->formatMessage($level, $message);
 
         if ($this->driver === 'local_file') {
-            $file = fopen(EXTERNAL_ROOT . "Logs" . DIRECTORY_SEPARATOR . $this->path, "a");
+            // Create logs directory if it doesn't exist
+            $logDir = EXTERNAL_ROOT . "logs";
+            if (!is_dir($logDir)) {
+                mkdir($logDir, 0755, true);
+            }
+
+            $logPath = $logDir . DIRECTORY_SEPARATOR . $this->path;
+
+            // Try to open file and handle any errors
+            $file = @fopen($logPath, "a");
+            if ($file === false) {
+                error_log("Failed to open log file: " . $logPath);
+                return;
+            }
+
             // Strip ANSI color codes for file logging
             fwrite($file, preg_replace('/\033\[[0-9;]*m/', '', $formattedMessage));
             fclose($file);
