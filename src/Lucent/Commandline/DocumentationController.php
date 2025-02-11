@@ -136,15 +136,17 @@ class DocumentationController
         if ($endpoint->rule) {
             // Generate success example
             $successRequest = Faker::request()->passing($endpoint->rule);
+
             if ($successRequest->validate($endpoint->rule)) {
-                $examples['success'] = Json::response()
+                $examples['success'] = new JsonResponse()
                     ->setOutcome(true)
                     ->setMessage('Request successfully executed.')
                     ->addContent('data', $successRequest->all());
             }
 
             // Generate failure example
-            $failRequest = Faker::request()->failing();
+            $failRequest = Faker::request()->failing($endpoint->rule);
+
             if (!$failRequest->validate($endpoint->rule)) {
                 $examples['failure'] = new JsonResponse()
                     ->setOutcome(false)
