@@ -26,7 +26,7 @@ if (file_exists($composerAutoloader)) {
 
 
 const APP =  ROOT . 'App'.DIRECTORY_SEPARATOR;
-const CONTROLLERS = APP.'Controllers'.DIRECTORY_SEPARATOR;
+const CONTROLLERS = EXTERNAL_ROOT."app".DIRECTORY_SEPARATOR.'controllers'.DIRECTORY_SEPARATOR;
 const VIEWS = APP .'Views'.DIRECTORY_SEPARATOR;
 
 const LUCENT  = ROOT . 'Lucent'.DIRECTORY_SEPARATOR;
