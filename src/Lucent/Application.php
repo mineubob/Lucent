@@ -13,6 +13,7 @@ use Lucent\Facades\View;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
+use Lucent\Logging\NullChannel;
 use ReflectionClass;
 use ReflectionMethod;
 
@@ -48,20 +49,10 @@ class Application
             fclose($file);
         }
 
-        //Check if we have a logs folder, if not
-        //then we create the folder.
-        if(!file_exists(EXTERNAL_ROOT."Logs")){
-            mkdir(EXTERNAL_ROOT."Logs", 0755);
-        }
-
         //Load the env file
         $this->env = $this->LoadEnv(".env");
 
-        $channel = new Channel("local_file","db-log.txt");
-        $this->loggers["db"] = $channel;
-
-        $vmLog = new Channel("local_file","virtualmin-log.txt");
-        $this->loggers["virtualmin"] = $vmLog;
+        $this->loggers["blank"] = new NullChannel();
     }
 
     public function addLoggingChannel(string $key, Channel $log): void
@@ -71,6 +62,9 @@ class Application
 
     public function getLoggingChannel(string $key) : Channel
     {
+        if(!array_key_exists($key, $this->loggers)){
+            return $this->loggers["blank"];
+        }
         return $this->loggers[$key];
     }
 
