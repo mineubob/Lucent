@@ -4,7 +4,6 @@ namespace Lucent\Commandline;
 
 use Lucent\Facades\App;
 use Lucent\Facades\Faker;
-use Lucent\Facades\Json;
 use Lucent\Facades\Log;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\JsonResponse;
