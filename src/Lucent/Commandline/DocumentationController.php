@@ -5,6 +5,7 @@ namespace Lucent\Commandline;
 use Lucent\Facades\App;
 use Lucent\Facades\Faker;
 use Lucent\Facades\Json;
+use Lucent\Facades\Log;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\JsonResponse;
 use ReflectionClass;
@@ -44,44 +45,78 @@ class DocumentationController
         return "API documentation generated successfully at " . $outputPath . "api.html";
     }
 
-    private function scanControllers(): array
+    public function scanControllers(): array
     {
         $documentation = [];
 
+        // Verify CONTROLLERS constant
+        if (!defined('CONTROLLERS')) {
+            Log::channel("phpunit")->error("CONTROLLERS constant is not defined");
+            return [];
+        }
+
+        if (!is_dir(CONTROLLERS)) {
+            Log::channel("phpunit")->error("Controllers directory does not exist: " . CONTROLLERS);
+            return [];
+        }
+
+        Log::channel("phpunit")->info("Starting scan in directory: " . CONTROLLERS);
+
         // Recursive function to scan directories
         $scanDirectory = function(string $dir, string $namespace) use (&$scanDirectory, &$documentation) {
+            Log::channel("phpunit")->info("Scanning directory: " . $dir);
+            Log::channel("phpunit")->info("Using namespace: " . $namespace);
+
+            if (!is_dir($dir)) {
+                Log::channel("phpunit")->error("Directory does not exist: " . $dir);
+                return;
+            }
+
             $files = scandir($dir);
+            Log::channel("phpunit")->info("Found files: " . implode(", ", $files));
 
             foreach ($files as $file) {
-                // Skip . and .. directories
                 if ($file === '.' || $file === '..') {
                     continue;
                 }
 
                 $path = $dir . DIRECTORY_SEPARATOR . $file;
+                Log::channel("phpunit")->info("Processing path: " . $path);
 
                 if (is_dir($path)) {
-                    // Recursively scan subdirectories
-                    // Build the namespace based on PSR-4
+                    Log::channel("phpunit")->info("Found subdirectory: " . $file);
                     $subNamespace = $namespace . '\\' . $file;
                     $scanDirectory($path, $subNamespace);
                 }
                 elseif (str_ends_with($file, '.php')) {
+                    Log::channel("phpunit")->info("Found PHP file: " . $file);
                     try {
-                        // Build class name from namespace and filename
                         $className = $namespace . '\\' . basename($file, '.php');
+                        Log::channel("phpunit")->info("Attempting to reflect class: " . $className);
+
+                        if (!class_exists($className)) {
+                            Log::channel("phpunit")->info("Class not found, requiring file: " . $path);
+                            require_once $path;
+                        }
+
                         $reflection = new ReflectionClass($className);
+                        Log::channel("phpunit")->info("Successfully reflected class: " . $className);
 
                         foreach ($reflection->getMethods() as $method) {
+                            Log::channel("phpunit")->info("Checking method: " . $method->getName());
                             $attributes = $method->getAttributes(ApiEndpoint::class);
+                            Log::channel("phpunit")->info("Found " . count($attributes) . " API endpoint attributes");
 
                             foreach ($attributes as $attribute) {
+                                Log::channel("phpunit")->info("Processing attribute for method: " . $method->getName());
                                 $endpoint = $attribute->newInstance();
                                 $documentation[] = $this->processEndpoint($endpoint);
                             }
                         }
                     } catch (\ReflectionException $e) {
-                        echo "Warning: Could not reflect class {$className}: {$e->getMessage()}\n";
+                        Log::channel("phpunit")->error("ReflectionException for {$className}: " . $e->getMessage());
+                    } catch (\Exception $e) {
+                        Log::channel("phpunit")->error("General Exception while processing {$className}: " . $e->getMessage());
                     }
                 }
             }
@@ -90,9 +125,9 @@ class DocumentationController
         // Start scanning from the controllers directory with base namespace
         $scanDirectory(CONTROLLERS, 'App\\Controllers');
 
+        Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
-
     private function processEndpoint(ApiEndpoint $endpoint): array
     {
         $examples = [];

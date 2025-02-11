@@ -81,8 +81,9 @@ class HttpClient
     public function download(string $url, string $destinationPath): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
+        $downloadPath = EXTERNAL_ROOT."storage".DIRECTORY_SEPARATOR."downloads".DIRECTORY_SEPARATOR;
 
-        Log::channel("db")->info("Starting download from {$fullUrl}");
+        Log::channel("phpunit")->info("Starting download from {$fullUrl}");
 
         $ch = curl_init();
         $options = [
@@ -117,7 +118,7 @@ class HttpClient
 
         // Check for curl errors first
         if ($errno) {
-            Log::channel("db")->error("Download Error ({$errno}): {$error}");
+            Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
             return new HttpResponse(
                 body: null,
                 statusCode: 0,
@@ -130,7 +131,7 @@ class HttpClient
         // Check HTTP status code
         if ($info['http_code'] !== 200) {
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
-            Log::channel("db")->error($errorMsg);
+            Log::channel("phpunit")->error($errorMsg);
 
             // Try to parse response body for error details
             $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
@@ -158,7 +159,7 @@ class HttpClient
         // Validate response body
         if (empty($body)) {
             $errorMsg = "Empty response received";
-            Log::channel("db")->error($errorMsg);
+            Log::channel("phpunit")->error($errorMsg);
             curl_close($ch);
             return new HttpResponse(
                 body: null,
@@ -169,10 +170,14 @@ class HttpClient
             );
         }
 
+        if (!is_dir($downloadPath)) {
+            mkdir($downloadPath, 0755, true);
+        }
+
         // Write to file
-        if (file_put_contents($destinationPath, $body) === false) {
-            $errorMsg = "Failed to write to {$destinationPath}";
-            Log::channel("db")->error($errorMsg);
+        if (file_put_contents($downloadPath.DIRECTORY_SEPARATOR.$destinationPath, $body) === false) {
+            $errorMsg = "Failed to write to storage/downloads/{$destinationPath}";
+            Log::channel("phpunit")->error($errorMsg);
             curl_close($ch);
             return new HttpResponse(
                 body: null,
@@ -199,7 +204,7 @@ class HttpClient
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
 
-        Log::channel("db")->info("Starting {$method} request to {$fullUrl}");
+        Log::channel("phpunit")->info("Starting {$method} request to {$fullUrl}");
 
         $ch = curl_init();
         $options = [
@@ -257,7 +262,7 @@ class HttpClient
 
         // Log any errors
         if ($error) {
-            Log::channel("db")->error("cURL Error ({$errno}): {$error}");
+            Log::channel("phpunit")->error("cURL Error ({$errno}): {$error}");
         }
 
         return new HttpResponse(

@@ -1,0 +1,8 @@
+{
+    "require-dev": {
+        "phpunit/phpunit": "^12.0"
+    },
+  "require": {
+    "ext-curl": "*"
+  }
+}

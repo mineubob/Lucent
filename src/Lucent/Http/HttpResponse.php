@@ -5,10 +5,10 @@ namespace Lucent\Http;
 class HttpResponse
 {
     public function __construct(
-        private string|bool $body,
+        private string|bool|null $body,
         private int $statusCode,
         private array $headers,
-        private string $error = '',
+        private ?string $error = null,
         private int $errorCode = 0
     ) {}
 
@@ -45,7 +45,7 @@ class HttpResponse
         return $this->headers;
     }
 
-    public function error(): string
+    public function error(): ?string
     {
         return $this->error;
     }
