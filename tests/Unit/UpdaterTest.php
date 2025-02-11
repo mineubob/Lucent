@@ -12,7 +12,7 @@ class UpdaterTest extends TestCase
     public function test_update_install(): void
     {
         $updater = new UpdateController();
-        $buildDir = dirname(__DIR__,2).'/build/tmp/';
+        $buildDir = EXTERNAL_ROOT."/packages/";
         $pharPath = $buildDir.'lucent.phar';
 
         echo $updater->install();
@@ -34,7 +34,7 @@ class UpdaterTest extends TestCase
     public function test_update_rollback(): void
     {
         $updater = new UpdateController();
-        $buildDir = dirname(__DIR__,2).'/build/tmp/';
+        $buildDir = dirname(__DIR__,2).'/temp_install/packages/';
 
         echo $updater->rollback();
 
