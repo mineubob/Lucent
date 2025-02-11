@@ -9,7 +9,7 @@ use Phar;
 
 class UpdateController
 {
-
+    private const DOWNLOADS_PATH = EXTERNAL_ROOT . "storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
 
     public function check(): string
     {
@@ -67,28 +67,44 @@ class UpdateController
                 $latestRelease = $response->json();
                 $latestVersion = $latestRelease['tag_name'];
 
-                if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion,"local")) {
+                if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
                     // Prepare paths
                     $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
+                    $tempFileName = "lucent-{$latestVersion}.phar";
+                    $targetPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$latestVersion}.phar";
+                    $backupPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$currentVersion}.phar.old";
 
-                    $newPharPath = dirname($currentPharPath) . "/lucent-{$latestVersion}.phar";
-                    $backupPharPath = dirname($currentPharPath) . "/lucent-{$currentVersion}.phar.old";
-
-                    // Download new PHAR using the new download method
-                    $downloadResponse = $client->download($downloadUrl, $newPharPath);
+                    // Download new PHAR to storage/downloads
+                    $downloadResponse = $client->download($downloadUrl, $tempFileName);
 
                     if (!$downloadResponse->successful()) {
                         return "Failed to download update: " . $downloadResponse->error();
                     }
 
+                    $downloadedFilePath = self::DOWNLOADS_PATH . $tempFileName;
+
+                    // Verify the downloaded file exists
+                    if (!file_exists($downloadedFilePath)) {
+                        return "Download failed: File not found in downloads directory";
+                    }
+
+                    // Copy from downloads to target location
+                    if (!copy($downloadedFilePath, $targetPharPath)) {
+                        unlink($downloadedFilePath);
+                        return "Failed to copy downloaded file to target location";
+                    }
+
+                    // Clean up downloaded file
+                    unlink($downloadedFilePath);
+
                     // Make executable
-                    chmod($newPharPath, 0755);
+                    chmod($targetPharPath, 0755);
 
                     // Backup current PHAR
                     copy($currentPharPath, $backupPharPath);
 
                     // Replace current PHAR
-                    rename($newPharPath, $currentPharPath);
+                    rename($targetPharPath, $currentPharPath);
 
                     return sprintf(
                         "Successfully updated Lucent! 🎉\n" .
@@ -109,12 +125,16 @@ class UpdateController
             return "Unable to check for updates. Please check your internet connection.";
         } catch (Exception $e) {
             // Clean up temporary files if they exist
-            if (isset($newPharPath) && file_exists($newPharPath)) {
-                unlink($newPharPath);
+            if (isset($downloadedFilePath) && file_exists($downloadedFilePath)) {
+                unlink($downloadedFilePath);
+            }
+            if (isset($targetPharPath) && file_exists($targetPharPath)) {
+                unlink($targetPharPath);
             }
             return "Update check failed: " . $e->getMessage();
         }
     }
+
     public function rollback(): string
     {
         // Get the current running PHAR path
