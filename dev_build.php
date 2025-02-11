@@ -1,6 +1,11 @@
 <?php
 // local-build.php
-$buildDir = __DIR__ . '/build/tmp';
+use Lucent\Application;
+use Lucent\Logging\Channel;
+
+cleanupDirectory(__DIR__ . '/temp_install');
+
+$buildDir = __DIR__ . '/temp_install/packages';
 
 // Create build directory if it doesn't exist
 if (!is_dir($buildDir)) {
@@ -8,6 +13,8 @@ if (!is_dir($buildDir)) {
 }
 
 $version = 'v0.' . date('ymd')  . '.local';
+
+const TEMP_ROOT = __DIR__ . DIRECTORY_SEPARATOR."temp_install".DIRECTORY_SEPARATOR;
 
 // Define the original pharFile path and our new path
 $originalPharFile = 'lucent.phar';
@@ -29,9 +36,31 @@ if (file_exists($originalPharFile)) {
     log_success("Phar built successfully with version $version in $newPharFile\n");
 
     require_once $newPharFile;
+
+    $app = Application::getInstance();
+
+    $log = new Channel("","local_file","phpunit.log");
+
+    $app->addLoggingChannel("phpunit",$log);
+
 }else {
 
     log_error("Fatal error, failed to build phar.\n");
     die;
+}
+
+
+function cleanupDirectory(string $dir): void
+{
+    if (!is_dir($dir)) {
+        return;
+    }
+
+    $files = array_diff(scandir($dir), ['.', '..']);
+    foreach ($files as $file) {
+        $path = $dir . DIRECTORY_SEPARATOR . $file;
+        is_dir($path) ? cleanupDirectory($path) : unlink($path);
+    }
+    rmdir($dir);
 }
 
