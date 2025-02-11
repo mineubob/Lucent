@@ -2,6 +2,7 @@
 
 namespace Lucent\Faker;
 
+use Lucent\Facades\Log;
 use Lucent\Http\Request;
 
 class FakeRequest extends Request
@@ -22,7 +23,7 @@ class FakeRequest extends Request
         $rule = new $ruleClass();
         $this->fakeData = [];
 
-        foreach ($rule->rules as $field => $rules) {
+        foreach ($rule->getRules() as $field => $rules) {
             $this->fakeData[$field] = $this->generateValidValue($field);
         }
 
@@ -48,7 +49,7 @@ class FakeRequest extends Request
     {
         return match($field) {
             'email' => 'example@domain.com',
-            'password' => 'SecureP@ss123',
+            'password', 'password_confirmation' => 'SecureP@ss123',
             'full_name' => 'John Doe',
             'phone' => '+1234567890',
             'date' => '2025-02-10',

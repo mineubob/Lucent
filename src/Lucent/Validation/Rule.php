@@ -9,7 +9,7 @@ abstract class Rule
 {
 
     private string $password_regex = '^(?=.*[a-z])(?=.*[A-Z]).{8,}$^';
-    protected array $rules = [];
+    public protected(set) array $rules = [];
 
     protected ?Request $currentRequest = null;
 
@@ -130,6 +130,11 @@ abstract class Rule
         }
 
         return $output;
+    }
+
+    public function getRules(): array
+    {
+        return $this->setup();
     }
 
     private function getVar(string $rule): string{

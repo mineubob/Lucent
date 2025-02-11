@@ -12,6 +12,7 @@ class ApiGenerationTest extends TestCase
     {
         $docsController = new DocumentationController();
 
+        $this->generateTestRule();
         $this->generateTestController();
 
         $docsController->generateApi();
@@ -21,12 +22,65 @@ class ApiGenerationTest extends TestCase
 
     public function test_api_endpoint_detection(): void
     {
+        $this->generateTestRule();
         $this->generateTestController();
 
         $docsController = new DocumentationController();
         $result = $docsController->scanControllers();
 
         $this->assertCount(2, $result);
+    }
+
+
+    private function generateTestRule(): void
+    {
+        $ruleContent = <<<'PHP'
+        <?php
+        namespace App\Rules;
+        
+        use Lucent\Validation\Rule;
+        
+        class SignupRule extends Rule
+        {
+        
+            public function setup(): array
+            {
+                return [
+                    "email" => [
+                        "regex:email",
+                        "max:255"
+                    ],
+                    "full_name" => [
+                        "min:2",
+                        "min:2",
+                        "max:100"
+                    ],
+                    "password" => [
+                        "regex:password",
+                        "min:8",
+                        "max:255"
+                    ],
+                    "password_confirmation" => [
+                        "same:password"
+                    ]
+                ];
+            }
+        }
+        PHP;
+
+
+        $appPath = TEMP_ROOT. "app";
+        $rulePath = $appPath . DIRECTORY_SEPARATOR . "rules";
+
+        if (!is_dir($rulePath)) {
+            mkdir($rulePath, 0755, true);
+        }
+
+        file_put_contents(
+            $rulePath.DIRECTORY_SEPARATOR.'SignupRule.php',
+            $ruleContent
+        );
+
     }
 
 
@@ -37,24 +91,30 @@ class ApiGenerationTest extends TestCase
         namespace App\Controllers;
         
         use Lucent\Http\Attributes\ApiEndpoint;
-        
-        class MultiEndpointController
+        use Lucent\Http\Request;
+        use App\Rules\SignupRule;
+
+        class RegistrationController
         {
             #[ApiEndpoint(
-                description: 'First endpoint',
-                path: '/test1',
-                method: 'GET'
+                description: 'New account registration',
+                path: '/auth/register',
+                method: 'POST',
+                rule: SignupRule::class,
             )]
-            public function test1()
+            public function register(Request $request)
             {
             }
         
             #[ApiEndpoint(
-                description: 'Second endpoint',
-                path: '/test2',
-                method: 'POST'
+                description: 'Session validation',
+                path: '/auth/validate/{session}',
+                method: 'GET',
+                pathParams: [
+                    "session" => "The users current authentication session key."
+                ]
             )]
-            public function test2()
+            public function validate($session)
             {
             }
         }
@@ -69,7 +129,7 @@ class ApiGenerationTest extends TestCase
         }
 
         file_put_contents(
-            $controllerPath.DIRECTORY_SEPARATOR.'MultiEndpointController.php',
+            $controllerPath.DIRECTORY_SEPARATOR.'RegistrationController.php',
             $controllerContent
         );
     }
