@@ -109,15 +109,21 @@ abstract class Router
             }
         }
 
-        // Normalize URL for CLI
-        $url = preg_replace('/\s+/', $separator, trim($url));
+        // Remove any protocol, domain, or query string
+        $url = parse_url($url, PHP_URL_PATH);
 
-        Log::channel('phpunit')->info("Processing CLI URL: " . $url);
+        // Decode URL to handle special characters
+        $url = urldecode($url);
+
+        Log::channel('phpunit')->info("Processing raw URL: " . $url);
 
         // Remove query string if present
         if ($pos = strpos($url, "?")) {
             $url = substr($url, 0, $pos);
         }
+
+        // Normalize URL for CLI
+        $url = preg_replace('/\s+/', $separator, trim($url));
 
         // Normalize slashes and trim
         $url = trim($url, '/');
