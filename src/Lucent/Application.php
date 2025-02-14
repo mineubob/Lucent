@@ -9,7 +9,6 @@ use Lucent\Facades\CommandLine;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Facades\App;
-use Lucent\Facades\View;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
@@ -128,7 +127,7 @@ class Application
         array_push($this->routes, ["file"=>$route,"prefix"=>$prefix]);
     }
 
-    public function executeHttpRequest(): void
+    public function executeHttpRequest(): string
     {
         $this->boot();
 
@@ -137,32 +136,41 @@ class Application
         $this->response = $response;
         $request = new Request();
 
-        //Validate if we have a valid route.
-        if (!$response["outcome"] && array_key_exists(404, $this->errorPages)) {
+        if (!$response["outcome"]) {
+            http_response_code(404);
 
-            foreach ($this->errorPages[404]["middleware"] as $middleware) {
-                $object = new $middleware();
-                $object->handle($request);
-            }
-            //require_once VIEWS . $this->errorPages[404]["view"];
-            var_dump("NO ERROR PAGE YET DUE TO PHAR PORT");
-            die;
+            $response = new JsonResponse()
+                ->setStatusCode(404)
+                ->setOutcome(false)
+                ->setMessage("Invalid API route.");
+
+            return json_encode($response->getArray());
         }
 
-        if (!$response["outcome"] && !array_key_exists(404, $this->errorPages)) {
-            var_dump("404 page not found!");
-            die;
+        // Verify controller exists before trying to instantiate it
+        if (!class_exists($response["controller"])) {
+            http_response_code(500);
+
+            $response = new JsonResponse()
+                ->setStatusCode(500)
+                ->setOutcome(false)
+                ->setMessage("Controller class '" . $response["controller"] . "' not found");
+
+            return json_encode($response->getArray());
         }
 
         $controller = new $response["controller"]();
 
         //Check if we have a valid method, if not throw a 500 error.
         if (!method_exists($controller, $response["method"])) {
+            http_response_code(500);
 
-            $view = View::load("error" . DIRECTORY_SEPARATOR . "500.php", 500);
-            View::Bag()->put("error", "Method : " . $response["method"] . ", not found in controller : " . $response["controller"]);
-            $view->execute();
-            die;
+            $response = new JsonResponse()
+                ->setStatusCode(500)
+                ->setOutcome(false)
+                ->setMessage("Method '" . $response["method"] . "' not found in controller '" . $response["controller"] . "'");
+
+            return json_encode($response->getArray());
         }
 
         //Next we check if we have any variables to pass, if not we run the method.
@@ -193,7 +201,7 @@ class Application
             header('Content-Type: application/json; charset=utf-8');
         }
 
-        echo $result->execute();
+        return $result->execute();
     }
 
     private function requiresHttpRequest(ReflectionMethod $method): ?string
@@ -245,7 +253,7 @@ class Application
         return $output;
     }
 
-    public function executeConsoleCommand($args = []): void
+    public function executeConsoleCommand($args = []): string
     {
 
         $this->boot();
@@ -265,15 +273,13 @@ class Application
         $response = $this->consoleRouter->AnalyseRouteAndLookup($args);
 
         if(!$response["outcome"]){
-            echo "Invalid command, please try again!";
-            die;
+            return "Invalid command, please try again!";
         }
 
         $controller = new $response["controller"]();
 
         if(!method_exists($controller,$response["method"])) {
-            echo "Invalid command execution method provided, method: '".$response["method"]."' does not exist inside ".$controller::class;
-            die;
+            return "Invalid command execution method provided, method: '".$response["method"]."' does not exist inside ".$controller::class;
         }
 
         //Next this as we have not returned we have variables to pass
@@ -285,11 +291,11 @@ class Application
 
         //Check our var count matches our parameter count, if not return a error.
         if($argCount !== $varCount){
-            echo "Method handler error, invalid amount of arguments accepted, required = ".$varCount.", provided = ".$argCount;
+            return "Method handler error, invalid amount of arguments accepted, required = ".$varCount.", provided = ".$argCount;
             die;
         }
 
-        echo $method->invokeArgs($controller,$response["variables"]);
+        return $method->invokeArgs($controller,$response["variables"]);
     }
 
     public function getResponse() : array
