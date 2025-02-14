@@ -21,14 +21,13 @@ class CommandLine
 
     }
 
-    public static function execute(string $command): void
+    public static function execute(string $command): string
     {
 
         $args = explode(" ",$command);
-        array_unshift($args,"cli.php");
         $_SERVER["REQUEST_METHOD"] = Router::$ROUTE_CLI;
 
-        Application::getInstance()->executeConsoleCommand(explode(" ",$command));
+        return Application::getInstance()->executeConsoleCommand($args);
 
     }
 }
