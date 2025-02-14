@@ -48,19 +48,9 @@ class App
         Application::getInstance()->loadCommands($commandFile);
     }
 
-    public static function execute() : void
+    public static function execute() : string
     {
-        if(PHP_SAPI === 'cli'){
-            $_SERVER["REQUEST_METHOD"] = "CLI";
-
-            // Register default routes
-            CommandLine::register("Migration make {class}", "make", MigrationController::class);
-
-        // The user should load other routes by calling App::RegisterCommand()
-            Application::getInstance()->executeConsoleCommand();
-        }else{
-            Application::getInstance()->executeHttpRequest();
-        }
+        return Application::getInstance()->executeHttpRequest();
     }
 
 
