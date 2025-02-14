@@ -93,13 +93,26 @@ abstract class Router
     /**
      * Convert a URI to an array of segments, removing empty segments
      */
+    /**
+     * Modify getUriAsArray for more flexible CLI argument parsing
+     */
     public function getUriAsArray(?string $url = null, string $separator = "/"): array
     {
+        // If no URL provided, check for CLI arguments
         if ($url === null) {
-            $url = $_SERVER["REQUEST_URI"] ?? '';
+            // Check if running in CLI mode
+            if (php_sapi_name() === 'cli') {
+                // Use global $_SERVER['argv'] for CLI arguments
+                $url = implode(' ', array_slice($_SERVER['argv'], 1));
+            } else {
+                $url = $_SERVER["REQUEST_URI"] ?? '';
+            }
         }
 
-        Log::channel('phpunit')->info("Processing URL: " . $url);
+        // Normalize URL for CLI
+        $url = preg_replace('/\s+/', $separator, trim($url));
+
+        Log::channel('phpunit')->info("Processing CLI URL: " . $url);
 
         // Remove query string if present
         if ($pos = strpos($url, "?")) {
@@ -109,18 +122,17 @@ abstract class Router
         // Normalize slashes and trim
         $url = trim($url, '/');
 
-        Log::channel('phpunit')->info("Normalized URL: " . $url);
+        Log::channel('phpunit')->info("Normalized CLI URL: " . $url);
 
         // Split and filter empty segments
         $segments = array_values(array_filter(explode($separator, $url), function($segment) {
             return $segment !== '';
         }));
 
-        Log::channel('phpunit')->info("URL segments: " . implode(', ', $segments));
+        Log::channel('phpunit')->info("CLI URL segments: " . implode(', ', $segments));
 
         return $segments;
     }
-
     /**
      * Find and analyze a matching route for the current request
      */
