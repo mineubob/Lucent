@@ -3,10 +3,10 @@ name: PHP Tests
 on:
   push:
     branches:
-      - main
+      - development
   pull_request:
-  workflow_call:
-
+    branches:
+      - development
 jobs:
   test:
     runs-on: ubuntu-latest
