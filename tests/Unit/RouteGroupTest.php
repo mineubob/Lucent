@@ -206,8 +206,8 @@ class RouteGroupTest extends TestCase
         PHP;
 
 
-        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/app';
-        $controllerPath = $appPath . '/controllers';
+        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/App';
+        $controllerPath = $appPath . '/Controllers';
 
         if (!is_dir($controllerPath)) {
             mkdir($controllerPath, 0755, true);
@@ -241,8 +241,8 @@ class RouteGroupTest extends TestCase
         }
         PHP;
 
-        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/app';
-        $controllerPath = $appPath . '/controllers';
+        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/App';
+        $controllerPath = $appPath . '/Controllers';
 
         if (!is_dir($controllerPath)) {
             mkdir($controllerPath, 0755, true);
