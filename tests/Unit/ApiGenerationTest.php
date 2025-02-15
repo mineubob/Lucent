@@ -68,8 +68,8 @@ class ApiGenerationTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
-        $rulePath = $appPath . DIRECTORY_SEPARATOR . "rules";
+        $appPath = TEMP_ROOT. "App";
+        $rulePath = $appPath . DIRECTORY_SEPARATOR . "Rules";
 
         if (!is_dir($rulePath)) {
             mkdir($rulePath, 0755, true);

@@ -114,8 +114,8 @@ class ConsoleCommandTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
-        $commandsPath = $appPath . DIRECTORY_SEPARATOR . "commands";
+        $appPath = TEMP_ROOT. "App";
+        $commandsPath = $appPath . DIRECTORY_SEPARATOR . "Commands";
 
         if (!is_dir($commandsPath)) {
             mkdir($commandsPath, 0755, true);
