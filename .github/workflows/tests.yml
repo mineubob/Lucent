@@ -1,5 +1,4 @@
 name: PHP Tests
-
 on:
   push:
     branches:
@@ -7,13 +6,11 @@ on:
   pull_request:
     branches:
       - development
-  workflow_call:
-  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -36,12 +33,23 @@ jobs:
         run: |
           mkdir -p temp_install/packages
           mkdir -p temp_install/app/commands
+          mkdir -p temp_install/app/controllers
+          mkdir -p temp_install/app/rules
+          mkdir -p temp_install/routes
+          mkdir -p temp_install/storage/downloads
+          mkdir -p temp_install/storage/documentation
+          chmod -R 755 temp_install
 
       - name: Build PHAR for testing
-        run: php dev_build.php
+        run: |
+          php dev_build.php
+          # Verify the PHAR exists and is readable
+          test -f temp_install/packages/lucent.phar || (echo "PHAR not created" && exit 1)
 
       - name: Run tests
         run: |
+          # Set working directory to ensure correct paths
+          cd ${{ github.workspace }}
           ./vendor/bin/phpunit --configuration phpunit.xml
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
