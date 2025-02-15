@@ -206,18 +206,19 @@ class RouteGroupTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
-        $controllerPath = $appPath . DIRECTORY_SEPARATOR . "controllers";
+        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/app';
+        $controllerPath = $appPath . '/controllers';
 
         if (!is_dir($controllerPath)) {
             mkdir($controllerPath, 0755, true);
         }
 
         file_put_contents(
-            $controllerPath.DIRECTORY_SEPARATOR.'RouteGroupTestingController.php',
+            $controllerPath . '/RouteGroupTestingController.php',
             $controllerContent
         );
     }
+
 
     public static function generateSecondRestController(): void
     {
@@ -240,16 +241,15 @@ class RouteGroupTest extends TestCase
         }
         PHP;
 
-
-        $appPath = TEMP_ROOT. "app";
-        $controllerPath = $appPath . DIRECTORY_SEPARATOR . "controllers";
+        $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/app';
+        $controllerPath = $appPath . '/controllers';
 
         if (!is_dir($controllerPath)) {
             mkdir($controllerPath, 0755, true);
         }
 
         file_put_contents(
-            $controllerPath.DIRECTORY_SEPARATOR.'SecondRestController.php',
+            $controllerPath . '/SecondRestController.php',
             $controllerContent
         );
     }
@@ -326,13 +326,13 @@ class RouteGroupTest extends TestCase
 
         PHP;
 
-        $routesPath = TEMP_ROOT . DIRECTORY_SEPARATOR . "routes";
+        $routesPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/routes';
 
         if (!is_dir($routesPath)) {
             mkdir($routesPath, 0755, true);
         }
 
-        file_put_contents($routesPath . DIRECTORY_SEPARATOR . "web.php", $routesContent);
+        file_put_contents($routesPath . '/web.php', $routesContent);
 
     }
 }
