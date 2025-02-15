@@ -1,0 +1,2 @@
+[![PHP Tests](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml/badge.svg?branch=development)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml)
+[![Build and Release](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/build.yml/badge.svg)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/build.yml)
