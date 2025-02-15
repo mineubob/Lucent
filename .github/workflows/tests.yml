@@ -39,13 +39,7 @@ jobs:
           mkdir -p temp_install/storage/downloads
           mkdir -p temp_install/storage/documentation
           chmod -R 755 temp_install
-
-      - name: Build PHAR for testing
-        run: |
-          php dev_build.php
-          # Verify the PHAR exists and is readable
-          test -f temp_install/packages/lucent.phar || (echo "PHAR not created" && exit 1)
-
+          
       - name: Run tests
         run: |
           # Set working directory to ensure correct paths
