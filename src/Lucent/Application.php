@@ -8,7 +8,6 @@ use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
-use Lucent\Facades\App;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
@@ -25,14 +24,6 @@ class Application
     private array $commands = [];
     private static ?Application $instance = null;
     private array $env;
-    private array $policies = [];
-
-    private array $errorPages = [];
-
-    private array $response;
-
-    private array $modelCache = [];
-
     private array $loggers = [];
 
     public function __construct(){
@@ -49,7 +40,7 @@ class Application
         }
 
         //Load the env file
-        $this->env = $this->LoadEnv(".env");
+        $this->env = $this->LoadEnv();
 
         $this->loggers["blank"] = new NullChannel();
     }
@@ -67,32 +58,16 @@ class Application
         return $this->loggers[$key];
     }
 
-    public function addModelToCache(string $table,string $pk,$model): void
-    {
-        $this->modelCache[$table][$pk] = $model;
-    }
-
-    public function getModelFromCache($table, $pk): Model
-    {
-        return $this->modelCache[$table][$pk];
-    }
-
     public function boot(): void
     {
-        date_default_timezone_set(App::env("TIME_ZONE","Australia/Melbourne"));
-
         foreach ($this->routes as $route){
-            $this->httpRouter->setPrefix($route["prefix"]);
-            $this->httpRouter->loadRoutes($route["file"],$route["prefix"]);
-            $this->httpRouter->setPrefix(null);
+            $this->httpRouter->loadRoutes($route["file"]);
         }
 
         foreach ($this->commands as $command){
             require_once EXTERNAL_ROOT.$command;
         }
-
     }
-
 
     public function getEnv(): array
     {
@@ -117,14 +92,9 @@ class Application
         return $this->consoleRouter;
     }
 
-    public function setErrorPage(int $code,string $view,array $middleware) : void
+    public function loadRoutes(string $route): void
     {
-        $this->errorPages[$code] = ["view"=>$view,"middleware"=>$middleware];
-    }
-
-    public function loadRoutes(string $route, ?string $prefix = null): void
-    {
-        array_push($this->routes, ["file"=>$route,"prefix"=>$prefix]);
+        $this->routes[] = ["file" => $route];
     }
 
     public function executeHttpRequest(): string
@@ -133,7 +103,6 @@ class Application
 
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
 
-        $this->response = $response;
         $request = new Request();
 
         if (!$response["outcome"]) {
@@ -220,9 +189,9 @@ class Application
         return $name;
     }
 
-    private function LoadEnv(string $file): array
+    private function LoadEnv(): array
     {
-        $file = fopen(EXTERNAL_ROOT.$file, "r");
+        $file = fopen(EXTERNAL_ROOT. ".env", "r");
         $output = [];
 
         if($file) {
@@ -267,7 +236,8 @@ class Application
         CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
 
         if($args === []){
-            $args = $_SERVER["argv"];
+            $args = array_slice($_SERVER["argv"],1);
+            $args = str_replace("\n", "", $args);
         }
 
         $response = $this->consoleRouter->AnalyseRouteAndLookup($args);
@@ -276,10 +246,14 @@ class Application
             return "Invalid command, please try again!";
         }
 
+        if (!class_exists($response["controller"])) {
+            return "Ops! We can seem to find the class '".$response["controller"]."' please recheck your command registration.";
+        }
+
         $controller = new $response["controller"]();
 
         if(!method_exists($controller,$response["method"])) {
-            return "Invalid command execution method provided, method: '".$response["method"]."' does not exist inside ".$controller::class;
+            return "Ops! We cant seem to find the method '".$response["method"]."' inside '".$controller::class."' please recheck your command registration.";
         }
 
         //Next this as we have not returned we have variables to pass
@@ -291,19 +265,13 @@ class Application
 
         //Check our var count matches our parameter count, if not return a error.
         if($argCount !== $varCount){
-            return "Method handler error, invalid amount of arguments accepted, required = ".$varCount.", provided = ".$argCount;
-            die;
+            return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$varCount." parameters and ".$argCount." were provided.";
         }
 
         return $method->invokeArgs($controller,$response["variables"]);
     }
 
-    public function getResponse() : array
-    {
-        return $this->response;
-    }
-
-    public function loadCommands(string $commandFile)
+    public function loadCommands(string $commandFile): void
     {
         array_push($this->commands, $commandFile);
     }
