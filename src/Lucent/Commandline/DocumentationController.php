@@ -4,9 +4,9 @@ namespace Lucent\Commandline;
 
 use Lucent\Facades\App;
 use Lucent\Facades\Faker;
-use Lucent\Facades\Json;
 use Lucent\Facades\Log;
 use Lucent\Http\Attributes\ApiEndpoint;
+use Lucent\Http\Attributes\ApiResponse;
 use Lucent\Http\JsonResponse;
 use ReflectionClass;
 
@@ -102,7 +102,12 @@ class DocumentationController
                         $reflection = new ReflectionClass($className);
                         Log::channel("phpunit")->info("Successfully reflected class: " . $className);
 
+
+
                         foreach ($reflection->getMethods() as $method) {
+                            $endpoint = null;
+                            $responses = [];
+
                             Log::channel("phpunit")->info("Checking method: " . $method->getName());
                             $attributes = $method->getAttributes(ApiEndpoint::class);
                             Log::channel("phpunit")->info("Found " . count($attributes) . " API endpoint attributes");
@@ -110,9 +115,19 @@ class DocumentationController
                             foreach ($attributes as $attribute) {
                                 Log::channel("phpunit")->info("Processing attribute for method: " . $method->getName());
                                 $endpoint = $attribute->newInstance();
-                                $documentation[] = $this->processEndpoint($endpoint);
                             }
+
+                            $attributes = $method->getAttributes(ApiResponse::class);
+
+                            Log::channel("phpunit")->info("Found: " . count($attributes) . " API response attributes");
+                            foreach ($attributes as $attribute) {
+                                Log::channel("phpunit")->info("Processing attribute for method: " . $method->getName());
+                                $responses[] = $attribute->newInstance();
+                            }
+
+                            $documentation[] = $this->processEndpoint($endpoint,$responses);
                         }
+
                     } catch (\ReflectionException $e) {
                         Log::channel("phpunit")->error("ReflectionException for {$className}: " . $e->getMessage());
                     } catch (\Exception $e) {
@@ -128,35 +143,40 @@ class DocumentationController
         Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
-    private function processEndpoint(ApiEndpoint $endpoint): array
+    private function processEndpoint(ApiEndpoint $endpoint, array $responses): array
     {
         $examples = [];
         $validationRules = null;
 
+        // Process validation rules if they exist
         if ($endpoint->rule) {
-            // Generate success example
-            $successRequest = Faker::request()->passing($endpoint->rule);
+            $ruleInstance = new ($endpoint->rule);
+            $validationRules = $ruleInstance->setup();
 
-            if ($successRequest->validate($endpoint->rule)) {
-                $examples['success'] = new JsonResponse()
-                    ->setOutcome(true)
-                    ->setMessage('Request successfully executed.')
-                    ->addContent('data', $successRequest->all());
-            }
-
-            // Generate failure example
+            // Generate validation example using faker
             $failRequest = Faker::request()->failing($endpoint->rule);
-
             if (!$failRequest->validate($endpoint->rule)) {
-                $examples['failure'] = new JsonResponse()
+                $examples['400'] = new JsonResponse()
                     ->setOutcome(false)
                     ->setStatusCode(400)
                     ->addErrors($failRequest->getValidationErrors());
             }
+        }
 
-            // Get validation rules
-            $ruleInstance = new ($endpoint->rule);
-            $validationRules = $ruleInstance->setup();
+        // Process API responses
+        foreach ($responses as $response) {
+            $jsonResponse = new JsonResponse();
+            $jsonResponse->setMessage($response->message)
+                ->setOutcome($response->outcome)
+                ->setStatusCode($response->status);
+
+            if (!empty($responseInstance->errors)) {
+                foreach ($responseInstance->errors as $key => $error) {
+                    $jsonResponse->addError($key, $error);
+                }
+            }
+
+            $examples[$response->status] = $jsonResponse;
         }
 
         return [
@@ -216,20 +236,16 @@ class DocumentationController
             $examples = '<div class="response-section">
                 <h3>Response Examples</h3>';
 
-            if (isset($endpoint['examples']['success'])) {
-                $examples .= '<div class="response">
-                    <div class="response-header">Success Response (200)</div>
-                    <div class="response-body">
-                        <pre>' . json_encode($endpoint['examples']['success']->getArray(), JSON_PRETTY_PRINT) . '</pre>
-                    </div>
-                </div>';
-            }
+            // Sort examples by status code
+            ksort($endpoint['examples']);
 
-            if (isset($endpoint['examples']['failure'])) {
+            foreach ($endpoint['examples'] as $status => $response) {
+                $responseType = $this->getResponseType($status);
+
                 $examples .= '<div class="response">
-                    <div class="response-header">Validation Error (400)</div>
+                    <div class="response-header">' . $responseType . ' (' . $status . ')</div>
                     <div class="response-body">
-                        <pre>' . json_encode($endpoint['examples']['failure']->getArray(), JSON_PRETTY_PRINT) . '</pre>
+                        <pre>' . json_encode($response->getArray(), JSON_PRETTY_PRINT) . '</pre>
                     </div>
                 </div>';
             }
@@ -258,6 +274,20 @@ class DocumentationController
             </div>
         </div>
         HTML;
+    }
+
+    private function getResponseType(int $status): string
+    {
+        return match(true) {
+            $status >= 200 && $status < 300 => 'Success',
+            $status === 400 => 'Validation Error',
+            $status === 401 => 'Unauthorized',
+            $status === 403 => 'Forbidden',
+            $status === 404 => 'Not Found',
+            $status >= 400 && $status < 500 => 'Client Error',
+            $status >= 500 => 'Server Error',
+            default => 'Unknown'
+        };
     }
 
 }

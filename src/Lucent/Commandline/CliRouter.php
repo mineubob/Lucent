@@ -1,26 +1,27 @@
 <?php
-/**
- * Copyright Jack Harris
- * Peninsula Interactive - policyManager-AuthApi
- * Last Updated - 8/11/2023
- */
 
 namespace Lucent\Commandline;
-
 
 use Lucent\Router;
 
 class CliRouter extends Router
 {
-
-
-    public function registerRoute(string $uri, string $type, string $method, $controller): void
+    /**
+     * Register a new route with optional controller and middleware
+     */
+    public function registerRoute(string $uri, string $type, string $method, ?string $controller = null, array $middleware = []): void
     {
-
-        $this->routes[$type][$uri] = ["controller"=>$controller,"method"=>$method];
+        $this->routes[$type][$uri] = [
+            "controller" => $controller,
+            "method" => $method,
+            "middleware" => array_merge($this->middleware, $middleware)
+        ];
     }
 
-    function loadRoutes(string $file, ?string $prefix = null): void
+    /**
+     * Load routes from a file
+     */
+    public function loadRoutes(string $file, ?string $prefix = null): void
     {
         require_once EXTERNAL_ROOT.$file;
     }

@@ -1,5 +1,4 @@
 name: Build and Release Lucent PHAR
-
 on:
   push:
     branches:
@@ -7,15 +6,13 @@ on:
     paths:
       - 'src/**'
       - 'build.php'
-      -
   workflow_dispatch:
 
-# Explicitly set permissions
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,7 +22,46 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
+          extensions: phar
+          tools: composer:v2
+          coverage: xdebug
+          ini-values: phar.readonly=0
+
+      - name: Install PHPUnit
+        run: |
+          composer require --dev phpunit/phpunit
+          composer dump-autoload
+
+      - name: Create temp directories
+        run: |
+          mkdir -p temp_install/packages
+          mkdir -p temp_install/App/Commands
+          mkdir -p temp_install/App/Controllers
+          mkdir -p temp_install/App/Rules
+          mkdir -p temp_install/routes
+          mkdir -p temp_install/storage/downloads
+          mkdir -p temp_install/storage/documentation
+          chmod -R 755 temp_install
+
+      - name: Run tests
+        run: |
+          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml
+        env:
+          TEMP_ROOT: ${{ github.workspace }}/temp_install/
+
+  build-and-release:
+    needs: test  # This ensures tests must pass before building
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'  # Updated to match test environment
           extensions: phar
           tools: composer:v2
           ini-values: phar.readonly=0

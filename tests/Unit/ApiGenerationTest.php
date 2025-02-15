@@ -52,7 +52,6 @@ class ApiGenerationTest extends TestCase
                     ],
                     "full_name" => [
                         "min:2",
-                        "min:2",
                         "max:100"
                     ],
                     "password" => [
@@ -69,8 +68,8 @@ class ApiGenerationTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
-        $rulePath = $appPath . DIRECTORY_SEPARATOR . "rules";
+        $appPath = TEMP_ROOT. "App";
+        $rulePath = $appPath . DIRECTORY_SEPARATOR . "Rules";
 
         if (!is_dir($rulePath)) {
             mkdir($rulePath, 0755, true);
@@ -91,7 +90,7 @@ class ApiGenerationTest extends TestCase
         namespace App\Controllers;
         
         use Lucent\Http\Attributes\ApiEndpoint;
-        use Lucent\Http\Request;
+        use Lucent\Http\Attributes\ApiResponse;use Lucent\Http\JsonResponse;use Lucent\Http\Request;
         use App\Rules\SignupRule;
 
         class RegistrationController
@@ -99,11 +98,16 @@ class ApiGenerationTest extends TestCase
             #[ApiEndpoint(
                 description: 'New account registration',
                 path: '/auth/register',
-                method: 'POST',
                 rule: SignupRule::class,
+                method: 'POST'
+            )]
+            #[ApiResponse(
+                outcome: true,
+                message: "Successfully created your new account, please check your email to confirm accounts activation."
             )]
             public function register(Request $request)
             {
+            
             }
         
             #[ApiEndpoint(
@@ -113,6 +117,16 @@ class ApiGenerationTest extends TestCase
                 pathParams: [
                     "session" => "The users current authentication session key."
                 ]
+            )]
+            #[ApiResponse(
+                outcome: true,
+                message: "OK",
+                status: 200
+            )]
+            #[ApiResponse(
+                outcome: false,
+                message: "Ops! your login may have expired, please login again.",
+                status: 401
             )]
             public function validate($session)
             {

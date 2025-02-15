@@ -1,5 +1,4 @@
 name: PHP Tests
-
 on:
   push:
     branches:
@@ -7,6 +6,7 @@ on:
   pull_request:
     branches:
       - development
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,7 +18,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: phar
           tools: composer:v2
           coverage: xdebug
@@ -28,18 +28,19 @@ jobs:
         run: |
           composer require --dev phpunit/phpunit
           composer dump-autoload
-
       - name: Create temp directories
         run: |
           mkdir -p temp_install/packages
-          mkdir -p temp_install/app/commands
-
-      - name: Build PHAR for testing
-        run: php dev_build.php
-
+          mkdir -p temp_install/App/Commands
+          mkdir -p temp_install/App/Controllers
+          mkdir -p temp_install/App/Rules
+          mkdir -p temp_install/routes
+          mkdir -p temp_install/storage/downloads
+          mkdir -p temp_install/storage/documentation
+          chmod -R 755 temp_install
       - name: Run tests
         run: |
-          ./vendor/bin/phpunit --configuration phpunit.xml
+          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
 
