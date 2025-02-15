@@ -1,0 +1,54 @@
+name: PHP Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: phar
+          tools: composer:v2
+          coverage: xdebug
+          ini-values: phar.readonly=0
+
+      - name: Install PHPUnit
+        run: |
+          composer require --dev phpunit/phpunit
+          composer dump-autoload
+
+      - name: Create temp directories
+        run: |
+          mkdir -p temp_install/packages
+          mkdir -p temp_install/app/commands
+
+      - name: Build PHAR for testing
+        run: php dev_build.php
+
+      - name: Run tests
+        run: |
+          ./vendor/bin/phpunit --configuration phpunit.xml
+        env:
+          TEMP_ROOT: ${{ github.workspace }}/temp_install/
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: |
+            phpunit.log
+            temp_install/
