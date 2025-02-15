@@ -32,19 +32,17 @@ jobs:
       - name: Create temp directories
         run: |
           mkdir -p temp_install/packages
-          mkdir -p temp_install/app/commands
-          mkdir -p temp_install/app/controllers
-          mkdir -p temp_install/app/rules
+          mkdir -p temp_install/App/Commands
+          mkdir -p temp_install/App/Controllers
+          mkdir -p temp_install/App/Rules
           mkdir -p temp_install/routes
           mkdir -p temp_install/storage/downloads
           mkdir -p temp_install/storage/documentation
           chmod -R 755 temp_install
-          
+
       - name: Run tests
         run: |
-          # Set working directory to ensure correct paths
-          cd ${{ github.workspace }}
-          ./vendor/bin/phpunit --configuration phpunit.xml
+          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
 
