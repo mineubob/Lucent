@@ -3,8 +3,10 @@ name: PHP Tests
 on:
   push:
     branches:
-      - main
+      - development
   pull_request:
+    branches:
+      - development
   workflow_call:
   workflow_dispatch:
 
