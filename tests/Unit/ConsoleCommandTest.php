@@ -47,8 +47,13 @@ class ConsoleCommandTest extends TestCase
         //As we are executing a new php process, we need to register our command in the cli script file, not here.
         //CommandLine::register("test run", "run", TestCommand::class);
 
-        chdir('../../temp_install/');
-        $output = shell_exec('php cli test run');
+        $tempInstallPath = realpath(__DIR__ . '/../../temp_install/');
+        if (!$tempInstallPath) {
+            $this->fail('temp_install directory not found');
+        }
+
+        chdir($tempInstallPath);
+        $output = shell_exec('php ' . $tempInstallPath . DIRECTORY_SEPARATOR . 'cli test run');
 
         $this->assertEquals("Test command successfully run", $output);
     }
