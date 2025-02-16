@@ -12,7 +12,7 @@ class HttpClientTest extends TestCase
     {
         $client = new HttpClient();
 
-        $download_url = "https://file-examples.com/storage/fe21422a6d67aa28993b797/2017/10/file-example_PDF_1MB.pdf";
+        $download_url = "https://jackgharris.com/test.csv";
         $saved_path = 'downloaded.pdf';  // Added filename
 
         // Ensure directory exists
@@ -31,8 +31,8 @@ class HttpClientTest extends TestCase
 
         $client = new HttpClient();
 
-        $download_url = "https://file-examples.com/storage/fe21422a6d67aa28993b797/2017/10/file-example_PDF_1MB.pdfasdad";
-        $saved_path = 'downloaded.pdf';  // Added filename
+        $download_url = "https://jackgharris.com/testasdasdas.csv";
+        $saved_path = 'downloaded2.pdf';  // Added filename
 
         // Ensure directory exists
         $dir = dirname($saved_path);
@@ -42,7 +42,7 @@ class HttpClientTest extends TestCase
 
         $response = $client->download($download_url, $saved_path);
 
-        $this->assertFalse(!file_exists(EXTERNAL_ROOT."storage/downloads/".$saved_path) && !$response->successful());
+        $this->assertFalse(file_exists(EXTERNAL_ROOT."storage/downloads/".$saved_path) && !$response->successful());
 
     }
 
