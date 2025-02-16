@@ -1,21 +1,11 @@
 <?php
 
-if (Phar::running()) {
-    define("ROOT", Phar::running() . "/");
+define("ROOT", Phar::running() . "/");
 
-    $pharPath = Phar::running(false);
-    $runningLocation = dirname($pharPath,2);
-     define("EXTERNAL_ROOT",$runningLocation . DIRECTORY_SEPARATOR);
-
-} else {
-    define("ROOT", getcwd() . DIRECTORY_SEPARATOR);
-    define("EXTERNAL_ROOT", dirname(ROOT));
-}
-
-// Define the path to packages directory
-if (!defined('PACKAGES_ROOT')) {
-    define('PACKAGES_ROOT', EXTERNAL_ROOT . 'packages' . DIRECTORY_SEPARATOR);
-}
+$pharPath = Phar::running(false);
+$runningLocation = dirname($pharPath,2);
+define("EXTERNAL_ROOT",$runningLocation . DIRECTORY_SEPARATOR);
+const PACKAGES_ROOT = EXTERNAL_ROOT . 'packages' . DIRECTORY_SEPARATOR;
 
 // Check for Composer's autoloader in packages directory
 $composerAutoloader = PACKAGES_ROOT . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
@@ -24,11 +14,8 @@ if (file_exists($composerAutoloader)) {
     require_once $composerAutoloader;
 }
 
-
-const APP =  ROOT . 'App'.DIRECTORY_SEPARATOR;
+const APP =  EXTERNAL_ROOT . 'App'.DIRECTORY_SEPARATOR;
 const CONTROLLERS = EXTERNAL_ROOT."app".DIRECTORY_SEPARATOR.'controllers'.DIRECTORY_SEPARATOR;
-const VIEWS = APP .'Views'.DIRECTORY_SEPARATOR;
-
 const LUCENT  = ROOT . 'Lucent'.DIRECTORY_SEPARATOR;
 
 $modules = [LUCENT,EXTERNAL_ROOT];
