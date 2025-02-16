@@ -28,7 +28,6 @@ jobs:
         run: |
           composer require --dev phpunit/phpunit
           composer dump-autoload
-
       - name: Create temp directories
         run: |
           mkdir -p temp_install/packages
@@ -39,7 +38,6 @@ jobs:
           mkdir -p temp_install/storage/downloads
           mkdir -p temp_install/storage/documentation
           chmod -R 755 temp_install
-
       - name: Run tests
         run: |
           php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml
