@@ -3,6 +3,7 @@
 namespace Unit;
 
 use Lucent\Commandline\UpdateController;
+use Lucent\Facades\File;
 use Phar;
 use PHPUnit\Framework\TestCase;
 
@@ -12,7 +13,7 @@ class UpdaterTest extends TestCase
     public function test_update_install(): void
     {
         $updater = new UpdateController();
-        $buildDir = EXTERNAL_ROOT."/packages/";
+        $buildDir = File::rootPath()."/packages/";
         $pharPath = $buildDir.'lucent.phar';
 
         echo $updater->install();
@@ -34,7 +35,7 @@ class UpdaterTest extends TestCase
     public function test_update_rollback(): void
     {
         $updater = new UpdateController();
-        $buildDir = dirname(__DIR__,2).'/temp_install/packages/';
+        $buildDir = File::rootPath()."/packages/";
 
         echo $updater->rollback();
 
