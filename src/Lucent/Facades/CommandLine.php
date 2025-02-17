@@ -17,7 +17,7 @@ class CommandLine
     public static function register(string $command, string $method, $class): void
     {
 
-        Application::getInstance()->getConsoleRouter()->registerRoute($command,CliRouter::$ROUTE_CLI,$method,$class);
+        Application::getInstance()->consoleRouter->registerRoute($command,CliRouter::$ROUTE_CLI,$method,$class);
 
     }
 
