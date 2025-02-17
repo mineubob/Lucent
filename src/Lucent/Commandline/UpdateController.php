@@ -4,12 +4,17 @@ namespace Lucent\Commandline;
 
 use Exception;
 use Lucent\Facades\App;
+use Lucent\Facades\File;
 use Lucent\Http\HttpClient;
 use Phar;
 
 class UpdateController
 {
-    private const DOWNLOADS_PATH = EXTERNAL_ROOT . "storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
+    private string $downloadPath;
+
+    public function __construct(){
+        $this->downloadPath = File::rootPath(). "storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
+    }
 
     public function check(): string
     {
@@ -29,18 +34,18 @@ class UpdateController
 
                 if (version_compare($currentVersion, $latestVersion, '<')) {
                     return sprintf(
-                        "Update available! 🚀\n" .
-                        "Current version: %s\n" .
-                        "Latest version:  %s\n\n" .
-                        "Download: %s\n\n" .
-                        "Release Notes:\n%s",
+                        "Update available! 🚀".PHP_EOL .
+                        "Current version: %s".PHP_EOL .
+                        "Latest version:  %s".PHP_EOL .
+                        "Download: %s".PHP_EOL .
+                        "Release Notes:".PHP_EOL."%s",
                         $currentVersion,
                         $latestVersion,
                         $latestRelease['assets'][0]['browser_download_url'],
                         $latestRelease['body'] ?? 'No release notes available.'
                     );
                 } else {
-                    return "You're running the latest version of Lucent ({$currentVersion}). 👍\n";
+                    return "You're running the latest version of Lucent ({$currentVersion}). 👍".PHP_EOL;
                 }
             }
 
@@ -81,7 +86,7 @@ class UpdateController
                         return "Failed to download update: " . $downloadResponse->error();
                     }
 
-                    $downloadedFilePath = self::DOWNLOADS_PATH . $tempFileName;
+                    $downloadedFilePath = $this->downloadPath . $tempFileName;
 
                     // Verify the downloaded file exists
                     if (!file_exists($downloadedFilePath)) {
@@ -107,7 +112,7 @@ class UpdateController
                     rename($targetPharPath, $currentPharPath);
 
                     return sprintf(
-                        "Successfully updated Lucent! 🎉\n" .
+                        "Successfully updated Lucent! 🎉".PHP_EOL .
                         "Old version: %s\n" .
                         "New version: %s\n\n" .
                         "Backup of old version saved at: %s\n\n" .
