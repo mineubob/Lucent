@@ -1,11 +1,20 @@
 <?php
 
+use Lucent\Facades\File;
+
 define("ROOT", Phar::running() . "/");
 
 $pharPath = Phar::running(false);
 $runningLocation = dirname($pharPath,2);
-define("EXTERNAL_ROOT",$runningLocation . DIRECTORY_SEPARATOR);
-const PACKAGES_ROOT = EXTERNAL_ROOT . 'packages' . DIRECTORY_SEPARATOR;
+
+define("RUNNING_LOCATION", $runningLocation . DIRECTORY_SEPARATOR);
+const LUCENT = ROOT . "Lucent" . DIRECTORY_SEPARATOR;
+
+require_once LUCENT . "Facades".DIRECTORY_SEPARATOR."File.php";
+
+File::overrideRootPath(RUNNING_LOCATION);
+
+define("PACKAGES_ROOT", File::rootPath() . 'packages' . DIRECTORY_SEPARATOR);
 
 // Check for Composer's autoloader in packages directory
 $composerAutoloader = PACKAGES_ROOT . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
@@ -14,11 +23,10 @@ if (file_exists($composerAutoloader)) {
     require_once $composerAutoloader;
 }
 
-const APP =  EXTERNAL_ROOT . 'App'.DIRECTORY_SEPARATOR;
-const CONTROLLERS = EXTERNAL_ROOT."app".DIRECTORY_SEPARATOR.'controllers'.DIRECTORY_SEPARATOR;
-const LUCENT  = ROOT . 'Lucent'.DIRECTORY_SEPARATOR;
+define("APP", File::rootPath() . 'App' . DIRECTORY_SEPARATOR);
+define("CONTROLLERS", File::rootPath() . "app" . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR);
 
-$modules = [LUCENT,EXTERNAL_ROOT];
+$modules = [LUCENT,File::rootPath()];
 
 set_include_path(get_include_path().PATH_SEPARATOR.implode(PATH_SEPARATOR,$modules));
 
@@ -31,7 +39,7 @@ spl_autoload_register(function ($class) {
     if(str_starts_with($file, 'Lucent')) {
         $basePath = $pharPath ? "phar://$pharPath" : __DIR__;
     }else{
-        $basePath = EXTERNAL_ROOT;
+        $basePath = File::rootPath();
     }
 
     // Full path to target file
