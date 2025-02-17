@@ -2,6 +2,8 @@
 
 namespace Lucent\Logging;
 
+use Lucent\Facades\File;
+
 class Channel {
     private string $channel;
     private string $driver;
@@ -94,7 +96,7 @@ class Channel {
 
         if ($this->driver === 'local_file') {
             // Create logs directory if it doesn't exist
-            $logDir = EXTERNAL_ROOT . "logs";
+            $logDir = File::rootPath() . "logs";
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }

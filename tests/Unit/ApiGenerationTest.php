@@ -3,6 +3,7 @@
 namespace Unit;
 
 use Lucent\Commandline\DocumentationController;
+use Lucent\Facades\File;
 use PHPUnit\Framework\TestCase;
 
 class ApiGenerationTest extends TestCase
@@ -17,7 +18,7 @@ class ApiGenerationTest extends TestCase
 
         $docsController->generateApi();
 
-        $this->assertTrue(file_exists(EXTERNAL_ROOT."storage".DIRECTORY_SEPARATOR."documentation".DIRECTORY_SEPARATOR."api.html"));
+        $this->assertTrue(file_exists(File::rootPath()."storage".DIRECTORY_SEPARATOR."documentation".DIRECTORY_SEPARATOR."api.html"));
     }
 
     public function test_api_endpoint_detection(): void

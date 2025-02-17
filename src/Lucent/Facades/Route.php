@@ -15,7 +15,7 @@ class Route
 {
 
     public static function rest() : RestRouteBuilder{
-        return new RestRouteBuilder(Application::getInstance()->getHttpRouter());
+        return new RestRouteBuilder(Application::getInstance()->httpRouter);
     }
 
 

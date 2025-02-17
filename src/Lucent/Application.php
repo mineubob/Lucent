@@ -6,6 +6,7 @@ use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
+use Lucent\Facades\File;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Http\HttpRouter;
@@ -17,8 +18,8 @@ use ReflectionMethod;
 
 class Application
 {
-    private HttpRouter $httpRouter;
-    private CliRouter $consoleRouter;
+    public private(set) HttpRouter $httpRouter;
+    public private(set) CliRouter $consoleRouter;
 
     private array $routes = [];
     private array $commands = [];
@@ -34,13 +35,13 @@ class Application
 
         //Check if we have a .env file present, if not
         //then we create the file.
-        if(!file_exists(EXTERNAL_ROOT.".env")){
-            $file = fopen(EXTERNAL_ROOT.".env","w");
+        if(!file_exists(File::rootPath().".env")){
+            $file = fopen(File::rootPath().".env","w");
             fclose($file);
         }
 
         //Load the env file
-        $this->env = $this->LoadEnv();
+        $this->LoadEnv();
 
         $this->loggers["blank"] = new NullChannel();
     }
@@ -65,7 +66,7 @@ class Application
         }
 
         foreach ($this->commands as $command){
-            require_once EXTERNAL_ROOT.$command;
+            require_once File::rootPath().$command;
         }
     }
 
@@ -81,15 +82,6 @@ class Application
         }
 
         return Application::$instance;
-    }
-
-    public function getHttpRouter(): HttpRouter{
-        return $this->httpRouter;
-    }
-
-    public function getConsoleRouter() : CliRouter
-    {
-        return $this->consoleRouter;
     }
 
     public function loadRoutes(string $route): void
@@ -189,9 +181,10 @@ class Application
         return $name;
     }
 
-    private function LoadEnv(): array
+    public function LoadEnv(): void
     {
-        $file = fopen(EXTERNAL_ROOT. ".env", "r");
+
+        $file = fopen(File::rootPath(). ".env", "r");
         $output = [];
 
         if($file) {
@@ -219,7 +212,8 @@ class Application
         }
 
         fclose($file);
-        return $output;
+
+        $this->env = $output;
     }
 
     public function executeConsoleCommand($args = []): string
