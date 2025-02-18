@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,9 +12,24 @@
             --warning-color: #f39c12;
             --danger-color: #e74c3c;
             --text-color: #333;
+            --endpoint-path-text-color: #666;
             --border-color: #e1e4e8;
             --bg-color: #f8f9fa;
+            --endpoint-bg-color: #ffffff;
             --code-bg: #f6f8fa;
+        }
+
+        :root[dark-theme=true] {
+            --primary-color: #9d7fe2;
+            --success-color: #34c759;
+            --warning-color: #ff9900;
+            --danger-color: #e74c3c;
+            --text-color: #fff;
+            --endpoint-path-text-color: #fff;
+            --border-color: #333;
+            --bg-color: #2b2b2b;
+            --endpoint-bg-color: #202020;
+            --code-bg: #1b1b1b;
         }
 
         * {
@@ -26,7 +42,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
             line-height: 1.6;
             color: var(--text-color);
-            background: #fff;
+            background: var(--bg-color);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -54,7 +70,7 @@
 
         /* Navigation */
         .nav {
-            background: white;
+            background: var(--bg-color);
             border-bottom: 1px solid var(--border-color);
             position: sticky;
             top: 0;
@@ -78,13 +94,18 @@
             font-size: 1rem;
         }
 
+        :root[dark-theme=true] .search-bar {
+            background: #333;
+            color: white;
+        }
+
         /* Endpoint styles */
         .endpoint {
-            background: white;
+            background: var(--endpoint-bg-color);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .endpoint-header {
@@ -98,7 +119,7 @@
 
         .endpoint-path {
             font-family: 'SFMono-Regular', Consolas, monospace;
-            color: #666;
+            color: var(--endpoint-path-text-color);
             display: flex;
             align-items: center;
             gap: 0.25rem;
@@ -123,10 +144,25 @@
             text-align: center;
         }
 
-        .method.get { background: var(--primary-color); color: white; }
-        .method.post { background: var(--success-color); color: white; }
-        .method.put { background: var(--warning-color); color: white; }
-        .method.delete { background: var(--danger-color); color: white; }
+        .method.get {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .method.post {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .method.put {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .method.delete {
+            background: var(--danger-color);
+            color: white;
+        }
 
         /* Parameters section */
         .parameters {
@@ -191,7 +227,7 @@
 
         .response-header {
             padding: 0.75rem 1rem;
-            background: rgba(0,0,0,0.05);
+            background: rgba(0, 0, 0, 0.05);
             border-top-left-radius: 6px;
             border-top-right-radius: 6px;
             font-weight: 600;
@@ -219,46 +255,84 @@
             text-align: center;
             color: #666;
         }
+
+        .dark-mode-toggle {
+            background-color: var(--endpoint-bg-color);
+            color: var(--text-color);
+            padding: 15px 32px;
+            text-align: center;
+            display: inline-block;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            max-height: min-content;
+        }
     </style>
 </head>
+
 <body>
-<header class="header">
+    <header class="header">
+        <div class="container" style="display: flex; flex-direction: row; justify-content: space-between;">
+            <div>
+                <h1>API Documentation</h1>
+                <p>Last updated: {{date}}</p>
+            </div>
+            <div>
+                <button id="theme-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
+            </div>
+        </div>
+    </header>
+
+    <nav class="nav">
+        <div class="container nav-content">
+            <input type="text" class="search-bar" placeholder="Search endpoints...">
+        </div>
+    </nav>
+
     <div class="container">
-        <h1>API Documentation</h1>
-        <p>Last updated: {{date}}</p>
+        {{endpoints}}
     </div>
-</header>
 
-<nav class="nav">
-    <div class="container nav-content">
-        <input type="text" class="search-bar" placeholder="Search endpoints...">
-    </div>
-</nav>
+    <footer class="footer">
+        <div class="container">
+            Generated by Lucent {{version}}
+            <br>
+            <small>Documentation built on {{date}}</small>
+        </div>
+    </footer>
 
-<div class="container">
-    {{endpoints}}
-</div>
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
 
-<footer class="footer">
-    <div class="container">
-        Generated by Lucent {{version}}
-        <br>
-        <small>Documentation built on {{date}}</small>
-    </div>
-</footer>
+        // Detect system's preferred color scheme
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('dark-theme', 'true');
+        }
 
-<script>
-    const searchBar = document.querySelector('.search-bar');
-    const endpoints = document.querySelectorAll('.endpoint');
+        themeToggle.addEventListener('click', () => {
+            const root = document.documentElement;
 
-    searchBar.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-
-        endpoints.forEach(endpoint => {
-            const text = endpoint.textContent.toLowerCase();
-            endpoint.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            if (root.getAttribute('dark-theme') === 'true') {
+                root.setAttribute('dark-theme', 'false');
+            } else {
+                root.setAttribute('dark-theme', 'true');
+            }
         });
-    });
-</script>
+    </script>
+
+    <script>
+        const searchBar = document.querySelector('.search-bar');
+        const endpoints = document.querySelectorAll('.endpoint');
+
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+
+            endpoints.forEach(endpoint => {
+                const text = endpoint.textContent.toLowerCase();
+                endpoint.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+    </script>
 </body>
+
 </html>
