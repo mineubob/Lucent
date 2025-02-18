@@ -58,6 +58,12 @@ abstract class Response
         return $this;
     }
 
+    public function setContent(array $content): Response
+    {
+        $this->content = $content;
+        return $this;
+    }
+
     public function addError(string $key, $error) : Response{
         $this->outcome = false;
         $this->statusCode = 400;

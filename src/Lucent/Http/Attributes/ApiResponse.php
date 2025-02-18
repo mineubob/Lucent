@@ -11,6 +11,7 @@ class ApiResponse
         public string $message,
         public bool $outcome = true,
         public int $status = 200,
-        public array $errors = []
+        public array $errors = [],
+        public array $content = []
     ) {}
 }

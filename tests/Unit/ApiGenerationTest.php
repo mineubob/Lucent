@@ -104,7 +104,8 @@ class ApiGenerationTest extends TestCase
             )]
             #[ApiResponse(
                 outcome: true,
-                message: "Successfully created your new account, please check your email to confirm accounts activation."
+                message: "Successfully created your new account, please check your email to confirm accounts activation.",
+                content: ["redirect","/home"]
             )]
             public function register(Request $request)
             {
