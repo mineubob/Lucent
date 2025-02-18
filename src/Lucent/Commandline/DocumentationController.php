@@ -103,8 +103,6 @@ class DocumentationController
                         $reflection = new ReflectionClass($className);
                         Log::channel("phpunit")->info("Successfully reflected class: " . $className);
 
-
-
                         foreach ($reflection->getMethods() as $method) {
                             $endpoint = null;
                             $responses = [];
@@ -144,6 +142,7 @@ class DocumentationController
         Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
+
     private function processEndpoint(ApiEndpoint $endpoint, array $responses): array
     {
         $examples = [];
@@ -171,8 +170,27 @@ class DocumentationController
                 ->setOutcome($response->outcome)
                 ->setStatusCode($response->status);
 
-            if (!empty($responseInstance->errors)) {
-                foreach ($responseInstance->errors as $key => $error) {
+            // Add content if present
+            if (!empty($response->content)) {
+                // Convert sequential arrays to associative if they appear to be key-value pairs
+                if (is_array($response->content) && count($response->content) % 2 === 0) {
+                    $pairs = array_chunk($response->content, 2);
+                    $content = [];
+                    foreach ($pairs as $pair) {
+                        if (is_string($pair[0])) {
+                            $content[$pair[0]] = $pair[1];
+                            continue;
+                        }
+                        $content[] = $pair;
+                    }
+                    $jsonResponse->setContent($content);
+                } else {
+                    $jsonResponse->setContent($response->content);
+                }
+            }
+
+            if (!empty($response->errors)) {
+                foreach ($response->errors as $key => $error) {
                     $jsonResponse->addError($key, $error);
                 }
             }
@@ -242,11 +260,15 @@ class DocumentationController
 
             foreach ($endpoint['examples'] as $status => $response) {
                 $responseType = $this->getResponseType($status);
+                $responseData = $response->getArray();
+
+                // Format the response data
+                $formattedResponse = $this->formatResponseData($responseData);
 
                 $examples .= '<div class="response">
                     <div class="response-header">' . $responseType . ' (' . $status . ')</div>
                     <div class="response-body">
-                        <pre>' . json_encode($response->getArray(), JSON_PRETTY_PRINT) . '</pre>
+                        <pre>' . $formattedResponse . '</pre>
                     </div>
                 </div>';
             }
@@ -277,6 +299,11 @@ class DocumentationController
         HTML;
     }
 
+    private function formatResponseData(array $data): string
+    {
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
     private function getResponseType(int $status): string
     {
         return match(true) {
@@ -290,5 +317,4 @@ class DocumentationController
             default => 'Unknown'
         };
     }
-
 }
