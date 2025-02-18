@@ -69,7 +69,7 @@ class ApiGenerationTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "App";
+        $appPath = File::rootPath(). "App";
         $rulePath = $appPath . DIRECTORY_SEPARATOR . "Rules";
 
         if (!is_dir($rulePath)) {
@@ -137,8 +137,8 @@ class ApiGenerationTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
-        $controllerPath = $appPath . DIRECTORY_SEPARATOR . "controllers";
+        $appPath = File::rootPath(). "App";
+        $controllerPath = $appPath . DIRECTORY_SEPARATOR . "Controllers";
 
         if (!is_dir($controllerPath)) {
             mkdir($controllerPath, 0755, true);
