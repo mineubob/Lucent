@@ -4,7 +4,6 @@ namespace Lucent;
 
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
-use Lucent\Database\DB;
 use Lucent\Facades\Log;
 use ReflectionClass;
 
@@ -84,10 +83,62 @@ class Model
 
         $query .= $values;
 
-        $result = DB::insert($query);
-        $this->autoId = DB::getLastInsertId();
+        $result = Database::query($query);
+        $this->autoId = -1;
 
         return $result;
+    }
+
+    public function save(string $identifier = "id"): bool
+    {
+        $reflection = new ReflectionClass($this);
+        $idProperty = $reflection->getProperty($identifier);
+        $idProperty->setAccessible(true);
+        $idValue = $idProperty->getValue($this);
+
+        // If no ID is set, treat as a create operation
+        if ($idValue === null) {
+            return $this->create();
+        }
+
+        $query = "UPDATE " . $this->getSimpleClassName() . " SET ";
+        $updates = [];
+
+        foreach ($reflection->getProperties() as $property) {
+            $attributes = $property->getAttributes(DatabaseColumn::class);
+
+            if (count($attributes) > 0) {
+                $property->setAccessible(true);
+                $value = $property->getValue($this);
+
+                if ($value !== null) {
+                    $skip = false;
+
+                    foreach ($attributes as $attribute) {
+                        $instance = $attribute->newInstance();
+                        $skip = $instance->shouldSkip();
+                    }
+
+                    if (!$skip && $property->getName() !== $identifier) {
+                        $updates[] = $property->getName() . "='" . $value . "'";
+                    }
+                }
+            }
+        }
+
+        if (empty($updates)) {
+            return true; // No updates needed
+        }
+
+        $query .= implode(", ", $updates);
+        $query .= " WHERE {$identifier}='{$idValue}'";
+
+        try {
+            return Database::query($query);
+        } catch (\Exception $e) {
+            Log::channel("db")->error("Failed to save model with query " . $query . ". Error: " . $e->getMessage());
+            return false;
+        }
     }
 
     public static function where(string $column, string $value): ModelCollection
