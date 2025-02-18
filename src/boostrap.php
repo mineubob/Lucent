@@ -24,7 +24,7 @@ if (file_exists($composerAutoloader)) {
 }
 
 define("APP", File::rootPath() . 'App' . DIRECTORY_SEPARATOR);
-define("CONTROLLERS", File::rootPath() . "app" . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR);
+define("CONTROLLERS", File::rootPath() . "App" . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR);
 
 $modules = [LUCENT,File::rootPath()];
 
