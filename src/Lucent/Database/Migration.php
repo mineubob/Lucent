@@ -34,6 +34,11 @@ class Migration
 
     public function make($class): bool
     {
+        // Disable foreign key checks
+        if (App::env("DB_DRIVER") === "mysql") {
+            Database::query("SET FOREIGN_KEY_CHECKS=0");
+        }
+
         $reflection = new ReflectionClass($class);
         $tableName = $reflection->getShortName();
 
@@ -60,6 +65,10 @@ class Migration
         // Restore data if we have any
         if (!empty($this->preservedData)) {
             $this->restoreData($tableName);
+        }
+
+        if (App::env("DB_DRIVER") === "mysql") {
+            Database::query("SET FOREIGN_KEY_CHECKS=1");
         }
 
         return true;
