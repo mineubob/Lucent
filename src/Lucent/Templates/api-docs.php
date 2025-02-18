@@ -19,7 +19,7 @@
             --code-bg: #f6f8fa;
         }
 
-        :root[dark-theme] {
+        :root[dark-theme=true] {
             --primary-color: #9d7fe2;
             --success-color: #34c759;
             --warning-color: #ff9900;
@@ -28,8 +28,8 @@
             --endpoint-path-text-color: #fff;
             --border-color: #333;
             --bg-color: #2b2b2b;
-            --endpoint-bg-color: #333;
-            --code-bg: #1f1f1f;
+            --endpoint-bg-color: #202020;
+            --code-bg: #1b1b1b;
         }
 
         * {
@@ -94,7 +94,7 @@
             font-size: 1rem;
         }
 
-        :root[dark-theme] .search-bar {
+        :root[dark-theme=true] .search-bar {
             background: #333;
             color: white;
         }
@@ -289,20 +289,6 @@
         </div>
     </nav>
 
-    <script>
-        const themeToggle = document.getElementById('theme-toggle');
-
-        themeToggle.addEventListener('click', () => {
-            const root = document.documentElement;
-
-            if (root.hasAttribute('dark-theme')) {
-                root.removeAttribute('dark-theme');
-            } else {
-                root.setAttribute('dark-theme', 'true');
-            }
-        });
-    </script>
-
     <div class="container">
         {{endpoints}}
     </div>
@@ -314,6 +300,25 @@
             <small>Documentation built on {{date}}</small>
         </div>
     </footer>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+
+        // Detect system's preferred color scheme
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('dark-theme', 'true');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const root = document.documentElement;
+
+            if (root.getAttribute('dark-theme') === 'true') {
+                root.setAttribute('dark-theme', 'false');
+            } else {
+                root.setAttribute('dark-theme', 'true');
+            }
+        });
+    </script>
 
     <script>
         const searchBar = document.querySelector('.search-bar');
