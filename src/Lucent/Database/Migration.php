@@ -9,30 +9,27 @@ namespace Lucent\Database;
 
 use Lucent\Database;
 use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Drivers\MySQLDriver;
+use Lucent\Database\Drivers\SQLiteDriver;
+use Lucent\Facades\App;
 use Lucent\Facades\Log;
 use ReflectionClass;
 
 
 class Migration
 {
-    private array $types;
     private ?string $primaryKey;
     private array $callbacks = [];
     private array $preservedData = [];
-    private array $columnMap = [];
+
+    private DatabaseInterface $driver;
 
     public function __construct()
     {
-        $this->types[1] = "binary";
-        $this->types[2] = "tinyint";
-        $this->types[3] = "decimal";
-        $this->types[4] = "int";
-        $this->types[5] = "json";
-        $this->types[6] = "timestamp";
-        $this->types[7] = "enum";
-        $this->types[8] = "date";
-        $this->types[10] = "text";
-        $this->types[12] = "varchar";
+        $this->driver = match(App::env("DB_DRIVER")) {
+            "sqlite" => new SQLiteDriver(),
+            default => new MySQLDriver()
+        };
     }
 
     public function make($class): bool
@@ -49,14 +46,14 @@ class Migration
         // Drop the existing table
         $query = "DROP TABLE IF EXISTS " . $tableName;
         if (!Database::query($query)) {
-            Log::error("Failed to drop table {$tableName}");
+            Log::channel("phpunit")->error("Failed to drop table {$tableName}");
             return false;
         }
 
-        // Create new table
-        $query = $this->buildCreateTableQuery($tableName, $columns);
+        // Create new table using the appropriate driver
+        $query = $this->driver->createTable($tableName, $columns);
         if (!Database::query($query)) {
-            Log::channel("db")->critical("Failed to create table {$tableName}");
+            Log::channel("phpunit")->critical("Failed to create table {$tableName}");
             return false;
         }
 
@@ -66,24 +63,6 @@ class Migration
         }
 
         return true;
-    }
-
-    private function backupExistingData(string $tableName): void
-    {
-        try {
-            // Check if table exists
-            $result = Database::query("SHOW TABLES LIKE '{$tableName}'");
-            if ($result && $result->num_rows > 0) {
-                Log::channel("db")->info("Backing up data from {$tableName}");
-                $data = Database::fetchAll("SELECT * FROM {$tableName}");
-                if (!empty($data)) {
-                    $this->preservedData = $data;
-                    Log::channel("db")->info("Backed up " . count($data) . " rows from {$tableName}");
-                }
-            }
-        } catch (\Exception $e) {
-            Log::channel("db")->critical("Could not backup data from {$tableName}: " . $e->getMessage());
-        }
     }
 
     private function analyzeNewStructure(ReflectionClass $reflection): array
@@ -100,23 +79,29 @@ class Migration
         return $columns;
     }
 
-    private function buildCreateTableQuery(string $tableName, array $columns): string
+
+    private function backupExistingData(string $tableName): void
     {
-        $query = "CREATE TABLE `{$tableName}` (";
+        try {
+            // Check if table exists - SQLite compatible version
+            $result = Database::query(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                [$tableName]
+            );
 
-        foreach ($columns as $column) {
-            $query .= $this->buildColumnString($column);
+            if ($result && $result->num_rows > 0) {
+                Log::channel("phpunit")->info("Backing up data from {$tableName}");
+                $data = Database::fetchAll("SELECT * FROM {$tableName}");
+                if (!empty($data)) {
+                    $this->preservedData = $data;
+                    Log::channel("phpunit")->info("Backed up " . count($data) . " rows from {$tableName}");
+                }
+            }
+        } catch (\Exception $e) {
+            Log::channel("phpunit")->critical("Could not backup data from {$tableName}: " . $e->getMessage());
         }
-
-        foreach ($this->callbacks as $callback) {
-            $query .= $callback . ",";
-        }
-
-        $query .= "PRIMARY KEY (`" . $this->primaryKey . "`)";
-        $query .= ");";
-
-        return $query;
     }
+
 
     private function restoreData(string $tableName): void
     {
@@ -157,64 +142,5 @@ class Migration
         Log::channel("db")->info("Completed data restoration for {$tableName}");
     }
 
-    private function buildColumnString(array $column): string
-    {
-        $string = match ($column["TYPE"]) {
-            LUCENT_DB_DECIMAL => "`" . $column["NAME"] . "` " . $this->types[$column["TYPE"]] . "(20,2)",
-            LUCENT_DB_JSON, LUCENT_DB_TIMESTAMP, LUCENT_DB_DATE => "`" . $column["NAME"] . "` " . $this->types[$column["TYPE"]],
-            LUCENT_DB_ENUM => "`" . $column["NAME"] . "` " . $this->types[$column["TYPE"]] . $this->buildValues($column["VALUES"]),
-            default => "`" . $column["NAME"] . "` " . $this->types[$column["TYPE"]] . "(" . $column["LENGTH"] . ")",
-        };
 
-        if (!$column["ALLOW_NULL"]) {
-            $string .= " NOT NULL";
-        }
-
-        if ($column["PRIMARY_KEY"] === true) {
-            $this->primaryKey = $column["NAME"];
-        }
-
-        if ($column["AUTO_INCREMENT"]) {
-            $string .= " AUTO_INCREMENT";
-        }
-
-        if ($column["DEFAULT"] !== null) {
-            if ($column["DEFAULT"] !== LUCENT_DB_DEFAULT_CURRENT_TIMESTAMP) {
-                $string .= " DEFAULT '" . $column["DEFAULT"] . "'";
-            } else {
-                $string .= " DEFAULT " . $column["DEFAULT"];
-            }
-        }
-
-        if ($column["ON_UPDATE"] !== null) {
-            $string .= " ON UPDATE " . $column["ON_UPDATE"];
-        }
-
-        if ($column["UNIQUE"] !== null) {
-            $callback = "UNIQUE (" . $column["NAME"] . ")";
-            array_push($this->callbacks, $callback);
-        }
-
-        if ($column["UNIQUE_KEY_TO"] !== null) {
-            $callback = "UNIQUE KEY unique_" . $column["NAME"] . "_to_" . $column["UNIQUE_KEY_TO"] . " (" . $column["UNIQUE_KEY_TO"] . "," . $column["NAME"] . ")";
-            array_push($this->callbacks, $callback);
-        }
-
-        if ($column["REFERENCES"] !== null) {
-            $callback = "FOREIGN KEY (" . $column["NAME"] . ") REFERENCES " . $column["REFERENCES"];
-            array_push($this->callbacks, $callback);
-        }
-
-        return $string . ",";
-    }
-
-    private function buildValues(array $values): string
-    {
-        $output = "(";
-        foreach ($values as $value) {
-            $output .= "'" . $value . "',";
-        }
-        $output = rtrim($output, ",");
-        return $output . ")";
-    }
 }

@@ -1,70 +1,55 @@
 <?php
-/**
- * Copyright Jack Harris
- * Peninsula Interactive - nextstats-web
- * Last Updated - 30/10/2023
- */
 
 namespace Lucent;
 
+use Lucent\Database\DatabaseInterface;
+use Lucent\Database\Drivers\MySQLDriver;
+use Lucent\Database\Drivers\SQLiteDriver;
 use Lucent\Facades\App;
-use Lucent\Facades\Log;
-use mysqli;
-use mysqli_result;
 
 class Database
 {
+    private static ?DatabaseInterface $instance = null;
 
-    public static function query(string $query): bool|mysqli_result
+    public static function initialize(): void
     {
-        Log::channel("db")->info($query);
-        return Database::getConnection()->query($query);
+        $driver = App::env("DB_DRIVER", "mysql");
+
+        self::$instance = match ($driver) {
+            "sqlite" => new SQLiteDriver(),
+            default => new MySQLDriver(),
+        };
+    }
+
+    public static function query(string $query): bool|array
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->query($query);
     }
 
     public static function fetch(string $query): array
     {
-        Log::channel("db")->info($query);
-        $results = Database::getConnection()->query($query)->fetch_assoc();
-        if($results !== null){
-            return $results;
-        }else{
-            return [];
+        if (self::$instance === null) {
+            self::initialize();
         }
+        return self::$instance->fetch($query);
     }
 
-    public static function fetchAll(string $query) : array
+    public static function fetchAll(string $query): array
     {
-        Log::channel("db")->info($query);
-        $query = Database::getConnection()->query($query);
-        $results = $query->fetch_all();
-        $fields = $query->fetch_fields();
-
-        $output = [];
-
-        foreach ($results as $result){
-            $row = [];
-            $columnId = 0;
-            foreach ($result as $column){
-                $row[$fields[$columnId] -> name] = $column;
-                $columnId++;
-            }
-
-            array_push($output,$row);
+        if (self::$instance === null) {
+            self::initialize();
         }
-
-        return $output;
+        return self::$instance->fetchAll($query);
     }
 
-    private static function getConnection(): mysqli
+    public static function createTable(string $table, array $columns): string
     {
-
-        $username = App::env("DB_USERNAME");
-        $password = App::env("DB_PASSWORD");
-        $host = App::env("DB_HOST");
-        $port = App::env("DB_PORT");
-        $database = App::env("DB_DATABASE");
-
-        return new mysqli($host,$username,$password,$database,$port);
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->createTable($table, $columns);
     }
-
 }
