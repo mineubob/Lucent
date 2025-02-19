@@ -18,45 +18,27 @@ class FakeRequest extends Request
      */
     public function passing(string $ruleClass): self
     {
-        $rule = new $ruleClass();
+        $ruleInstance = new $ruleClass();
         $this->fakeData = [];
 
-        // First pass: generate all non-dependent fields
-        foreach ($rule->getRules() as $field => $rules) {
-            if (!$this->hasSameRule((array)$rules)) {
-                $this->fakeData[$field] = $this->generateValidValueFromRules($field, (array)$rules);
+        // Get rules setup from the Rule class
+        $rules = $ruleInstance->setup();
+
+        // First pass: handle all non-dependent fields
+        foreach ($rules as $field => $fieldRules) {
+            if (!$this->hasDependentRule($fieldRules)) {
+                $this->fakeData[$field] = $this->generateValidValue($field, (array) $fieldRules);
             }
         }
 
-        // Second pass: handle fields with "same" rule
-        foreach ($rule->getRules() as $field => $rules) {
-            if ($this->hasSameRule((array)$rules)) {
-                $this->fakeData[$field] = $this->handleSameRule($field, (array)$rules);
+        // Second pass: handle dependent rules like 'same'
+        foreach ($rules as $field => $fieldRules) {
+            if ($this->hasDependentRule($fieldRules)) {
+                $this->fakeData[$field] = $this->handleDependentRules($field, (array) $fieldRules);
             }
         }
 
         return $this;
-    }
-
-    private function hasSameRule(array $rules): bool
-    {
-        foreach ($rules as $rule) {
-            if (is_string($rule) && str_starts_with($rule, 'same:')) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private function handleSameRule(string $field, array $rules): string
-    {
-        foreach ($rules as $rule) {
-            if (is_string($rule) && str_starts_with($rule, 'same:')) {
-                $targetField = substr($rule, 5);
-                return $this->fakeData[$targetField] ?? '';
-            }
-        }
-        return '';
     }
 
     /**
@@ -64,143 +46,179 @@ class FakeRequest extends Request
      */
     public function failing(string $ruleClass): self
     {
-        $rule = new $ruleClass();
+        $ruleInstance = new $ruleClass();
         $this->fakeData = [];
 
-        foreach ($rule->getRules() as $field => $rules) {
-            $this->fakeData[$field] = $this->generateInvalidValueFromRules($field, (array)$rules);
+        // Get rules setup from the Rule class
+        $rules = $ruleInstance->setup();
+
+        foreach ($rules as $field => $fieldRules) {
+            $this->fakeData[$field] = $this->generateInvalidValue($field, (array) $fieldRules);
         }
 
         return $this;
     }
 
-    private function generateValidValueFromRules(string $field, array $rules): string
+    private function hasDependentRule($rules): bool
     {
-        $value = '';
-        $minLength = 1;
-        $maxLength = 255;
-        $type = $this->determineFieldType($field, $rules);
+        $rules = (array) $rules;
+        $dependentRules = ['same'];
 
-        // Process rules to determine constraints
         foreach ($rules as $rule) {
             if (is_string($rule)) {
-                [$ruleName, $ruleValue] = array_pad(explode(':', $rule, 2), 2, null);
-
-                switch ($ruleName) {
-                    case 'min':
-                        $minLength = (int)$ruleValue;
-                        break;
-                    case 'max':
-                        $maxLength = (int)$ruleValue;
-                        break;
+                $ruleName = explode(':', $rule)[0];
+                if (in_array($ruleName, $dependentRules)) {
+                    return true;
                 }
             }
         }
-
-        // Generate appropriate value based on type and constraints
-        switch ($type) {
-            case 'email':
-                $value = $this->generateEmail();
-                break;
-
-            case 'password':
-                $value = $this->generatePassword($minLength, $maxLength);
-                break;
-
-            case 'date':
-                $value = date('Y-m-d');
-                break;
-
-            case 'numeric':
-                $value = (string)random_int($minLength, $maxLength);
-                break;
-
-            default:
-                $value = $this->generateString($minLength, $maxLength);
-        }
-
-        return $value;
+        return false;
     }
 
-    private function generateInvalidValueFromRules(string $field, array $rules): string
+    private function handleDependentRules(string $field, array $rules): string
     {
-        $type = $this->determineFieldType($field, $rules);
-
-        // Generate invalid data based on type
-        switch ($type) {
-            case 'email':
-                return 'invalid-email';
-
-            case 'password':
-                return 'weak'; // Too short and missing required characters
-
-            case 'date':
-                return 'invalid-date';
-
-            case 'numeric':
-                return 'not-a-number';
-
-            default:
-                return ''; // Empty string typically fails most validations
-        }
-    }
-
-    private function determineFieldType(string $field, array $rules): string
-    {
-        // Check rules first
         foreach ($rules as $rule) {
-            if (is_string($rule)) {
-                [$ruleName] = explode(':', $rule, 2);
-                if ($ruleName === 'regex') {
-                    if (str_contains($rule, 'email')) return 'email';
-                    if (str_contains($rule, 'password')) return 'password';
-                }
+            if (!is_string($rule))
+                continue;
+
+            [$ruleName, $param] = array_pad(explode(':', $rule), 2, '');
+
+            if ($ruleName === 'same') {
+                return $this->fakeData[$param] ?? '';
+            }
+        }
+        return '';
+    }
+
+    private function parseRules(array $rules): array
+    {
+        $constraints = [
+            'type' => 'string',
+            'min' => 1,
+            'max' => 255,
+            'regex' => null
+        ];
+
+        foreach ($rules as $rule) {
+            if (!is_string($rule))
+                continue;
+
+            [$ruleName, $param] = array_pad(explode(':', $rule), 2, '');
+
+            switch ($ruleName) {
+                case 'min':
+                case 'min_num':
+                    if ($ruleName === 'min_num') {
+                        $constraints['type'] = 'numeric';
+                    }
+
+                    $constraints['min'] = max((int) $param, $constraints['min']);
+                    break;
+
+                case 'max':
+                case 'max_num':
+                    if ($ruleName === 'max_num') {
+                        $constraints['type'] = 'numeric';
+                    }
+
+                    $constraints['max'] = min((int) $param, $constraints['max']);
+                    break;
+
+                case 'regex':
+                    $constraints['regex'] = $param;
+                    if (str_contains($param, 'email')) {
+                        $constraints['type'] = 'email';
+                    } elseif (str_contains($param, 'password')) {
+                        $constraints['type'] = 'password';
+                    }
+                    break;
             }
         }
 
-        // Check field name as fallback
-        if (str_contains($field, 'email')) return 'email';
-        if (str_contains($field, 'password')) return 'password';
-        if (str_contains($field, 'date')) return 'date';
-        if (str_contains($field, 'number') || str_contains($field, 'amount')) return 'numeric';
+        return $constraints;
+    }
+
+    private function generateValidValue(string $field, array $rules): string
+    {
+        $constraints = $this->parseRules($rules);
+        $fieldType = $this->determineFieldType($field, $constraints);
+
+        return match ($fieldType) {
+            'email' => $this->generateEmail(),
+            'password' => $this->generatePassword($constraints['min'], $constraints['max']),
+            'numeric' => (string) random_int($constraints['min'], $constraints['max']),
+            'date' => date('Y-m-d'),
+            default => $this->generateString($constraints['min'], $constraints['max'])
+        };
+    }
+
+    private function generateInvalidValue(string $field, array $rules): string
+    {
+        $constraints = $this->parseRules($rules);
+        $fieldType = $this->determineFieldType($field, $constraints);
+
+        return match ($fieldType) {
+            'email' => 'not-an-email',
+            'password' => 'weak',  // Deliberately too short/simple
+            'numeric' => 'not-a-number',
+            'date' => 'not-a-date',
+            default => ''  // Empty string fails most validations
+        };
+    }
+
+    private function determineFieldType(string $field, array $constraints): string
+    {
+        // First check constraints
+        if ($constraints['type'] !== 'string') {
+            return $constraints['type'];
+        }
+
+        // Then check field name patterns
+        if (str_contains($field, 'email'))
+            return 'email';
+        if (str_contains($field, 'password'))
+            return 'password';
+        if (str_contains($field, 'date'))
+            return 'date';
+        if (str_contains($field, 'number') || str_contains($field, 'amount'))
+            return 'numeric';
 
         return 'string';
     }
 
     private function generateEmail(): string
     {
-        $domains = ['example.com', 'test.org', 'fake.net', 'demo.io'];
+        $domains = ['example.com', 'test.org', 'fake.net'];
         $username = $this->generateString(5, 10);
         return $username . '@' . $domains[array_rand($domains)];
     }
 
     private function generatePassword(int $minLength = 8, int $maxLength = 20): string
     {
-        // Ensure maxLength is at least 12 for secure passwords but no more than specified
-        $maxLength = min(max(12, $minLength), $maxLength);
-        $length = random_int($minLength, $maxLength);
+        $length = random_int(max(8, $minLength), min(20, $maxLength));
 
-        // Define character sets
-        $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $lowercase = 'abcdefghijklmnopqrstuvwxyz';
-        $numbers = '0123456789';
-        $special = '!@#$%^&*';
-
-        // Start with required characters
-        $password = [
-            $uppercase[random_int(0, strlen($uppercase) - 1)],  // One uppercase
-            $lowercase[random_int(0, strlen($lowercase) - 1)],  // One lowercase
-            $numbers[random_int(0, strlen($numbers) - 1)],      // One number
-            $special[random_int(0, strlen($special) - 1)]       // One special
+        // Character sets
+        $chars = [
+            'upper' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            'lower' => 'abcdefghijklmnopqrstuvwxyz',
+            'numeric' => '0123456789',
+            'special' => '!@#$%^&*'
         ];
 
-        // Fill remaining length with random characters from all sets
-        $allChars = $uppercase . $lowercase . $numbers . $special;
+        // Ensure at least one of each type
+        $password = [
+            $chars['upper'][random_int(0, strlen($chars['upper']) - 1)],
+            $chars['lower'][random_int(0, strlen($chars['lower']) - 1)],
+            $chars['numeric'][random_int(0, strlen($chars['numeric']) - 1)],
+            $chars['special'][random_int(0, strlen($chars['special']) - 1)]
+        ];
+
+        // Fill remaining length
+        $allChars = implode('', $chars);
         while (count($password) < $length) {
             $password[] = $allChars[random_int(0, strlen($allChars) - 1)];
         }
 
-        // Shuffle to prevent predictable pattern
         shuffle($password);
         return implode('', $password);
     }
@@ -209,12 +227,6 @@ class FakeRequest extends Request
     {
         $length = random_int($minLength, $maxLength);
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        $str = '';
-
-        for ($i = 0; $i < $length; $i++) {
-            $str .= $chars[random_int(0, strlen($chars) - 1)];
-        }
-
-        return $str;
+        return substr(str_shuffle(str_repeat($chars, ceil($length / strlen($chars)))), 0, $length);
     }
 }
