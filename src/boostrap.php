@@ -5,12 +5,12 @@ use Lucent\Facades\File;
 define("ROOT", Phar::running() . "/");
 
 $pharPath = Phar::running(false);
-$runningLocation = dirname($pharPath,2);
+$runningLocation = dirname($pharPath, 2);
 
 define("RUNNING_LOCATION", $runningLocation . DIRECTORY_SEPARATOR);
 const LUCENT = ROOT . "Lucent" . DIRECTORY_SEPARATOR;
 
-require_once LUCENT . "Facades".DIRECTORY_SEPARATOR."File.php";
+require_once LUCENT . "Facades" . DIRECTORY_SEPARATOR . "File.php";
 
 File::overrideRootPath(RUNNING_LOCATION);
 
@@ -26,24 +26,24 @@ if (file_exists($composerAutoloader)) {
 define("APP", File::rootPath() . 'App' . DIRECTORY_SEPARATOR);
 define("CONTROLLERS", File::rootPath() . "App" . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR);
 
-$modules = [LUCENT,File::rootPath()];
+$modules = [LUCENT, File::rootPath()];
 
-set_include_path(get_include_path().PATH_SEPARATOR.implode(PATH_SEPARATOR,$modules));
+set_include_path(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $modules));
 
 spl_autoload_register(function ($class) {
     // Convert namespace to path
-    $file = str_replace('\\', '/', $class) . '.php';
+    $file = str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
 
     $pharPath = \Phar::running(false);
 
-    if(str_starts_with($file, 'Lucent')) {
+    if (str_starts_with($file, 'Lucent')) {
         $basePath = $pharPath ? "phar://$pharPath" : __DIR__;
-    }else{
+    } else {
         $basePath = File::rootPath();
     }
 
     // Full path to target file
-    $fullPath = $basePath . '/' . $file;
+    $fullPath = rtrim($basePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
 
     if (file_exists($fullPath)) {
         require_once $fullPath;
@@ -54,4 +54,4 @@ spl_autoload_register(function ($class) {
     return false;
 });
 
-require_once ROOT ."Lucent".DIRECTORY_SEPARATOR. "Database" . DIRECTORY_SEPARATOR . "constants.php";
+require_once ROOT . "Lucent" . DIRECTORY_SEPARATOR . "Database" . DIRECTORY_SEPARATOR . "constants.php";

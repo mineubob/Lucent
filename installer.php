@@ -37,7 +37,8 @@ require_once 'packages/lucent.phar';
 
 $app = Application::getInstance();
 
-CommandLine::register("test run", "run", TestCommand::class);
+// EXAMPLE
+//CommandLine::register("test run", "run", TestCommand::class);
 
 echo $app->executeConsoleCommand();
 PHP,
@@ -47,9 +48,10 @@ PHP,
 use Lucent\Facades\Route;
 
 // Define your API routes here
-Route::rest()->group('api')
-    ->prefix('api')
-    ->defaultController(\App\Controllers\ApiController::class);
+// EXAMPLE
+//Route::rest()->group('api')
+//    ->prefix('api')
+//    ->defaultController(\App\Controllers\ApiController::class);
 PHP,
     '.env' => <<<'ENV'
 DB_USERNAME=root
