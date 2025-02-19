@@ -45,7 +45,6 @@ class DocumentationController
 
         return "API documentation generated successfully at " . $outputPath . "api.html";
     }
-
     public function scanControllers(): array
     {
         $documentation = [];
@@ -104,27 +103,32 @@ class DocumentationController
                         Log::channel("phpunit")->info("Successfully reflected class: " . $className);
 
                         foreach ($reflection->getMethods() as $method) {
-                            $endpoint = null;
-                            $responses = [];
-
                             Log::channel("phpunit")->info("Checking method: " . $method->getName());
-                            $attributes = $method->getAttributes(ApiEndpoint::class);
-                            Log::channel("phpunit")->info("Found " . count($attributes) . " API endpoint attributes");
 
-                            foreach ($attributes as $attribute) {
-                                Log::channel("phpunit")->info("Processing attribute for method: " . $method->getName());
-                                $endpoint = $attribute->newInstance();
+                            // Check if method has ApiEndpoint attribute
+                            $endpointAttributes = $method->getAttributes(ApiEndpoint::class);
+                            if (empty($endpointAttributes)) {
+                                Log::channel("phpunit")->info("Method " . $method->getName() . " has no API endpoint attribute, skipping");
+                                continue;
                             }
 
-                            $attributes = $method->getAttributes(ApiResponse::class);
+                            Log::channel("phpunit")->info("Found " . count($endpointAttributes) . " API endpoint attributes");
 
-                            Log::channel("phpunit")->info("Found: " . count($attributes) . " API response attributes");
-                            foreach ($attributes as $attribute) {
-                                Log::channel("phpunit")->info("Processing attribute for method: " . $method->getName());
+                            // Get the endpoint and responses
+                            $endpoint = $endpointAttributes[0]->newInstance();
+                            $responses = [];
+
+                            $responseAttributes = $method->getAttributes(ApiResponse::class);
+                            Log::channel("phpunit")->info("Found: " . count($responseAttributes) . " API response attributes");
+
+                            foreach ($responseAttributes as $attribute) {
+                                Log::channel("phpunit")->info("Processing response attribute for method: " . $method->getName());
                                 $responses[] = $attribute->newInstance();
                             }
 
-                            $documentation[] = $this->processEndpoint($endpoint,$responses);
+                            if ($endpoint !== null) {
+                                $documentation[] = $this->processEndpoint($endpoint, $responses);
+                            }
                         }
 
                     } catch (\ReflectionException $e) {
@@ -142,7 +146,6 @@ class DocumentationController
         Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
-
     private function processEndpoint(ApiEndpoint $endpoint, array $responses): array
     {
         $examples = [];
@@ -207,7 +210,6 @@ class DocumentationController
             'examples' => $examples
         ];
     }
-
     private function generateEndpointsHtml(array $documentation): string
     {
         $html = '';
