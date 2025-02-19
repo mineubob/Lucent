@@ -24,8 +24,8 @@ class RouteGroupTest extends TestCase
     public function test_404(): void
     {
 
-        $_REQUEST["method"] = "GET";
-        $_REQUEST["uri"] = "/asdasdsaasdasdas";
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
         try {
             $response = (array)json_decode(App::execute());
