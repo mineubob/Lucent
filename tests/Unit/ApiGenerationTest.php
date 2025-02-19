@@ -133,6 +133,11 @@ class ApiGenerationTest extends TestCase
             public function validate($session)
             {
             }
+            
+            private function someHelperMethod() :void
+            {
+            
+            }
         }
         PHP;
 
