@@ -1,10 +1,4 @@
 <?php
-/**
- * Copyright Jack Harris
- * Peninsula Interactive - nextstats-auth
- * Last Updated - 6/11/2023
- */
-
 namespace Lucent\Http;
 
 use Lucent\Database\Dataset;
@@ -16,6 +10,7 @@ class Request
     private array $post = [];
     private array $get = [];
     private array $json = [];
+    private array $headers = [];
     private array $validationErrors = [];
     private array $modelCache = [];
     private Session $session;
@@ -29,6 +24,9 @@ class Request
 
     private function initializeRequestData(): void
     {
+        // Initialize headers
+        $this->headers = $this->getHeaders();
+
         // Handle JSON content type
         if ($this->isJsonRequest()) {
             $jsonInput = file_get_contents('php://input');
@@ -41,6 +39,48 @@ class Request
 
         $this->post = $this->sanitizeUserInput($_POST);
         $this->get = $this->sanitizeUserInput($_GET);
+    }
+
+    private function getHeaders(): array
+    {
+        $headers = [];
+
+        foreach ($_SERVER as $key => $value) {
+            if (str_starts_with($key, 'HTTP_')) {
+                $name = str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($key, 5)))));
+                $headers[$name] = $value;
+            }
+        }
+
+        return $headers;
+    }
+
+    public function header(string $key, $default = null): ?string
+    {
+        // Normalize the header key
+        $key = str_replace(' ', '-', ucwords(strtolower($key), '-'));
+
+        return $this->headers[$key] ?? $default;
+    }
+
+    public function headers(): array
+    {
+        return $this->headers;
+    }
+
+    public function bearerToken(): ?string
+    {
+        $header = $this->header('Authorization');
+
+        if (empty($header)) {
+            return null;
+        }
+
+        if (preg_match('/Bearer\s+(.+)$/i', $header, $matches)) {
+            return $matches[1];
+        }
+
+        return null;
     }
 
     private function isJsonRequest(): bool
@@ -162,7 +202,7 @@ class Request
         return $this->urlVars[$key];
     }
 
-    public function setUrlVars(array $vars)
+    public function setUrlVars(array $vars): void
     {
         $this->urlVars = $vars;
     }
