@@ -2,6 +2,7 @@
 
 namespace Unit;
 
+use Lucent\Facades\Faker;
 use Lucent\Validation\Rule;
 use PHPUnit\Framework\TestCase;
 
@@ -36,10 +37,7 @@ class RuleTest extends TestCase
     {
         $rule = new NumRule();
 
-        $test_data = [
-            'num1' => '3',
-            'num2' => '8',
-        ];
+        $test_data = Faker::request()->passing(NumRule::class)->all();
 
         $this->assertTrue($rule->validate_bool($test_data));
     }
@@ -48,10 +46,7 @@ class RuleTest extends TestCase
     {
         $rule = new NumRule();
 
-        $test_data = [
-            'num' => '6',
-            'num2' => '2',
-        ];
+        $test_data = Faker::request()->failing(NumRule::class)->all();
 
         $this->assertFalse($rule->validate_bool($test_data));
     }
