@@ -10,7 +10,15 @@ class JsonResponse extends Response
         parent::__construct();
     }
 
-    public function execute(): false|string
+    #[\Override]
+    public function set_response_header()
+    {
+        parent::set_response_header();
+
+        header('Content-Type: application/json; charset=utf-8');
+    }
+
+    public function execute(): string
     {
         return json_encode($this->getArray());
     }
