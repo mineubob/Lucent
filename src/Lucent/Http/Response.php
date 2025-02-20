@@ -94,7 +94,10 @@ abstract class Response
         return $array;
     }
 
-    public abstract function execute();
+    abstract public function execute(): string;
 
-
+    public function set_response_header()
+    {
+        http_response_code($this->getStatusCode());
+    }
 }

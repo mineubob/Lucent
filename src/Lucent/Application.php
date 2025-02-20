@@ -156,12 +156,13 @@ class Application
         }
 
         $result = $method->invokeArgs($controller, $response["variables"]);
-        http_response_code($result->getStatusCode());
+        // http_response_code($result->getStatusCode());
 
-        if ($method->getReturnType()->getName() == JsonResponse::class) {
-            header('Content-Type: application/json; charset=utf-8');
-        }
+        // if ($method->getReturnType()->getName() == JsonResponse::class) {
+        //     header('Content-Type: application/json; charset=utf-8');
+        // }
 
+        $result->set_response_header();
         return $result->execute();
     }
 
