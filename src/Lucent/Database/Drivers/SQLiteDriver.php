@@ -49,7 +49,7 @@ class SQLiteDriver extends DatabaseInterface
         Log::channel("db")->info($query);
         $statement = $this->connection->query($query);
         $results = $statement ? $statement->fetch(PDO::FETCH_ASSOC) : null;
-        return $results !== null ? $results : [];
+        return $results ? $results : [];
     }
 
     public function fetchAll(string $query): array
