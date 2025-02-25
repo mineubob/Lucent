@@ -60,4 +60,12 @@ class Database
         }
         return self::$instance->tableExists($table);
     }
+
+    public static function lastInsertId(): string|int
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->lastInsertId();
+    }
 }
