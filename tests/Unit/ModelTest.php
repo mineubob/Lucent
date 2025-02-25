@@ -157,8 +157,6 @@ class ModelTest extends TestCase
 
         $this->assertTrue($adminUser->create());
 
-        $this->test_extended_model_migration();
-
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Captain Jack",
             "email" => "jack@blackpearls.com",
