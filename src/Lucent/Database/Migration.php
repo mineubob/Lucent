@@ -13,6 +13,7 @@ use Lucent\Database\Drivers\MySQLDriver;
 use Lucent\Database\Drivers\SQLiteDriver;
 use Lucent\Facades\App;
 use Lucent\Facades\Log;
+use Lucent\Model;
 use ReflectionClass;
 
 
@@ -57,6 +58,8 @@ class Migration
 
         // Create new table using the appropriate driver
         $query = $this->driver->createTable($tableName, $columns);
+        Log::channel("phpunit")->info($query);
+
         if (!Database::query($query)) {
             Log::channel("phpunit")->critical("Failed to create table {$tableName}");
             return false;
@@ -76,7 +79,31 @@ class Migration
 
     private function analyzeNewStructure(ReflectionClass $reflection): array
     {
+        //Check if we are extending anything.
+        $parent = $reflection->getParentClass();
         $columns = [];
+
+
+        if ($parent->getName() !== Model::class) {
+            $parentPK = $this->getPrimaryKeyFromModel($parent);
+            if ($parentPK === null) {
+                Log::channel("phpunit")->critical("Could not retrieve primary key from parent class {$parent->getName()}");
+                exit(1);
+            }
+
+            $parentPK["REFERENCES"] = $parent->getShortName()."(".$parentPK["NAME"].")";
+
+            $columns[] = $parentPK;
+
+            $tableName = $parent->getShortName();
+
+            if (!Database::tableExists($tableName)) {
+                if(!$this->make($parent->getName())){
+                    Log::channel("phpunit")->critical("Could not create parent table {$tableName}");
+                }
+            }
+        }
+
         foreach ($reflection->getProperties() as $property) {
             $attributes = $property->getAttributes(DatabaseColumn::class);
             foreach ($attributes as $attribute) {
@@ -149,6 +176,27 @@ class Migration
         }
 
         Log::channel("db")->info("Completed data restoration for {$tableName}");
+    }
+
+    private function getPrimaryKeyFromModel(ReflectionClass $reflection): ?array
+    {
+        foreach ($reflection->getProperties() as $property) {
+            $attributes = $property->getAttributes(DatabaseColumn::class);
+            foreach ($attributes as $attribute) {
+                $instance = $attribute->newInstance();
+                $instance->setName($property->name);
+                $column = $instance->getColumn();
+
+                // Check if this column is set as PRIMARY_KEY
+                if ($column["PRIMARY_KEY"] === true) {
+                    $column["AUTO_INCREMENT"] = false;
+                    return $column;
+                }
+            }
+        }
+
+        // Return empty string or throw an exception if no primary key found
+        return null;
     }
 
 
