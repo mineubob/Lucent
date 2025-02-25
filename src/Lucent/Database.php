@@ -52,4 +52,12 @@ class Database
         }
         return self::$instance->createTable($table, $columns);
     }
+
+    public static function tableExists(string $table): bool
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->tableExists($table);
+    }
 }
