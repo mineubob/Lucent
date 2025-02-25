@@ -3,6 +3,7 @@
 namespace Lucent;
 
 use Lucent\Database\Dataset;
+use Lucent\Database\Migration;
 use ReflectionClass;
 
 class ModelCollection
@@ -15,6 +16,8 @@ class ModelCollection
     private int $limit;
     private int $offset;
 
+    private ReflectionClass $reflection;
+
     private array $cache;
 
     public function __construct($class){
@@ -24,20 +27,42 @@ class ModelCollection
         $this->offset = 0;
         $this->cache = [];
         $this->like = [];
+        $this->reflection = new ReflectionClass($class);
+
         return $this;
     }
 
     public function where(string $column, string $value): ModelCollection
     {
+        if($this->reflection->getParentClass()->getName() !== Model::class){
 
-        $this->where[$column] = $value;
+            if(!Model::hasProperty($this->class,$column)){
+                $this->where["{$this->reflection->getParentClass()->getShortName()}.{$column}"] = $value;
+            }else{
+                $this->where["{$this->reflection->getShortName()}.{$column}"] = $value;
+            }
+
+        }else{
+            $this->where[$column] = $value;
+        }
 
         return $this;
     }
 
     public function like(string $column, string $value) : ModelCollection
     {
-        $this->like[$column] = $value;
+        if($this->reflection->getParentClass()->getName() !== Model::class){
+
+            if(!Model::hasProperty($this->class,$column)){
+                $this->like["{$this->reflection->getParentClass()->getShortName()}.{$column}"] = $value;
+            }else{
+                $this->like["{$this->reflection->getShortName()}.{$column}"] = $value;
+            }
+
+        }else{
+            $this->like[$column] = $value;
+        }
+
         return $this;
     }
 
@@ -86,51 +111,35 @@ class ModelCollection
         }
     }
 
-    public function getClass()
-    {
-        return $this->class;
-    }
-
     public function collection() : ModelCollection{
         return $this;
     }
 
     public function count() : int
     {
-        $array = explode("\\", $this->class);
-        $className = end($array);
-
-        $query = "SELECT count(*) from " . $className;
-
-        if(count($this->where) >0){
-            $query .= " WHERE ";
-
-            foreach ($this->where as $key => $value){
-                $query .= $key."='".$value."' AND ";
-            }
-
-            $query =  substr($query,0,strlen($query)-5);
-        }
-
-        if(count($this->like) >0){
-            $query .= " AND ";
-
-            foreach ($this->like as $key => $value){
-                $query .= $key." LIKE '%".$value."%' AND ";
-            }
-
-            $query =  substr($query,0,strlen($query)-5);
-        }
+        $query = str_replace("*","count(*)",$this->buildQuery());
 
         return (int)Database::fetch($query)["count(*)"];
     }
 
     private function buildQuery(): string
     {
+        $modelClass = $this->class;
+        $reflection = new \ReflectionClass($modelClass);
+        $parent = $reflection->getParentClass();
+
         $array = explode("\\", $this->class);
         $className = end($array);
-
         $query = "SELECT * from ".$className;
+
+
+        if ($parent->getName() !== Model::class) {
+
+            $parent = $reflection->getParentClass();
+            $pk = Migration::getPrimaryKeyFromModel($parent);
+
+            $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk["NAME"]} = {$parent->getShortName()}.{$pk["NAME"]}";
+        }
 
         if(count($this->where) >0){
             $query .= " WHERE ";
