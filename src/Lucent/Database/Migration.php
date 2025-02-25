@@ -91,6 +91,7 @@ class Migration
                 exit(1);
             }
 
+            $parentPK["AUTO_INCREMENT"] = false;
             $parentPK["REFERENCES"] = $parent->getShortName()."(".$parentPK["NAME"].")";
 
             $columns[] = $parentPK;
@@ -178,20 +179,14 @@ class Migration
         Log::channel("db")->info("Completed data restoration for {$tableName}");
     }
 
-    private function getPrimaryKeyFromModel(ReflectionClass $reflection): ?array
+    public static function getPrimaryKeyFromModel(ReflectionClass $reflection): ?array
     {
         foreach ($reflection->getProperties() as $property) {
             $attributes = $property->getAttributes(DatabaseColumn::class);
             foreach ($attributes as $attribute) {
                 $instance = $attribute->newInstance();
                 $instance->setName($property->name);
-                $column = $instance->column;
-
-                // Check if this column is set as PRIMARY_KEY
-                if ($column["PRIMARY_KEY"] === true) {
-                    $column["AUTO_INCREMENT"] = false;
-                    return $column;
-                }
+                return $instance->column;
             }
         }
 
