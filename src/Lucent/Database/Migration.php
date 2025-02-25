@@ -109,7 +109,7 @@ class Migration
             foreach ($attributes as $attribute) {
                 $instance = $attribute->newInstance();
                 $instance->setName($property->name);
-                $columns[] = $instance->getColumn();
+                $columns[] = $instance->column;
             }
         }
         return $columns;
@@ -185,7 +185,7 @@ class Migration
             foreach ($attributes as $attribute) {
                 $instance = $attribute->newInstance();
                 $instance->setName($property->name);
-                $column = $instance->getColumn();
+                $column = $instance->column;
 
                 // Check if this column is set as PRIMARY_KEY
                 if ($column["PRIMARY_KEY"] === true) {
