@@ -166,4 +166,12 @@ class SQLiteDriver extends DatabaseInterface
         return $this->typeMap;
     }
 
+    public function tableExists(string $tableName): bool
+    {
+        $query = "SELECT 1 FROM sqlite_master 
+              WHERE type='table' AND name = '$tableName'";
+        $statement = $this->connection->query($query);
+        return $statement && $statement->fetchColumn() !== false;
+    }
+
 }

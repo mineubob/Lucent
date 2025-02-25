@@ -153,4 +153,19 @@ class MySQLDriver extends DatabaseInterface
     private function buildValues(array $values): string
     {
         return "('" . implode("','", $values) . "')";
-    }}
+    }
+
+
+    public function tableExists(string $tableName): bool
+    {
+        $dbName = App::env("DB_DATABASE");
+        $query = "SELECT 1 FROM information_schema.tables 
+              WHERE table_schema = '$dbName' 
+              AND table_name = '$tableName'";
+        $result = $this->connection->query($query);
+        return $result->num_rows > 0;
+    }
+
+
+}
+
