@@ -166,6 +166,11 @@ class MySQLDriver extends DatabaseInterface
         return $result->num_rows > 0;
     }
 
+    public function lastInsertId(): string|int
+    {
+        return $this->connection->insert_id;
+    }
+
 
 }
 

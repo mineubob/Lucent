@@ -104,6 +104,7 @@ class SQLiteDriver extends DatabaseInterface
         }
     }
 
+
     public function buildColumnString(array $column): string
     {
         // Special case for auto-incrementing primary keys
@@ -111,32 +112,45 @@ class SQLiteDriver extends DatabaseInterface
             return "`" . $column["NAME"] . "` INTEGER PRIMARY KEY AUTOINCREMENT";
         }
 
-        $string = match ($column["TYPE"]) {
-            LUCENT_DB_DECIMAL => "`" . $column["NAME"] . "` DECIMAL(20,2)",
-            LUCENT_DB_JSON, LUCENT_DB_TIMESTAMP, LUCENT_DB_DATE => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]],
-            default => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] .
-                (isset($column["LENGTH"]) ? "(" . $column["LENGTH"] . ")" : ""),
-        };
+        // Get the base type (SQLite doesn't use length for INTEGER types)
+        $sqliteType = $this->typeMap[$column["TYPE"]];
 
+        // Build the column definition
+        $string = "`" . $column["NAME"] . "` " . $sqliteType;
+
+        // Only add length for non-INTEGER types that support it
+        if (isset($column["LENGTH"]) &&
+            $sqliteType !== "INTEGER" &&
+            !in_array($sqliteType, ["TEXT", "BLOB", "REAL", "DATETIME", "DATE"])) {
+            $string .= "(" . $column["LENGTH"] . ")";
+        }
+
+        // Add NULL constraint
         if (!$column["ALLOW_NULL"]) {
             $string .= " NOT NULL";
         }
 
+        // Add default value
         if ($column["DEFAULT"] !== null) {
-            if ($column["DEFAULT"] !== LUCENT_DB_DEFAULT_CURRENT_TIMESTAMP) {
-                $string .= " DEFAULT '" . $column["DEFAULT"] . "'";
-            } else {
+            if ($column["DEFAULT"] === LUCENT_DB_DEFAULT_CURRENT_TIMESTAMP) {
                 $string .= " DEFAULT CURRENT_TIMESTAMP";
+            } else {
+                // Handle empty string defaults for INTEGER columns
+                if ($sqliteType === "INTEGER" && $column["DEFAULT"] === '') {
+                    $string .= " DEFAULT 0";
+                } else {
+                    $string .= " DEFAULT '" . $column["DEFAULT"] . "'";
+                }
             }
         }
 
+        // Add unique constraint
         if ($column["UNIQUE"] !== null) {
             $string .= " UNIQUE";
         }
 
         return $string;
     }
-
     public function createTable(string $name, array $columns): string
     {
         $query = "CREATE TABLE `{$name}` (";
@@ -172,6 +186,11 @@ class SQLiteDriver extends DatabaseInterface
               WHERE type='table' AND name = '$tableName'";
         $statement = $this->connection->query($query);
         return $statement && $statement->fetchColumn() !== false;
+    }
+
+    public function lastInsertId(): string|int
+    {
+        return $this->connection->lastInsertId();
     }
 
 }
