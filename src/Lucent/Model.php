@@ -242,4 +242,11 @@ class Model
         return $this->autoId;
     }
 
+    public static function hasProperty(string $class,string $name) : bool
+    {
+        $reflection = new ReflectionClass($class);
+
+        return $reflection->hasProperty($name);
+    }
+
 }
