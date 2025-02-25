@@ -2,7 +2,9 @@
 
 namespace Unit;
 
+use App\Models\Admin;
 use Lucent\Application;
+use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\File;
@@ -52,14 +54,14 @@ class ModelTest extends TestCase
         $app = Application::getInstance();
         $app->LoadEnv();
 
-    }
+        self::generate_test_extended_model();
+        self::generate_test_model();
 
+    }
 
 
     public function test_model_migration() : void
     {
-
-        $this->generate_test_model();
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
         $this->assertEquals("Successfully performed database migration",$output);
@@ -112,7 +114,68 @@ class ModelTest extends TestCase
 
     }
 
-    private function generate_test_model(): void
+    public function test_extended_model_migration() : void
+    {
+        //Drop our test user from the prior tests to ensure it generates both.
+        Database::query("DROP TABLE IF EXISTS TestUser");
+
+        $output = CommandLine::execute("Migration make App/Models/Admin");
+        $this->assertEquals("Successfully performed database migration",$output);    }
+
+    public function test_extended_model_creation() : void
+    {
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "John Doe",
+            "email" => "john@doe.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => true,
+            "can_reset_passwords" => false,
+            "notes" => "Just a test!"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $lookup = Admin::where("email", "john@doe.com")->where("can_lock_accounts",true)->getFirst();
+        $this->assertEquals("John Doe",$lookup->getFullName());
+        $this->assertTrue($lookup->can_lock_accounts);
+        $this->assertFalse($lookup->can_reset_passwords);
+    }
+
+    public function test_extended_model_counts() : void{
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Captain Jack",
+            "email" => "jack@blackpearls.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => true,
+            "can_reset_passwords" => true,
+            "notes" => "Hes the captain"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $count = Admin::where("can_lock_accounts", true)->count();
+
+        $this->assertEquals(1, $count);
+    }
+
+    private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
         <?php
@@ -187,6 +250,67 @@ class ModelTest extends TestCase
         );
 
     }
+
+    private static function generate_test_extended_model(): void
+    {
+        $adminModel = <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Dataset;
+use App\Models\TestUser;
+
+class Admin extends TestUser
+{
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_BOOLEAN,
+        "ALLOW_NULL" => false,
+        "DEFAULT" => false
+    ])]
+    public private(set) bool $can_reset_passwords;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_BOOLEAN,
+        "ALLOW_NULL" => false,
+        "DEFAULT" => false,
+    ])]
+    public private(set) bool $can_lock_accounts;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => true,
+    ])]
+    public private(set) ?string $notes;
+
+
+    public function __construct(Dataset $dataset){
+        parent::__construct($dataset);
+        
+        $this->can_reset_passwords = $dataset->get("can_reset_passwords");
+        $this->can_lock_accounts = $dataset->get("can_lock_accounts");
+        $this->notes = $dataset->get("notes");
+    }
+}
+PHP;
+
+        // Create directories if they don't exist
+        $appPath = File::rootPath() . "App";
+        $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
+
+        if (!is_dir($modelPath)) {
+            mkdir($modelPath, 0755, true);
+        }
+
+        // Write model files
+        file_put_contents(
+            $modelPath . DIRECTORY_SEPARATOR . 'Admin.php',
+            $adminModel
+        );
+
+    }
+
 
 
 
