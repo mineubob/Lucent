@@ -4,6 +4,7 @@ namespace Lucent;
 
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
+use Lucent\Database\Migration;
 use Lucent\Facades\Log;
 use ReflectionClass;
 
@@ -34,59 +35,129 @@ class Model
         }
     }
 
-    public function create() : bool
+    public function create(): bool
     {
-
-        $query = "INSERT INTO ".$this->getSimpleClassName();
-        $properties = [];
-
         $reflection = new ReflectionClass($this);
+        $parent = $reflection->getParentClass();
 
-        foreach ($reflection->getProperties() as $property){
+        if ($parent->getName() !== Model::class) {
+            // This is a child model, handle parent first
+            $parentPK = Migration::getPrimaryKeyFromModel($parent);
+            $parentProperties = $this->getProperties($parent->getProperties());
 
-            $attributes =  $property->getAttributes(DatabaseColumn::class);
+            // Insert into parent table first
+            $parentTable = $parent->getShortName();
+            $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
 
-            if(count($attributes) > 0){
+            Log::channel("db")->info("Parent query: " . $parentQuery);
+            $result = Database::query($parentQuery);
+
+            if (!$result) {
+                Log::channel("db")->error("Failed to create parent model: " . $parentQuery);
+                return false;
+            }
+
+            // Get the last inserted ID
+            $lastId = Database::lastInsertId();
+
+            // Get properties for the child model
+            $childProps = $this->getProperties($reflection->getProperties());
+
+            // Add the parent's primary key to the child properties
+            $childProps[$parentPK["NAME"]] = $lastId;
+
+            // Insert into the current model's table
+            $tableName = $this->getSimpleClassName();
+            $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
+
+            Log::channel("db")->info("Child query: " . $childQuery);
+            $result = Database::query($childQuery);
+
+            if (!$result) {
+                Log::channel("db")->error("Failed to create child model: " . $childQuery);
+                return false;
+            }
+
+            return true;
+        } else {
+            // No inheritance - just collect properties from this model
+            $properties = $this->getProperties($reflection->getProperties());
+
+            // Insert into the current model's table
+            $tableName = $this->getSimpleClassName();
+            $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
+
+            Log::channel("db")->info("Query: " . $query);
+            $result = Database::query($query);
+
+            if (!$result) {
+                Log::channel("db")->error("Failed to create model: " . $query);
+                return false;
+            }
+
+            return true;
+        }
+    }
+    public function buildQueryString(array $properties): string
+    {
+        if (empty($properties)) {
+            return " DEFAULT VALUES";  // SQLite syntax for inserting default values
+        }
+
+        $query = "";
+        $columns = " (";
+        $values = " VALUES (";
+
+        foreach ($properties as $key => $value) {
+            $columns .= "`" . $key . "`, ";
+
+            // Handle NULL values and formatting for different types
+            if ($value === null) {
+                $values .= "NULL, ";
+            } else if (is_bool($value)) {
+                // Convert boolean to integer for SQLite
+                $values .= ($value ? "1" : "0") . ", ";
+            } else if (is_numeric($value)) {
+                $values .= $value . ", ";
+            } else {
+                // Escape single quotes in string values
+                $escaped = str_replace("'", "''", $value);
+                $values .= "'" . $escaped . "', ";
+            }
+        }
+
+        $columns = rtrim($columns, ", ") . ")";
+        $values = rtrim($values, ", ") . ")";
+
+        return $columns . $values;
+    }
+    public function getProperties(array $properties) : array
+    {
+        $output = [];
+        foreach ($properties as $property) {
+
+            $attributes = $property->getAttributes(DatabaseColumn::class);
+
+            if (count($attributes) > 0) {
 
                 $value = $property->getValue($this);
-                if($value !== null){
+                if ($value !== null) {
                     $skip = false;
 
-                    foreach ($attributes as $attribute){
+                    foreach ($attributes as $attribute) {
                         $instance = $attribute->newInstance();
                         $skip = $instance->shouldSkip();
                     }
 
-                    if(!$skip){
-                        $properties[$property->name] = $property->getValue($this);
+                    if (!$skip) {
+                        $output[$property->name] = $property->getValue($this);
                     }
 
                 }
             }
         }
 
-        $columns = " (";
-        $values = " VALUES (";
-
-        foreach ($properties as $key => $value){
-            $columns .= $key.", ";
-            $values .= "'".$value."', ";
-        }
-
-        $columns = substr($columns,0,strlen($columns)-2);
-        $columns .= ")";
-
-        $query .= $columns;
-
-        $values = substr($values,0,strlen($values)-2);
-        $values .= ")";
-
-        $query .= $values;
-
-        $result = Database::query($query);
-        $this->autoId = -1;
-
-        return $result;
+        return $output;
     }
 
     public function save(string $identifier = "id"): bool
