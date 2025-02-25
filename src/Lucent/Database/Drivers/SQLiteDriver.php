@@ -27,7 +27,13 @@ class SQLiteDriver extends DatabaseInterface
             LUCENT_DB_ENUM => "TEXT",
             LUCENT_DB_DATE => "DATE",
             LUCENT_DB_TEXT => "TEXT",
-            LUCENT_DB_VARCHAR => "TEXT"
+            LUCENT_DB_VARCHAR => "TEXT",
+            LUCENT_DB_BOOLEAN => "INTEGER",
+            LUCENT_DB_FLOAT => "REAL",
+            LUCENT_DB_DOUBLE => "REAL",
+            LUCENT_DB_CHAR => "TEXT",
+            LUCENT_DB_LONGTEXT => "TEXT",
+            LUCENT_DB_MEDIUMTEXT => "TEXT"
         ];
     }
 

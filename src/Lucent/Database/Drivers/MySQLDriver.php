@@ -27,7 +27,13 @@ class MySQLDriver extends DatabaseInterface
             LUCENT_DB_ENUM => "enum",
             LUCENT_DB_DATE => "date",
             LUCENT_DB_TEXT => "text",
-            LUCENT_DB_VARCHAR => "varchar"
+            LUCENT_DB_VARCHAR => "varchar",
+            LUCENT_DB_BOOLEAN => "tinyint",
+            LUCENT_DB_FLOAT => "float",
+            LUCENT_DB_DOUBLE => "double",
+            LUCENT_DB_CHAR => "char",
+            LUCENT_DB_LONGTEXT => "longtext",
+            LUCENT_DB_MEDIUMTEXT => "mediumtext"
         ];
     }
 
