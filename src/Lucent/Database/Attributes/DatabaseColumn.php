@@ -40,9 +40,9 @@ class DatabaseColumn
         $this->column["NAME"] = $name;
     }
 
-    public function getColumn(): array
+    public function getName(): string
     {
-        return $this->column;
+        return $this->column["NAME"];
     }
 
     public function shouldSkip() : bool
