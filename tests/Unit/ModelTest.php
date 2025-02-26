@@ -195,6 +195,36 @@ class ModelTest extends TestCase
         $this->assertNull($lookUp);
     }
 
+    public function test_extended_model_update() : void
+    {
+
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $adminUser->setFullName("Jack Harris");
+        $adminUser->setNotes("Not a pirate any more!");
+
+        try {
+            $adminUser->save();
+        }catch (\Exception $e){
+            $this->fail($e->getMessage());
+        }
+
+        $lookup = \App\Models\Admin::where("full_name", "Jack Harris")->getFirst();
+        $this->assertNotNull($lookup);
+        $this->assertEquals("Not a pirate any more!",$lookup->notes);
+    }
+
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
@@ -316,6 +346,11 @@ class Admin extends TestUser
         $this->can_reset_passwords = $dataset->get("can_reset_passwords");
         $this->can_lock_accounts = $dataset->get("can_lock_accounts");
         $this->notes = $dataset->get("notes");
+    }
+    
+    public function setNotes(string $notes): void
+    {
+        $this->notes = $notes;
     }
 }
 PHP;
