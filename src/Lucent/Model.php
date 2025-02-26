@@ -211,9 +211,63 @@ class Model
         $idProperty->setAccessible(true);
         $idValue = $idProperty->getValue($this);
 
-        // If no ID is set, treat as a create operation
-        if ($idValue === null) {
-            return $this->create();
+        $parent = $reflection->getParentClass();
+        $updates = [];
+
+        if ($parent->getName() !== Model::class) {
+
+            $query = "BEGIN TRANSACTION;";
+
+            Database::query($query);
+
+            $query = "UPDATE {$parent->getShortName()} SET ";
+
+            foreach (Model::getDatabaseProperties($parent->getName()) as $property) {
+                if(!$property["PRIMARY_KEY"]) {
+                    $value = $parent->getProperty($property["NAME"])->getValue($this);
+                    $updates[] = $property["NAME"] . "='" . $value . "'";
+                }
+            }
+
+
+            $query .= implode(", ", $updates);
+            $query .= " WHERE {$identifier}='{$idValue}'";
+
+            Log::channel("phpunit")->info("Query: " . $query);
+
+            if(!Database::query($query)){
+                Log::channel("phpunit")->error("Failed to update model with query ".$query);
+                return false;
+            }
+
+            $updates = [];
+
+            $query = "UPDATE {$reflection->getShortName()} SET ";
+
+            foreach (Model::getDatabaseProperties($reflection->getName()) as $property) {
+                if(!$property["PRIMARY_KEY"]) {
+                    $value = $reflection->getProperty($property["NAME"])->getValue($this);
+                    $updates[] = $property["NAME"] . "='" . $value . "'";
+                }
+            }
+
+            $query .= implode(", ", $updates);
+            $query .= " WHERE {$identifier}='{$idValue}'";
+
+            Log::channel("phpunit")->info("Query: " . $query);
+
+            if(!Database::query($query)){
+                Log::channel("phpunit")->error("Failed to update model with query ".$query);
+                return false;
+            }
+
+            if(Database::query("COMMIT;")){
+                return true;
+            }else{
+                Log::channel("phpunit")->error("Failed to commit model, rollback changes");
+                return Database::query("ROLLBACK");
+            }
+
         }
 
         $query = "UPDATE " . $reflection->getShortName() . " SET ";
