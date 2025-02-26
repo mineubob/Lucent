@@ -3,7 +3,6 @@
 namespace Lucent;
 
 use Lucent\Database\Dataset;
-use Lucent\Database\Migration;
 use ReflectionClass;
 
 class ModelCollection
@@ -17,7 +16,6 @@ class ModelCollection
     private int $offset;
 
     private ReflectionClass $reflection;
-
     private array $cache;
 
     public function __construct($class){
@@ -36,7 +34,7 @@ class ModelCollection
     {
         if($this->reflection->getParentClass()->getName() !== Model::class){
 
-            if(!Model::hasProperty($this->class,$column)){
+            if(!Model::hasDatabaseProperty($this->reflection->getName(),$column)){
                 $this->where["{$this->reflection->getParentClass()->getShortName()}.{$column}"] = $value;
             }else{
                 $this->where["{$this->reflection->getShortName()}.{$column}"] = $value;
@@ -53,7 +51,7 @@ class ModelCollection
     {
         if($this->reflection->getParentClass()->getName() !== Model::class){
 
-            if(!Model::hasProperty($this->class,$column)){
+            if(!Model::hasDatabaseProperty($this->class,$column)){
                 $this->like["{$this->reflection->getParentClass()->getShortName()}.{$column}"] = $value;
             }else{
                 $this->like["{$this->reflection->getShortName()}.{$column}"] = $value;
@@ -136,7 +134,7 @@ class ModelCollection
         if ($parent->getName() !== Model::class) {
 
             $parent = $reflection->getParentClass();
-            $pk = Migration::getPrimaryKeyFromModel($parent);
+            $pk = Model::getDatabasePrimaryKey($parent);
 
             $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk["NAME"]} = {$parent->getShortName()}.{$pk["NAME"]}";
         }
