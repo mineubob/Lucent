@@ -2,36 +2,70 @@
 
 namespace Lucent;
 
+use Exception;
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
-use Lucent\Database\Migration;
 use Lucent\Facades\Log;
 use ReflectionClass;
 
 class Model
 {
 
-    private int $autoId = -1;
     protected Dataset $dataset;
 
-    public function delete($property = "id"): bool
+    public function delete($propertyName = "id"): bool
     {
-
-        $query = "DELETE FROM ".$this->getSimpleClassName()." WHERE ".$property."=";
-
         $reflection = new ReflectionClass($this);
+        $parent = $reflection->getParentClass();
 
-        $property = $reflection->getProperty($property);
-        $property->setAccessible(true);
-        $value = $property->getValue($this);
+        $query = "DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."=";
 
-        $query .= "'".$value."'";
+        if ($parent->getName() !== Model::class) {
+            $propertyReflection = $reflection->getProperty($propertyName);
+            $propertyReflection->setAccessible(true);
+            $value = $propertyReflection->getValue($this);
 
-        if(Database::query($query)){
-            return true;
-        }else{
-            Log::channel("db")->error("Failed to delete model with query ".$query);
-            return false;
+            try {
+                // Manually manage the transaction
+                Database::query("BEGIN TRANSACTION");
+
+                // Delete from child table
+                $childResult = Database::query("DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."='".$value."'");
+                if (!$childResult) {
+                    throw new Exception("Failed to delete from child table");
+                }
+
+                // Delete from parent table
+                $parentResult = Database::query("DELETE FROM ".$parent->getShortName()." WHERE ".$propertyName."='".$value."'");
+                if (!$parentResult) {
+                    throw new Exception("Failed to delete from parent table");
+                }
+
+                // Commit if both operations succeed
+                return Database::query("COMMIT");
+            } catch (Exception $e) {
+                // Rollback on failure
+                Database::query("ROLLBACK");
+                Log::channel("db")->error("Delete failed: " . $e->getMessage());
+                return false;
+            }
+        }else {
+
+
+            $reflection = new ReflectionClass($this);
+
+            $property = $reflection->getProperty($propertyName);
+            $property->setAccessible(true);
+            $value = $property->getValue($this);
+
+            $query .= "'" . $value . "'";
+
+            if(Database::query($query)){
+                return true;
+            }else{
+                Log::channel("db")->error("Failed to delete model with query ".$query);
+                return false;
+            }
         }
     }
 
@@ -42,69 +76,78 @@ class Model
 
         if ($parent->getName() !== Model::class) {
             // This is a child model, handle parent first
-            $parentPK = Migration::getPrimaryKeyFromModel($parent);
-            $parentProperties = $this->getProperties($parent->getProperties());
+            $parentPK = Model::getDatabasePrimaryKey($parent);
+            $parentProperties = $this->getProperties($parent->getProperties(),$parent->getName());
 
             // Insert into parent table first
             $parentTable = $parent->getShortName();
             $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
 
-            Log::channel("db")->info("Parent query: " . $parentQuery);
+            Log::channel("phpunit")->info("Parent query: " . $parentQuery);
             $result = Database::query($parentQuery);
 
             if (!$result) {
-                Log::channel("db")->error("Failed to create parent model: " . $parentQuery);
+                Log::channel("phpunit")->error("Failed to create parent model: " . $parentQuery);
                 return false;
             }
 
-            // Get the last inserted ID
-            $lastId = Database::lastInsertId();
+            if($parentPK["AUTO_INCREMENT"] === true){
+
+                // Get the last inserted ID
+                $lastId = Database::lastInsertId();
+                //Set the ID
+                $reflection->getParentClass()->getProperty($parentPK["NAME"])->setValue($this,$lastId);
+            }else{
+                $lastId = $reflection->getProperty($parentPK["NAME"])->getValue($this);
+            }
 
             // Get properties for the child model
-            $childProps = $this->getProperties($reflection->getProperties());
+            $childProps = $this->getProperties($reflection->getProperties(),$reflection->getName());
 
             // Add the parent's primary key to the child properties
             $childProps[$parentPK["NAME"]] = $lastId;
 
             // Insert into the current model's table
-            $tableName = $this->getSimpleClassName();
+            $tableName = $reflection->getShortName();
             $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
 
-            Log::channel("db")->info("Child query: " . $childQuery);
+            Log::channel("phpunit")->info("Child query: " . $childQuery);
             $result = Database::query($childQuery);
 
             if (!$result) {
-                Log::channel("db")->error("Failed to create child model: " . $childQuery);
+                Log::channel("phpunit")->error("Failed to create child model: " . $childQuery);
                 return false;
             }
 
             return true;
         } else {
+
+            Log::channel("phpunit")->info("Process code for non inherited model");
             // No inheritance - just collect properties from this model
-            $properties = $this->getProperties($reflection->getProperties());
+            $properties = $this->getProperties($reflection->getProperties(),$reflection->getName());
 
             // Insert into the current model's table
-            $tableName = $this->getSimpleClassName();
+            $tableName = $reflection->getShortName();
             $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
 
-            Log::channel("db")->info("Query: " . $query);
+            Log::channel("phpunit")->info("Query: " . $query);
             $result = Database::query($query);
 
             if (!$result) {
-                Log::channel("db")->error("Failed to create model: " . $query);
+                Log::channel("phpunit")->error("Failed to create model: " . $query);
                 return false;
             }
 
             return true;
         }
     }
+
     public function buildQueryString(array $properties): string
     {
         if (empty($properties)) {
             return " DEFAULT VALUES";  // SQLite syntax for inserting default values
         }
 
-        $query = "";
         $columns = " (";
         $values = " VALUES (";
 
@@ -131,14 +174,15 @@ class Model
 
         return $columns . $values;
     }
-    public function getProperties(array $properties) : array
+    public function getProperties(array $properties,string $class) : array
     {
         $output = [];
         foreach ($properties as $property) {
 
             $attributes = $property->getAttributes(DatabaseColumn::class);
+            $declaringClass = $property->getDeclaringClass();
 
-            if (count($attributes) > 0) {
+            if (count($attributes) > 0 && $declaringClass->getName() === $class) {
 
                 $value = $property->getValue($this);
                 if ($value !== null) {
@@ -172,7 +216,7 @@ class Model
             return $this->create();
         }
 
-        $query = "UPDATE " . $this->getSimpleClassName() . " SET ";
+        $query = "UPDATE " . $reflection->getShortName() . " SET ";
         $updates = [];
 
         foreach ($reflection->getProperties() as $property) {
@@ -232,21 +276,44 @@ class Model
 
     }
 
-    private function getSimpleClassName(): string
+    public static function hasDatabaseProperty(string $class, string $name) : bool
     {
-        $array = explode("\\", static::class);
-        return end($array);
+        return array_key_exists($name,Model::getDatabaseProperties($class));
     }
 
-    public function getAutoId() :int{
-        return $this->autoId;
-    }
-
-    public static function hasProperty(string $class,string $name) : bool
-    {
+    public static function getDatabaseProperties(string $class) : array{
         $reflection = new ReflectionClass($class);
+        $properties = [];
 
-        return $reflection->hasProperty($name);
+        foreach ($reflection->getProperties() as $property) {
+
+            if($property->getDeclaringClass()->getName() === $reflection->getName()) {
+                $attributes = $property->getAttributes(DatabaseColumn::class);
+                foreach ($attributes as $attribute) {
+                    $instance = $attribute->newInstance();
+                    $instance->setName($property->name);
+                    $properties[$property->name] = $instance->column;
+                }
+            }
+        }
+
+        return $properties;
     }
+
+    public static function getDatabasePrimaryKey(ReflectionClass $reflection): ?array
+    {
+        foreach ($reflection->getProperties() as $property) {
+            $attributes = $property->getAttributes(DatabaseColumn::class);
+            foreach ($attributes as $attribute) {
+                $instance = $attribute->newInstance();
+                $instance->setName($property->name);
+                return $instance->column;
+            }
+        }
+
+        // Return empty string or throw an exception if no primary key found
+        return null;
+    }
+
 
 }
