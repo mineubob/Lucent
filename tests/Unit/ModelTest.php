@@ -173,6 +173,28 @@ class ModelTest extends TestCase
         $this->assertEquals(1, $count);
     }
 
+    public function test_extended_model_delete() : void
+    {
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $this->assertTrue($adminUser->delete());
+
+        $lookUp = Admin::where("email", "gibbs@blackpearl.com")->getFirst();
+
+        $this->assertNull($lookUp);
+    }
+
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
@@ -194,26 +216,26 @@ class ModelTest extends TestCase
                 "AUTO_INCREMENT"=>true,
                 "LENGTH"=>255
             ])]
-            private ?int $id;
+            public private(set) ?int $id;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            private string $email;
+            protected string $email;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            private string $password_hash;
+            protected string $password_hash;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false,
                 "LENGTH"=>100
             ])]
-            private string $full_name;
+            protected string $full_name;
         
             public function __construct(Dataset $dataset){
                 $this->id = $dataset->get("id",-1);
@@ -228,6 +250,11 @@ class ModelTest extends TestCase
             
             public function setFullName(string $full_name){
                 $this->full_name = $full_name;
+            }
+            
+            public function getId() : int
+            {
+                return $this->id;
             }
         
         
