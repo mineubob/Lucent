@@ -8,7 +8,6 @@
 namespace Lucent\Database;
 
 use Lucent\Database;
-use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Drivers\MySQLDriver;
 use Lucent\Database\Drivers\SQLiteDriver;
 use Lucent\Facades\App;
@@ -19,8 +18,6 @@ use ReflectionClass;
 
 class Migration
 {
-    private ?string $primaryKey;
-    private array $callbacks = [];
     private array $preservedData = [];
 
     private DatabaseInterface $driver;
@@ -85,7 +82,7 @@ class Migration
 
 
         if ($parent->getName() !== Model::class) {
-            $parentPK = $this->getPrimaryKeyFromModel($parent);
+            $parentPK = Model::getDatabasePrimaryKey($parent);
             if ($parentPK === null) {
                 Log::channel("phpunit")->critical("Could not retrieve primary key from parent class {$parent->getName()}");
                 exit(1);
@@ -105,15 +102,7 @@ class Migration
             }
         }
 
-        foreach ($reflection->getProperties() as $property) {
-            $attributes = $property->getAttributes(DatabaseColumn::class);
-            foreach ($attributes as $attribute) {
-                $instance = $attribute->newInstance();
-                $instance->setName($property->name);
-                $columns[] = $instance->column;
-            }
-        }
-        return $columns;
+        return array_merge($columns,Model::getDatabaseProperties($reflection->getName()));
     }
 
 
@@ -178,21 +167,5 @@ class Migration
 
         Log::channel("db")->info("Completed data restoration for {$tableName}");
     }
-
-    public static function getPrimaryKeyFromModel(ReflectionClass $reflection): ?array
-    {
-        foreach ($reflection->getProperties() as $property) {
-            $attributes = $property->getAttributes(DatabaseColumn::class);
-            foreach ($attributes as $attribute) {
-                $instance = $attribute->newInstance();
-                $instance->setName($property->name);
-                return $instance->column;
-            }
-        }
-
-        // Return empty string or throw an exception if no primary key found
-        return null;
-    }
-
 
 }
