@@ -21,30 +21,6 @@ class Database
         };
     }
 
-    public static function query(string $query): bool|array
-    {
-        if (self::$instance === null) {
-            self::initialize();
-        }
-        return self::$instance->query($query);
-    }
-
-    public static function fetch(string $query): array
-    {
-        if (self::$instance === null) {
-            self::initialize();
-        }
-        return self::$instance->fetch($query);
-    }
-
-    public static function fetchAll(string $query): array
-    {
-        if (self::$instance === null) {
-            self::initialize();
-        }
-        return self::$instance->fetchAll($query);
-    }
-
     public static function createTable(string $table, array $columns): string
     {
         if (self::$instance === null) {
@@ -53,19 +29,61 @@ class Database
         return self::$instance->createTable($table, $columns);
     }
 
-    public static function tableExists(string $table): bool
+    public static function statement(string $query): bool
     {
         if (self::$instance === null) {
             self::initialize();
         }
-        return self::$instance->tableExists($table);
+
+        return self::$instance->statement($query);
     }
 
-    public static function lastInsertId(): string|int
+    public static function insert(string $query): bool
     {
         if (self::$instance === null) {
             self::initialize();
         }
-        return self::$instance->lastInsertId();
+
+        return self::$instance->insert($query);
+    }
+
+    public static function update(string $query): bool
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->update($query);
+    }
+
+    public static function delete(string $query): bool
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->delete($query);
+    }
+
+    public static function select($query,bool $fetchAll = true): ?array
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->select($query,$fetchAll);
+    }
+
+    public static function transaction(callable $callback): bool
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance->transaction($callback);
+    }
+
+    public static function getDriver() : DatabaseInterface
+    {
+        if (self::$instance === null) {
+            self::initialize();
+        }
+        return self::$instance;
     }
 }
