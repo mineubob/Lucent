@@ -18,47 +18,44 @@ class Model
         $reflection = new ReflectionClass($this);
         $parent = $reflection->getParentClass();
 
-        $query = "DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."=";
-
         if ($parent->getName() !== Model::class) {
             $propertyReflection = $reflection->getProperty($propertyName);
             $propertyReflection->setAccessible(true);
             $value = $propertyReflection->getValue($this);
 
-            $parentQuery = "DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."='".$value."'";
-            $childQuery = "DELETE FROM ".$parent->getShortName()." WHERE ".$propertyName."='".$value."'";
+            // FIXED: Correct table names - delete from child first, then parent
+            $childQuery = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
+            $parentQuery = "DELETE FROM " . $parent->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
 
             try {
                 return Database::transaction(function() use ($childQuery, $parentQuery) {
-                    Database::delete($parentQuery);
-                    Database::delete($childQuery);
+                    $childResult = Database::delete($childQuery);
+                    if (!$childResult) {
+                        return false;
+                    }
+                    return Database::delete($parentQuery);
                 });
-
             } catch (Exception $e) {
                 // Rollback on failure
                 Log::channel("db")->error("Delete failed: " . $e->getMessage());
                 return false;
             }
-        }else {
-
-
-            $reflection = new ReflectionClass($this);
-
+        } else {
+            // Standard model deletion (unchanged)
             $property = $reflection->getProperty($propertyName);
             $property->setAccessible(true);
             $value = $property->getValue($this);
 
-            $query .= "'" . $value . "'";
+            $query = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
 
             if(Database::delete($query)){
                 return true;
-            }else{
-                Log::channel("db")->error("Failed to delete model with query ".$query);
+            } else {
+                Log::channel("db")->error("Failed to delete model with query " . $query);
                 return false;
             }
         }
     }
-
     public function create(): bool
     {
         $reflection = new ReflectionClass($this);
@@ -67,55 +64,60 @@ class Model
         if ($parent->getName() !== Model::class) {
             // This is a child model, handle parent first
             $parentPK = Model::getDatabasePrimaryKey($parent);
-            $parentProperties = $this->getProperties($parent->getProperties(),$parent->getName());
+            $parentProperties = $this->getProperties($parent->getProperties(), $parent->getName());
 
-            // Insert into parent table first
-            $parentTable = $parent->getShortName();
-            $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
+            // Start a transaction
+            return Database::transaction(function() use ($reflection, $parent, $parentPK, $parentProperties) {
+                // Insert into parent table first
+                $parentTable = $parent->getShortName();
+                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
 
-            Log::channel("phpunit")->info("Parent query: " . $parentQuery);
-            $result = Database::insert($parentQuery);
+                Log::channel("phpunit")->info("Parent query: " . $parentQuery);
+                $result = Database::insert($parentQuery);
 
-            if (!$result) {
-                Log::channel("phpunit")->error("Failed to create parent model: " . $parentQuery);
-                return false;
-            }
+                if (!$result) {
+                    Log::channel("phpunit")->error("Failed to create parent model: " . $parentQuery);
+                    // The transaction will be rolled back automatically
+                    return false;
+                }
 
-            if($parentPK["AUTO_INCREMENT"] === true){
+                if ($parentPK["AUTO_INCREMENT"] === true) {
+                    // Get the last inserted ID
+                    $lastId = Database::getDriver()->lastInsertId();
 
-                // Get the last inserted ID
-                $lastId = Database::getDriver()->lastInsertId();
+                    // Set the ID
+                    $parent->getProperty($parentPK["NAME"])->setValue($this, $lastId);
+                } else {
+                    $lastId = $reflection->getProperty($parentPK["NAME"])->getValue($this);
+                }
 
-                //Set the ID
-                $reflection->getParentClass()->getProperty($parentPK["NAME"])->setValue($this,$lastId);
-            }else{
-                $lastId = $reflection->getProperty($parentPK["NAME"])->getValue($this);
-            }
+                // Get properties for the child model
+                $childProps = $this->getProperties($reflection->getProperties(), $reflection->getName());
 
-            // Get properties for the child model
-            $childProps = $this->getProperties($reflection->getProperties(),$reflection->getName());
+                // Add the parent's primary key to the child properties
+                $childProps[$parentPK["NAME"]] = $lastId;
 
-            // Add the parent's primary key to the child properties
-            $childProps[$parentPK["NAME"]] = $lastId;
+                // Insert into the current model's table
+                $tableName = $reflection->getShortName();
+                $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
 
-            // Insert into the current model's table
-            $tableName = $reflection->getShortName();
-            $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
+                Log::channel("phpunit")->info("Child query: " . $childQuery);
+                $result = Database::insert($childQuery);
 
-            Log::channel("phpunit")->info("Child query: " . $childQuery);
-            $result = Database::insert($childQuery);
+                if (!$result) {
+                    Log::channel("phpunit")->error("Failed to create child model: " . $childQuery);
+                    // The transaction will be rolled back automatically
+                    return false;
+                }
 
-            if (!$result) {
-                Log::channel("phpunit")->error("Failed to create child model: " . $childQuery);
-                return false;
-            }
-
-            return true;
+                // The transaction will be committed automatically
+                return true;
+            });
         } else {
-
+            // Standard model creation (no transaction needed)
             Log::channel("phpunit")->info("Process code for non inherited model");
             // No inheritance - just collect properties from this model
-            $properties = $this->getProperties($reflection->getProperties(),$reflection->getName());
+            $properties = $this->getProperties($reflection->getProperties(), $reflection->getName());
 
             // Insert into the current model's table
             $tableName = $reflection->getShortName();
@@ -132,7 +134,6 @@ class Model
             return true;
         }
     }
-
     public function buildQueryString(array $properties): string
     {
         if (empty($properties)) {
@@ -206,45 +207,77 @@ class Model
         $updates = [];
 
         if ($parent->getName() !== Model::class) {
-
-
+            // Extended model handling
             $parentQuery = "UPDATE {$parent->getShortName()} SET ";
+            $parentUpdates = [];
 
             foreach (Model::getDatabaseProperties($parent->getName()) as $property) {
                 if(!$property["PRIMARY_KEY"]) {
-                    $value = $parent->getProperty($property["NAME"])->getValue($this);
-                    $updates[] = $property["NAME"] . "='" . $value . "'";
+                    $propName = $property["NAME"];
+                    $parentProp = $parent->getProperty($propName);
+                    $parentProp->setAccessible(true);
+                    $value = $parentProp->getValue($this);
+
+                    // Format the value based on its type
+                    if ($value === null) {
+                        $parentUpdates[] = $propName . "=NULL";
+                    } else if (is_bool($value) || (isset($property["TYPE"]) && strpos($property["TYPE"], 'tinyint') !== false)) {
+                        $parentUpdates[] = $propName . "=" . ($value ? "1" : "0");
+                    } else if (is_numeric($value)) {
+                        $parentUpdates[] = $propName . "=" . $value;
+                    } else {
+                        $parentUpdates[] = $propName . "='" . addslashes($value) . "'";
+                    }
                 }
             }
 
-
-            $parentQuery .= implode(", ", $updates);
-            $parentQuery .= " WHERE {$identifier}='{$idValue}'";
+            $parentQuery .= implode(", ", $parentUpdates);
+            $parentQuery .= " WHERE {$identifier}=";
+            $parentQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
 
             Log::channel("phpunit")->info("Query: " . $parentQuery);
 
-            $updates = [];
-
+            $childUpdates = [];
             $childQuery = "UPDATE {$reflection->getShortName()} SET ";
 
             foreach (Model::getDatabaseProperties($reflection->getName()) as $property) {
                 if(!$property["PRIMARY_KEY"]) {
-                    $value = $reflection->getProperty($property["NAME"])->getValue($this);
-                    $updates[] = $property["NAME"] . "='" . $value . "'";
+                    $propName = $property["NAME"];
+                    $reflProp = $reflection->getProperty($propName);
+                    $reflProp->setAccessible(true);
+                    $value = $reflProp->getValue($this);
+
+                    // Format the value based on its type
+                    if ($value === null) {
+                        $childUpdates[] = $propName . "=NULL";
+                    } else if (is_bool($value) || (isset($property["TYPE"]) && strpos($property["TYPE"], 'tinyint') !== false)) {
+                        $childUpdates[] = $propName . "=" . ($value ? "1" : "0");
+                    } else if (is_numeric($value)) {
+                        $childUpdates[] = $propName . "=" . $value;
+                    } else {
+                        $childUpdates[] = $propName . "='" . addslashes($value) . "'";
+                    }
                 }
             }
 
-            $childQuery .= implode(", ", $updates);
-            $childQuery .= " WHERE {$identifier}='{$idValue}'";
+            if (empty($childUpdates)) {
+                // If no child updates, just update parent
+                return Database::update($parentQuery);
+            }
+
+            $childQuery .= implode(", ", $childUpdates);
+            $childQuery .= " WHERE {$identifier}=";
+            $childQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
 
             Log::channel("phpunit")->info("Query: " . $childQuery);
 
             return Database::transaction(function() use ($childQuery, $parentQuery) {
                 Database::update($parentQuery);
-                Database::update($childQuery);
+                return Database::update($childQuery);
             });
         }
 
+        // Non-extended model handling
         Log::channel("phpunit")->info("Saving standard model (non extended)");
 
         $query = "UPDATE " . $reflection->getShortName() . " SET ";
@@ -266,7 +299,16 @@ class Model
                     }
 
                     if (!$skip && $property->getName() !== $identifier) {
-                        $updates[] = $property->getName() . "='" . $value . "'";
+                        // Format the value based on its type
+                        $propName = $property->getName();
+
+                        if (is_bool($value)) {
+                            $updates[] = $propName . "=" . ($value ? "1" : "0");
+                        } else if (is_numeric($value)) {
+                            $updates[] = $propName . "=" . $value;
+                        } else {
+                            $updates[] = $propName . "='" . addslashes($value) . "'";
+                        }
                     }
                 }
             }
@@ -277,7 +319,9 @@ class Model
         }
 
         $query .= implode(", ", $updates);
-        $query .= " WHERE {$identifier}='{$idValue}'";
+        $query .= " WHERE {$identifier}=";
+        $query .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
+
         Log::channel("phpunit")->info("Query: " . $query);
 
         try {
@@ -287,7 +331,6 @@ class Model
             return false;
         }
     }
-
     public static function where(string $column, string $value): ModelCollection
     {
         $collection = new ModelCollection(static::class);
