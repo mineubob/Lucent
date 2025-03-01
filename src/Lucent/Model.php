@@ -25,27 +25,17 @@ class Model
             $propertyReflection->setAccessible(true);
             $value = $propertyReflection->getValue($this);
 
+            $parentQuery = "DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."='".$value."'";
+            $childQuery = "DELETE FROM ".$parent->getShortName()." WHERE ".$propertyName."='".$value."'";
+
             try {
-                // Manually manage the transaction
-                Database::query("BEGIN TRANSACTION");
+                return Database::transaction(function() use ($childQuery, $parentQuery) {
+                    Database::delete($parentQuery);
+                    Database::delete($childQuery);
+                });
 
-                // Delete from child table
-                $childResult = Database::query("DELETE FROM ".$reflection->getShortName()." WHERE ".$propertyName."='".$value."'");
-                if (!$childResult) {
-                    throw new Exception("Failed to delete from child table");
-                }
-
-                // Delete from parent table
-                $parentResult = Database::query("DELETE FROM ".$parent->getShortName()." WHERE ".$propertyName."='".$value."'");
-                if (!$parentResult) {
-                    throw new Exception("Failed to delete from parent table");
-                }
-
-                // Commit if both operations succeed
-                return Database::query("COMMIT");
             } catch (Exception $e) {
                 // Rollback on failure
-                Database::query("ROLLBACK");
                 Log::channel("db")->error("Delete failed: " . $e->getMessage());
                 return false;
             }
@@ -60,7 +50,7 @@ class Model
 
             $query .= "'" . $value . "'";
 
-            if(Database::query($query)){
+            if(Database::delete($query)){
                 return true;
             }else{
                 Log::channel("db")->error("Failed to delete model with query ".$query);
@@ -84,7 +74,7 @@ class Model
             $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
 
             Log::channel("phpunit")->info("Parent query: " . $parentQuery);
-            $result = Database::query($parentQuery);
+            $result = Database::insert($parentQuery);
 
             if (!$result) {
                 Log::channel("phpunit")->error("Failed to create parent model: " . $parentQuery);
@@ -94,7 +84,8 @@ class Model
             if($parentPK["AUTO_INCREMENT"] === true){
 
                 // Get the last inserted ID
-                $lastId = Database::lastInsertId();
+                $lastId = Database::getDriver()->lastInsertId();
+
                 //Set the ID
                 $reflection->getParentClass()->getProperty($parentPK["NAME"])->setValue($this,$lastId);
             }else{
@@ -112,7 +103,7 @@ class Model
             $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
 
             Log::channel("phpunit")->info("Child query: " . $childQuery);
-            $result = Database::query($childQuery);
+            $result = Database::insert($childQuery);
 
             if (!$result) {
                 Log::channel("phpunit")->error("Failed to create child model: " . $childQuery);
@@ -131,7 +122,7 @@ class Model
             $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
 
             Log::channel("phpunit")->info("Query: " . $query);
-            $result = Database::query($query);
+            $result = Database::insert($query);
 
             if (!$result) {
                 Log::channel("phpunit")->error("Failed to create model: " . $query);
@@ -216,11 +207,8 @@ class Model
 
         if ($parent->getName() !== Model::class) {
 
-            $query = "BEGIN TRANSACTION;";
 
-            Database::query($query);
-
-            $query = "UPDATE {$parent->getShortName()} SET ";
+            $parentQuery = "UPDATE {$parent->getShortName()} SET ";
 
             foreach (Model::getDatabaseProperties($parent->getName()) as $property) {
                 if(!$property["PRIMARY_KEY"]) {
@@ -230,19 +218,14 @@ class Model
             }
 
 
-            $query .= implode(", ", $updates);
-            $query .= " WHERE {$identifier}='{$idValue}'";
+            $parentQuery .= implode(", ", $updates);
+            $parentQuery .= " WHERE {$identifier}='{$idValue}'";
 
-            Log::channel("phpunit")->info("Query: " . $query);
-
-            if(!Database::query($query)){
-                Log::channel("phpunit")->error("Failed to update model with query ".$query);
-                return false;
-            }
+            Log::channel("phpunit")->info("Query: " . $parentQuery);
 
             $updates = [];
 
-            $query = "UPDATE {$reflection->getShortName()} SET ";
+            $childQuery = "UPDATE {$reflection->getShortName()} SET ";
 
             foreach (Model::getDatabaseProperties($reflection->getName()) as $property) {
                 if(!$property["PRIMARY_KEY"]) {
@@ -251,24 +234,18 @@ class Model
                 }
             }
 
-            $query .= implode(", ", $updates);
-            $query .= " WHERE {$identifier}='{$idValue}'";
+            $childQuery .= implode(", ", $updates);
+            $childQuery .= " WHERE {$identifier}='{$idValue}'";
 
-            Log::channel("phpunit")->info("Query: " . $query);
+            Log::channel("phpunit")->info("Query: " . $childQuery);
 
-            if(!Database::query($query)){
-                Log::channel("phpunit")->error("Failed to update model with query ".$query);
-                return false;
-            }
-
-            if(Database::query("COMMIT;")){
-                return true;
-            }else{
-                Log::channel("phpunit")->error("Failed to commit model, rollback changes");
-                return Database::query("ROLLBACK");
-            }
-
+            return Database::transaction(function() use ($childQuery, $parentQuery) {
+                Database::update($parentQuery);
+                Database::update($childQuery);
+            });
         }
+
+        Log::channel("phpunit")->info("Saving standard model (non extended)");
 
         $query = "UPDATE " . $reflection->getShortName() . " SET ";
         $updates = [];
@@ -301,9 +278,10 @@ class Model
 
         $query .= implode(", ", $updates);
         $query .= " WHERE {$identifier}='{$idValue}'";
+        Log::channel("phpunit")->info("Query: " . $query);
 
         try {
-            return Database::query($query);
+            return Database::update($query);
         } catch (\Exception $e) {
             Log::channel("db")->error("Failed to save model with query " . $query . ". Error: " . $e->getMessage());
             return false;
