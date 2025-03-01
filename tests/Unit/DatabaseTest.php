@@ -3,91 +3,93 @@
 namespace Unit;
 
 use Exception;
-use Lucent\Application;
 use Lucent\Database;
-use Lucent\Facades\File;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class DatabaseTest extends TestCase
+// Manually require the DatabaseDriverSetup file
+$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
+
+if (file_exists($driverSetupPath)) {
+    require_once $driverSetupPath;
+} else {
+    // Fallback path if the normal path doesn't work
+    require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
+}
+
+class DatabaseTest extends DatabaseDriverSetup
 {
 
-    public static function setUpBeforeClass(): void
+
+    /**
+     * @return array<string, array{0: string, 1: array<string, string>}>
+     */
+    public static function databaseDriverProvider(): array
     {
-        parent::setUpBeforeClass();
-
-        // Temporarily set EXTERNAL_ROOT to match TEMP_ROOT for testing
-        File::overrideRootPath(TEMP_ROOT.DIRECTORY_SEPARATOR);
-
-        // Create storage directory in our temp environment
-        if (!is_dir(File::rootPath() . 'storage')) {
-            mkdir(File::rootPath() . 'storage', 0755, true);
-        }
-
-        $env =  <<<'ENV'
-                # MySQL Configuration
-                DB_DRIVER=sqlite
-                #DB_HOST=localhost
-                #DB_PORT=3306
-                #DB_DATABASE=test_database
-                #DB_USERNAME=root
-                #DB_PASSWORD=your_password
-                
-                # SQLite Configuration (commented out)
-                DB_DATABASE=/database.sqlite
-                ENV;
-
-        $path = File::rootPath(). '.env';
-
-        $result = file_put_contents($path, $env);
-
-        if ($result === false) {
-            throw new \RuntimeException("Failed to write .env file to: " . $path);
-        }
-
-        // Optionally verify the file exists
-        if (!file_exists($path)) {
-            throw new \RuntimeException(".env file was not created at: " . $path);
-        }
-
-        $app = Application::getInstance();
-        $app->LoadEnv();
+        return [
+            'sqlite' => ['sqlite', [
+                'DB_DATABASE' => '/database.sqlite'
+            ]],
+            'mysql' => ['mysql', [
+                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+            ]]
+        ];
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_database_connection_explicit($driver, $config): void
+    {
+        self::setupDatabase($driver, $config);
 
-    public function test_sqlite_driver(){
-
-        $query = 'CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )';
-
+        // Force a connection and query
         try {
-            Database::statement($query);
-            echo "Database connection successful!";
+            if ($driver == 'mysql') {
+                // Use a MySQL-specific query to ensure we're testing MySQL
+                $result = Database::select("SELECT VERSION()");
+            } else {
+                // SQLite query
+                $result = Database::select("SELECT name FROM sqlite_master WHERE type='table'");
+            }
+
+            // If we get here, the connection succeeded
+            $this->assertTrue(true, "Connection to $driver successful");
         } catch (Exception $e) {
-            $this->fail($e->getMessage());
+            // This is what should happen with invalid credentials
+            $this->fail("Database connection failed: " . $e->getMessage());
         }
-        $query ="SELECT name FROM sqlite_master WHERE type='table' AND name = 'users'";
-
-        $result = Database::select($query,false);
-
-        $this->assertEquals('users',$result['name']);
     }
 
-    public function test_statement_create_table_success() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_statement_create_table_success($driver, $config): void
     {
-        $query = 'CREATE TABLE IF NOT EXISTS test_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
+        self::setupDatabase($driver, $config);
+
+        // Use the appropriate syntax based on the driver
+        if ($driver === 'sqlite') {
+            $query = 'CREATE TABLE IF NOT EXISTS test_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL
         )';
+        } else {
+            $query = 'CREATE TABLE IF NOT EXISTS test_users (
+            id INT NOT NULL AUTO_INCREMENT,
+            name TEXT NOT NULL,
+            PRIMARY KEY (id)
+        )';
+        }
+
         $this->assertTrue(Database::statement($query));
     }
 
-    public function test_statement_failed_select_all() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_statement_failed_select_all($driver,$config) : void
     {
-        $this->test_statement_create_table_success();
+        self::setupDatabase($driver,$config);
+
+        $this->test_statement_create_table_success($driver,$config);
         $query = 'SELECT * FROM test_users';
         try {
             Database::statement($query);
@@ -96,15 +98,15 @@ class DatabaseTest extends TestCase
         }
     }
 
-    public function test_statement_insert_success() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_statement_insert_success($driver,$config) : void
     {
 
-        $this->test_statement_create_table_success();
+        $this->test_statement_create_table_success($driver,$config);
 
         $query = 'INSERT INTO test_users (name) VALUES ("Homer Simpson")';
 
         $this->assertTrue(Database::insert($query));
-
     }
 
 
