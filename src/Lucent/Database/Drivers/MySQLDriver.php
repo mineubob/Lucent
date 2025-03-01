@@ -80,12 +80,19 @@ class MySQLDriver extends DatabaseInterface
 
     public function buildColumnString(array $column): string
     {
+        if (in_array($column['TYPE'], [LUCENT_DB_TINYINT, LUCENT_DB_INT, LUCENT_DB_FLOAT, LUCENT_DB_DOUBLE, LUCENT_DB_DECIMAL,LUCENT_DB_BOOLEAN]) &&
+            isset($column['DEFAULT']) && $column['DEFAULT'] == '') {
+            // Replace empty string default with 0 for numeric types
+            $column['DEFAULT'] = 0;
+        }
+
         $string = match ($column["TYPE"]) {
             LUCENT_DB_DECIMAL => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . "(20,2)",
             LUCENT_DB_JSON, LUCENT_DB_TIMESTAMP, LUCENT_DB_DATE => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]],
             LUCENT_DB_ENUM => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . $this->buildValues($column["VALUES"]),
             default => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . "(" . $column["LENGTH"] . ")",
         };
+
 
         if (!$column["ALLOW_NULL"]) {
             $string .= " NOT NULL";
@@ -125,6 +132,9 @@ class MySQLDriver extends DatabaseInterface
             $query .= ",";
         }
 
+        // Always remove the trailing comma from column definitions
+        $query = rtrim($query, ",");
+
         // Add primary key
         $primaryKey = array_filter($columns, fn($col) => $col["PRIMARY_KEY"] ?? false);
         if (!empty($primaryKey)) {
@@ -132,16 +142,14 @@ class MySQLDriver extends DatabaseInterface
             $constraints[] = "PRIMARY KEY (`" . $pkColumn["NAME"] . "`)";
         }
 
+        // Add constraints if we have any
         if (!empty($constraints)) {
-            $query .= implode(",", $constraints);
-        } else {
-            $query = rtrim($query, ",");
+            $query .= "," . implode(",", $constraints);
         }
 
         $query .= ");";
         return $query;
     }
-
     public function getTypeMap(): array
     {
         return $this->typeMap;
@@ -186,7 +194,8 @@ class MySQLDriver extends DatabaseInterface
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
-        return $this->connection->query($query)->num_rows > 0;
+        $result = $this->connection->query($query);
+        return $result !== false && $this->connection->affected_rows > 0;
     }
 
     public function delete($query): bool
@@ -204,8 +213,8 @@ class MySQLDriver extends DatabaseInterface
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
-        return $this->connection->query($query)->num_rows > 0;
-    }
+        $result = $this->connection->query($query);
+        return $result !== false && $this->connection->affected_rows > 0;    }
 
     public function select(string $query, bool $fetchAll = false): null|array
     {
