@@ -101,11 +101,14 @@ class ModelTest extends TestCase
 
         $user->setFullName("Jack Harris");
 
+        $result = false;
         try{
-            $user->save();
+            $result = $user->save();
         }catch (\Exception $e){
             $this->fail($e->getMessage());
         }
+
+        $this->assertTrue($result);
 
         $user = \App\Models\TestUser::where("full_name", "Jack Harris")->getFirst();
 
@@ -117,7 +120,7 @@ class ModelTest extends TestCase
     public function test_extended_model_migration() : void
     {
         //Drop our test user from the prior tests to ensure it generates both.
-        Database::query("DROP TABLE IF EXISTS TestUser");
+        Database::statement("DROP TABLE IF EXISTS TestUser");
 
         $output = CommandLine::execute("Migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration",$output);    }
@@ -223,6 +226,27 @@ class ModelTest extends TestCase
         $lookup = \App\Models\Admin::where("full_name", "Jack Harris")->getFirst();
         $this->assertNotNull($lookup);
         $this->assertEquals("Not a pirate any more!",$lookup->notes);
+    }
+
+    public function test_extended_model_getFirst() : void
+    {
+
+        $this->test_extended_model_migration();
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Davey Jones",
+            "email" => "Davey@Jones.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Captain of the flying dutchman."
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $lookup = \App\Models\Admin::where("full_name", "Davey Jones")->getFirst();
+        $this->assertNotNull($lookup);
+        $this->assertEquals("Davey Jones",$lookup->getFullName());
     }
 
     private static function generate_test_model(): void
