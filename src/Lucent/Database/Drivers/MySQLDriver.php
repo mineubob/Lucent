@@ -6,6 +6,7 @@ use Lucent\Database\DatabaseInterface;
 use Lucent\Facades\App;
 use Lucent\Facades\Log;
 use mysqli;
+use mysqli_sql_exception;
 
 
 class MySQLDriver extends DatabaseInterface
@@ -16,7 +17,10 @@ class MySQLDriver extends DatabaseInterface
 
     public function __construct()
     {
+        parent::__construct();
+
         $this->connection = $this->createConnection();
+
         $this->typeMap = [
             LUCENT_DB_BINARY => "binary",
             LUCENT_DB_TINYINT => "tinyint",
@@ -35,39 +39,32 @@ class MySQLDriver extends DatabaseInterface
             LUCENT_DB_LONGTEXT => "longtext",
             LUCENT_DB_MEDIUMTEXT => "mediumtext"
         ];
-    }
 
-    public function query(string $query): bool
-    {
-        Log::channel("db")->info($query);
-        return (bool)$this->connection->query($query);
-    }
+        $this->allowed_statement_prefix = [
+            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE',
+            'CREATE INDEX', 'DROP INDEX',
+            'TRUNCATE TABLE', 'RENAME TABLE',
+            'CREATE VIEW', 'DROP VIEW',
+            'CREATE PROCEDURE', 'DROP PROCEDURE',
+            'CREATE TRIGGER', 'DROP TRIGGER',
+            'OPTIMIZE TABLE', 'SET', 'FLUSH'
+        ];
 
-    public function fetch(string $query): array
-    {
-        Log::channel("db")->info($query);
-        $results = $this->connection->query($query)->fetch_assoc();
-        return $results !== null ? $results : [];
-    }
+        $this->allowed_insert_prefix = [
+            "INSERT INTO",
+        ];
 
-    public function fetchAll(string $query): array
-    {
-        Log::channel("db")->info($query);
-        $query = $this->connection->query($query);
-        $results = $query->fetch_all();
-        $fields = $query->fetch_fields();
+        $this->allowed_delete_prefix = [
+            "DELETE FROM",
+        ];
 
-        $output = [];
-        foreach ($results as $result) {
-            $row = [];
-            $columnId = 0;
-            foreach ($result as $column) {
-                $row[$fields[$columnId]->name] = $column;
-                $columnId++;
-            }
-            $output[] = $row;
-        }
-        return $output;
+        $this->allowed_update_prefix = [
+            "UPDATE",
+        ];
+
+        $this->allowed_select_prefix = [
+            "SELECT",
+        ];
     }
 
     private function createConnection(): mysqli
@@ -155,22 +152,171 @@ class MySQLDriver extends DatabaseInterface
         return "('" . implode("','", $values) . "')";
     }
 
-
-    public function tableExists(string $tableName): bool
-    {
-        $dbName = App::env("DB_DATABASE");
-        $query = "SELECT 1 FROM information_schema.tables 
-              WHERE table_schema = '$dbName' 
-              AND table_name = '$tableName'";
-        $result = $this->connection->query($query);
-        return $result->num_rows > 0;
-    }
-
     public function lastInsertId(): string|int
     {
         return $this->connection->insert_id;
     }
 
+    //Query Execution functions
+    public function statement(string $query): bool
+    {
+        if (!$this->validator->statementIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
 
+        try {
+            $result = $this->connection->query($query);
+
+            // Only false indicates failure, 0 is valid for successful DDL
+            if ($result === false) {
+                $errorInfo = $this->connection->error;
+                throw new \Exception($errorInfo[2] ?? 'Unknown database error');
+            }
+
+            return true;
+        } catch (mysqli_sql_exception $e) {
+            throw new \Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    public function insert(string $query): bool
+    {
+
+        if(!$this->validator->insertIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        return $this->connection->query($query)->num_rows > 0;
+    }
+
+    public function delete($query): bool
+    {
+        if(!$this->validator->deleteIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        return $this->connection->query($query)->num_rows > 0;
+    }
+
+    public function update($query): bool
+    {
+        if(!$this->validator->updateIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        return $this->connection->query($query)->num_rows > 0;
+    }
+
+    public function select(string $query, bool $fetchAll = false): null|array
+    {
+        Log::channel("db")->info($query);
+        $result = $this->connection->query($query);
+
+        if (!$result) {
+            return $fetchAll ? [] : null;
+        }
+
+        if ($fetchAll) {
+            // Process multiple rows with column names
+            $results = $result->fetch_all();
+            $fields = $result->fetch_fields();
+
+            $output = [];
+            foreach ($results as $row) {
+                $processedRow = [];
+                $columnId = 0;
+                foreach ($row as $column) {
+                    $processedRow[$fields[$columnId]->name] = $column;
+                    $columnId++;
+                }
+                $output[] = $processedRow;
+            }
+            return $output;
+        } else {
+            // Single row
+            $row = $result->fetch_assoc();
+            return $row !== null ? $row : [];
+        }
+    }
+
+    //Table functions
+    public function hasTable(string $name): bool
+    {
+        $dbName = App::env("DB_DATABASE");
+        $query = "SELECT 1 FROM information_schema.tables 
+              WHERE table_schema = '$dbName' 
+              AND table_name = '$name'";
+        $result = $this->connection->query($query);
+        return $result->num_rows > 0;
+    }
+    public function hasColumn(string $table, array|string $column): bool
+    {
+        try {
+            // Verify the table exists first
+            if (!$this->hasTable($table)) {
+                return false;
+            }
+
+            $dbName = App::env("DB_DATABASE");
+
+            // Handle single column (string) check
+            if (is_string($column)) {
+                $query = "SELECT 1 FROM information_schema.columns 
+                     WHERE table_schema = '$dbName' 
+                     AND table_name = '$table'
+                     AND column_name = '$column'";
+                $result = $this->connection->query($query);
+                return $result && $result->num_rows > 0;
+            }
+
+            // Handle multiple columns (array) check
+            if (is_array($column)) {
+                // Get all columns for this table
+                $query = "SELECT column_name FROM information_schema.columns 
+                     WHERE table_schema = '$dbName' 
+                     AND table_name = '$table'";
+                $result = $this->connection->query($query);
+
+                if (!$result) {
+                    return false;
+                }
+
+                // Convert result to a simple array of column names
+                $existingColumns = [];
+                while ($row = $result->fetch_assoc()) {
+                    $existingColumns[] = $row['column_name'];
+                }
+
+                // Check if every requested column exists
+                foreach ($column as $col) {
+                    if (!in_array($col, $existingColumns)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            return false;
+        } catch (mysqli_sql_exception $e) {
+            Log::channel("db")->error("Error checking column existence: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function getAutoincrementId(): int
+    {
+        return $this->connection->insert_id;
+    }
+
+    public function transaction(callable $callback): bool
+    {
+        $this->connection->begin_transaction();
+        call_user_func($callback);
+        $result = $this->connection->commit();
+        if(!$result){
+            $this->connection->rollBack();
+        }
+        return $result;
+    }
 }
 

@@ -12,9 +12,10 @@ class SQLiteDriver extends DatabaseInterface
     private PDO $connection;
     public private(set) array $typeMap;
 
-
     public function __construct()
     {
+        parent::__construct();
+
         $this->connection = $this->createConnection();
 
         $this->typeMap = [
@@ -35,28 +36,29 @@ class SQLiteDriver extends DatabaseInterface
             LUCENT_DB_LONGTEXT => "TEXT",
             LUCENT_DB_MEDIUMTEXT => "TEXT"
         ];
-    }
 
-    public function query(string $query): bool
-    {
-        Log::channel("db")->info($query);
-        $statement = $this->connection->query($query);
-        return $statement !== false;
-    }
+        $this->allowed_statement_prefix = [
+            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE',
+            'CREATE INDEX', 'DROP INDEX',
+            'VACUUM', 'ANALYZE', 'PRAGMA',
+            'ATTACH DATABASE', 'DETACH DATABASE'
+        ];
 
-    public function fetch(string $query): array
-    {
-        Log::channel("db")->info($query);
-        $statement = $this->connection->query($query);
-        $results = $statement ? $statement->fetch(PDO::FETCH_ASSOC) : null;
-        return $results ? $results : [];
-    }
+        $this->allowed_insert_prefix = [
+            "INSERT INTO",
+        ];
 
-    public function fetchAll(string $query): array
-    {
-        Log::channel("db")->info($query);
-        $statement = $this->connection->query($query);
-        return $statement ? $statement->fetchAll(PDO::FETCH_ASSOC) : [];
+        $this->allowed_delete_prefix = [
+            "DELETE FROM",
+        ];
+
+        $this->allowed_update_prefix = [
+            "UPDATE",
+        ];
+
+        $this->allowed_select_prefix = [
+            "SELECT",
+        ];
     }
 
     private function createConnection(): PDO
@@ -66,7 +68,6 @@ class SQLiteDriver extends DatabaseInterface
         $this->ensureSQLiteFileExists($fullPath);
         return new PDO("sqlite:" . $fullPath);
     }
-
 
     private function ensureSQLiteFileExists(string $path): void
     {
@@ -180,17 +181,146 @@ class SQLiteDriver extends DatabaseInterface
         return $this->typeMap;
     }
 
-    public function tableExists(string $tableName): bool
+    public function hasTable(string $name): bool
     {
         $query = "SELECT 1 FROM sqlite_master 
-              WHERE type='table' AND name = '$tableName'";
+              WHERE type='table' AND name = '$name'";
         $statement = $this->connection->query($query);
         return $statement && $statement->fetchColumn() !== false;
+    }
+
+    public function hasColumn(string $table, array|string $column): bool
+    {
+        try {
+            // Verify the table exists first
+            if (!$this->hasTable($table)) {
+                return false;
+            }
+
+            // Get all columns from the table
+            $stmt = $this->connection->prepare("PRAGMA table_info(:table)");
+            $stmt->execute(['table' => $table]);
+            $tableColumns = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Extract just the column names
+            $existingColumns = array_column($tableColumns, 'name');
+
+            // Handle single column (string) check
+            if (is_string($column)) {
+                return in_array($column, $existingColumns);
+            }
+
+            // Handle multiple columns (array) check
+            if (is_array($column)) {
+                // Check if every requested column exists
+                foreach ($column as $col) {
+                    if (!in_array($col, $existingColumns)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            return false;
+        } catch (\PDOException $e) {
+            Log::channel("db")->error("Error checking column existence: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function lastInsertId(): string|int
     {
         return $this->connection->lastInsertId();
     }
+
+    public function statement(string $query): bool
+    {
+        if (!$this->validator->statementIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        try {
+            $result = $this->connection->exec($query);
+
+            // Only false indicates failure, 0 is valid for successful DDL
+            if ($result === false) {
+                $errorInfo = $this->connection->errorInfo();
+                throw new \Exception($errorInfo[2] ?? 'Unknown database error');
+            }
+
+            return true;
+        } catch (\PDOException $e) {
+            throw new \Exception("Database error: " . $e->getMessage());
+        }
+    }
+
+    public function insert(string $query): bool
+    {
+
+        if(!$this->validator->insertIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        return $this->connection->exec($query) > 0;
+    }
+
+    public function delete($query): bool
+    {
+        if(!$this->validator->deleteIsAllowed($query)) {
+            throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+        }
+
+        return $this->connection->exec($query) > 0;
+    }
+
+    public function update($query): bool {
+        try {
+            // THIS IS THE CRITICAL BUG - Using deleteIsAllowed instead of updateIsAllowed
+            if (!$this->validator->updateIsAllowed($query)) {
+                Log::channel("phpunit")->error("Update query not allowed: " . $query);
+                throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
+            }
+
+            $result = $this->connection->exec($query);
+            // Don't require affected rows > 0, just require no error
+            return $result !== false;
+        } catch (\Exception $e) {
+            Log::channel("phpunit")->error("Exception in SQLiteDriver::update: " . $e->getMessage());
+            throw $e; // Rethrow so Database::update can catch it
+        }
+    }
+    public function select(string $query, bool $fetchAll = true): ?array
+    {
+        Log::channel("db")->info($query);
+        $statement = $this->connection->query($query);
+
+        if (!$statement) {
+            return null;
+        }
+
+        if ($fetchAll) {
+            $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+            return empty($results) ? null : $results;
+        } else {
+            $result = $statement->fetch(PDO::FETCH_ASSOC);
+            return $result ?: null;
+        }
+    }
+
+    public function transaction(callable $callback): bool{
+        $this->connection->beginTransaction();
+        call_user_func($callback);
+        $result = $this->connection->commit();
+        if(!$result){
+            $this->connection->rollBack();
+        }
+        return $result;
+    }
+
+    public function getAutoincrementId(): int
+    {
+        return $this->connection->lastInsertId();
+    }
+
 
 }
