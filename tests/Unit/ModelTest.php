@@ -3,75 +3,67 @@
 namespace Unit;
 
 use App\Models\Admin;
-use Lucent\Application;
 use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\File;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class ModelTest extends TestCase
+// Manually require the DatabaseDriverSetup file
+$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
+
+if (file_exists($driverSetupPath)) {
+    require_once $driverSetupPath;
+} else {
+    // Fallback path if the normal path doesn't work
+    require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
+}
+
+
+class ModelTest extends DatabaseDriverSetup
 {
+    /**
+     * @return array<string, array{0: string, 1: array<string, string>}>
+     */
+    public static function databaseDriverProvider(): array
+    {
+        return [
+            'sqlite' => ['sqlite', [
+                'DB_DATABASE' => '/database.sqlite'
+            ]],
+            'mysql' => ['mysql', [
+                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+            ]]
+        ];
+    }
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        // Temporarily set EXTERNAL_ROOT to match TEMP_ROOT for testing
-        File::overrideRootPath(TEMP_ROOT.DIRECTORY_SEPARATOR);
-
-        // Create storage directory in our temp environment
-        if (!is_dir(File::rootPath() . 'storage')) {
-            mkdir(File::rootPath() . 'storage', 0755, true);
-        }
-
-        $env =  <<<'ENV'
-                # MySQL Configuration
-                DB_DRIVER=sqlite
-                #DB_HOST=localhost
-                #DB_PORT=3306
-                #DB_DATABASE=test_database
-                #DB_USERNAME=root
-                #DB_PASSWORD=your_password
-                
-                # SQLite Configuration (commented out)
-                DB_DATABASE=/database.sqlite
-                ENV;
-
-        $path = File::rootPath(). '.env';
-
-        $result = file_put_contents($path, $env);
-
-        if ($result === false) {
-            throw new \RuntimeException("Failed to write .env file to: " . $path);
-        }
-
-        // Optionally verify the file exists
-        if (!file_exists($path)) {
-            throw new \RuntimeException(".env file was not created at: " . $path);
-        }
-
-        $app = Application::getInstance();
-        $app->LoadEnv();
-
         self::generate_test_extended_model();
         self::generate_test_model();
-
     }
 
-
-    public function test_model_migration() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_migration($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
         $this->assertEquals("Successfully performed database migration",$output);
-
     }
 
-    public function test_model_creation() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_creation($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_model_migration();
+        $this->test_model_migration($driver,$config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -82,10 +74,12 @@ class ModelTest extends TestCase
         self::assertTrue($user->create());
     }
 
-    public function test_model_updating() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_updating($driver, $config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_model_migration();
+        $this->test_model_migration($driver,$config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -117,17 +111,28 @@ class ModelTest extends TestCase
 
     }
 
-    public function test_extended_model_migration() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_migration($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
+
+        if($driver == "mysql"){
+            Database::statement("SET FOREIGN_KEY_CHECKS=0");
+        }
         //Drop our test user from the prior tests to ensure it generates both.
         Database::statement("DROP TABLE IF EXISTS TestUser");
-
+        if($driver == "mysql"){
+            Database::statement("SET FOREIGN_KEY_CHECKS=1");
+        }
         $output = CommandLine::execute("Migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration",$output);    }
 
-    public function test_extended_model_creation() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_creation($driver,$config) : void
     {
-        $this->test_extended_model_migration();
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "John Doe",
@@ -146,8 +151,11 @@ class ModelTest extends TestCase
         $this->assertFalse($lookup->can_reset_passwords);
     }
 
-    public function test_extended_model_counts() : void{
-        $this->test_extended_model_migration();
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_counts($driver,$config) : void{
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -176,9 +184,12 @@ class ModelTest extends TestCase
         $this->assertEquals(1, $count);
     }
 
-    public function test_extended_model_delete() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_delete($driver,$config) : void
     {
-        $this->test_extended_model_migration();
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -198,10 +209,12 @@ class ModelTest extends TestCase
         $this->assertNull($lookUp);
     }
 
-    public function test_extended_model_update() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_update($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration();
+        $this->test_extended_model_migration($driver,$config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -228,10 +241,12 @@ class ModelTest extends TestCase
         $this->assertEquals("Not a pirate any more!",$lookup->notes);
     }
 
-    public function test_extended_model_getFirst() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_getFirst($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration();
+        $this->test_extended_model_migration($driver,$config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Davey Jones",
