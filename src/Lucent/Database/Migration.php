@@ -12,6 +12,7 @@ use Lucent\Database\Drivers\MySQLDriver;
 use Lucent\Database\Drivers\SQLiteDriver;
 use Lucent\Facades\App;
 use Lucent\Facades\Log;
+use Lucent\Facades\Schema;
 use Lucent\Model;
 use ReflectionClass;
 
@@ -34,21 +35,21 @@ class Migration
     {
         // Disable foreign key checks
         if (App::env("DB_DRIVER") === "mysql") {
-            Database::query("SET FOREIGN_KEY_CHECKS=0");
+            Database::statement("SET FOREIGN_KEY_CHECKS=0");
         }
 
         $reflection = new ReflectionClass($class);
         $tableName = $reflection->getShortName();
 
         // Backup existing data if table exists
-        $this->backupExistingData($tableName);
+        //$this->backupExistingData($tableName);
 
         // Get the new column structure
         $columns = $this->analyzeNewStructure($reflection);
 
         // Drop the existing table
         $query = "DROP TABLE IF EXISTS " . $tableName;
-        if (!Database::query($query)) {
+        if (!Database::statement($query)) {
             Log::channel("phpunit")->error("Failed to drop table {$tableName}");
             return false;
         }
@@ -57,7 +58,7 @@ class Migration
         $query = $this->driver->createTable($tableName, $columns);
         Log::channel("phpunit")->info($query);
 
-        if (!Database::query($query)) {
+        if (!Database::statement($query)) {
             Log::channel("phpunit")->critical("Failed to create table {$tableName}");
             return false;
         }
@@ -68,7 +69,7 @@ class Migration
         }
 
         if (App::env("DB_DRIVER") === "mysql") {
-            Database::query("SET FOREIGN_KEY_CHECKS=1");
+            Database::statement("SET FOREIGN_KEY_CHECKS=1");
         }
 
         return true;
@@ -95,7 +96,7 @@ class Migration
 
             $tableName = $parent->getShortName();
 
-            if (!Database::tableExists($tableName)) {
+            if (!Schema::hasTable($tableName)) {
                 if(!$this->make($parent->getName())){
                     Log::channel("phpunit")->critical("Could not create parent table {$tableName}");
                 }
@@ -110,14 +111,14 @@ class Migration
     {
         try {
             // Check if table exists - SQLite compatible version
-            $result = Database::query(
+            $result = Database::select(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
                 [$tableName]
             );
 
             if ($result && $result->num_rows > 0) {
                 Log::channel("phpunit")->info("Backing up data from {$tableName}");
-                $data = Database::fetchAll("SELECT * FROM {$tableName}");
+                $data = Database::select("SELECT * FROM {$tableName}");
                 if (!empty($data)) {
                     $this->preservedData = $data;
                     Log::channel("phpunit")->info("Backed up " . count($data) . " rows from {$tableName}");
@@ -157,7 +158,7 @@ class Migration
             );
 
             try {
-                if (!Database::query($query)) {
+                if (!Database::insert($query)) {
                     Log::channel("db")->critical("Failed to restore row in {$tableName}");
                 }
             } catch (\Exception $e) {
