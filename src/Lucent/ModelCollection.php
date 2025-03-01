@@ -104,12 +104,12 @@ class ModelCollection
     public function getFirst()
     {
         $this->limit = 1;
-        $data = Database::select($this->buildQuery(),false);
+        $data = Database::select($this->buildQuery(), false);
 
-        if($data !== null) {
+        if($data !== null && !empty($data)) {
             $class = new ReflectionClass($this->class);
             return $class->newInstance(new Dataset($data));
-        }else{
+        } else {
             return null;
         }
     }
