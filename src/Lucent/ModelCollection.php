@@ -84,7 +84,12 @@ class ModelCollection
             return $this->cache[$query];
         }
 
-        $results = Database::fetchAll($query);
+        $results = Database::select($query);
+
+        if($results === null){
+            return [];
+        }
+
         $instances = [];
         $class = new ReflectionClass($this->class);
 
@@ -99,9 +104,9 @@ class ModelCollection
     public function getFirst()
     {
         $this->limit = 1;
-        $data = Database::fetch($this->buildQuery());
+        $data = Database::select($this->buildQuery(),false);
 
-        if(count($data) > 0) {
+        if($data !== null) {
             $class = new ReflectionClass($this->class);
             return $class->newInstance(new Dataset($data));
         }else{
@@ -117,7 +122,7 @@ class ModelCollection
     {
         $query = str_replace("*","count(*)",$this->buildQuery());
 
-        return (int)Database::fetch($query)["count(*)"];
+        return (int)Database::select($query,false)["count(*)"];
     }
 
     private function buildQuery(): string
