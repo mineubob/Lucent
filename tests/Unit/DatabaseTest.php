@@ -64,17 +64,49 @@ class DatabaseTest extends TestCase
         )';
 
         try {
-            Database::query($query);
+            Database::statement($query);
             echo "Database connection successful!";
         } catch (Exception $e) {
             $this->fail($e->getMessage());
         }
         $query ="SELECT name FROM sqlite_master WHERE type='table' AND name = 'users'";
 
-        $result = Database::fetch($query);
+        $result = Database::select($query,false);
 
         $this->assertEquals('users',$result['name']);
     }
+
+    public function test_statement_create_table_success() : void
+    {
+        $query = 'CREATE TABLE IF NOT EXISTS test_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL
+        )';
+        $this->assertTrue(Database::statement($query));
+    }
+
+    public function test_statement_failed_select_all() : void
+    {
+        $this->test_statement_create_table_success();
+        $query = 'SELECT * FROM test_users';
+        try {
+            Database::statement($query);
+        }catch (Exception $e){
+            $this->assertEquals("Invalid statement, SELECT * FROM test_users is not allowed to execute.",$e->getMessage());
+        }
+    }
+
+    public function test_statement_insert_success() : void
+    {
+
+        $this->test_statement_create_table_success();
+
+        $query = 'INSERT INTO test_users (name) VALUES ("Homer Simpson")';
+
+        $this->assertTrue(Database::insert($query));
+
+    }
+
 
 
 }
