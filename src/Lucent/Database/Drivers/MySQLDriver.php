@@ -204,8 +204,8 @@ class MySQLDriver extends DatabaseInterface
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
-        return $this->connection->query($query)->num_rows > 0;
-    }
+        $result = $this->connection->query($query);
+        return $result !== false && $this->connection->affected_rows > 0;    }
 
     public function update($query): bool
     {
@@ -214,7 +214,8 @@ class MySQLDriver extends DatabaseInterface
         }
 
         $result = $this->connection->query($query);
-        return $result !== false && $this->connection->affected_rows > 0;    }
+        return $result !== false && $this->connection->affected_rows > 0;
+    }
 
     public function select(string $query, bool $fetchAll = false): null|array
     {
