@@ -15,6 +15,16 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: testpassword
+          MYSQL_DATABASE: test_database
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -23,7 +33,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: phar
+          extensions: phar, mysqli, pdo_mysql
           tools: composer:v2
           coverage: xdebug
           ini-values: phar.readonly=0
@@ -39,6 +49,7 @@ jobs:
           mkdir -p temp_install/App/Commands
           mkdir -p temp_install/App/Controllers
           mkdir -p temp_install/App/Rules
+          mkdir -p temp_install/App/Models
           mkdir -p temp_install/routes
           mkdir -p temp_install/storage/downloads
           mkdir -p temp_install/storage/documentation
@@ -49,6 +60,12 @@ jobs:
           php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
+          DB_DRIVER: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: test_database
+          DB_USER: root
+          DB_PASSWORD: testpassword
 
   build-and-release:
     needs: test  # This ensures tests must pass before building
