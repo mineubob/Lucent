@@ -41,13 +41,22 @@ class MySQLDriver extends DatabaseInterface
         ];
 
         $this->allowed_statement_prefix = [
-            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE',
-            'CREATE INDEX', 'DROP INDEX',
-            'TRUNCATE TABLE', 'RENAME TABLE',
-            'CREATE VIEW', 'DROP VIEW',
-            'CREATE PROCEDURE', 'DROP PROCEDURE',
-            'CREATE TRIGGER', 'DROP TRIGGER',
-            'OPTIMIZE TABLE', 'SET', 'FLUSH'
+            'CREATE TABLE',
+            'DROP TABLE',
+            'ALTER TABLE',
+            'CREATE INDEX',
+            'DROP INDEX',
+            'TRUNCATE TABLE',
+            'RENAME TABLE',
+            'CREATE VIEW',
+            'DROP VIEW',
+            'CREATE PROCEDURE',
+            'DROP PROCEDURE',
+            'CREATE TRIGGER',
+            'DROP TRIGGER',
+            'OPTIMIZE TABLE',
+            'SET',
+            'FLUSH'
         ];
 
         $this->allowed_insert_prefix = [
@@ -80,8 +89,10 @@ class MySQLDriver extends DatabaseInterface
 
     public function buildColumnString(array $column): string
     {
-        if (in_array($column['TYPE'], [LUCENT_DB_TINYINT, LUCENT_DB_INT, LUCENT_DB_FLOAT, LUCENT_DB_DOUBLE, LUCENT_DB_DECIMAL,LUCENT_DB_BOOLEAN]) &&
-            isset($column['DEFAULT']) && $column['DEFAULT'] == '') {
+        if (
+            in_array($column['TYPE'], [LUCENT_DB_TINYINT, LUCENT_DB_INT, LUCENT_DB_FLOAT, LUCENT_DB_DOUBLE, LUCENT_DB_DECIMAL, LUCENT_DB_BOOLEAN]) &&
+            isset($column['DEFAULT']) && $column['DEFAULT'] == ''
+        ) {
             // Replace empty string default with 0 for numeric types
             $column['DEFAULT'] = 0;
         }
@@ -190,7 +201,7 @@ class MySQLDriver extends DatabaseInterface
     public function insert(string $query): bool
     {
 
-        if(!$this->validator->insertIsAllowed($query)) {
+        if (!$this->validator->insertIsAllowed($query)) {
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
@@ -200,16 +211,17 @@ class MySQLDriver extends DatabaseInterface
 
     public function delete($query): bool
     {
-        if(!$this->validator->deleteIsAllowed($query)) {
+        if (!$this->validator->deleteIsAllowed($query)) {
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
         $result = $this->connection->query($query);
-        return $result !== false && $this->connection->affected_rows > 0;    }
+        return $result !== false && $this->connection->affected_rows > 0;
+    }
 
     public function update($query): bool
     {
-        if(!$this->validator->updateIsAllowed($query)) {
+        if (!$this->validator->updateIsAllowed($query)) {
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
@@ -318,14 +330,29 @@ class MySQLDriver extends DatabaseInterface
         return $this->connection->insert_id;
     }
 
-    public function transaction(callable $callback): bool
+    public function transaction(callable $callback, ...$args): bool
     {
-        $this->connection->begin_transaction();
-        call_user_func($callback);
+        if (!$this->connection->begin_transaction()) {
+            return false;
+        }
+
+        try {
+            $result = call_user_func_array($callback, $args);
+            if ($result === false) {
+                $this->connection->rollback();
+                return $result;
+            }
+        } catch (\Exception $e) {
+            $this->connection->rollback();
+
+            throw $e;
+        }
+
         $result = $this->connection->commit();
-        if(!$result){
+        if (!$result) {
             $this->connection->rollBack();
         }
+
         return $result;
     }
 }

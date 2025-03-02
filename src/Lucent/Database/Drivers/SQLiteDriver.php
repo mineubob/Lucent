@@ -38,10 +38,16 @@ class SQLiteDriver extends DatabaseInterface
         ];
 
         $this->allowed_statement_prefix = [
-            'CREATE TABLE', 'DROP TABLE', 'ALTER TABLE',
-            'CREATE INDEX', 'DROP INDEX',
-            'VACUUM', 'ANALYZE', 'PRAGMA',
-            'ATTACH DATABASE', 'DETACH DATABASE'
+            'CREATE TABLE',
+            'DROP TABLE',
+            'ALTER TABLE',
+            'CREATE INDEX',
+            'DROP INDEX',
+            'VACUUM',
+            'ANALYZE',
+            'PRAGMA',
+            'ATTACH DATABASE',
+            'DETACH DATABASE'
         ];
 
         $this->allowed_insert_prefix = [
@@ -72,7 +78,7 @@ class SQLiteDriver extends DatabaseInterface
     private function ensureSQLiteFileExists(string $path): void
     {
 
-        if(!is_dir(TEMP_ROOT . "storage")) {
+        if (!is_dir(TEMP_ROOT . "storage")) {
             var_dump("STORAGE NOT CREATED");
         }
 
@@ -120,9 +126,11 @@ class SQLiteDriver extends DatabaseInterface
         $string = "`" . $column["NAME"] . "` " . $sqliteType;
 
         // Only add length for non-INTEGER types that support it
-        if (isset($column["LENGTH"]) &&
+        if (
+            isset($column["LENGTH"]) &&
             $sqliteType !== "INTEGER" &&
-            !in_array($sqliteType, ["TEXT", "BLOB", "REAL", "DATETIME", "DATE"])) {
+            !in_array($sqliteType, ["TEXT", "BLOB", "REAL", "DATETIME", "DATE"])
+        ) {
             $string .= "(" . $column["LENGTH"] . ")";
         }
 
@@ -257,7 +265,7 @@ class SQLiteDriver extends DatabaseInterface
     public function insert(string $query): bool
     {
 
-        if(!$this->validator->insertIsAllowed($query)) {
+        if (!$this->validator->insertIsAllowed($query)) {
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
@@ -266,14 +274,15 @@ class SQLiteDriver extends DatabaseInterface
 
     public function delete($query): bool
     {
-        if(!$this->validator->deleteIsAllowed($query)) {
+        if (!$this->validator->deleteIsAllowed($query)) {
             throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
         }
 
         return $this->connection->exec($query) > 0;
     }
 
-    public function update($query): bool {
+    public function update($query): bool
+    {
         try {
             // THIS IS THE CRITICAL BUG - Using deleteIsAllowed instead of updateIsAllowed
             if (!$this->validator->updateIsAllowed($query)) {
@@ -307,13 +316,29 @@ class SQLiteDriver extends DatabaseInterface
         }
     }
 
-    public function transaction(callable $callback): bool{
-        $this->connection->beginTransaction();
-        call_user_func($callback);
+    public function transaction(callable $callback, ...$args): bool
+    {
+        if (!$this->connection->beginTransaction()) {
+            return false;
+        }
+
+        try {
+            $result = call_user_func_array($callback, $args);
+            if ($result === false) {
+                $this->connection->rollback();
+                return $result;
+            }
+        } catch (\Exception $e) {
+            $this->connection->rollback();
+
+            throw $e;
+        }
+
         $result = $this->connection->commit();
-        if(!$result){
+        if (!$result) {
             $this->connection->rollBack();
         }
+
         return $result;
     }
 
