@@ -2,74 +2,68 @@
 
 namespace Unit;
 
-use Lucent\Application;
+use App\Models\Admin;
+use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\File;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
-class ModelTest extends TestCase
+// Manually require the DatabaseDriverSetup file
+$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
+
+if (file_exists($driverSetupPath)) {
+    require_once $driverSetupPath;
+} else {
+    // Fallback path if the normal path doesn't work
+    require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
+}
+
+
+class ModelTest extends DatabaseDriverSetup
 {
+    /**
+     * @return array<string, array{0: string, 1: array<string, string>}>
+     */
+    public static function databaseDriverProvider(): array
+    {
+        return [
+            'sqlite' => ['sqlite', [
+                'DB_DATABASE' => '/database.sqlite'
+            ]],
+            'mysql' => ['mysql', [
+                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+            ]]
+        ];
+    }
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        // Temporarily set EXTERNAL_ROOT to match TEMP_ROOT for testing
-        File::overrideRootPath(TEMP_ROOT.DIRECTORY_SEPARATOR);
-
-        // Create storage directory in our temp environment
-        if (!is_dir(File::rootPath() . 'storage')) {
-            mkdir(File::rootPath() . 'storage', 0755, true);
-        }
-
-        $env =  <<<'ENV'
-                # MySQL Configuration
-                DB_DRIVER=sqlite
-                #DB_HOST=localhost
-                #DB_PORT=3306
-                #DB_DATABASE=test_database
-                #DB_USERNAME=root
-                #DB_PASSWORD=your_password
-                
-                # SQLite Configuration (commented out)
-                DB_DATABASE=/database.sqlite
-                ENV;
-
-        $path = File::rootPath(). '.env';
-
-        $result = file_put_contents($path, $env);
-
-        if ($result === false) {
-            throw new \RuntimeException("Failed to write .env file to: " . $path);
-        }
-
-        // Optionally verify the file exists
-        if (!file_exists($path)) {
-            throw new \RuntimeException(".env file was not created at: " . $path);
-        }
-
-        $app = Application::getInstance();
-        $app->LoadEnv();
-
+        self::generate_test_extended_model();
+        self::generate_test_model();
     }
 
-
-
-    public function test_model_migration() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_migration($driver,$config) : void
     {
-
-        $this->generate_test_model();
+        self::setupDatabase($driver, $config);
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
         $this->assertEquals("Successfully performed database migration",$output);
-
     }
 
-    public function test_model_creation() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_creation($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_model_migration();
+        $this->test_model_migration($driver,$config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -80,10 +74,12 @@ class ModelTest extends TestCase
         self::assertTrue($user->create());
     }
 
-    public function test_model_updating() : void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_updating($driver, $config) : void
     {
+        self::setupDatabase($driver, $config);
 
-        $this->test_model_migration();
+        $this->test_model_migration($driver,$config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -99,11 +95,14 @@ class ModelTest extends TestCase
 
         $user->setFullName("Jack Harris");
 
+        $result = false;
         try{
-            $user->save();
+            $result = $user->save();
         }catch (\Exception $e){
             $this->fail($e->getMessage());
         }
+
+        $this->assertTrue($result);
 
         $user = \App\Models\TestUser::where("full_name", "Jack Harris")->getFirst();
 
@@ -112,7 +111,160 @@ class ModelTest extends TestCase
 
     }
 
-    private function generate_test_model(): void
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_migration($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        if($driver == "mysql"){
+            Database::statement("SET FOREIGN_KEY_CHECKS=0");
+        }
+        //Drop our test user from the prior tests to ensure it generates both.
+        Database::statement("DROP TABLE IF EXISTS TestUser");
+        if($driver == "mysql"){
+            Database::statement("SET FOREIGN_KEY_CHECKS=1");
+        }
+        $output = CommandLine::execute("Migration make App/Models/Admin");
+        $this->assertEquals("Successfully performed database migration",$output);    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_creation($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "John Doe",
+            "email" => "john@doe.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => true,
+            "can_reset_passwords" => false,
+            "notes" => "Just a test!"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $lookup = Admin::where("email", "john@doe.com")->where("can_lock_accounts",true)->getFirst();
+        $this->assertEquals("John Doe",$lookup->getFullName());
+        $this->assertTrue($lookup->can_lock_accounts);
+        $this->assertFalse($lookup->can_reset_passwords);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_counts($driver,$config) : void{
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Captain Jack",
+            "email" => "jack@blackpearls.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => true,
+            "can_reset_passwords" => true,
+            "notes" => "Hes the captain"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $count = Admin::where("can_lock_accounts", true)->count();
+
+        $this->assertEquals(1, $count);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_delete($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $this->assertTrue($adminUser->delete());
+
+        $lookUp = Admin::where("email", "gibbs@blackpearl.com")->getFirst();
+
+        $this->assertNull($lookUp);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_update($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Joshamee Gibbs",
+            "email" => "gibbs@blackpearl.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Just a crew member"
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $adminUser->setFullName("Jack Harris");
+        $adminUser->setNotes("Not a pirate any more!");
+
+        try {
+            $adminUser->save();
+        }catch (\Exception $e){
+            $this->fail($e->getMessage());
+        }
+
+        $lookup = \App\Models\Admin::where("full_name", "Jack Harris")->getFirst();
+        $this->assertNotNull($lookup);
+        $this->assertEquals("Not a pirate any more!",$lookup->notes);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_extended_model_getFirst($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_extended_model_migration($driver,$config);
+
+        $adminUser = new \App\Models\Admin(new Dataset([
+            "full_name" => "Davey Jones",
+            "email" => "Davey@Jones.com",
+            "password_hash" => "password",
+            "can_lock_accounts" => false,
+            "can_reset_passwords" => false,
+            "notes" => "Captain of the flying dutchman."
+        ]));
+
+        $this->assertTrue($adminUser->create());
+
+        $lookup = \App\Models\Admin::where("full_name", "Davey Jones")->getFirst();
+        $this->assertNotNull($lookup);
+        $this->assertEquals("Davey Jones",$lookup->getFullName());
+    }
+
+    private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
         <?php
@@ -133,26 +285,26 @@ class ModelTest extends TestCase
                 "AUTO_INCREMENT"=>true,
                 "LENGTH"=>255
             ])]
-            private ?int $id;
+            public private(set) ?int $id;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            private string $email;
+            protected string $email;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            private string $password_hash;
+            protected string $password_hash;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false,
                 "LENGTH"=>100
             ])]
-            private string $full_name;
+            protected string $full_name;
         
             public function __construct(Dataset $dataset){
                 $this->id = $dataset->get("id",-1);
@@ -167,6 +319,11 @@ class ModelTest extends TestCase
             
             public function setFullName(string $full_name){
                 $this->full_name = $full_name;
+            }
+            
+            public function getId() : int
+            {
+                return $this->id;
             }
         
         
@@ -187,6 +344,72 @@ class ModelTest extends TestCase
         );
 
     }
+
+    private static function generate_test_extended_model(): void
+    {
+        $adminModel = <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Dataset;
+use App\Models\TestUser;
+
+class Admin extends TestUser
+{
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_BOOLEAN,
+        "ALLOW_NULL" => false,
+        "DEFAULT" => false
+    ])]
+    public private(set) bool $can_reset_passwords;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_BOOLEAN,
+        "ALLOW_NULL" => false,
+        "DEFAULT" => false,
+    ])]
+    public private(set) bool $can_lock_accounts;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => true,
+    ])]
+    public private(set) ?string $notes;
+
+
+    public function __construct(Dataset $dataset){
+        parent::__construct($dataset);
+        
+        $this->can_reset_passwords = $dataset->get("can_reset_passwords");
+        $this->can_lock_accounts = $dataset->get("can_lock_accounts");
+        $this->notes = $dataset->get("notes");
+    }
+    
+    public function setNotes(string $notes): void
+    {
+        $this->notes = $notes;
+    }
+}
+PHP;
+
+        // Create directories if they don't exist
+        $appPath = File::rootPath() . "App";
+        $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
+
+        if (!is_dir($modelPath)) {
+            mkdir($modelPath, 0755, true);
+        }
+
+        // Write model files
+        file_put_contents(
+            $modelPath . DIRECTORY_SEPARATOR . 'Admin.php',
+            $adminModel
+        );
+
+    }
+
 
 
 

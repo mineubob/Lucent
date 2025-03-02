@@ -1,6 +1,7 @@
 <?php
 // local-build.php
 use Lucent\Application;
+use Lucent\Database;
 use Lucent\Logging\Channel;
 
 cleanupDirectory(__DIR__ . '/temp_install');
@@ -35,6 +36,8 @@ if (file_exists($originalPharFile)) {
 
     log_success("Phar built successfully with version $version in $newPharFile\n");
 
+    checkAndLoadEnviromentTestingVariables(__DIR__ . "/mysql-config.php");
+
     require_once $newPharFile;
 
     $app = Application::getInstance();
@@ -62,5 +65,35 @@ function cleanupDirectory(string $dir): void
         is_dir($path) ? cleanupDirectory($path) : unlink($path);
     }
     rmdir($dir);
+}
+
+function checkAndLoadEnviromentTestingVariables(string $filePath) {
+    if (!file_exists($filePath)) {
+        return false;
+    }
+
+    $config = include $filePath;
+
+    if (!is_array($config)) {
+        return false;
+    }
+
+    foreach ($config as $key => $value) {
+        if (is_bool($value)) {
+            $value = $value ? 'true' : 'false';
+        } elseif (is_null($value)) {
+            $value = '';
+        } elseif (is_array($value) || is_object($value)) {
+            $value = json_encode($value);
+        } else {
+            $value = (string)$value;
+        }
+
+        putenv("$key=$value");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+
+    return true;
 }
 

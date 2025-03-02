@@ -14,7 +14,7 @@ abstract class Rule
     protected ?Request $currentRequest = null;
 
 
-    abstract public function setup(): array;
+    public abstract function setup();
 
     private function regex(string $key, string $value): bool
     {
