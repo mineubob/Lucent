@@ -33,7 +33,10 @@ abstract class Rule
 
     private function min_num(int $i, string $value): bool
     {
-        return intval($value) >= $i;
+        if (!is_numeric($value))
+            return false;
+
+        return intval($value, 10) >= $i;
     }
 
     private function max(int $i, string $value): bool
@@ -43,7 +46,10 @@ abstract class Rule
 
     private function max_num(int $i, string $value): bool
     {
-        return intval($value) <= $i;
+        if (!is_numeric($value))
+            return false;
+
+        return intval($value, 10) <= $i;
     }
 
     private function same(string $first, string $second): bool

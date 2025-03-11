@@ -38,9 +38,9 @@ class App
     }
 
 
-    public static function registerRoutes(string $routeFile, $prefix = null): void
+    public static function registerRoutes(string $routeFile): void
     {
-        Application::getInstance()->loadRoutes($routeFile,$prefix);
+        Application::getInstance()->loadRoutes($routeFile);
     }
 
     public static function registerCommands(string $commandFile): void

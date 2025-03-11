@@ -15,6 +15,15 @@ use Lucent\Validation\Rule;
  */
 class Request
 {
+    /**
+     * Additional context data associated with this request.
+     *
+     * This can be used to store arbitrary key-value pairs of information about the request.
+     *
+     * @var array
+     */
+    public array $context = [];
+
     /** @var array POST data from the request */
     private array $post = [];
 
@@ -230,23 +239,46 @@ class Request
     }
 
     /**
-     * Sanitize user input by removing null, false, and empty values
+     * Sanitizes user input data by stripping tags, newlines, and other malicious content.
      *
-     * @param array $input The input array to sanitize
-     * @return array Sanitized input
+     * @param array $input The input data to sanitize
+     *
+     * @return array The sanitized input data
      */
     private function sanitizeUserInput(array $input): array
     {
         $filter = function ($var) {
-            return ($var !== NULL && $var !== FALSE && (
-                    is_array($var) ||
-                    is_bool($var) ||
-                    is_numeric($var) ||
-                    trim($var) !== ""
-                ));
+            // First check if the value meets inclusion criteria
+            if ($var === NULL || $var === FALSE || (
+                    !is_array($var) &&
+                    !is_bool($var) &&
+                    !is_numeric($var) &&
+                    trim((string)$var) === ""
+                )) {
+                return false;
+            }
+            
+            // Then sanitize the value if it's a string
+            if (is_string($var)) {
+                $var = htmlspecialchars($var, ENT_QUOTES, 'UTF-8');
+                $var = addslashes($var);
+            } else if (is_array($var)) {
+                // Handle arrays recursively
+                $var = $this->sanitizeUserInput($var);
+            }
+            // No need to modify booleans or numbers
+            
+            return $var;
         };
-
-        return array_filter($input, $filter);
+        
+        return array_map($filter, array_filter($input, function($var) {
+            return $var !== NULL && $var !== FALSE && (
+                is_array($var) ||
+                is_bool($var) ||
+                is_numeric($var) ||
+                trim((string)$var) !== ""
+            );
+        }));
     }
 
     /**
@@ -296,6 +328,7 @@ class Request
      * @param string $key The key to store the model under
      * @param Model $model The model instance to cache
      */
+    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
     public function cacheModel(string $key, Model $model): void
     {
         $this->modelCache[$key] = $model;
@@ -307,6 +340,7 @@ class Request
      * @param string $key The key of the cached model
      * @return Model The cached model
      */
+    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
     public function getCachedModel(string $key): Model
     {
         return $this->modelCache[$key];
