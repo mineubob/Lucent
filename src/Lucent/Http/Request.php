@@ -251,7 +251,8 @@ class Request
             if (is_array($value)) {
                 $input[$key] = $this->sanitizeUserInput($value);
             } else {
-                $clean = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                $clean = trim($value);
+                $clean = htmlspecialchars($clean, ENT_QUOTES, 'UTF-8');
                 $clean = addslashes($clean);
                 $input[$key] = $clean;
             }
