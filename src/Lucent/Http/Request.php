@@ -15,6 +15,15 @@ use Lucent\Validation\Rule;
  */
 class Request
 {
+    /**
+     * Additional context data associated with this request.
+     *
+     * This can be used to store arbitrary key-value pairs of information about the request.
+     *
+     * @var array
+     */
+    public array $context = [];
+
     /** @var array POST data from the request */
     private array $post = [];
 
@@ -230,23 +239,25 @@ class Request
     }
 
     /**
-     * Sanitize user input by removing null, false, and empty values
+     * Sanitizes user input data by stripping tags, newlines, and other malicious content.
      *
-     * @param array $input The input array to sanitize
-     * @return array Sanitized input
+     * @param array $input The input data to sanitize
+     *
+     * @return array The sanitized input data
      */
-    private function sanitizeUserInput(array $input): array
+    public function sanitizeUserInput(array $input): array
     {
-        $filter = function ($var) {
-            return ($var !== NULL && $var !== FALSE && (
-                    is_array($var) ||
-                    is_bool($var) ||
-                    is_numeric($var) ||
-                    trim($var) !== ""
-                ));
-        };
+        foreach ($input as $key => $value) {
+            if (is_array($value)) {
+                $input[$key] = $this->sanitizeUserInput($value);
+            } else {
+                $clean = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+                $clean = addslashes($clean);
+                $input[$key] = $clean;
+            }
+        }
 
-        return array_filter($input, $filter);
+        return $input;
     }
 
     /**
@@ -296,6 +307,7 @@ class Request
      * @param string $key The key to store the model under
      * @param Model $model The model instance to cache
      */
+    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
     public function cacheModel(string $key, Model $model): void
     {
         $this->modelCache[$key] = $model;
@@ -307,6 +319,7 @@ class Request
      * @param string $key The key of the cached model
      * @return Model The cached model
      */
+    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
     public function getCachedModel(string $key): Model
     {
         return $this->modelCache[$key];
