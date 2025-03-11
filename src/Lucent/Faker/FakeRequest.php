@@ -13,6 +13,11 @@ class FakeRequest extends Request
         return $this->fakeData;
     }
 
+    public function setInput(string $key, mixed $value): void
+    {
+       $this->fakeData[$key] = $value;
+    }
+
     /**
      * Generate passing validation data
      */
