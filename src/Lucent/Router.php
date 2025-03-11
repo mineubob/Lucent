@@ -267,4 +267,14 @@ abstract class Router
     {
         return $this->namespace ? rtrim($this->namespace, '\\') . '\\' . $controller : $controller;
     }
+
+    public function reset(): void
+    {
+        $this->routes = [];
+        $this->groupStack = [];
+        $this->middleware = [];
+        $this->prefix = null;
+        $this->namespace = null;
+        $this->defaultController = null;
+    }
 }
