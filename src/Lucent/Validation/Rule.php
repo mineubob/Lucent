@@ -67,7 +67,7 @@ abstract class Rule
         $model = $instance::where($column, $value)->getFirst();
 
         if ($model !== null) {
-            $this->currentRequest?->cacheModel($table, $model);
+            $this->currentRequest?->context[$table] = $model;
         }
 
         if ($not) {
