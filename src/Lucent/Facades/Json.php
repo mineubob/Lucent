@@ -5,6 +5,7 @@ namespace Lucent\Facades;
 
 use Lucent\Http\JsonResponse;
 
+#[\Deprecated()]
 class Json
 {
 
