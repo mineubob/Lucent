@@ -272,7 +272,17 @@ class Application
                 $pkValue = $response["variables"][$parameter->getName()];
                 $pkKey = $class::getDatabasePrimaryKey($reflection)["NAME"];
 
-                $instance = $class::where($pkKey,$pkValue)->getFirst();
+                if(array_key_exists($parameter->getName(),$request->context)
+                    && $request->context[$parameter->getName()] instanceof $class
+                    && property_exists($request->context[$parameter->getName()],$pkKey)
+                    && $request->context[$parameter->getName()]->$pkKey == $pkValue
+                    ){
+
+                    $instance = $request->context[$parameter->getName()];
+                }else{
+
+                    $instance = $class::where($pkKey,$pkValue)->getFirst();
+                }
 
                 if($instance !== null){
                     $response["variables"][$parameter->getName()] = $instance;
