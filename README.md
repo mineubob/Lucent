@@ -16,7 +16,7 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - Database abstraction with support for MySQL and SQLite
 - [Model-based ORM with relationships](/docs/orm.md)
 - [Route Model Binding](/docs/route-model-binding.md)
-- Request validation
+- [Rules & Validation](/docs/rules-and-validation.md)
 - Middleware support
 - Comprehensive logging
 - CLI tools for development and maintenance
