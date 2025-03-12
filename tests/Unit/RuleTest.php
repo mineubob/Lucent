@@ -64,6 +64,24 @@ class DynamicRule extends Rule
     }
 }
 
+class CustomRule extends Rule
+{
+
+    public function setup(): array
+    {
+        return [
+            'post_code' => [
+                'validate_post_code',
+            ]
+        ];
+    }
+
+    protected function validate_post_code(mixed $value): bool
+    {
+        return strlen((string)$value) === 4;
+    }
+}
+
 class RuleTest extends TestCase
 {
     public function test_num_rule_is_valid() : void
@@ -164,6 +182,30 @@ class RuleTest extends TestCase
 
         // Should pass because last_name isn't in the keys array and won't be validated
         $this->assertFalse($request->validate($rule));
+        $this->assertCount(1,$request->getValidationErrors());
+
+    }
+
+    public function test_custom_rule_passing(): void{
+
+        $request = Faker::request();
+        $request->setInput("post_code", "3934");
+
+        $request->reInitializeRequestData();
+
+        $this->assertTrue($request->validate(CustomRule::class));
+        $this->assertEmpty($request->getValidationErrors());
+
+    }
+
+    public function test_custom_rule_failing(): void{
+
+        $request = Faker::request();
+        $request->setInput("post_code", "393");
+
+        $request->reInitializeRequestData();
+
+        $this->assertFalse($request->validate(CustomRule::class));
         $this->assertCount(1,$request->getValidationErrors());
 
     }
