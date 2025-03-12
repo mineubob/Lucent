@@ -50,9 +50,10 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         self::generateTestRestController();
         self::generateSecondRestController();
-        self::generateRoutesFile();
         self::generate_test_user_controller();
+        self::generate_test_middleware();
 
+        self::generateRoutesFile();
         App::registerRoutes("/routes/web.php");
     }
 
@@ -226,8 +227,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        var_dump($decodedResponse);
-
         $this->assertEquals("Davey Jones",$decodedResponse["content"]["full_name"]);
     }
 
@@ -242,6 +241,19 @@ class RouteGroupTest extends DatabaseDriverSetup
         $decodedResponse = json_decode($response, true);
 
         $this->assertEquals(404,$decodedResponse["status"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_route_get_user_model_with_middleware() : void
+    {
+        $_SERVER["REQUEST_METHOD"] = "GET";
+        $_SERVER["REQUEST_URI"] = "/user2/object/1";
+
+        $response = App::execute();
+
+        $decodedResponse = json_decode($response, true);
+
+        $this->assertEquals("Davey Jones",$decodedResponse["content"]["full_name"]);
     }
 
     public static function generateTestRestController(): void
@@ -428,6 +440,48 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     }
 
+    private static function generate_test_middleware(): void
+    {
+        $middlewareContent = <<<'PHP'
+        <?php
+        
+        namespace App\Middleware;
+        
+        use Lucent\Http\JsonResponse;
+        use App\Models\TestUser;
+        use Lucent\Middleware;
+        use Lucent\Http\Request;
+        
+        class AuthMiddleware extends Middleware
+        {
+             public function handle(Request $request): Request
+            {
+                if($request->getUrlVariable("user") === "1"){
+                    $request->context["user"] = TestUser::where("id",1)->getFirst();
+                }
+        
+                return $request;
+            }
+
+        }
+        PHP;
+
+
+        $appPath = File::rootPath(). "App";
+        $middlewarePath = $appPath . DIRECTORY_SEPARATOR . "Middleware";
+
+        if (!is_dir($middlewarePath)) {
+            mkdir($middlewarePath, 0755, true);
+        }
+
+        file_put_contents(
+            $middlewarePath.DIRECTORY_SEPARATOR.'AuthMiddleware.php',
+            $middlewareContent
+        );
+
+    }
+
+
 
     private static function generateRoutesFile(): void
     {
@@ -437,6 +491,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             use App\Controllers\RouteGroupTestingController;
             use App\Controllers\SecondRestController;
             use App\Controllers\UserController;
+            use App\Middleware\AuthMiddleware;
 
             use Lucent\Facades\Route;
         
@@ -454,6 +509,12 @@ class RouteGroupTest extends DatabaseDriverSetup
                 ->prefix("/user")
                 ->defaultController(UserController::class)
                 ->get(path: "/{id}",method:"getById")
+                ->get(path: "/object/{user}",method:"getModelById");
+                
+            Route::rest()->group("user2")
+                ->prefix("/user2")
+                ->defaultController(UserController::class)
+                ->middleware([AuthMiddleware::class])
                 ->get(path: "/object/{user}",method:"getModelById");
 
         PHP;
