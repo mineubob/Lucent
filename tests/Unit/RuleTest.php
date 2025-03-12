@@ -51,11 +51,34 @@ class DynamicRule extends Rule
                 'min:2',
                 'max:10',
             ]
+            ,
+            'address' => [
+                'min:0',
+                'max:10',
+            ]
         ];
 
         return array_filter($rules, function (string $field) {
             return array_key_exists($field, $this->keys);
         }, ARRAY_FILTER_USE_KEY);
+    }
+}
+
+class CustomRule extends Rule
+{
+
+    public function setup(): array
+    {
+        return [
+            'post_code' => [
+                'validate_post_code',
+            ]
+        ];
+    }
+
+    protected function validate_post_code(mixed $value): bool
+    {
+        return strlen((string)$value) === 4;
     }
 }
 
@@ -118,5 +141,72 @@ class RuleTest extends TestCase
         // Should pass because last_name isn't in the keys array and won't be validated
         $this->assertTrue($request->validate($rule));
         $this->assertEmpty($request->getValidationErrors());
+    }
+
+    public function test_dynamic_rule_with_null_fields_passing(): void
+    {
+        $_SERVER["REQUEST_METHOD"] = "POST";
+
+        $request = Faker::request();
+
+        $request->setInput("first_name", "Jack");
+        $request->setInput("last_name", "Harris");
+        $request->setInput("address", "");
+
+        $request->reInitializeRequestData();
+
+        // Create a rule that only validates first_name
+        $rule = new DynamicRule($request->all());
+
+        // Should pass because last_name isn't in the keys array and won't be validated
+        $this->assertTrue($request->validate($rule));
+        $this->assertEmpty($request->getValidationErrors());
+
+        $this->assertEquals("",$request->input("address"));
+    }
+
+    public function test_dynamic_rule_with_null_fields_failing(): void
+    {
+        $_SERVER["REQUEST_METHOD"] = "POST";
+
+        $request = Faker::request();
+
+        $request->setInput("first_name", "Jack");
+        $request->setInput("last_name", "Harris");
+        $request->setInput("address", "123456789123");
+
+        $request->reInitializeRequestData();
+
+        // Create a rule that only validates first_name
+        $rule = new DynamicRule($request->all());
+
+        // Should pass because last_name isn't in the keys array and won't be validated
+        $this->assertFalse($request->validate($rule));
+        $this->assertCount(1,$request->getValidationErrors());
+
+    }
+
+    public function test_custom_rule_passing(): void{
+
+        $request = Faker::request();
+        $request->setInput("post_code", "3934");
+
+        $request->reInitializeRequestData();
+
+        $this->assertTrue($request->validate(CustomRule::class));
+        $this->assertEmpty($request->getValidationErrors());
+
+    }
+
+    public function test_custom_rule_failing(): void{
+
+        $request = Faker::request();
+        $request->setInput("post_code", "393");
+
+        $request->reInitializeRequestData();
+
+        $this->assertFalse($request->validate(CustomRule::class));
+        $this->assertCount(1,$request->getValidationErrors());
+
     }
 }

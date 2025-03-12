@@ -248,18 +248,10 @@ class Request
     private function sanitizeUserInput(array $input): array
     {
         $filter = function ($var) {
-            // First check if the value meets inclusion criteria
-            if ($var === NULL || $var === FALSE || (
-                    !is_array($var) &&
-                    !is_bool($var) &&
-                    !is_numeric($var) &&
-                    trim((string)$var) === ""
-                )) {
-                return false;
-            }
             
             // Then sanitize the value if it's a string
             if (is_string($var)) {
+                $var = trim($var);
                 $var = htmlspecialchars($var, ENT_QUOTES, 'UTF-8');
                 $var = addslashes($var);
             } else if (is_array($var)) {
@@ -271,14 +263,16 @@ class Request
             return $var;
         };
         
-        return array_map($filter, array_filter($input, function($var) {
-            return $var !== NULL && $var !== FALSE && (
-                is_array($var) ||
-                is_bool($var) ||
-                is_numeric($var) ||
-                trim((string)$var) !== ""
-            );
-        }));
+        //return array_map($filter, array_filter($input, function($var) {
+        //    return $var !== NULL && $var !== FALSE && (
+       //         is_array($var) ||
+       //         is_bool($var) ||
+        //        is_numeric($var) ||
+        //        trim((string)$var) !== ""
+       //     );
+       // }));
+
+        return array_map($filter, $input);
     }
 
     /**
@@ -378,5 +372,10 @@ class Request
     public function setUrlVars(array $vars): void
     {
         $this->urlVars = $vars;
+    }
+
+    public function reInitializeRequestData(): void
+    {
+        $this->initializeRequestData();
     }
 }
