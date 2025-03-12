@@ -151,7 +151,21 @@ abstract class Rule
                             $output[$key] = $parts[1] . " must match " . $rule;
                         }
                         break;
+
+                    default:
+                        $customMethod = $parts[0];
+                        if (method_exists($this, $customMethod)) {
+                            if (!$this->$customMethod($data[$key], $parts[1] ?? null)) {
+                                $output[$key] = ucfirst($key . " failed " . str_replace('_', ' ', $parts[0]) . " validation");
+                            }
+                        } else {
+                            // Unknown validation rule - throw exception
+                            throw new \InvalidArgumentException("Unknown validation rule '{$parts[0]}' in field '{$key}'");
+                        }
+                        break;
                 }
+
+
             }
         }
 
