@@ -1,3 +1,5 @@
+[Home](../README.md)
+
 # Lucent ORM Guide
 
 Lucent provides a powerful and intuitive Object-Relational Mapping (ORM) system for interacting with your database. This guide will explain the key features and usage patterns of the Lucent ORM.
