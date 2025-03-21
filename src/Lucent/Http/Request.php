@@ -258,19 +258,9 @@ class Request
                 // Handle arrays recursively
                 $var = $this->sanitizeUserInput($var);
             }
-            // No need to modify booleans or numbers
-            
+
             return $var;
         };
-        
-        //return array_map($filter, array_filter($input, function($var) {
-        //    return $var !== NULL && $var !== FALSE && (
-       //         is_array($var) ||
-       //         is_bool($var) ||
-        //        is_numeric($var) ||
-        //        trim((string)$var) !== ""
-       //     );
-       // }));
 
         return array_map($filter, $input);
     }
@@ -302,7 +292,7 @@ class Request
             $instance = new BlankRule();
             $instance->setRules($rules);
         } elseif ($rules instanceof Rule) {
-            // Handle Regex instance
+            // Handle Rule instance
             $instance = $rules;
         } else {
             // This should never happen due to the type hint, but adding for defensive programming
@@ -316,29 +306,6 @@ class Request
         return count($this->validationErrors) === 0;
     }
 
-    /**
-     * Cache a model instance for later retrieval
-     *
-     * @param string $key The key to store the model under
-     * @param Model $model The model instance to cache
-     */
-    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
-    public function cacheModel(string $key, Model $model): void
-    {
-        $this->modelCache[$key] = $model;
-    }
-
-    /**
-     * Retrieve a cached model by key
-     *
-     * @param string $key The key of the cached model
-     * @return Model The cached model
-     */
-    #[\Deprecated("This method is deprecated and will be removed in future versions. Please use the context instead.")]
-    public function getCachedModel(string $key): Model
-    {
-        return $this->modelCache[$key];
-    }
 
     /**
      * Get validation errors from the most recent validation
