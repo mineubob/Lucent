@@ -75,6 +75,20 @@ class Application
     private array $loggers = [];
 
     /**
+     * An array of globally accessible regex rules.
+     */
+    private array $regexRules =  [
+        'password' => [
+            "pattern"=>'/^(?=.*[a-z])(?=.*[A-Z]).{8,}$/',
+            "message"=> "Password must contain at least one letter, one number, and one special character.",
+        ],
+        'email' => [
+            "pattern"=>'/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+            "message"=>"Email address must be a valid email address. (test@example.com)",
+        ]
+    ];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
@@ -448,5 +462,15 @@ class Application
     {
         Application::$instance = new Application();
     }
+
+    public function addRegex(string $key, string $pattern,?string $message = null): void
+    {
+        $this->regexRules[$key] = ["pattern"=>$pattern,"message"=>$message];
+    }
+
+    public function getRegexRules(): array{
+        return $this->regexRules;
+    }
+
 
 }
