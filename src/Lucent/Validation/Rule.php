@@ -48,8 +48,7 @@ abstract class Rule
         "max" => ":attribute may not be greater than :max characters",
         "min_num" => ":attribute must be greater than :min",
         "max_num" => ":attribute may not be less than :max",
-        "same" => ":attribute and :other must match",
-        "regex" => ":attribute does not match the required format"
+        "same" => ":attribute and :second must match"
     ];
 
     /**
@@ -94,55 +93,55 @@ abstract class Rule
     /**
      * Validates that a string's length is at least the specified value
      *
-     * @param int $i The minimum required length
+     * @param int $min The minimum required length
      * @param string $value The value to validate
      * @return bool Whether the value meets the minimum length
      */
-    private function min(int $i, string $value): bool
+    private function min(int $min, string $value): bool
     {
-        return strlen($value) >= $i;
+        return strlen($value) >= $min;
     }
 
     /**
      * Validates that a numeric value is at least the specified minimum
      *
-     * @param int $i The minimum required value
+     * @param int $min The minimum required value
      * @param string $value The value to validate (as string)
      * @return bool Whether the value meets the minimum
      */
-    private function min_num(int $i, string $value): bool
+    private function min_num(int $min, string $value): bool
     {
         if (!is_numeric($value))
             return false;
 
-        return intval($value, 10) >= $i;
+        return intval($value, 10) >= $min;
     }
 
     /**
      * Validates that a string's length is at most the specified value
      *
-     * @param int $i The maximum allowed length
+     * @param int $max The maximum allowed length
      * @param string $value The value to validate
      * @return bool Whether the value doesn't exceed the maximum length
      */
-    private function max(int $i, string $value): bool
+    private function max(int $max, string $value): bool
     {
-        return strlen($value) <= $i;
+        return strlen($value) <= $max;
     }
 
     /**
      * Validates that a numeric value is at most the specified maximum
      *
-     * @param int $i The maximum allowed value
+     * @param int $max The maximum allowed value
      * @param string $value The value to validate (as string)
      * @return bool Whether the value doesn't exceed the maximum
      */
-    private function max_num(int $i, string $value): bool
+    private function max_num(int $max, string $value): bool
     {
         if (!is_numeric($value))
             return false;
 
-        return intval($value, 10) <= $i;
+        return intval($value, 10) <= $max;
     }
 
     /**
@@ -277,7 +276,13 @@ abstract class Rule
                     // If not is true, we want to flip the outcome
                     if ((!$outcome && !$isNegatedRule) || ($outcome && $isNegatedRule)) {
                         if(array_key_exists($method->getName(), $this->messages)) {
-                            $output[$key] = $this->messages[$method->getName()];
+
+                            if($methodName === "same"){
+                                $args[1] = substr($parts[0], 1);
+                            }
+
+                            $message = $this->messages[$method->getName()];
+                            $output[trim($key)] = $this->translateMessage($message, $key, $method, $args);
                         } else {
                             $output[$key] = $key . " failed " . str_replace('_', ' ', $method->getName()) . " validation rule";
                         }
@@ -378,6 +383,34 @@ abstract class Rule
 
             return $value;
         }
+    }
+
+    /**
+     * Translates a validation message by replacing placeholders with actual values
+     *
+     * @param string $message The message template with placeholders
+     * @param string $attribute The field name being validated
+     * @param ReflectionMethod $method The validation method reflection
+     * @param array $paramValues The parameter values used in the validation rule
+     * @return string The translated message
+     */
+    private function translateMessage(string $message, string $attribute, ReflectionMethod $method, array $paramValues = []): string
+    {
+        // Replace the :attribute placeholder with the field name
+        $message = str_replace(':attribute', $attribute, $message);
+
+        // Get the parameter names from the method
+        $params = $method->getParameters();
+
+        // Loop through parameters and replace placeholders
+        foreach ($params as $index => $param) {
+            $paramName = $param->getName();
+            if (isset($paramValues[$index]) && str_contains($message, ':' . $paramName)) {
+                $message = str_replace(':' . $paramName, $paramValues[$index], $message);
+            }
+        }
+
+        return trim($message);
     }
 
     /**
