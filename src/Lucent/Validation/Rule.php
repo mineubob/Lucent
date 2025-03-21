@@ -182,6 +182,20 @@ abstract class Rule
     }
 
     /**
+     * Validates if a value is empty or null
+     *
+     * When this rule is included for a field, validation will pass only if the field
+     * is empty or null. Used in combination with other rules to make them optional.
+     *
+     * @param string $value The value to validate
+     * @return bool Whether the value is empty or null
+     */
+    private function nullable(string $value): bool
+    {
+        return $value === "";
+    }
+
+    /**
      * Validates the given data against the defined rules
      *
      * Processes each field against its validation rules and collects any validation errors.
@@ -208,16 +222,22 @@ abstract class Rule
                 $rules = $new;
             }
 
+            //If the key is not set then set it to a blanks string.
+            if (!isset($data[$key])) {
+                $data[$key] = "";
+            }else{
+                $data[$key] = trim($data[$key]);
+            }
+
+            if(in_array("nullable", $rules) && $data[$key] === ""){
+                continue;
+            }
+
             foreach ($rules as $rule) {
 
                 $parts = explode(":", $rule);
                 $methodName = $parts[0];
                 $isNegatedRule = false;
-
-                //If the key is not set then set it to a blanks string.
-                if (!isset($data[$key])) {
-                    $data[$key] = "";
-                }
 
                 //Check if we are passing a '!', if so set negated to true
                 if(str_starts_with($methodName, "!")){
@@ -318,7 +338,7 @@ abstract class Rule
      * @param ReflectionType|null $type The target type
      * @return mixed The casted value
      */
-    private function castToType($value, ?ReflectionType $type): mixed
+    private function castToType(mixed $value, ?ReflectionType $type): mixed
     {
         if (!$type) {
             return $value;
@@ -345,7 +365,8 @@ abstract class Rule
      * @param array $data The complete input data array
      * @return mixed The processed value
      */
-    private function processVariable($value, array $data) {
+    private function processVariable(mixed $value, array $data): mixed
+    {
 
         if(str_starts_with($value, "@")) {
 
