@@ -3,6 +3,7 @@
 namespace Lucent\Validation;
 
 use InvalidArgumentException;
+use Lucent\Application;
 use Lucent\Facades\Regex;
 use Lucent\Http\Request;
 use ReflectionClass;
@@ -34,22 +35,7 @@ abstract class Rule
      */
     protected(set) array $rules = [];
 
-    /**
-     * Error messages for validation failures
-     *
-     * Messages can contain placeholders:
-     * - :attribute - Will be replaced with the field name
-     * - :min, :max, etc. - Will be replaced with the relevant parameter
-     *
-     * @var array
-     */
-    protected(set) array $messages = [
-        "min" => ":attribute must be at least :min characters",
-        "max" => ":attribute may not be greater than :max characters",
-        "min_num" => ":attribute must be greater than :min",
-        "max_num" => ":attribute may not be less than :max",
-        "same" => ":attribute and :second must match"
-    ];
+    protected array $customMessages = [];
 
     /**
      * The request that initiated this validation, if available
@@ -275,13 +261,16 @@ abstract class Rule
 
                     // If not is true, we want to flip the outcome
                     if ((!$outcome && !$isNegatedRule) || ($outcome && $isNegatedRule)) {
-                        if(array_key_exists($method->getName(), $this->messages)) {
+
+                        $messages = array_merge(Application::getInstance()->getValidationMessages(),$this->customMessages);
+
+                        if(array_key_exists($method->getName(), $messages)) {
 
                             if($methodName === "same"){
                                 $args[1] = substr($parts[0], 1);
                             }
 
-                            $message = $this->messages[$method->getName()];
+                            $message = $messages[$method->getName()];
                             $output[trim($key)] = $this->translateMessage($message, $key, $method, $args);
                         } else {
                             $output[$key] = $key . " failed " . str_replace('_', ' ', $method->getName()) . " validation rule";
@@ -436,5 +425,10 @@ abstract class Rule
     public function addRegexPattern(string $name, string $pattern, ?string $message = null): void
     {
         $this->customRegexPatterns[$name] = ["pattern"=>$pattern, "message"=>$message];
+    }
+
+    public function overrideRuleMessage(string $rule, string $message): void
+    {
+        $this->customMessages[$rule] = $message;
     }
 }
