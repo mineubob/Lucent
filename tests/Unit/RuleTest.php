@@ -523,6 +523,36 @@ class RuleTest extends DatabaseDriverSetup
         $this->assertEquals("Successfully performed database migration",$output);
     }
 
+    public function test_nullable_passing() : void
+    {
+        $request = Faker::request();
+
+        $request->setInput("full_name","John Doe");
+        $request->setInput("last_name","");
+
+        $request->reInitializeRequestData();
+
+        $this->assertTrue($request->validate([
+            "full_name" => ["min:8","max:255"],
+            "last_name" => ["min:8","max:255","nullable"],
+        ]));
+    }
+
+    public function test_nullable_failing() : void
+    {
+        $request = Faker::request();
+
+        $request->setInput("full_name","John Doe");
+        $request->setInput("last_name","1234");
+
+        $request->reInitializeRequestData();
+
+        $this->assertFalse($request->validate([
+            "full_name" => ["min:8","max:255"],
+            "last_name" => ["min:8","max:255","nullable"],
+        ]));
+    }
+
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
