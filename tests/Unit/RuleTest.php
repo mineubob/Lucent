@@ -553,6 +553,37 @@ class RuleTest extends DatabaseDriverSetup
         ]));
     }
 
+    public function test_message_translator(): void
+    {
+        $request = Faker::request();
+        $request->setInput("min_test","John");
+        $request->setInput("max_test","123456789123456789");
+        $request->setInput("min_num_test",1);
+        $request->setInput("max_num_test",10);
+        $request->setInput("same_test","abc");
+
+        $request->reInitializeRequestData();
+
+        $this->assertFalse($request->validate([
+            "min_test" => ["min:8","max:255"],
+            "max_test" => ["max:16"],
+            "min_num_test" => ["min_num:2"],
+            "max_num_test" => ["max_num:5"],
+            "same_test" => ["same:@min_test"]
+        ]));
+
+        var_dump($request->getValidationErrors());
+
+        $this->assertEquals("min_test must be at least 8 characters",$request->getValidationErrors()["min_test"]);
+        $this->assertEquals("max_test may not be greater than 16 characters",$request->getValidationErrors()["max_test"]);
+
+        $this->assertEquals("min_num_test must be greater than 2",$request->getValidationErrors()["min_num_test"]);
+        $this->assertEquals("max_num_test may not be less than 5",$request->getValidationErrors()["max_num_test"]);
+
+        $this->assertEquals("same_test and min_test must match",$request->getValidationErrors()["same_test"]);
+
+    }
+
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
