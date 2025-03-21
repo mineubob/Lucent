@@ -125,7 +125,8 @@ class ModelTest extends DatabaseDriverSetup
             Database::statement("SET FOREIGN_KEY_CHECKS=1");
         }
         $output = CommandLine::execute("Migration make App/Models/Admin");
-        $this->assertEquals("Successfully performed database migration",$output);    }
+        $this->assertEquals("Successfully performed database migration",$output);
+    }
 
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_creation($driver,$config) : void
@@ -409,10 +410,4 @@ PHP;
         );
 
     }
-
-
-
-
-
-
 }
