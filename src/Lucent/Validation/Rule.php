@@ -2,28 +2,45 @@
 
 namespace Lucent\Validation;
 
+use Lucent\Facades\Regex;
 use Lucent\Http\Request;
 use ReflectionClass;
+use ReflectionMethod;
+use ReflectionType;
 
 abstract class Rule
 {
 
-    private string $password_regex = '^(?=.*[a-z])(?=.*[A-Z]).{8,}$^';
-    public protected(set) array $rules = [];
+    protected array $customRegexPatterns = [];
+
+    protected(set) array $rules = [];
+
+    protected(set) array $messages = [
+        "min" => ":attribute must be at least :min characters",
+        "max" => ":attribute may not be greater than :max characters",
+        "min_num" => ":attribute must be greater than :min",
+        "max_num" => ":attribute may not be less than :max",
+        "same" => ":attribute and :other must match",
+        "regex" => ":attribute does not match the required format"
+    ];
 
     protected ?Request $currentRequest = null;
-
 
     public abstract function setup();
 
     private function regex(string $key, string $value): bool
     {
-        return match ($key) {
-            "email" => filter_var($value, FILTER_VALIDATE_EMAIL),
-            "password" => preg_match($this->password_regex, $value),
-            default => false,
-        };
+        $patterns = $this->getRegexPatterns();
 
+        if(!isset($patterns[$key])){
+            throw new \InvalidArgumentException("Regex {$key} does not exists");
+        }
+
+        if($patterns[$key]["message"] !== null){
+            $this->messages["regex"] = $patterns[$key]["message"];
+        }
+
+        return preg_match($patterns[$key]["pattern"], $value);
     }
 
     private function min(int $i, string $value): bool
@@ -57,7 +74,7 @@ abstract class Rule
         return $first === $second;
     }
 
-    private function unique(string $table, string $column, string $value, bool $not = false): bool
+    private function unique(string $table, string $column, string $value): bool
     {
 
         $namespace = 'App\\Models\\';
@@ -70,11 +87,7 @@ abstract class Rule
             $this->currentRequest->context[$table] = $model;
         }
 
-        if ($not) {
-            return $model !== null;
-        } else {
-            return $model === null;
-        }
+        return $model === null;
     }
 
     public function validate(array $data): array
@@ -95,83 +108,71 @@ abstract class Rule
             }
 
             foreach ($rules as $rule) {
+
                 $parts = explode(":", $rule);
+                $methodName = $parts[0];
+                $isNegatedRule = false;
 
                 //If the key is not set then set it to a blanks string.
                 if (!isset($data[$key])) {
                     $data[$key] = "";
                 }
 
-                switch ($parts[0]) {
-                    case "regex":
-                        if (!$this->regex($parts[1], $data[$key])) {
-                            $output[$key] = ucfirst($key . " must be a valid " . $this->getVar($rule));
-                        }
-                        break;
-                    case "min":
-                        if (!$this->min((int) $parts[1], $data[$key])) {
-                            $output[$key] = ucfirst($key . " must be more than " . $this->getVar($rule) . " characters");
-                        }
-                        break;
-                    case "min_num":
-                        if (!$this->min_num((int) $parts[1], $data[$key])) {
-                            $output[$key] = ucfirst($key . " must be more than " . $this->getVar($rule) . " characters");
-                        }
-                        break;
-                    case "max":
-                        if (!$this->max((int) $parts[1], $data[$key])) {
-                            $output[$key] = ucfirst($key . " must be less than " . $this->getVar($rule));
-                        }
-                        break;
-                    case "max_num":
-                        if (!$this->max_num((int) $parts[1], $data[$key])) {
-                            $output[$key] = ucfirst($key . " must be less than " . $this->getVar($rule));
-                        }
-                        break;
-                    case "same":
-                        if (!$this->same($data[$key], $data[$parts[1]])) {
-                            $output[$key] = $key . " must be the same as " . $this->getVar($rule);
-                        }
-                        break;
-                    case "!unique":
-                        if (!isset($data[$key])) {
-                            $output[$key] = $parts[1] . " must match " . $rule;
-                            break;
-                        }
-                        if (!$this->unique($parts[1], $key, $data[$key], true)) {
-                            $output[$key] = $parts[1] . " must match " . $rule;
-                        }
-                        break;
-                    case "unique":
-                        if (!isset($data[$key])) {
-                            $output[$key] = $parts[1] . " must match " . $rule;
-                            break;
-                        }
-                        if (!$this->unique($parts[1], $key, $data[$key])) {
-                            $output[$key] = $parts[1] . " must match " . $rule;
-                        }
-                        break;
-
-                    default:
-                        $customMethod = $parts[0];
-                        if (method_exists($this, $customMethod)) {
-                            if (!$this->$customMethod($data[$key], $parts[1] ?? null)) {
-                                $output[$key] = ucfirst($key . " failed " . str_replace('_', ' ', $parts[0]) . " validation");
-                            }
-                        } else {
-                            // Unknown validation rule - throw exception
-                            throw new \InvalidArgumentException("Unknown validation rule '{$parts[0]}' in field '{$key}'");
-                        }
-                        break;
+                //Check if we are passing a '!', if so replace it with 'not_'
+                if(str_starts_with($methodName, "!")){
+                    $methodName = substr($methodName, 1);
+                    $isNegatedRule = true;
                 }
 
+                if($methodName === "unique" || $methodName === "!unique"){
+                    $parts[] = $key;
+                }
 
+                if (method_exists($this, $methodName)) {
+
+                    $method = new ReflectionMethod($this, $methodName);
+                    $params = $method->getParameters();
+
+                    $parts = array_slice($parts, 1);
+                    $parts = array_merge($parts,[$data[$key]]);
+
+                    $args = [];
+
+                    foreach ($params as $index => $param) {
+                        if (isset($parts[$index])) {
+                            $value = $this->processVariable($parts[$index],$data);
+                            $args[] = $this->castToType($value, $param->getType());
+                        } else {
+                            // If parameter has default value and no corresponding value provided
+                            if ($param->isDefaultValueAvailable()) {
+                                $args[] = $param->getDefaultValue();
+                            }
+                        }
+                    }
+
+                    // Store the result of method invocation to avoid calling it twice
+                    $outcome = $method->invokeArgs($this, $args);
+
+                    // If not is true, we want to flip the outcome
+                    if ((!$outcome && !$isNegatedRule) || ($outcome && $isNegatedRule)) {
+                        if(array_key_exists($method->getName(), $this->messages)) {
+                            $output[$key] = $this->messages[$method->getName()];
+                        } else {
+                            $output[$key] = $key . " failed " . str_replace('_', ' ', $method->getName()) . " validation rule";
+                        }
+                    }
+
+                } else {
+                    // Unknown validation rule - throw exception
+                    throw new \InvalidArgumentException("Unknown validation rule '{$parts[0]}' in field '{$key}'");
+                }
             }
         }
 
         return $output;
     }
 
+    //This is used by the documentation generator to get a list of all the rules
     public function getRules(): array
     {
         return $this->setup();
@@ -189,5 +190,47 @@ abstract class Rule
     public function setCallingRequest(Request $request): void
     {
         $this->currentRequest = $request;
+    }
+
+    private function castToType($value, ?ReflectionType $type): mixed
+    {
+        if (!$type) {
+            return $value;
+        }
+
+        $typeName = $type->getName();
+
+        return match($typeName) {
+            'int' => (int)$value,
+            'float' => (float)$value,
+            'bool' => (bool)$value,
+            'string' => (string)$value,
+            'array' => (array)$value,
+            default => $value
+        };
+    }
+
+    private function processVariable($value, array $data) {
+
+        if(str_starts_with($value, "@")) {
+
+            $fieldName = substr($value, 1);
+
+            return $data[$fieldName] ?? null;
+
+        } else {
+
+            return $value;
+        }
+    }
+
+    public function getRegexPatterns(): array
+    {
+        return array_merge(Regex::all(), $this->customRegexPatterns);
+    }
+
+    public function addRegexPattern(string $name, string $pattern, ?string $message = null): void
+    {
+        $this->customRegexPatterns[$name] = ["pattern"=>$pattern, "message"=>$message];
     }
 }
