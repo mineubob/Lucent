@@ -26,7 +26,7 @@ class FakeRequest extends Request
         $ruleInstance = new $ruleClass();
         $this->fakeData = [];
 
-        // Get rules setup from the Rule class
+        // Get rules setup from the Regex class
         $rules = $ruleInstance->setup();
 
         // First pass: handle all non-dependent fields
@@ -54,7 +54,7 @@ class FakeRequest extends Request
         $ruleInstance = new $ruleClass();
         $this->fakeData = [];
 
-        // Get rules setup from the Rule class
+        // Get rules setup from the Regex class
         $rules = $ruleInstance->setup();
 
         foreach ($rules as $field => $fieldRules) {
@@ -233,5 +233,10 @@ class FakeRequest extends Request
         $length = random_int($minLength, $maxLength);
         $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         return substr(str_shuffle(str_repeat($chars, ceil($length / strlen($chars)))), 0, $length);
+    }
+
+    public function reInitializeRequestData(): void
+    {
+        $this->initializeRequestData();
     }
 }

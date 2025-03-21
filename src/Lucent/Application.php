@@ -75,6 +75,63 @@ class Application
     private array $loggers = [];
 
     /**
+     * An array of globally accessible regex rules.
+     */
+    private array $regexRules = [
+        'password' => [
+            "pattern" => '/^(?=.*[a-z])(?=.*[A-Z]).{8,}$/',
+            "message" => "Password must contain at least one lowercase letter, one uppercase letter, and be at least 8 characters long.",
+        ],
+        'email' => [
+            "pattern" => '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
+            "message" => "Email address must be a valid email address. (test@example.com)",
+        ],
+        'date' => [
+            "pattern" => '/^\d{4}-\d{2}-\d{2}$/',
+            "message" => "Date must be in YYYY-MM-DD format.",
+        ],
+        'url' => [
+            "pattern" => '/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/',
+            "message" => "URL must be a valid web address.",
+        ],
+        'phone' => [
+            "pattern" => '/^\+?[1-9]\d{1,14}$/',
+            "message" => "Phone number must be in a valid international format.",
+        ],
+        'ip' => [
+            "pattern" => '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/',
+            "message" => "Must be a valid IPv4 address.",
+        ],
+        'hex_color' => [
+            "pattern" => '/^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$/',
+            "message" => "Must be a valid HEX color code (e.g., #FFF or #FFFFFF).",
+        ],
+        'uuid' => [
+            "pattern" => '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+            "message" => "Must be a valid UUID.",
+        ],
+        'alpha' => [
+            "pattern" => '/^[a-zA-Z]+$/',
+            "message" => "Must contain only letters.",
+        ],
+        'alphanumeric' => [
+            "pattern" => '/^[a-zA-Z0-9]+$/',
+            "message" => "Must contain only letters and numbers.",
+        ]
+    ];
+
+    /**
+     * An array of globally accessible failed message errors.
+     */
+    private array $ruleMessages = [
+        "min" => ":attribute must be at least :min characters",
+        "max" => ":attribute may not be greater than :max characters",
+        "min_num" => ":attribute must be greater than :min",
+        "max_num" => ":attribute may not be less than :max",
+        "same" => ":attribute and :second must match"
+    ];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
@@ -448,5 +505,25 @@ class Application
     {
         Application::$instance = new Application();
     }
+
+    public function addRegex(string $key, string $pattern,?string $message = null): void
+    {
+        $this->regexRules[$key] = ["pattern"=>$pattern,"message"=>$message];
+    }
+
+    public function getRegexRules(): array{
+        return $this->regexRules;
+    }
+
+    public function overrideValidationMessage(string $key, string $message): void
+    {
+        $this->ruleMessages[$key] = $message;
+    }
+
+    public function getValidationMessages(): array
+    {
+        return $this->ruleMessages;
+    }
+
 
 }
