@@ -11,6 +11,9 @@ The Lucent Framework provides a powerful and flexible validation system through 
 - [Creating Validation Rules](#creating-validation-rules)
 - [Using Validation Rules](#using-validation-rules)
 - [Available Validation Rules](#available-validation-rules)
+- [Negated Rules](#negated-rules)
+- [Nullable Fields](#nullable-fields)
+- [Custom Regex Patterns](#custom-regex-patterns)
 - [Advanced Usage](#advanced-usage)
 - [Real-world Example: Contact Form](#real-world-example-contact-form)
 - [Real-world Example: Article Creation](#real-world-example-article-creation)
@@ -77,46 +80,6 @@ The `setup()` method should return an associative array where:
 - Keys are the field names to validate
 - Values are arrays of validation constraints
 
-### Dynamic Rules
-
-For more flexibility, you can create rules that change based on context:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class DynamicUserRule extends Rule
-{
-    private array $fields;
-    
-    public function __construct(array $fields = [])
-    {
-        $this->fields = $fields;
-    }
-    
-    public function setup(): array
-    {
-        $baseRules = [
-            'name' => [
-                'min:2',
-                'max:50'
-            ],
-            'email' => [
-                'regex:email'
-            ]
-        ];
-        
-        // Only include rules for fields that are actually present
-        return array_filter($baseRules, function ($field) {
-            return array_key_exists($field, $this->fields);
-        }, ARRAY_FILTER_USE_KEY);
-    }
-}
-```
-
 ## Using Validation Rules
 
 ### In Controllers
@@ -167,11 +130,139 @@ The Lucent Framework provides these built-in validation rules:
 | `max:{value}` | Ensures a string's length is at most the specified value | `'max:100'` |
 | `min_num:{value}` | Ensures a numeric value is at least the specified value | `'min_num:1'` |
 | `max_num:{value}` | Ensures a numeric value is at most the specified value | `'max_num:100'` |
-| `regex:email` | Validates email format | `'regex:email'` |
-| `regex:password` | Validates password complexity (requires one lowercase letter, one uppercase letter, min 8 chars) | `'regex:password'` |
+| `regex:{pattern}` | Validates using a registered regex pattern | `'regex:email'` |
 | `same:{field}` | Ensures the value matches another field's value | `'same:password'` |
-| `unique:{table}` | Ensures the value doesn't exist in the specified table column (uses the input field name as the column name) | `'unique:users'` |
-| `!unique:{table}` | Ensures the value does exist in the specified table column (uses the input field name as the column name) | `'!unique:users'` |
+| `unique:{table}` | Ensures the value doesn't exist in the specified table column | `'unique:users'` |
+| `!unique:{table}` | Ensures the value does exist in the specified table column | `'!unique:users'` |
+| `nullable` | Allows a field to be empty or null | `'nullable'` |
+
+## Negated Rules
+
+You can negate any validation rule by prefixing it with `!`. This inverts the expected outcome of the validation.
+
+```php
+// Validation passes if the value is NOT an email format
+'email' => ['!regex:email']
+
+// Validation passes if the length is NOT at least 8 characters
+'password' => ['!min:8']
+
+// Validation passes if the value does NOT match the other field
+'password_confirm' => ['!same:password']
+```
+
+Note that `!unique` is a special case that was already documented separately since it's a common use case.
+
+## Nullable Fields
+
+The `nullable` rule allows a field to be empty or null without failing validation. When combined with other rules, the field becomes optional - if a value is provided, it must meet the other rules, but empty values will pass validation.
+
+```php
+// Optional email that must be valid if provided
+'email' => ['nullable', 'regex:email']
+
+// Optional name with length constraints if provided
+'name' => ['nullable', 'min:2', 'max:50']
+
+// Optional birthdate with date format validation if provided
+'birthdate' => ['nullable', 'regex:date']
+```
+
+The `nullable` rule can be placed anywhere in the rules array - it doesn't have to be first. If a field is both nullable and empty, all other validation rules for that field will be skipped.
+
+## Custom Regex Patterns
+
+### Local Regex Patterns
+
+You can define custom regex patterns within your rule class:
+
+```php
+<?php
+
+namespace App\Validation;
+
+use Lucent\Validation\Rule;
+
+class ProductRule extends Rule
+{
+    public function setup(): array
+    {
+        // Add a custom regex pattern for SKU validation
+        $this->addRegexPattern(
+            "sku_format",
+            '/^[A-Z]{3}-\d{4}$/', 
+            "SKU must be in format XXX-0000"
+        );
+        
+        return [
+            'sku' => [
+                'regex:sku_format'
+            ],
+            'name' => [
+                'min:3',
+                'max:100'
+            ]
+        ];
+    }
+}
+```
+
+The `addRegexPattern` method takes three parameters:
+1. Pattern name - Used to reference the pattern in rules
+2. Regex pattern - The actual regular expression
+3. Error message (optional) - Custom error message when validation fails
+
+### Global Regex Patterns
+
+For patterns you need to use across multiple rule classes, you can define global patterns using the `Regex` facade:
+
+```php
+<?php
+
+use Lucent\Facades\Regex;
+
+// In a service provider or bootstrap file
+Regex::set("phone_number", '/^\+?[1-9]\d{1,14}$/');
+```
+
+These global patterns can then be used in any rule class:
+
+```php
+<?php
+
+namespace App\Validation;
+
+use Lucent\Validation\Rule;
+
+class ContactRule extends Rule
+{
+    public function setup(): array
+    {
+        return [
+            'phone' => [
+                'regex:phone_number'
+            ]
+        ];
+    }
+}
+```
+
+### Built-in Regex Patterns
+
+The framework includes these built-in regex patterns:
+
+| Pattern Name | Validates | Format Example |
+|--------------|-----------|----------------|
+| `email` | Email addresses | test@example.com |
+| `password` | Password complexity (requires one lowercase, one uppercase, min 8 chars) | Password123 |
+| `date` | Date in YYYY-MM-DD format | 2023-12-31 |
+| `url` | Web addresses | https://example.com |
+| `phone` | International phone numbers | +1234567890 |
+| `ip` | IPv4 addresses | 192.168.0.1 |
+| `hex_color` | HEX color codes | #FFF or #FFFFFF |
+| `uuid` | UUID v1-v5 format | 123e4567-e89b-12d3-a456-426614174000 |
+| `alpha` | Letters only | AbCdEf |
+| `alphanumeric` | Letters and numbers only | Abc123 |
 
 ### Validation Rule Examples
 
@@ -179,18 +270,39 @@ The Lucent Framework provides these built-in validation rules:
 // Email validation
 'email' => ['regex:email']
 
-// Password with confirmation
-'password' => ['min:8', 'regex:password'],
-'password_confirm' => ['same:password']
+// Password validation with confirmation
+'password' => ['regex:password'],
+'password_confirm' => ['same:@password']
+
+// Date validation
+'birth_date' => ['regex:date']
+
+// URL validation
+'website' => ['nullable', 'regex:url']
+
+// Phone number validation
+'phone' => ['nullable', 'regex:phone']
 
 // Numeric range validation
 'age' => ['min_num:18', 'max_num:120']
 
-// Uniqueness validation - checks the 'username' column in the 'users' table
-'username' => ['unique:users']
+// Color picker validation
+'theme_color' => ['regex:hex_color']
+
+// UUID validation (for API tokens, etc.)
+'token_id' => ['regex:uuid']
+
+// Text-only validation
+'first_name' => ['alpha', 'min:2', 'max:50']
+
+// Alphanumeric validation
+'username' => ['unique:users', 'alphanumeric', 'min:3', 'max:20']
 
 // Existence validation - checks the 'role_id' column in the 'roles' table
 'role_id' => ['!unique:roles']
+
+// Optional field validation
+'middle_name' => ['nullable', 'alpha', 'min:2', 'max:50']
 ```
 
 ## Advanced Usage
@@ -249,6 +361,11 @@ class ContactFormRule extends Rule
             ],
             'email' => [
                 'regex:email'
+            ],
+            'phone' => [
+                'nullable',
+                'min:10',
+                'max:15'
             ],
             'subject' => [
                 'min:5',
@@ -331,6 +448,13 @@ class ArticleRule extends Rule
 {
     public function setup(): array
     {
+        // Define custom regex for slugs
+        $this->addRegexPattern(
+            "slug_format", 
+            '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
+            "Slug must contain only lowercase letters, numbers, and hyphens"
+        );
+        
         return [
             'title' => [
                 'min:5',
@@ -339,6 +463,7 @@ class ArticleRule extends Rule
             'slug' => [
                 'min:3',
                 'max:100',
+                'regex:slug_format',
                 'unique:articles'  // Ensures the slug is unique in the articles table
             ],
             'content' => [
@@ -348,8 +473,9 @@ class ArticleRule extends Rule
                 '!unique:categories'  // Ensure the category exists in the categories table
             ],
             'tags' => [
-                'min:2',  // At least 2 characters for tags
-                'max:255'  // Maximum length for all tags
+                'nullable',
+                'min:2',  // At least 2 characters for tags if provided
+                'max:255'  // Maximum length for all tags if provided
             ],
             'status' => [
                 'validate_status'  // Custom validation method for status
@@ -438,20 +564,13 @@ Route::rest()->group('api')
 
 This example demonstrates several important validation features:
 
-1. Using `unique` validation to ensure article slugs don't conflict
-2. Using `!unique` validation to verify a category exists
-3. Implementing a custom validation method (`validate_status`)
-4. Combining URL variables with validated form input
-5. Returning different responses based on validation outcome
-
-The validation ensures:
-- Articles have meaningful titles (5-200 characters)
-- Slugs are unique and properly formatted (3-100 characters)
-- Content is substantial (at least 100 characters)
-- The selected category exists in the database
-- The article status is one of the allowed values
-
-This pattern can be adapted for validating any kind of content creation or management functionality in your application.
+1. Using a custom regex pattern for slug validation
+2. Using `unique` validation to ensure article slugs don't conflict
+3. Using `!unique` validation to verify a category exists
+4. Using `nullable` to make tags optional
+5. Implementing a custom validation method (`validate_status`)
+6. Combining URL variables with validated form input
+7. Returning different responses based on validation outcome
 
 ## Best Practices
 
@@ -459,7 +578,7 @@ This pattern can be adapted for validating any kind of content creation or manag
 
 2. **Descriptive Names**: Give your validation rules clear, descriptive names that indicate their purpose (e.g., `UserRegistrationRule`, `ProductCreationRule`).
 
-3. **Reuse Rules**: Avoid duplicating validation logic by reusing rule classes or extracting common validation patterns.
+3. **Reuse Rules**: Avoid duplicating validation logic by creating shared rule classes that can be extended.
 
 4. **Document Your Rules**: Create clear documentation explaining your validation requirements, especially for complex custom rules.
 
@@ -467,7 +586,13 @@ This pattern can be adapted for validating any kind of content creation or manag
 
 6. **Custom Error Messages**: For complex validation requirements, consider implementing custom error messages that are more descriptive.
 
-7. **Dynamic Rules**: Use rule constructors to create rules that can adapt to different contexts.
+7. **Use Nullable Properly**: Use the `nullable` rule for optional fields rather than adding complex conditional logic.
+
+8. **Field References**: When referencing other fields (like in the `same` rule), use the `@` prefix (e.g., `same:@password`).
+
+9. **Centralize Regex Patterns**: Store frequently used regex patterns in a central location using the Regex facade.
+
+10. **Validation Strategy**: Use negated rules (`!`) when checking for the absence of a condition is more logical than checking for its presence.
 
 ---
 
