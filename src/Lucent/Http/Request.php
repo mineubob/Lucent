@@ -60,7 +60,7 @@ class Request
      *
      * Processes headers, JSON input, POST and GET data
      */
-    private function initializeRequestData(): void
+    protected function initializeRequestData(): void
     {
         // Initialize headers
         $this->headers = $this->getHeaders();
@@ -278,7 +278,7 @@ class Request
     /**
      * Validate request data against rules
      *
-     * @param array|Rule|string $rules Validation rules as array, Rule instance, or Rule class name
+     * @param array|Rule|string $rules Validation rules as array, Regex instance, or Regex class name
      * @return bool Whether validation passed
      * @throws InvalidArgumentException When an invalid rules format is provided
      */
@@ -295,14 +295,14 @@ class Request
             $instance = new $rules();
 
             if (!($instance instanceof Rule)) {
-                throw new InvalidArgumentException("Class $rules is not a valid Rule instance");
+                throw new InvalidArgumentException("Class $rules is not a valid Regex instance");
             }
         } elseif (is_array($rules)) {
             // Handle an array of rules
             $instance = new BlankRule();
             $instance->setRules($rules);
         } elseif ($rules instanceof Rule) {
-            // Handle Rule instance
+            // Handle Regex instance
             $instance = $rules;
         } else {
             // This should never happen due to the type hint, but adding for defensive programming
@@ -372,10 +372,5 @@ class Request
     public function setUrlVars(array $vars): void
     {
         $this->urlVars = $vars;
-    }
-
-    public function reInitializeRequestData(): void
-    {
-        $this->initializeRequestData();
     }
 }
