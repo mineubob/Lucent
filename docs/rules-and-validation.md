@@ -14,6 +14,12 @@ The Lucent Framework provides a powerful and flexible validation system through 
 - [Negated Rules](#negated-rules)
 - [Nullable Fields](#nullable-fields)
 - [Custom Regex Patterns](#custom-regex-patterns)
+- [Validation Messages](#validation-messages)
+    - [Default Messages](#default-messages)
+    - [Message Parameters](#message-parameters)
+    - [Overriding Messages](#overriding-messages)
+    - [Local Message Overrides](#local-message-overrides)
+    - [Global Message Overrides](#global-message-overrides)
 - [Advanced Usage](#advanced-usage)
 - [Real-world Example: Contact Form](#real-world-example-contact-form)
 - [Real-world Example: Article Creation](#real-world-example-article-creation)
@@ -131,7 +137,7 @@ The Lucent Framework provides these built-in validation rules:
 | `min_num:{value}` | Ensures a numeric value is at least the specified value | `'min_num:1'` |
 | `max_num:{value}` | Ensures a numeric value is at most the specified value | `'max_num:100'` |
 | `regex:{pattern}` | Validates using a registered regex pattern | `'regex:email'` |
-| `same:{field}` | Ensures the value matches another field's value | `'same:password'` |
+| `same:{field}` | Ensures the value matches another field's value | `'same:@password'` |
 | `unique:{table}` | Ensures the value doesn't exist in the specified table column | `'unique:users'` |
 | `!unique:{table}` | Ensures the value does exist in the specified table column | `'!unique:users'` |
 | `nullable` | Allows a field to be empty or null | `'nullable'` |
@@ -264,52 +270,106 @@ The framework includes these built-in regex patterns:
 | `alpha` | Letters only | AbCdEf |
 | `alphanumeric` | Letters and numbers only | Abc123 |
 
-### Validation Rule Examples
+## Validation Messages
+
+### Default Messages
+
+The framework provides default error messages for built-in validation rules. These messages use placeholders that are automatically replaced with actual values when validation fails.
+
+### Message Parameters
+
+Validation messages support placeholders that are replaced with actual field names and rule parameters. The available placeholders depend on the validation rule:
+
+| Rule | Available Placeholders | Example Message |
+|------|------------------------|-----------------|
+| `min` | `:attribute`, `:min` | "username must be at least 5 characters" |
+| `max` | `:attribute`, `:max` | "username may not be greater than 20 characters" |
+| `min_num` | `:attribute`, `:min` | "age must be greater than 18" |
+| `max_num` | `:attribute`, `:max` | "age may not be less than 120" |
+| `same` | `:attribute`, `:first` | "password_confirmation and password must match" |
+| `regex` | `:attribute` | "email does not match the required format" |
+
+The `:attribute` placeholder is automatically replaced with the field name being validated, and rule-specific placeholders (like `:min`, `:max`, etc.) are replaced with the corresponding parameter values.
+
+For the `same` rule, when referencing another field with `@`, the field name (not its value) will be used in the error message for security reasons.
+
+### Overriding Messages
+
+Lucent allows you to override the default validation messages at both the local (rule class) level and the global (application) level.
+
+### Local Message Overrides
+
+To override messages within a specific rule class, use the `overrideRuleMessage` method:
 
 ```php
-// Email validation
-'email' => ['regex:email']
+<?php
 
-// Password validation with confirmation
-'password' => ['regex:password'],
-'password_confirm' => ['same:@password']
+namespace App\Validation;
 
-// Date validation
-'birth_date' => ['regex:date']
+use Lucent\Validation\Rule;
 
-// URL validation
-'website' => ['nullable', 'regex:url']
-
-// Phone number validation
-'phone' => ['nullable', 'regex:phone']
-
-// Numeric range validation
-'age' => ['min_num:18', 'max_num:120']
-
-// Color picker validation
-'theme_color' => ['regex:hex_color']
-
-// UUID validation (for API tokens, etc.)
-'token_id' => ['regex:uuid']
-
-// Text-only validation
-'first_name' => ['alpha', 'min:2', 'max:50']
-
-// Alphanumeric validation
-'username' => ['unique:users', 'alphanumeric', 'min:3', 'max:20']
-
-// Existence validation - checks the 'role_id' column in the 'roles' table
-'role_id' => ['!unique:roles']
-
-// Optional field validation
-'middle_name' => ['nullable', 'alpha', 'min:2', 'max:50']
+class UserRule extends Rule
+{
+    public function setup(): array
+    {
+        // Override the min rule message for this rule class only
+        $this->overrideRuleMessage("min", "The :attribute field needs at least :min characters");
+        
+        // Override the regex message for email validation
+        $this->overrideRuleMessage("regex", "Please provide a valid :attribute address");
+        
+        return [
+            'username' => [
+                'min:5',
+                'max:20'
+            ],
+            'email' => [
+                'regex:email'
+            ]
+        ];
+    }
+}
 ```
+
+### Global Message Overrides
+
+For application-wide message overrides, use the `Rule` facade:
+
+```php
+<?php
+
+use Lucent\Facades\Rule;
+
+// In a service provider or bootstrap file
+Rule::overrideMessage("min", "The :attribute field must have at least :min characters");
+Rule::overrideMessage("max", "The :attribute field cannot exceed :max characters");
+Rule::overrideMessage("same", "The :attribute field must match :first");
+```
+
+Global message overrides apply to all validation rules across your application unless overridden at the local level.
+
+**Priority Order:**
+1. Local message overrides (highest priority)
+2. Global message overrides
+3. Default framework messages (lowest priority)
 
 ## Advanced Usage
 
 ### Custom Validation Methods
 
-For more complex validation needs, you can extend the `Rule` class and add custom validation methods. Here's how you might implement a ZIP code validator:
+For more complex validation needs, you can create custom validation methods. This allows you to implement application-specific validation logic beyond the built-in rules.
+
+#### Creating Custom Validation Methods
+
+To create a custom validation method:
+
+1. Extend the `Rule` class
+2. Add a protected method with your validation logic
+3. The method should accept the value to validate as its parameter
+4. Return a boolean: `true` if validation passes, `false` if it fails
+5. Use the method name directly in your validation rules
+
+Here's how to implement a ZIP code validator:
 
 ```php
 <?php
@@ -322,17 +382,165 @@ class AddressRule extends Rule
 {
     public function setup(): array
     {
+        // You can override the message for your custom validation rule
+        $this->overrideRuleMessage("zip_code", "The :attribute must be a valid ZIP code");
+        
         return [
             'address_line1' => ['min:5', 'max:100'],
             'city' => ['min:2', 'max:50'],
-            'zip_code' => ['validate_zip_code']
+            'zip_code' => ['zip_code']
         ];
     }
     
-    protected function validate_zip_code($value): bool
+    /**
+     * Validates a US ZIP code
+     * 
+     * @param mixed $value The value to validate
+     * @return bool Whether the validation passes
+     */
+    protected function zip_code($value): bool
     {
-        // US zip code validation logic
+        // US zip code validation logic (5 digits, optionally followed by hyphen and 4 more digits)
         return preg_match('/^\d{5}(-\d{4})?$/', $value);
+    }
+}
+```
+
+#### Custom Validation with Parameters
+
+You can also create custom validation methods that accept parameters:
+
+```php
+<?php
+
+namespace App\Validation;
+
+use Lucent\Validation\Rule;
+
+class ProductRule extends Rule
+{
+    public function setup(): array
+    {
+        // Custom message with parameter replacement
+        $this->overrideRuleMessage(
+            "in_range", 
+            "The :attribute must be between :min and :max"
+        );
+        
+        return [
+            'name' => ['min:3', 'max:100'],
+            'price' => ['in_range:10:1000'], // Must be between $10 and $1000
+            'stock' => ['in_range:1:500']    // Must be between 1 and 500 units
+        ];
+    }
+    
+    /**
+     * Validates that a value is within a specified numeric range
+     * 
+     * @param int $min The minimum allowed value
+     * @param int $max The maximum allowed value
+     * @param mixed $value The value to validate
+     * @return bool Whether the validation passes
+     */
+    protected function in_range(int $min, int $max, $value): bool
+    {
+        if (!is_numeric($value)) {
+            return false;
+        }
+        
+        $numericValue = floatval($value);
+        return ($numericValue >= $min && $numericValue <= $max);
+    }
+}
+```
+
+#### Using Custom Validation with Related Data
+
+You can create validation methods that check related fields or more complex conditions:
+
+```php
+<?php
+
+namespace App\Validation;
+
+use Lucent\Validation\Rule;
+
+class ShippingRule extends Rule
+{
+    public function setup(): array
+    {
+        $this->overrideRuleMessage(
+            "shipping_available", 
+            "We don't ship to :attribute for orders under $100"
+        );
+        
+        return [
+            'country' => ['min:2', 'max:2'],  // Country code
+            'total' => ['min_num:0'],         // Order total
+            'shipping_address' => ['shipping_available:@country:@total']
+        ];
+    }
+    
+    /**
+     * Validates shipping availability based on country and order total
+     * 
+     * @param string $country The country code
+     * @param float $total The order total
+     * @param string $address The shipping address
+     * @return bool Whether shipping is available
+     */
+    protected function shipping_available(string $country, float $total, string $address): bool
+    {
+        // List of countries that require a minimum order total for shipping
+        $restrictedCountries = ['AU', 'NZ', 'JP'];
+        
+        // For restricted countries, require a minimum order total of $100
+        if (in_array($country, $restrictedCountries) && $total < 100) {
+            return false;
+        }
+        
+        return true;
+    }
+}
+```
+
+#### Using Custom Validation in Inline Rules
+
+You can also use your custom validation methods in inline rules, not just in dedicated rule classes:
+
+```php
+<?php
+
+namespace App\Controllers;
+
+use Lucent\Http\Request;
+use Lucent\Http\JsonResponse;
+use Lucent\Validation\Rule;
+
+class OrderController extends Rule
+{
+    // Custom validation method in the controller
+    protected function payment_method($value): bool
+    {
+        $validMethods = ['credit_card', 'paypal', 'bank_transfer'];
+        return in_array($value, $validMethods);
+    }
+    
+    public function createOrder(Request $request): JsonResponse
+    {
+        // Using the custom validation method in inline rules
+        if (!$request->validate([
+            'items' => ['min:1'],
+            'payment_method' => ['payment_method']
+        ])) {
+            return new JsonResponse()
+                ->setOutcome(false)
+                ->setStatusCode(400)
+                ->setMessage("Invalid order data")
+                ->addErrors($request->getValidationErrors());
+        }
+        
+        // Process the order...
     }
 }
 ```
@@ -354,6 +562,10 @@ class ContactFormRule extends Rule
 {
     public function setup(): array
     {
+        // Override messages for more user-friendly errors
+        $this->overrideRuleMessage("min", "Your :attribute must be at least :min characters");
+        $this->overrideRuleMessage("regex", "Please enter a valid :attribute");
+        
         return [
             'name' => [
                 'min:2',
@@ -454,6 +666,10 @@ class ArticleRule extends Rule
             '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
             "Slug must contain only lowercase letters, numbers, and hyphens"
         );
+        
+        // Override validation messages
+        $this->overrideRuleMessage("min", "The :attribute needs to be at least :min characters");
+        $this->overrideRuleMessage("unique", "This :attribute is already taken, please choose another");
         
         return [
             'title' => [
@@ -569,8 +785,9 @@ This example demonstrates several important validation features:
 3. Using `!unique` validation to verify a category exists
 4. Using `nullable` to make tags optional
 5. Implementing a custom validation method (`validate_status`)
-6. Combining URL variables with validated form input
-7. Returning different responses based on validation outcome
+6. Customizing error messages with parameter replacement
+7. Combining URL variables with validated form input
+8. Returning different responses based on validation outcome
 
 ## Best Practices
 
@@ -584,7 +801,7 @@ This example demonstrates several important validation features:
 
 5. **Security First**: Always validate data on the server-side, even if you have client-side validation.
 
-6. **Custom Error Messages**: For complex validation requirements, consider implementing custom error messages that are more descriptive.
+6. **Customize Error Messages**: Use message overrides to provide clear, user-friendly guidance when validation fails. Keep them specific to your application's context and audience.
 
 7. **Use Nullable Properly**: Use the `nullable` rule for optional fields rather than adding complex conditional logic.
 
@@ -593,6 +810,10 @@ This example demonstrates several important validation features:
 9. **Centralize Regex Patterns**: Store frequently used regex patterns in a central location using the Regex facade.
 
 10. **Validation Strategy**: Use negated rules (`!`) when checking for the absence of a condition is more logical than checking for its presence.
+
+11. **Message Consistency**: Maintain a consistent tone and style in your validation messages across the application.
+
+12. **Global vs. Local Overrides**: Use global message overrides for application-wide consistency, and local overrides when specific contexts need different wording.
 
 ---
 
