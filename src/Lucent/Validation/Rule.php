@@ -26,7 +26,7 @@ abstract class Rule
 
     protected ?Request $currentRequest = null;
 
-    public abstract function setup();
+    public abstract function setup() : array;
 
     private function regex(string $key, string $value): bool
     {
@@ -118,7 +118,7 @@ abstract class Rule
                     $data[$key] = "";
                 }
 
-                //Check if we are passing a '!', if so replace it with 'not_'
+                //Check if we are passing a '!', if so set negated to true
                 if(str_starts_with($methodName, "!")){
                     $methodName = substr($methodName, 1);
                     $isNegatedRule = true;
