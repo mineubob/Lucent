@@ -37,6 +37,22 @@ class NumRule extends TestRule
     }
 }
 
+class OverrideMessageRule extends TestRule
+{
+    public function setup(): array
+    {
+
+        $this->overrideRuleMessage("min","Message Override!");
+
+        return [
+            'first_name' => [
+                'min:5',
+                'max:10',
+            ]
+        ];
+    }
+}
+
 class DynamicRule extends Rule
 {
 
@@ -572,8 +588,6 @@ class RuleTest extends DatabaseDriverSetup
             "same_test" => ["same:@min_test"]
         ]));
 
-        var_dump($request->getValidationErrors());
-
         $this->assertEquals("min_test must be at least 8 characters",$request->getValidationErrors()["min_test"]);
         $this->assertEquals("max_test may not be greater than 16 characters",$request->getValidationErrors()["max_test"]);
 
@@ -582,6 +596,34 @@ class RuleTest extends DatabaseDriverSetup
 
         $this->assertEquals("same_test and min_test must match",$request->getValidationErrors()["same_test"]);
 
+    }
+
+    public function test_error_message_overriding_local(): void
+    {
+        $request = Faker::request();
+        $request->setInput("first_name","John");
+
+        $request->reInitializeRequestData();
+
+        $this->assertFalse($request->validate(OverrideMessageRule::class));
+
+
+        $this->assertEquals("Message Override!",$request->getValidationErrors()["first_name"]);
+    }
+
+    public function test_error_message_overriding_global(): void
+    {
+        $request = Faker::request();
+        $request->setInput("first_name","John");
+        $request->reInitializeRequestData();
+
+        \Lucent\Facades\Rule::overrideMessage("min","Global override for :attribute with a min of :min");
+
+        $this->assertFalse($request->validate([
+            "first_name" => ["min:10","max:255"],
+        ]));
+
+        $this->assertEquals("Global override for first_name with a min of 10",$request->getValidationErrors()["first_name"]);
     }
 
     private static function generate_test_model(): void
