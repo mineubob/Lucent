@@ -121,6 +121,17 @@ class Application
     ];
 
     /**
+     * An array of globally accessible failed message errors.
+     */
+    private array $ruleMessages = [
+        "min" => ":attribute must be at least :min characters",
+        "max" => ":attribute may not be greater than :max characters",
+        "min_num" => ":attribute must be greater than :min",
+        "max_num" => ":attribute may not be less than :max",
+        "same" => ":attribute and :second must match"
+    ];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
@@ -502,6 +513,16 @@ class Application
 
     public function getRegexRules(): array{
         return $this->regexRules;
+    }
+
+    public function overrideValidationMessage(string $key, string $message): void
+    {
+        $this->ruleMessages[$key] = $message;
+    }
+
+    public function getValidationMessages(): array
+    {
+        return $this->ruleMessages;
     }
 
 
