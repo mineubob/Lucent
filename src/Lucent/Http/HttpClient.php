@@ -121,7 +121,13 @@ class HttpClient
         $headResponse = $this->head($fullUrl);
         if(!$headResponse->successful()){
             Log::channel("phpunit")->error("Failed to download {$fullUrl}");
-            die;
+            return new HttpResponse(
+                body: null,
+                statusCode: $headResponse->status(),
+                headers: $headResponse->headers(),
+                error: $headResponse->error(),
+                errorCode: $headResponse->errorCode(),
+            );
         }
         $contentLength = $headResponse->headers()["download_content_length"];
 
