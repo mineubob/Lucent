@@ -79,71 +79,136 @@ class HttpClient
         return $this->request('DELETE', $url, $data);
     }
 
-    public function download(string $url, string $destinationPath): HttpResponse
+    /**
+     * Send a HEAD request to retrieve headers without downloading the body
+     *
+     * @param string $url URL to request
+     * @param array $params Optional query parameters
+     * @return HttpResponse
+     */
+    public function head(string $url, array $params = []): HttpResponse
+    {
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+        return $this->request('HEAD', $url);
+    }
+
+    /**
+     * Download a file from the specified URL to the given destination path
+     *
+     * @param string $url URL to download from
+     * @param string $destinationPath Path to save the file in storage/downloads directory
+     * @param callable|null $progressCallback Optional callback function that receives ($downloadedBytes, $totalBytes)
+     * @return HttpResponse
+     */
+    public function download(string $url, string $destinationPath, ?callable $progressCallback = null): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
         $downloadPath = File::rootPath()."storage".DIRECTORY_SEPARATOR."downloads".DIRECTORY_SEPARATOR;
 
         Log::channel("phpunit")->info("Starting download from {$fullUrl}");
 
+        // Create download directory if it doesn't exist
+        if (!is_dir($downloadPath)) {
+            mkdir($downloadPath, 0755, true);
+        }
+
+        // Ensure we have a callback function (use empty function if none provided)
+        $progressCallback = $progressCallback ?? function($downloaded, $total) {};
+
+        // First, determine the file size using a HEAD request that follows redirects
+        $headResponse = $this->head($fullUrl);
+        if(!$headResponse->successful()){
+            Log::channel("phpunit")->error("Failed to download {$fullUrl}");
+            die;
+        }
+        $contentLength = $headResponse->headers()["download_content_length"];
+
+        Log::channel("phpunit")->info("File size determined: {$contentLength} bytes");
+
+        // Open file for writing
+        $fp = fopen($downloadPath . DIRECTORY_SEPARATOR . $destinationPath, 'w+');
+        if (!$fp) {
+            $errorMsg = "Failed to open file for writing: {$destinationPath}";
+            Log::channel("phpunit")->error($errorMsg);
+            return new HttpResponse(
+                body: null,
+                statusCode: 0,
+                headers: [],
+                error: $errorMsg,
+                errorCode: -1
+            );
+        }
+
+        // Set up cURL for the actual download
         $ch = curl_init();
-        $options = [
+        curl_setopt_array($ch, [
             CURLOPT_URL => $fullUrl,
-            CURLOPT_RETURNTRANSFER => true, // Changed to true to check response
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_HEADER => false,
+            CURLOPT_FILE => $fp,
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
             CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 5,
-            CURLOPT_HEADER => true // Get headers in response
-        ];
+            CURLOPT_NOPROGRESS => false,
+            CURLOPT_PROGRESSFUNCTION => function($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($progressCallback, $contentLength) {
+                // Use the best available size information
+                $total = ($downloadSize > 0) ? $downloadSize : $contentLength;
+                call_user_func($progressCallback, $downloaded, $total);
+            }
+        ]);
 
-        // Handle headers
-        $headers = [];
+        // Add headers if any
+        $headerArray = [];
         foreach ($this->headers as $key => $value) {
-            $headers[] = "{$key}: {$value}";
+            $headerArray[] = "{$key}: {$value}";
         }
 
-        if (!empty($headers)) {
-            $options[CURLOPT_HTTPHEADER] = $headers;
+        if (!empty($headerArray)) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArray);
         }
 
-        curl_setopt_array($ch, $options);
+        // Add authentication if needed
+        if (!empty($this->auth)) {
+            curl_setopt($ch, CURLOPT_USERPWD, $this->auth['username'] . ':' . $this->auth['password']);
+        }
 
-        // Execute request
-        $response = curl_exec($ch);
+        // Start download
+        $success = curl_exec($ch);
         $info = curl_getinfo($ch);
         $error = curl_error($ch);
         $errno = curl_errno($ch);
 
-        // Check for curl errors first
-        if ($errno) {
+        // Close file handle
+        fclose($fp);
+
+        // Check for errors
+        if (!$success || $errno) {
             Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
+            curl_close($ch);
+            // Try to remove the incomplete file
+            @unlink($downloadPath . DIRECTORY_SEPARATOR . $destinationPath);
             return new HttpResponse(
                 body: null,
-                statusCode: 0,
+                statusCode: $info['http_code'],
                 headers: $info,
                 error: $error,
                 errorCode: $errno
             );
         }
 
-        // Check HTTP status code
+        curl_close($ch);
+
+        // Ensure we got a successful HTTP status code
         if ($info['http_code'] !== 200) {
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
             Log::channel("phpunit")->error($errorMsg);
-
-            // Try to parse response body for error details
-            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-            $body = substr($response, $headerSize);
-
-            if ($json = json_decode($body, true)) {
-                $errorMsg .= " - " . ($json['message'] ?? 'Unknown error');
-            }
-
-            curl_close($ch);
-
+            // Try to remove the incomplete file
+            @unlink($downloadPath . DIRECTORY_SEPARATOR . $destinationPath);
             return new HttpResponse(
                 body: null,
                 statusCode: $info['http_code'],
@@ -152,44 +217,6 @@ class HttpClient
                 errorCode: $info['http_code']
             );
         }
-
-        // Extract body without headers
-        $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-        $body = substr($response, $headerSize);
-
-        // Validate response body
-        if (empty($body)) {
-            $errorMsg = "Empty response received";
-            Log::channel("phpunit")->error($errorMsg);
-            curl_close($ch);
-            return new HttpResponse(
-                body: null,
-                statusCode: $info['http_code'],
-                headers: $info,
-                error: $errorMsg,
-                errorCode: -1
-            );
-        }
-
-        if (!is_dir($downloadPath)) {
-            mkdir($downloadPath, 0755, true);
-        }
-
-        // Write to file
-        if (file_put_contents($downloadPath.DIRECTORY_SEPARATOR.$destinationPath, $body) === false) {
-            $errorMsg = "Failed to write to storage/downloads/{$destinationPath}";
-            Log::channel("phpunit")->error($errorMsg);
-            curl_close($ch);
-            return new HttpResponse(
-                body: null,
-                statusCode: $info['http_code'],
-                headers: $info,
-                error: $errorMsg,
-                errorCode: -1
-            );
-        }
-
-        curl_close($ch);
 
         return new HttpResponse(
             body: $destinationPath,
@@ -215,7 +242,9 @@ class HttpClient
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
             CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
-            CURLOPT_CUSTOMREQUEST => $method
+            CURLOPT_CUSTOMREQUEST => $method,
+            CURLOPT_FOLLOWLOCATION => true
+
         ];
 
         // Handle headers
