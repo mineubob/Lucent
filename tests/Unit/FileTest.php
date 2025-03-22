@@ -5,7 +5,7 @@ namespace Unit;
 use Lucent\Facades\File;
 use PHPUnit\Framework\TestCase;
 
-class FileTests extends TestCase
+class FileTest extends TestCase
 {
 
     public function test_get_files() :void
