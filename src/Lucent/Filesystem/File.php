@@ -176,4 +176,14 @@ class File
 
         return $result;
     }
+
+    /**
+     * Get the file name without the path
+     *
+     * @return string The file name
+     */
+    public function getName(): string
+    {
+        return basename($this->path);
+    }
 }
