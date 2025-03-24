@@ -5,7 +5,6 @@ namespace Lucent\StaticAnalysis;
 use Exception;
 use Lucent\Filesystem\File;
 use ReflectionClass;
-use function PHPUnit\Framework\throwException;
 
 /**
  * Class DependencyAnalyser
