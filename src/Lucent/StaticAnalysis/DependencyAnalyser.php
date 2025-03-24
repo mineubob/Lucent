@@ -281,7 +281,7 @@ class DependencyAnalyser
 
                         // Add any method-specific issues
                         if($methodDetails["issues"] != []){
-                            $issues[] = $methodDetails["issues"];
+                            $issues = array_merge($issues, $methodDetails["issues"]);
                         }
 
                         // Record the method call
@@ -334,6 +334,18 @@ class DependencyAnalyser
                 $reflection = new ReflectionClass($className);
                 $this->reflectionClasses[$className] = $reflection;
                 $class = $reflection;
+
+                if(str_contains($reflection->getDocComment(),"@deprecated")){
+                    return [
+                        "scope" => "class",
+                        "status" => "warning",
+                        "severity" => "low",
+                        "message" => $this->extractDocTagMessage($reflection->getDocComment(),"deprecated"),
+                        "similar_classes" => [
+                            // TODO add in similar class recommendations.
+                        ]
+                    ];
+                }
             } catch (Exception $e){
                 // Class not found, handled below
             }
@@ -419,7 +431,7 @@ class DependencyAnalyser
 
                 // Check for deprecated methods
                 if($attribute->getName() === "Deprecated"){
-                    $issues = [
+                    $issues[] = [
                         "scope" => "method",
                         "status" => "warning",
                         "severity" => "low",
@@ -427,6 +439,27 @@ class DependencyAnalyser
                         "similar_methods" => []
                     ];
                 }
+            }
+
+            if(str_contains($method->getDocComment(), "@deprecated")){
+                $issues[] = [
+                    "scope" => "method",
+                    "status" => "warning",
+                    "severity" => "low",
+                    "message" => $this->extractDocTagMessage($method->getDocComment(),"deprecated"),
+                    "similar_methods" => []
+                ];
+            }
+
+            //Inject class warning too
+            if(str_contains($reflection->getDocComment(), "@deprecated")){
+                $issues[] = [
+                    "scope" => "class",
+                    "status" => "warning",
+                    "severity" => "low",
+                    "message" => $this->extractDocTagMessage($reflection->getDocComment(),"deprecated"),
+                    "similar_classes" => []
+                ];
             }
 
             // Extract parameter information
@@ -476,5 +509,25 @@ class DependencyAnalyser
                 ]
             ];
         }
+    }
+
+    /**
+     * Extracts a specified tag's message from a PHPDoc block.
+     *
+     * @param string $docBlock The PHPDoc block as a string
+     * @param string $tagName The PHPDoc tag to extract (without the @ symbol)
+     * @return string|null The extracted message or null if not found
+     */
+    function extractDocTagMessage(string $docBlock, string $tagName): ?string
+    {
+        // Use regex to find the specified tag and capture the message
+        $pattern = '/@' . preg_quote($tagName, '/') . '\s+(.*?)(\n\s*\*|\n\s*\/|\s*$)/s';
+
+        if (preg_match($pattern, $docBlock, $matches)) {
+            // Clean up the message by removing extra whitespace
+            return trim($matches[1]);
+        }
+
+        return null;
     }
 }
