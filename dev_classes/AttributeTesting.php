@@ -20,7 +20,7 @@ class AttributeTesting
         message: 'Allows for 0/0 error, please use Maths->divide() instead.',
         since: 'v0.1',
     )]
-    public function divide(int $a, int $b) : int
+    public function divide(int $a, int $b = 1) : int
     {
         return $a/$b;
     }
