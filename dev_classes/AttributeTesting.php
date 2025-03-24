@@ -37,4 +37,14 @@ class AttributeTesting
 
     }
 
+    public function chain(string $value): self
+    {
+        return $this;
+    }
+
+    public function returnType() : string|int|null
+    {
+        return null;
+    }
+
 }
