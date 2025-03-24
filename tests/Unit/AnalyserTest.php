@@ -3,67 +3,58 @@
 namespace Unit;
 
 use Lucent\Facades\File;
-use PHPUnit\Framework\TestCase;
 use Lucent\StaticAnalysis\Analyser;
+use PHPUnit\Framework\TestCase;
 
 class AnalyserTest extends TestCase
 {
 
-    public function test_non_existent_classes_and_methods(){
-
+    public function test_on_token_type() : void
+    {
         $file = $this->generateTestController();
+        $analyser = new Analyser();
+        $detections = [];
 
-        $this->assertNotNull($file);
+        $analyser->onToken([T_NAME_QUALIFIED,T_NAME_FULLY_QUALIFIED], function ($i,$token, $tokens) use (&$detections) {
 
-        $tokenizer = new Analyser();
-        $tokenizer->parseFile($file);
-
-        $dependencies = $tokenizer->dependencies;
-
-        $this->assertCount(4,$dependencies["StaticAnalysisController.php"]["Lucent\\Filesystem\\File"]);
-        $this->assertCount(10,$dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
-
-        foreach ($dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"] as $use){
-            if($use["method"]["name"] !== "getAsCSV"){
-                $this->assertEmpty($use["issues"]);
-            }else{
-                $this->assertEquals("method",$use["issues"][0]["scope"]);
-                $this->assertEquals("error",$use["issues"][0]["status"]);
-                $this->assertEquals("critical",$use["issues"][0]["severity"]);
+            if($tokens[$i-2][1] !== "namespace") {
+                $detections[] = $token;
             }
-        }
 
-        //$this->streamPrintJsonWithHighlighting($dependencies);
+        });
+
+        $analyser->run($file->getContents());
+
+        $this->assertCount(5,$detections);
     }
 
-    public function test_depreciated_methods(){
-        $file = $this->generateTestController2();
+    public function test_on_token_exact(){
+        $file = $this->generateTestController();
+        $analyser = new Analyser();
+        $detections = [];
 
-        $this->assertNotNull($file);
+        $analyser->onToken("=",function ($i,$token,$tokens) use (&$detections) {
+            $detections[] = $token;
+        },Analyser::MATCH_EXACT);
 
-        $tokenizer = new Analyser();
-        $tokenizer->parseFile($file);
+        $analyser->run($file->getContents());
 
-        $dependencies = $tokenizer->dependencies;
-
-        $this->assertCount(3,$dependencies["StaticAnalysisController2.php"]["Lucent\\AttributeTesting"]);
-
-        foreach ($dependencies["StaticAnalysisController2.php"]["Lucent\\AttributeTesting"] as $use){
-
-
-            if($use["type"] === "function_call"){
-                $this->assertCount(1,$use["issues"]);
-                $this->assertEquals("method",$use["issues"][0]["scope"]);
-            }
-
-            if($use["type"] === "instantiation"){
-                $this->assertCount(0,$use["issues"]);
-            }
-        }
-
-        //$this->streamPrintJsonWithHighlighting($dependencies);
+        $this->assertCount(6,$detections);
     }
 
+    public function test_on_token_id_equals_value(){
+        $file = $this->generateTestController();
+        $analyser = new Analyser();
+        $detections = [];
+
+        $analyser->onToken('"$response"',function ($i,$token,$tokens) use (&$detections) {
+            $detections[] = $token;
+        },Analyser::MATCH_VALUE);
+
+        $analyser->run($file->getContents());
+
+        $this->assertCount(10,$detections);
+    }
 
     public function generateTestController(): \Lucent\Filesystem\File
     {
@@ -126,7 +117,8 @@ class AnalyserTest extends TestCase
         <?php
         namespace App\Controllers;
         
-        use Lucent\AttributeTesting;use Lucent\Http\JsonResponse;
+        use Lucent\AttributeTesting;
+        use Lucent\Http\JsonResponse;
 
         class StaticAnalysisController2
         {
