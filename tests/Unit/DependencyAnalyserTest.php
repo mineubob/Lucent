@@ -505,9 +505,9 @@ class DependencyAnalyserTest extends TestCase
                             $since = "";
 
                             // Extract version info if available in the message
-                            if (preg_match('/since\s+version\s+([0-9\.]+)/i', $message, $matches)) {
+                            if (preg_match('/since\s+version\s+([0-9.]+)/i', $message, $matches)) {
                                 $since = " (since v" . $matches[1] . ")";
-                            } else if (preg_match('/since\s+v([0-9\.]+)/i', $message, $matches)) {
+                            } else if (preg_match('/since\s+v([0-9.]+)/i', $message, $matches)) {
                                 $since = " (since v" . $matches[1] . ")";
                             }
 
