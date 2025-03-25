@@ -114,29 +114,15 @@ class HttpClient
             mkdir($downloadPath, 0755, true);
         }
 
+        $filePath = $downloadPath . DIRECTORY_SEPARATOR . $destinationPath;
+
         // Ensure we have a callback function (use empty function if none provided)
         $progressCallback = $progressCallback ?? function($downloaded, $total) {};
 
-        // First, determine the file size using a HEAD request that follows redirects
-        $headResponse = $this->head($fullUrl);
-        if(!$headResponse->successful()){
-            Log::channel("phpunit")->error("Failed to download {$fullUrl}");
-            return new HttpResponse(
-                body: null,
-                statusCode: $headResponse->status(),
-                headers: $headResponse->headers(),
-                error: $headResponse->error(),
-                errorCode: $headResponse->errorCode(),
-            );
-        }
-        $contentLength = $headResponse->headers()["download_content_length"];
-
-        Log::channel("phpunit")->info("File size determined: {$contentLength} bytes");
-
         // Open file for writing
-        $fp = fopen($downloadPath . DIRECTORY_SEPARATOR . $destinationPath, 'w+');
+        $fp = @fopen($filePath, 'w+');
         if (!$fp) {
-            $errorMsg = "Failed to open file for writing: {$destinationPath}";
+            $errorMsg = "Failed to open file for writing: {$filePath}";
             Log::channel("phpunit")->error($errorMsg);
             return new HttpResponse(
                 body: null,
@@ -147,22 +133,42 @@ class HttpClient
             );
         }
 
-        // Set up cURL for the actual download
+        // Determine file size first
+        $headCh = curl_init($fullUrl);
+        curl_setopt_array($headCh, [
+            CURLOPT_NOBODY => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_USERAGENT => $this->userAgent,
+            CURLOPT_TIMEOUT => 30
+        ]);
+
+        curl_exec($headCh);
+        $contentLength = curl_getinfo($headCh, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
+        curl_close($headCh);
+
+        // Set up improved cURL options for actual download
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $fullUrl,
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HEADER => false,
             CURLOPT_FILE => $fp,
-            CURLOPT_TIMEOUT => $this->timeout,
+            CURLOPT_TIMEOUT => max(120, $this->timeout), // Ensure adequate timeout
+            CURLOPT_CONNECTTIMEOUT => 60,
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
             CURLOPT_SSL_VERIFYHOST => $this->verifySSL ? 2 : 0,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 5,
+            CURLOPT_MAXREDIRS => 10,
             CURLOPT_NOPROGRESS => false,
+            CURLOPT_BUFFERSIZE => 256 * 1024, // Larger buffer (256KB)
+            CURLOPT_TCP_KEEPALIVE => 1,
+            CURLOPT_LOW_SPEED_LIMIT => 1024, // 1KB/sec minimum transfer speed
+            CURLOPT_LOW_SPEED_TIME => 30,    // 30 seconds below minimum is a timeout
             CURLOPT_PROGRESSFUNCTION => function($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($progressCallback, $contentLength) {
-                // Use the best available size information
+                // Use either the reported size or the one from HEAD request
                 $total = ($downloadSize > 0) ? $downloadSize : $contentLength;
                 call_user_func($progressCallback, $downloaded, $total);
             }
@@ -197,7 +203,7 @@ class HttpClient
             Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
             curl_close($ch);
             // Try to remove the incomplete file
-            @unlink($downloadPath . DIRECTORY_SEPARATOR . $destinationPath);
+            @unlink($filePath);
             return new HttpResponse(
                 body: null,
                 statusCode: $info['http_code'],
@@ -209,12 +215,29 @@ class HttpClient
 
         curl_close($ch);
 
+        // Verify downloaded file is complete by checking size
+        if (file_exists($filePath)) {
+            $downloadedSize = filesize($filePath);
+            if ($contentLength > 0 && $downloadedSize < $contentLength) {
+                $errorMsg = "Incomplete download: Expected {$contentLength} bytes but got {$downloadedSize} bytes";
+                Log::channel("phpunit")->error($errorMsg);
+                @unlink($filePath);
+                return new HttpResponse(
+                    body: null,
+                    statusCode: $info['http_code'],
+                    headers: $info,
+                    error: $errorMsg,
+                    errorCode: -1
+                );
+            }
+        }
+
         // Ensure we got a successful HTTP status code
         if ($info['http_code'] !== 200) {
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
             Log::channel("phpunit")->error($errorMsg);
             // Try to remove the incomplete file
-            @unlink($downloadPath . DIRECTORY_SEPARATOR . $destinationPath);
+            @unlink($filePath);
             return new HttpResponse(
                 body: null,
                 statusCode: $info['http_code'],
@@ -232,7 +255,6 @@ class HttpClient
             errorCode: 0
         );
     }
-
 
     private function request(string $method, string $url, array|string|null $data = null): HttpResponse
     {

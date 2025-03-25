@@ -99,6 +99,13 @@ Phar::mapPhar();
 // Load the framework's autoloader and program
 require 'phar://' . __FILE__ . '/boostrap.php';
 
+if (PHP_SAPI === 'cli') {
+
+    $_SERVER["REQUEST_METHOD"] = "CLI";
+    $app = \Lucent\Application::getInstance();
+    echo $app->executeConsoleCommand();
+}
+
 __HALT_COMPILER();
 EOF;
 

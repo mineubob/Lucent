@@ -438,6 +438,8 @@ class DependencyAnalyser
             $analyser->run($file->getContents());
         }
 
+        $this->dependencies = $dependencies;
+
         return $dependencies;
     }
 
@@ -702,5 +704,127 @@ class DependencyAnalyser
         }
 
         return $output;
+    }
+
+    public function printCompatibilityCheck(): void
+    {
+        // ANSI color codes as variables, not constants
+        $COLOR_RED = "\033[31m";
+        $COLOR_YELLOW = "\033[33m";
+        $COLOR_BLUE = "\033[36m";
+        $COLOR_BOLD = "\033[1m";
+        $COLOR_RESET = "\033[0m";
+
+        // Count the issues by file
+        $fileIssues = [];
+        $totalDeprecated = 0;
+        $totalRemoved = 0;
+
+        $dependencies = $this->dependencies;
+
+        // Show header
+        echo $COLOR_BOLD . "UPDATE COMPATIBILITY" . $COLOR_RESET . PHP_EOL;
+        echo "============================" . PHP_EOL;
+
+        foreach ($dependencies as $fileName => $file) {
+            $fileHasIssues = false;
+            $fileDeprecations = 0;
+            $fileRemovals = 0;
+
+            foreach ($file as $dependencyName => $dependency) {
+                foreach ($dependency as $use) {
+                    if (!empty($use["issues"])) {
+                        // Count issues by type
+                        foreach ($use["issues"] as $issue) {
+                            if (isset($issue["status"])) {
+                                if ($issue["status"] === "error") {
+                                    $fileRemovals++;
+                                    $totalRemoved++;
+                                } elseif ($issue["status"] === "warning") {
+                                    $fileDeprecations++;
+                                    $totalDeprecated++;
+                                }
+                            }
+                        }
+
+                        $fileHasIssues = true;
+
+                        // Show file name if this is the first issue in the file
+                        if (!isset($fileIssues[$fileName])) {
+                            echo $COLOR_BOLD . $fileName . $COLOR_RESET . PHP_EOL;
+                            $fileIssues[$fileName] = true;
+                        }
+
+                        // Show the dependency usage
+                        $lineInfo = "  Line " . str_pad($use["line"], 4, ' ', STR_PAD_LEFT) . ": ";
+                        echo $lineInfo . $COLOR_BLUE . $dependencyName . $COLOR_RESET;
+
+                        // Show method if applicable
+                        if (isset($use["method"]) && isset($use["method"]["name"])) {
+                            echo "->" . $use["method"]["name"] . "()";
+                        }
+
+                        echo PHP_EOL;
+
+                        // Show each issue with appropriate color and clear labeling
+                        foreach ($use["issues"] as $issue) {
+                            $color = $COLOR_YELLOW; // Default for warnings
+                            $issueType = "DEPRECATED";
+
+                            if (isset($issue["status"]) && $issue["status"] === "error") {
+                                $color = $COLOR_RED;
+                                $issueType = "REMOVED";
+                            }
+
+                            // Format message
+                            $message = $issue["message"] ?? "Unknown issue";
+                            $since = "";
+
+                            // Extract version info if available in the message
+                            if (preg_match('/since\s+version\s+([0-9.]+)/i', $message, $matches)) {
+                                $since = " (since v" . $matches[1] . ")";
+                            } else if (preg_match('/since\s+v([0-9.]+)/i', $message, $matches)) {
+                                $since = " (since v" . $matches[1] . ")";
+                            }
+
+                            // Show scope if provided
+                            $scopeText = "";
+                            if (isset($issue["scope"])) {
+                                $scopeText = " " . $issue["scope"];
+                            }
+
+                            echo "    " . $color . "⚠ " . $issueType . $scopeText . $since . ": " . $COLOR_RESET . $message . PHP_EOL;
+                        }
+                    }
+                }
+            }
+
+            // Show file summary if issues were found
+            if ($fileHasIssues) {
+                echo PHP_EOL;
+            }
+        }
+
+        // Show grand total
+        if ($totalDeprecated > 0 || $totalRemoved > 0) {
+            echo "============================" . PHP_EOL;
+            echo $COLOR_BOLD . "SUMMARY: " . $COLOR_RESET;
+
+            if ($totalRemoved > 0) {
+                echo $COLOR_RED . $totalRemoved . " removed" . $COLOR_RESET;
+                if ($totalDeprecated > 0) {
+                    echo ", ";
+                }
+            }
+
+            if ($totalDeprecated > 0) {
+                echo $COLOR_YELLOW . $totalDeprecated . " deprecated" . $COLOR_RESET;
+            }
+
+            echo " components found in " . count($fileIssues) . " files" . PHP_EOL;
+            echo "Update your code to ensure compatibility with the latest Lucent version" . PHP_EOL;
+        } else {
+            echo $COLOR_BOLD . "No compatibility issues found! Your code is up to date." . $COLOR_RESET . PHP_EOL;
+        }
     }
 }
