@@ -2,6 +2,7 @@
 
 namespace Lucent\Facades;
 
+use Exception;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -42,12 +43,15 @@ class File
     }
 
     /**
-     * Get all files in a directory recursively
+     * Get all files in a directory recursively with optional extension filtering
      *
      * @param string|null $directory The directory to scan (relative to root path), or null for root path
-     * @return array Array of File objects representing all files in the directory
+     * @param string|array|null $extensions Optional extensions to filter by (e.g., 'php' or ['php', 'js'])
+     * @param bool $recursive Whether to search recursively in subdirectories
+     * @return array Array of File objects representing files in the directory
+     * @throws Exception
      */
-    public static function getFiles(?string $directory = null) : array
+    public static function getFiles(?string $directory = null, string|array|null $extensions = null, bool $recursive = true) : array
     {
         if($directory == null) {
             $directory = self::rootPath();
@@ -55,15 +59,34 @@ class File
             $directory = self::$root_path.$directory;
         }
 
+        // Normalize extensions to array and lowercase if provided
+        if ($extensions !== null) {
+            $extensions = is_array($extensions) ? $extensions : [$extensions];
+            $extensions = array_map('strtolower', $extensions);
+        }
+
         $items = [];
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST
-        );
+
+        // Set up the appropriate iterator based on a recursive flag
+        if ($recursive) {
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+        } else {
+            $iterator = new \DirectoryIterator($directory);
+        }
 
         foreach ($iterator as $fileInfo) {
-
             if($fileInfo->isFile()) {
+                // If extension filter is provided, check if file matches
+                if ($extensions !== null) {
+                    $extension = strtolower(pathinfo($fileInfo->getFilename(), PATHINFO_EXTENSION));
+                    if (!in_array($extension, $extensions)) {
+                        continue; // Skip files that don't match the extensions
+                    }
+                }
+
                 $items[] = new \Lucent\Filesystem\File($fileInfo->getRealPath());
             }
         }
