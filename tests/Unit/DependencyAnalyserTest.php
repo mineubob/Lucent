@@ -20,9 +20,6 @@ class DependencyAnalyserTest extends TestCase
 
         $dependencies = $tokenizer->run();
 
-        $this->streamPrintJsonWithHighlighting($dependencies);
-
-
         foreach ($dependencies["DependencyAnalysisController.php"]["Lucent\\Http\\JsonResponse"] as $use){
             if($use["method"]["name"] !== "getAsCSV"){
                 $this->assertEmpty($use["issues"]);
@@ -34,8 +31,11 @@ class DependencyAnalyserTest extends TestCase
         }
 
 
-        $this->assertCount(5,$dependencies["DependencyAnalysisController.php"]["Lucent\\Filesystem\\File"]);
-        $this->assertCount(10,$dependencies["DependencyAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
+        $this->assertCount(5,$dependencies["StaticAnalysisController.php"]["Lucent\\Filesystem\\File"]);
+        $this->assertCount(10,$dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
+        $this->print($dependencies);
+
+        //$this->streamPrintJsonWithHighlighting($dependencies);
 
     }
 
@@ -64,7 +64,8 @@ class DependencyAnalyserTest extends TestCase
 
         }
 
-        $this->streamPrintJsonWithHighlighting($dependencies);
+        $this->print($dependencies);
+
     }
 
     public function test_chaining_methods(){
@@ -79,8 +80,8 @@ class DependencyAnalyserTest extends TestCase
 
         $this->assertCount(4,$dependencies["StaticAnalysisController4.php"]["Lucent\\ModelCollection"]);
         $this->assertCount(1,$dependencies["StaticAnalysisController4.php"]["Lucent\\Model"]);
+        $this->print($dependencies);
 
-        $this->streamPrintJsonWithHighlighting($dependencies);
     }
 
     public function test_variable_output_types() : void
@@ -90,7 +91,8 @@ class DependencyAnalyserTest extends TestCase
         $tokenizer = new DependencyAnalyser();
         $tokenizer->parseFiles($file);
         $dependencies = $tokenizer->run();
-        $this->streamPrintJsonWithHighlighting($dependencies);
+        $this->print($dependencies);
+
     }
 
     public function test_multiple_files(): void
@@ -99,9 +101,23 @@ class DependencyAnalyserTest extends TestCase
         $tokenizer = new DependencyAnalyser();
         $tokenizer->parseFiles($files);
         $dependencies = $tokenizer->run();
-        $this->streamPrintJsonWithHighlighting($dependencies);
 
         $this->assertTrue((count($dependencies) >0));
+
+        $this->print($dependencies);
+    }
+
+    function test_no_issues() : void
+    {
+        $file = $this->generateTestController6();
+
+        $this->assertNotNull($file);
+
+        $tokenizer = new DependencyAnalyser();
+        $tokenizer->parseFiles($file);
+        $dependencies = $tokenizer->run();
+
+        $this->print($dependencies);
     }
 
     public function generateTestController(): \Lucent\Filesystem\File
@@ -157,7 +173,7 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/DependencyAnalysisController.php",$controllerContent);
+        return File::create("App/Controllers/StaticAnalysisController.php",$controllerContent);
     }
 
     public function generateTestController2(): \Lucent\Filesystem\File
@@ -336,6 +352,39 @@ class DependencyAnalyserTest extends TestCase
         return File::create("App/Controllers/StaticAnalysisController5.php",$controllerContent);
     }
 
+    public function generateTestController6(): \Lucent\Filesystem\File
+    {
+        $controllerContent = <<<'PHP'
+        <?php
+        namespace App\Controllers;
+        
+        use Lucent\AttributeTesting;
+        use Lucent\Http\JsonResponse;use Lucent\Model;
+
+        class StaticAnalysisController6
+        {
+           
+            public function index() : JsonResponse
+            {
+                
+                $user = Model::where("user_id",123)->where("activated",true)->first();
+                
+                if($user === null){
+                    echo "User not found";
+                }else{
+                   echo var_dump($user);
+                }
+                
+            }
+             
+
+        }
+        PHP;
+
+        return File::create("App/Controllers/StaticAnalysisController6.php",$controllerContent);
+    }
+
+
 
     function streamPrintJsonWithHighlighting($data) : void
     {
@@ -374,6 +423,132 @@ class DependencyAnalyserTest extends TestCase
             $line = preg_replace('/: (true|false|null)(,?)(\s+)/', ": {$colors['boolean']}$1{$colors['reset']}$2$3", $line);
 
             echo $line . PHP_EOL;
+        }
+    }
+
+    /**
+     * Display Lucent dependency issues with a focus on deprecation and removal warnings
+     *
+     * @param array $dependencies The dependency array from the analyzer
+     * @return void
+     */
+    function print(array $dependencies): void
+    {
+        // ANSI color codes as variables, not constants
+        $COLOR_RED = "\033[31m";
+        $COLOR_YELLOW = "\033[33m";
+        $COLOR_BLUE = "\033[36m";
+        $COLOR_BOLD = "\033[1m";
+        $COLOR_RESET = "\033[0m";
+
+        // Count the issues by file
+        $fileIssues = [];
+        $totalDeprecated = 0;
+        $totalRemoved = 0;
+
+        // Show header
+        echo $COLOR_BOLD . "UPDATE COMPATIBILITY" . $COLOR_RESET . PHP_EOL;
+        echo "============================" . PHP_EOL;
+
+        foreach ($dependencies as $fileName => $file) {
+            $fileHasIssues = false;
+            $fileDeprecations = 0;
+            $fileRemovals = 0;
+
+            foreach ($file as $dependencyName => $dependency) {
+                foreach ($dependency as $use) {
+                    if (!empty($use["issues"])) {
+                        // Count issues by type
+                        foreach ($use["issues"] as $issue) {
+                            if (isset($issue["status"])) {
+                                if ($issue["status"] === "error") {
+                                    $fileRemovals++;
+                                    $totalRemoved++;
+                                } elseif ($issue["status"] === "warning") {
+                                    $fileDeprecations++;
+                                    $totalDeprecated++;
+                                }
+                            }
+                        }
+
+                        $fileHasIssues = true;
+
+                        // Show file name if this is the first issue in the file
+                        if (!isset($fileIssues[$fileName])) {
+                            echo $COLOR_BOLD . $fileName . $COLOR_RESET . PHP_EOL;
+                            $fileIssues[$fileName] = true;
+                        }
+
+                        // Show the dependency usage
+                        $lineInfo = "  Line " . str_pad($use["line"], 4, ' ', STR_PAD_LEFT) . ": ";
+                        echo $lineInfo . $COLOR_BLUE . $dependencyName . $COLOR_RESET;
+
+                        // Show method if applicable
+                        if (isset($use["method"]) && isset($use["method"]["name"])) {
+                            echo "->" . $use["method"]["name"] . "()";
+                        }
+
+                        echo PHP_EOL;
+
+                        // Show each issue with appropriate color and clear labeling
+                        foreach ($use["issues"] as $issue) {
+                            $color = $COLOR_YELLOW; // Default for warnings
+                            $issueType = "DEPRECATED";
+
+                            if (isset($issue["status"]) && $issue["status"] === "error") {
+                                $color = $COLOR_RED;
+                                $issueType = "REMOVED";
+                            }
+
+                            // Format message
+                            $message = $issue["message"] ?? "Unknown issue";
+                            $since = "";
+
+                            // Extract version info if available in the message
+                            if (preg_match('/since\s+version\s+([0-9\.]+)/i', $message, $matches)) {
+                                $since = " (since v" . $matches[1] . ")";
+                            } else if (preg_match('/since\s+v([0-9\.]+)/i', $message, $matches)) {
+                                $since = " (since v" . $matches[1] . ")";
+                            }
+
+                            // Show scope if provided
+                            $scopeText = "";
+                            if (isset($issue["scope"])) {
+                                $scopeText = " " . $issue["scope"];
+                            }
+
+                            echo "    " . $color . "⚠ " . $issueType . $scopeText . $since . ": " . $COLOR_RESET . $message . PHP_EOL;
+                        }
+                    }
+                }
+            }
+
+            // Show file summary if issues were found
+            if ($fileHasIssues) {
+                echo PHP_EOL;
+            }
+        }
+
+        // Show grand total
+        if ($totalDeprecated > 0 || $totalRemoved > 0) {
+            echo "============================" . PHP_EOL;
+            echo $COLOR_BOLD . "SUMMARY: " . $COLOR_RESET;
+
+            if ($totalRemoved > 0) {
+                echo $COLOR_RED . $totalRemoved . " removed" . $COLOR_RESET;
+                if ($totalDeprecated > 0) {
+                    echo ", ";
+                }
+            }
+
+            if ($totalDeprecated > 0) {
+                echo $COLOR_YELLOW . $totalDeprecated . " deprecated" . $COLOR_RESET;
+            }
+
+            echo " components found in " . count($fileIssues) . " files" . PHP_EOL;
+            echo "Update your code to ensure compatibility with the latest Lucent version" . PHP_EOL;
+        } else {
+            echo $COLOR_BOLD . "No compatibility issues found! Your code is up to date." . $COLOR_RESET . PHP_EOL;
         }
     }
 
