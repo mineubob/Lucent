@@ -23,7 +23,7 @@ class DependencyAnalyserTest extends TestCase
         $this->streamPrintJsonWithHighlighting($dependencies);
 
 
-        foreach ($dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"] as $use){
+        foreach ($dependencies["DependencyAnalysisController.php"]["Lucent\\Http\\JsonResponse"] as $use){
             if($use["method"]["name"] !== "getAsCSV"){
                 $this->assertEmpty($use["issues"]);
             }else{
@@ -34,8 +34,8 @@ class DependencyAnalyserTest extends TestCase
         }
 
 
-        $this->assertCount(5,$dependencies["StaticAnalysisController.php"]["Lucent\\Filesystem\\File"]);
-        $this->assertCount(10,$dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
+        $this->assertCount(5,$dependencies["DependencyAnalysisController.php"]["Lucent\\Filesystem\\File"]);
+        $this->assertCount(10,$dependencies["DependencyAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
 
     }
 
@@ -93,6 +93,17 @@ class DependencyAnalyserTest extends TestCase
         $this->streamPrintJsonWithHighlighting($dependencies);
     }
 
+    public function test_multiple_files(): void
+    {
+        $files = File::getFiles();
+        $tokenizer = new DependencyAnalyser();
+        $tokenizer->parseFiles($files);
+        $dependencies = $tokenizer->run();
+        $this->streamPrintJsonWithHighlighting($dependencies);
+
+        $this->assertTrue((count($dependencies) >0));
+    }
+
     public function generateTestController(): \Lucent\Filesystem\File
     {
         $controllerContent = <<<'PHP'
@@ -146,7 +157,7 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController.php",$controllerContent);
+        return File::create("App/Controllers/DependencyAnalysisController.php",$controllerContent);
     }
 
     public function generateTestController2(): \Lucent\Filesystem\File
