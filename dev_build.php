@@ -1,7 +1,6 @@
 <?php
 // local-build.php
 use Lucent\Application;
-use Lucent\Database;
 use Lucent\Logging\Channel;
 
 cleanupDirectory(__DIR__ . '/temp_install');
@@ -16,6 +15,9 @@ if (!is_dir($buildDir)) {
 $version = 'v0.' . date('ymd')  . '.local';
 
 const TEMP_ROOT = __DIR__ . DIRECTORY_SEPARATOR."temp_install".DIRECTORY_SEPARATOR;
+
+$files = copyDevClasses();
+
 
 // Define the original pharFile path and our new path
 $originalPharFile = 'lucent.phar';
@@ -46,12 +48,20 @@ if (file_exists($originalPharFile)) {
 
     $app->addLoggingChannel("phpunit",$log);
 
+    createFiles();
+
+    foreach ($files as $path) {
+        unlink($path);
+    }
+
 }else {
 
+    foreach ($files as $path) {
+        unlink($path);
+    }
     log_error("Fatal error, failed to build phar.\n");
     die;
 }
-
 
 function cleanupDirectory(string $dir): void
 {
@@ -67,7 +77,8 @@ function cleanupDirectory(string $dir): void
     rmdir($dir);
 }
 
-function checkAndLoadEnviromentTestingVariables(string $filePath) {
+function checkAndLoadEnviromentTestingVariables(string $filePath): bool
+{
     if (!file_exists($filePath)) {
         return false;
     }
@@ -95,5 +106,44 @@ function checkAndLoadEnviromentTestingVariables(string $filePath) {
     }
 
     return true;
+}
+
+function copyDevClasses() : array
+{
+
+    $dev_folder = __DIR__.DIRECTORY_SEPARATOR."dev_classes".DIRECTORY_SEPARATOR;
+    $files = array_diff(scandir($dev_folder), array('.', '..'));
+    $paths = [];
+
+    foreach ($files as $file) {
+        $path =  __DIR__.DIRECTORY_SEPARATOR."src".DIRECTORY_SEPARATOR."Lucent".DIRECTORY_SEPARATOR.$file;
+        $paths[] = $path;
+        file_put_contents($path, file_get_contents($dev_folder.$file));
+    }
+
+    return $paths;
+}
+
+function createFiles(): void
+{
+    $cli = <<<'PHP'
+#!/usr/bin/env php
+<?php
+use Lucent\Application;
+use Lucent\Facades\CommandLine;
+
+$_SERVER["REQUEST_METHOD"] = "CLI";
+
+require_once 'packages/lucent.phar';
+
+$app = Application::getInstance();
+
+// EXAMPLE
+//CommandLine::register("test run", "run", TestCommand::class);
+
+echo $app->executeConsoleCommand();
+PHP;
+
+    file_put_contents(TEMP_ROOT."cli", $cli);
 }
 
