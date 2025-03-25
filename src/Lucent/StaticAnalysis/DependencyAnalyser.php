@@ -10,7 +10,7 @@ use ReflectionClass;
  * Class DependencyAnalyser
  *
  * Analyzes PHP files to identify dependencies, instantiations, and method calls
- * within a specified namespace. Uses static analysis to build a dependency graph.
+ * within a specified namespace. Use's static analysis to build a dependency graph.
  *
  * The analyzer works in two passes:
  * 1. First pass: Collects all dependencies (imports/use statements)
@@ -30,21 +30,21 @@ class DependencyAnalyser
     /**
      * Collection of detected dependencies indexed by file and class name
      *
-     * @var array<string, array>
+     * @var array
      */
     public private(set) array $dependencies;
 
     /**
      * Cache of reflection classes to avoid repeated instantiation
      *
-     * @var array<string, ReflectionClass>
+     * @var array
      */
     private array $reflectionClasses = [];
 
     /**
      * Collection of files to analyze
      *
-     * @var array<int, File>
+     * @var array
      */
     private array $files;
 
@@ -63,7 +63,7 @@ class DependencyAnalyser
     /**
      * Add files to be parsed during analysis
      *
-     * @param File|array<File> $file Single file or array of files to analyze
+     * @param File|array $file Single file or array of files to analyze
      * @return void
      */
     public function parseFiles(File|array $file): void
@@ -91,12 +91,14 @@ class DependencyAnalyser
     public function run(): array
     {
         $analyser = new Analyser();
-        $knownInstantiations = [];  // Tracks variables that hold instances of classes
         $dependencies = [];         // Stores the complete dependency graph
-        $as = [];                  // Maps aliases to fully qualified class names
 
         // Process each file independently
         foreach ($this->files as $file) {
+
+            $knownInstantiations = [];  // Tracks variables that hold instances of classes
+            $as = [];                  // Maps aliases to fully qualified class names
+
             // ==========================================
             // FIRST PASS: Detect class imports and dependencies
             // ==========================================
@@ -109,8 +111,10 @@ class DependencyAnalyser
                     }
 
                     // Track class aliases (e.g., "use Namespace\Class as Alias;")
-                    if ($tokens[$i+2][1] === "as") {
-                        $as[$tokens[$i+4][1]] = $token[1];
+                    if(is_array($tokens[$i+2])) {
+                        if ($tokens[$i + 2][1] === "as") {
+                            $as[$tokens[$i + 4][1]] = $token[1];
+                        }
                     }
 
                     // Register the dependency for this file
@@ -162,7 +166,9 @@ class DependencyAnalyser
                     }
 
                     // Check if this is a method call on the object (e.g., "$variable->method()")
-                    if ($tokens[$i+1][1] === "->") {
+
+                    if((is_array($tokens[$i+1]) && $tokens[$i+1][1] === "->") || $tokens[$i+1] === "->") {
+
                         $type = "function_call";
 
                         // Extract method arguments
@@ -361,6 +367,12 @@ class DependencyAnalyser
 
             // 3. Detect class instantiations with "new" keyword
             $analyser->onToken(T_NEW, function ($i, $token, $tokens) use (&$as, &$dependencies, &$knownInstantiations, &$file) {
+
+
+                if(!is_array($token)){
+                    return;
+                }
+
                 $issues = [];
                 $name = $tokens[$i+2][1];
 
@@ -387,7 +399,8 @@ class DependencyAnalyser
 
                         // Check if this instantiation was already recorded
                         foreach ($value as $index => $priorSave) {
-                            if ($priorSave['line'] === $token[2] && $priorSave['token'] === $token[0]) {
+
+                            if ($priorSave['line'] === $token[2] && $priorSave['token_id'] === $token[0]) {
                                 $dependencies[$file->getName()][$className][] = [
                                     "type" => "instantiation",
                                     "line" => $tokens[$i+2][2],
@@ -619,17 +632,25 @@ class DependencyAnalyser
         $uses = [];
 
         while($running){
-            if($tokens[$i][1] === "->"){
-                $method = $this->getMethodDetails($className, $tokens[$i+1][1]);
+            if ((is_array($tokens[$i]) && $tokens[$i][1] === "->") ||
+                ($tokens[$i] === "->")) {
 
-                $uses[] = [
-                    "type" => "function_call",
-                    "line" => $tokens[$i+1][2],
-                    "name" => $variableName,
-                    "method" => $method,
-                    "token_id" => $i,
-                    "issues" => []
-                ];
+                // Make sure $tokens[$i+1] is an array before accessing its elements
+                if (is_array($tokens[$i+1])) {
+                    $methodName = $tokens[$i+1][1];
+                    $lineNumber = $tokens[$i+1][2];
+
+                    $method = $this->getMethodDetails($className, $methodName);
+
+                    $uses[] = [
+                        "type" => "function_call",
+                        "line" => $lineNumber,
+                        "name" => $variableName,
+                        "method" => $method,
+                        "token_id" => $i,
+                        "issues" => []
+                    ];
+                }
             }
 
             if($tokens[$i] === ";"){
@@ -657,17 +678,26 @@ class DependencyAnalyser
         $output = null;
 
         while (true) {
+            if ($i <= 0) {
+                // Safety check to prevent going before the start of the array
+                break;
+            }
+
+            // Check if we've reached an opening parenthesis
             if ($tokens[$i] === '(') {
-                if(in_array($tokens[$i-1][1], Analyser::$OUTPUT_TYPES)){
+                // Check if the previous token is an output function, and it's an array token
+                if ($i > 0 && is_array($tokens[$i-1]) && in_array($tokens[$i-1][1], Analyser::$OUTPUT_TYPES)) {
                     $output = $tokens[$i-1][1];
                 }
                 break;
             }
 
-            if(in_array($tokens[$i-1][1], Analyser::$OUTPUT_TYPES)){
+            // Check if the previous token is an output function, and it's an array token
+            if ($i > 0 && is_array($tokens[$i-1]) && in_array($tokens[$i-1][1], Analyser::$OUTPUT_TYPES)) {
                 $output = $tokens[$i-1][1];
                 break;
             }
+
             $i--;
         }
 
