@@ -52,6 +52,34 @@ class Analyser
         'true',
     ];
 
+    public static array $OUTPUT_TYPES = [
+        'var_dump',    // Debug output with type information
+        'echo',        // Language construct for output
+        'print',       // Language construct for output that returns 1
+        'print_r',     // Human-readable information about a variable
+        'var_export',  // Outputs valid PHP code
+        'printf',      // Formatted output
+        'sprintf',     // Returns formatted string
+        'fprintf',     // Formatted output to a file
+        'vprintf',     // Formatted output with variable arguments
+        'vsprintf',    // Returns formatted string with variable arguments
+        'error_log',   // Logs to error log file or sends email
+        'fwrite',      // Binary-safe file write
+        'fputs',       // Alias of fwrite
+        'file_put_contents', // Write string to file
+        'fputcsv',     // Format line as CSV and write to file
+        'debug_zval_dump', // Dumps a string representation with reference counts
+        'trigger_error', // Generates a user-level error message
+        'user_error',  // Alias of trigger_error
+        'syslog',      // Generate system log message
+        'ob_flush',    // Flush the output buffer and send it to browser
+        'flush',       // Flush system write buffers
+        'readfile',    // Outputs file contents
+        'passthru',    // Execute an external program and display raw output
+        'highlight_string' // Syntax highlighting of a string
+    ];
+
+
     /**
      * Array of registered token callbacks
      *
