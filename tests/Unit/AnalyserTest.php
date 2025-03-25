@@ -108,7 +108,7 @@ class AnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController.php",$controllerContent);
+        return File::create("App/Controllers/DependencyAnalysisController.php",$controllerContent);
     }
 
     public function generateTestController2(): \Lucent\Filesystem\File
