@@ -471,7 +471,7 @@ class DependencyAnalyser
                         "scope" => "class",
                         "status" => "warning",
                         "severity" => "low",
-                        "message" => ReflectionHelpers::extractDocTagMessage($reflection->getDocComment(), "deprecated"),
+                        "message" => "Deprecated ".ReflectionHelpers::extractDocTagMessage($reflection->getDocComment(), "deprecated"),
                         "similar_classes" => [
                             // TODO add in similar class recommendations.
                         ]
@@ -532,7 +532,7 @@ class DependencyAnalyser
                         "scope" => "method",
                         "status" => "warning",
                         "severity" => "low",
-                        "message" => $attribute->getArguments()["message"],
+                        "message" => "Deprecated ".$attribute->getArguments()["message"],
                         "similar_methods" => []
                     ];
                 }
@@ -544,7 +544,7 @@ class DependencyAnalyser
                     "scope" => "method",
                     "status" => "warning",
                     "severity" => "low",
-                    "message" => ReflectionHelpers::extractDocTagMessage($method->getDocComment(), "deprecated"),
+                    "message" => "Deprecated ".ReflectionHelpers::extractDocTagMessage($method->getDocComment(), "deprecated"),
                     "similar_methods" => []
                 ];
             }
@@ -603,13 +603,13 @@ class DependencyAnalyser
                 "attributes" => [],
                 "docComment" => null,
                 "depreciated" => false, // Note: "deprecated" is misspelled in the original
-                "issues" => [
+                "issues" => [[
                     "scope" => "method",
                     "status" => "error",
                     "severity" => "critical",
                     "message" => "Method {$methodName} could not be found in class {$className}, it may have been removed in a new update",
                     "similar_methods" => []
-                ]
+                ]]
             ];
         }
     }
