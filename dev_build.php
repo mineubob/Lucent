@@ -48,6 +48,8 @@ if (file_exists($originalPharFile)) {
 
     $app->addLoggingChannel("phpunit",$log);
 
+    createFiles();
+
     foreach ($files as $path) {
         unlink($path);
     }
@@ -120,5 +122,28 @@ function copyDevClasses() : array
     }
 
     return $paths;
+}
+
+function createFiles(): void
+{
+    $cli = <<<'PHP'
+#!/usr/bin/env php
+<?php
+use Lucent\Application;
+use Lucent\Facades\CommandLine;
+
+$_SERVER["REQUEST_METHOD"] = "CLI";
+
+require_once 'packages/lucent.phar';
+
+$app = Application::getInstance();
+
+// EXAMPLE
+//CommandLine::register("test run", "run", TestCommand::class);
+
+echo $app->executeConsoleCommand();
+PHP;
+
+    file_put_contents(TEMP_ROOT."cli", $cli);
 }
 
