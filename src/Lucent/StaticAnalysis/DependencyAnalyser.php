@@ -267,14 +267,43 @@ class DependencyAnalyser
 
                             // Get the return type of the method being called
                             $returnType = $this->getMethodDetails($className, $tokens[$i+1][1])["returnType"];
+                            // Extract method arguments
+                            $arguments["provided"] = ReflectionHelpers::getArguments($tokens, $i+2);
 
+                            // Get method details via reflection
+                            $methodDetails = $this->getMethodDetails(
+                                $className,
+                                $tokens[$i+1][1]
+                            );
+
+                            // Match provided arguments with required parameters
+                            $arguments["required"] = $methodDetails["parameters"];
+
+                            foreach ($methodDetails["parameters"] as $parameter) {
+                                if (isset($arguments["provided"][$parameter["index"]])) {
+                                    $arguments["provided"][$parameter["index"]]["type"] = $parameter["type"];
+                                }
+                            }
+
+                            // Build method call information
+                            $method = [
+                                "name" => $methodDetails["name"],
+                                "arguments" => $arguments,
+                                "returnType" => $methodDetails["returnType"],
+                                "attributes" => $methodDetails["attributes"],
+                            ];
+
+                            // Add any method-specific issues
+                            if ($methodDetails["issues"] != []) {
+                                $issues = array_merge($issues, $methodDetails["issues"]);
+                            }
                             // Record the static method call
                             $dependencies[$file->getName()][$className][] = [
-                                "type" => "static_call",
+                                "type" => "static_function_call",
                                 "line" => $token[2],
                                 "token_id" => $i,
-                                "issues" => $issues,
-                                "returnType" => $returnType
+                                "method" => $method,
+                                "issues" => $issues
                             ];
 
                             // If the method returns an object, track this as a new instantiation
@@ -283,7 +312,7 @@ class DependencyAnalyser
                                     // Handle primitive return types
                                     // echo "\n $className->$variableName is function call!\n";
                                     $dependencies[$file->getName()][$className][] = [
-                                        "type" => "static_call",
+                                        "type" => "static_function_call",
                                         "line" => $token[2],
                                         "name" => $variableName,
                                         "token_id" => $i,
@@ -306,12 +335,19 @@ class DependencyAnalyser
                                         "line" => $tokens[2],
                                         "token" => $token[0]
                                     ];
+
+                                    //Check if this is a chain
+                                    $chain = $this->processChain($returnType, $variableName, $i, $tokens);
+                                    foreach ($chain as $call) {
+                                        $call["issues"] = array_merge($call["issues"], $issues);
+                                        $dependencies[$file->getName()][$returnType][] = $call;
+                                    }
                                 }
                             }
                         } else {
                             // Record the static method call without assignment
                             $dependencies[$file->getName()][$className][] = [
-                                "type" => "static_call",
+                                "type" => "static_function_call",
                                 "line" => $token[2],
                                 "token_id" => $i,
                                 "issues" => $issues,
