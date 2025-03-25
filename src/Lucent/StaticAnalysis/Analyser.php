@@ -186,9 +186,15 @@ class Analyser
 
                     // Match by token value (the string content)
                     case self::MATCH_VALUE:
-                        if($token[1] == $callback["id"]){
+
+                        if(is_array($token)){
+                            if($token[1] == $callback["id"]){
+                                call_user_func($callback["function"], $i, $token, $tokens);
+                            }
+                        }else if($token == $callback["id"]){
                             call_user_func($callback["function"], $i, $token, $tokens);
                         }
+
                         break;
 
                     // Handle an unrecognized match type
