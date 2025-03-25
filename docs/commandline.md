@@ -163,7 +163,7 @@ Lucent provides several useful components to enhance your command-line applicati
 
 | Component | Description | Documentation |
 |-----------|-------------|---------------|
-| ProgressBar | Displays real-time progress updates in the terminal for long-running tasks. Supports customizable formats, appearance, and update frequency. | [ProgressBar Documentation](progress-bar.md) |
+| ProgressBar | Displays real-time progress updates in the terminal for long-running tasks. Supports customizable formats, appearance, and update frequency. | [ProgressBar Documentation](./commandline/progress-bar.md) |
 | ConsoleColors | Utility for adding colored output to your command-line applications. | *Coming soon* |
 
 These components can be used individually or combined to create rich, interactive command-line experiences for your users.
