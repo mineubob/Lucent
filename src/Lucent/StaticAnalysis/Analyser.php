@@ -31,6 +31,27 @@ class Analyser
      */
     const int MATCH_EXACT = 2;
 
+    public static array $PRIMITIVE_TYPES = [
+        'int',
+        'integer',
+        'float',
+        'double',
+        'bool',
+        'boolean',
+        'string',
+        'array',
+        'object',
+        'callable',
+        'iterable',
+        'resource',
+        'null',
+        'mixed',
+        'void',
+        'never',
+        'false',
+        'true',
+    ];
+
     /**
      * Array of registered token callbacks
      *
