@@ -29,7 +29,6 @@ PHP,
 <?php
 use Lucent\Application;
 use Lucent\Facades\CommandLine;
-use App\Commands\TestCommand;
 
 $_SERVER["REQUEST_METHOD"] = "CLI";
 
