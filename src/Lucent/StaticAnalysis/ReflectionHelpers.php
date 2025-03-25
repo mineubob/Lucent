@@ -64,8 +64,16 @@ class ReflectionHelpers
         $pattern = '/@' . preg_quote($tagName, '/') . '\s+(.*?)(\n\s*\*|\n\s*\/|\s*$)/s';
 
         if (preg_match($pattern, $docBlock, $matches)) {
-            // Clean up the message by removing extra whitespace
-            return trim($matches[1]);
+            // Clean up the message - remove leading/trailing whitespace and asterisks
+            $message = $matches[1];
+
+            // Remove any line breaks and following asterisks/spaces
+            $message = preg_replace('/\n\s*\*\s*/', ' ', $message);
+
+            // Remove any remaining whitespace and normalize spaces
+            $message = preg_replace('/\s+/', ' ', $message);
+
+            return trim($message);
         }
 
         return null;
