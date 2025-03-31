@@ -96,7 +96,7 @@ class Channel {
 
         if ($this->driver === 'local_file') {
             // Create logs directory if it doesn't exist
-            $logDir = FileSystem::rootPath() . "logs";
+            $logDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR ."logs";
             if (!is_dir($logDir)) {
                 mkdir($logDir, 0755, true);
             }
