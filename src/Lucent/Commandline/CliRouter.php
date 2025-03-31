@@ -2,7 +2,7 @@
 
 namespace Lucent\Commandline;
 
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Router;
 
 class CliRouter extends Router
@@ -24,6 +24,6 @@ class CliRouter extends Router
      */
     public function loadRoutes(string $file, ?string $prefix = null): void
     {
-        require_once File::rootPath().$file;
+        require_once FileSystem::rootPath().$file;
     }
 }
