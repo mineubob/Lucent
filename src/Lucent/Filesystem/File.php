@@ -2,61 +2,64 @@
 
 namespace Lucent\Filesystem;
 
-use Exception;
-use function PHPUnit\Framework\throwException;
+use Lucent\Facades\FileSystem;
 
 /**
- * File class for working with individual files
+ * File class for handling file operations
  *
- * This class provides methods to manipulate and retrieve information about files
- * in the filesystem including reading, writing, copying, moving and deletion.
+ * Represents a file in the filesystem and provides methods for common file operations
+ * such as creating, reading, writing, copying, and deleting files.
  */
-class File
+class File extends FileSystemObject
 {
     /**
-     * The file path
+     * Creates a new File instance
      *
-     * @var string
+     * @param string $path The path to the file (relative or absolute)
+     * @param mixed $content Optional content to write to the file
+     * @param bool $absolute Whether the provided path is absolute (true) or relative to root (false)
      */
-    public protected(set) string $path;
-
-    /**
-     * Create a new File instance
-     *
-     * @param string $path The path to the file
-     * @throws Exception If the file does not exist
-     */
-    public function __construct(string $path)
+    public function __construct(string $path, mixed $content = "", bool $absolute = false)
     {
+        if(!$absolute) {
+            $path = FileSystem::rootPath() . $path;
+        }
+
         $this->path = $path;
 
-        if(!file_exists($this->path)) {
-            throwException(new Exception("File {$this->path} does not exist"));
+        if($content !== ""){
+            $this->create($content);
         }
     }
 
     /**
-     * Get the file size in bytes
+     * Creates the file with the given content
      *
-     * @return int The file size in bytes, or 0 if the file doesn't exist
+     * Creates parent directories if they don't exist
+     *
+     * @param mixed $params Content to write to the file
+     * @return bool True if successful, false otherwise
      */
-    public function getSize(): int
+    public function create(mixed $params) : bool
     {
-        return file_exists($this->path) ? filesize($this->path) : 0;
+        if(!file_exists($this->path)) {
+            $directory = dirname($this->path);
+
+            // Create directory if it doesn't exist
+            if (!is_dir($directory)) {
+                mkdir($directory, 0755, true);
+            }
+
+            $outcome = $this->write($params);
+        }else{
+            $outcome = true;
+        }
+
+        return $outcome;
     }
 
     /**
-     * Get the contents of the file
-     *
-     * @return string The file contents, or an empty string if the file doesn't exist
-     */
-    public function getContents(): string
-    {
-        return file_exists($this->path) ? file_get_contents($this->path) : '';
-    }
-
-    /**
-     * Check if the file exists
+     * Checks if the file exists
      *
      * @return bool True if the file exists, false otherwise
      */
@@ -66,124 +69,53 @@ class File
     }
 
     /**
-     * Delete the file
+     * Deletes the file
      *
-     * @return bool True if the file was successfully deleted, false otherwise
+     * @return bool True if successfully deleted, false otherwise
      */
     public function delete(): bool
     {
-        return file_exists($this->path) && unlink($this->path);
+        return unlink($this->path);
     }
 
     /**
-     * Append content to the file
+     * Copies the file to a new location
      *
-     * @param string $content The content to append
-     * @return bool True if the content was successfully appended, false otherwise
+     * @param string $name The name for the copied file
+     * @param Folder $folder The destination folder
+     * @param bool $absolute Whether the path is absolute
+     * @return FileSystemObject|null The new file object if successful, null otherwise
      */
-    public function append(string $content): bool
+    public function copy(string $name, Folder $folder, bool $absolute = false): ?FileSystemObject
     {
-        return file_put_contents($this->path, $content, FILE_APPEND) !== false;
+        $copy = new File($folder->path.DIRECTORY_SEPARATOR.$name, absolute: true);
+
+        // Copy the file
+        if(copy($this->path, $copy->path) && $copy->exists()) {
+            return $copy;
+        }
+
+        return null;
     }
 
     /**
-     * Write content to the file
+     * Writes content to the file
      *
-     * @param string $content The content to write
-     * @param bool $append Whether to append the content (true) or overwrite (false)
-     * @return bool True if the content was successfully written, false otherwise
+     * @param mixed $content Content to write to the file
+     * @return bool True if successful, false otherwise
      */
-    public function write(string $content, bool $append = false): bool
+    public function write(mixed $content): bool
     {
-        $flags = $append ? FILE_APPEND : 0;
-        return file_put_contents($this->path, $content, $flags) !== false;
+        return file_put_contents($this->path, $content);
     }
 
     /**
-     * Rename the file to a new path
+     * Gets the contents of the file
      *
-     * @param string $newPath The new path for the file
-     * @param bool $absolute Whether the new path is absolute (true) or relative to root path (false)
-     * @return bool True if the file was successfully renamed, false otherwise
+     * @return string The file contents
      */
-    public function rename(string $newPath, bool $absolute = false): bool
+    public function getContents(): string
     {
-        if(!$absolute){
-            $newPath = \Lucent\Facades\File::rootPath().$newPath;
-        }
-
-        if (!file_exists($this->path)) {
-            return false;
-        }
-
-        if (rename($this->path, $newPath)) {
-            $this->path = $newPath;
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Copy the file to a new location
-     *
-     * @param string $destination The destination path for the copied file
-     * @param bool $absolute Whether the destination path is absolute (true) or relative to root path (false)
-     * @return bool True if the file was successfully copied, false otherwise
-     */
-    public function copy(string $destination, bool $absolute = false): bool
-    {
-        if(!$absolute){
-            $destination = \Lucent\Facades\File::rootPath().$destination;
-        }
-
-        return file_exists($this->path) && copy($this->path, $destination);
-    }
-
-    /**
-     * Move a file from its current location to another
-     *
-     * This method will create the destination directory if it doesn't exist.
-     * If successful, the file's path property will be updated to the new location.
-     *
-     * @param string $destination Path to the destination file
-     * @param bool $absolute Whether the destination path is absolute (true) or relative to root path (false)
-     * @return bool True on success, false on failure
-     */
-    public function move(string $destination, bool $absolute = false): bool
-    {
-        // Check if the source file exists
-        if (!file_exists($this->path)) {
-            return false;
-        }
-
-        if(!$absolute){
-            $destination = \Lucent\Facades\File::rootPath().$destination;
-        }
-
-        // Create destination directory if it doesn't exist
-        $destDir = dirname($destination);
-        if (!is_dir($destDir)) {
-            mkdir($destDir, 0755, true);
-        }
-
-        // Move the file
-        $result = rename($this->path, $destination);
-
-        if ($result) {
-            $this->path = $destination;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get the file name without the path
-     *
-     * @return string The file name
-     */
-    public function getName(): string
-    {
-        return basename($this->path);
+        return file_get_contents($this->path);
     }
 }
