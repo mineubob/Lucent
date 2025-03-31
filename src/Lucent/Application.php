@@ -477,19 +477,34 @@ class Application
         $reflect = new ReflectionClass($response["controller"]);
         $method = $reflect->getMethod($response["method"]);
 
-        $argCount = count($method->getParameters());
         $varCount = count($response["variables"]);
 
-        // Replace the strict equality check with a check that ensures at least the required parameters are provided
         if($varCount < $method->getNumberOfRequiredParameters()){
             return "Ops! ".$response["controller"]."@".$method->getName()." requires at least ".$method->getNumberOfRequiredParameters()." parameters and ".$varCount." were provided.";
         }
-        //Check our var count matches our parameter count, if not return a error.
-        //if($argCount !== $varCount){
-        //    return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$varCount." parameters and ".$argCount." were provided.";
-        //}
 
-        return $method->invokeArgs($controller,$response["variables"]);
+        // With this code that checks for exact parameter count match:
+        $methodParamCount = count($method->getParameters());
+        if($methodParamCount !== $varCount){
+            return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$methodParamCount." parameters and ".$varCount." were provided.";
+        }
+
+        // With this improved code:
+        $methodParams = $method->getParameters();
+        $filteredVariables = [];
+
+        // Only pass variables that match parameter names
+        foreach ($methodParams as $param) {
+            $paramName = $param->getName();
+            if (array_key_exists($paramName, $response["variables"])) {
+                $filteredVariables[$paramName] = $response["variables"][$paramName];
+            } else if (!$param->isOptional()) {
+                return "Ops! ".$response["controller"]."@".$method->getName()." requires parameter '$paramName' which was not provided.";
+            }
+        }
+
+        // Use the filtered variables instead of all variables
+        return $method->invokeArgs($controller, $filteredVariables);
     }
 
     /**
