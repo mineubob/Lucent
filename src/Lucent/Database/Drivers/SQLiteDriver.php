@@ -4,6 +4,7 @@ namespace Lucent\Database\Drivers;
 
 use Lucent\Database\DatabaseInterface;
 use Lucent\Facades\App;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use PDO;
 
@@ -70,7 +71,7 @@ class SQLiteDriver extends DatabaseInterface
     private function createConnection(): PDO
     {
         $database = App::env("DB_DATABASE");
-        $fullPath = TEMP_ROOT . "storage" . DIRECTORY_SEPARATOR . $database;
+        $fullPath = FileSystem::rootPath().DIRECTORY_SEPARATOR . "storage" . DIRECTORY_SEPARATOR . $database;
         $this->ensureSQLiteFileExists($fullPath);
         return new PDO("sqlite:" . $fullPath);
     }
@@ -78,7 +79,7 @@ class SQLiteDriver extends DatabaseInterface
     private function ensureSQLiteFileExists(string $path): void
     {
 
-        if (!is_dir(TEMP_ROOT . "storage")) {
+        if (!is_dir(FileSystem::rootPath().DIRECTORY_SEPARATOR . "storage")) {
             var_dump("STORAGE NOT CREATED");
         }
 
