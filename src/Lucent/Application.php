@@ -268,7 +268,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Invalid API route.");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         // Verify controller exists before trying to instantiate it
@@ -280,7 +280,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Controller class '" . $response["controller"] . "' not found");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         $controller = new $response["controller"]();
@@ -294,7 +294,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Method '" . $response["method"] . "' not found in controller '" . $response["controller"] . "'");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         //Next we check if we have any variables to pass, if not we run the method.
@@ -353,7 +353,7 @@ class Application
                         ->setOutcome(false)
                         ->setMessage("The requested resource '" . $parameter->getName() . "' doesnt exist.");
 
-                    return json_encode($response->getArray());
+                    return $response->render();
                 }
             }
         }
@@ -361,7 +361,7 @@ class Application
         $result = $method->invokeArgs($controller, $response["variables"]);
 
         $result->set_response_header();
-        return $result->execute();
+        return $result->render();
     }
 
     /**
@@ -446,7 +446,7 @@ class Application
 
         CommandLine::register("Migration make {class}","make", MigrationController::class);
 
-        CommandLine::register("update check {file}", "check", UpdateController::class);
+        CommandLine::register("update check", "check", UpdateController::class);
         CommandLine::register("update install","install", UpdateController::class);
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
@@ -457,7 +457,12 @@ class Application
             $args = str_replace("\n", "", $args);
         }
 
-        $response = $this->consoleRouter->AnalyseRouteAndLookup($args);
+        $processedArgs = $this->processArguments($args);
+
+        $commandArgs = $processedArgs['args'];
+        $options = $processedArgs['options'];
+
+        $response = $this->consoleRouter->AnalyseRouteAndLookup($commandArgs);
 
         if(!$response["outcome"]){
             return "Invalid command, please try again!";
@@ -498,7 +503,9 @@ class Application
             $paramName = $param->getName();
             if (array_key_exists($paramName, $response["variables"])) {
                 $filteredVariables[$paramName] = $response["variables"][$paramName];
-            } else if (!$param->isOptional()) {
+            } else if($paramName === "options"){
+                $filteredVariables[$paramName] = $options;
+            }else if (!$param->isOptional()) {
                 return "Ops! ".$response["controller"]."@".$method->getName()." requires parameter '$paramName' which was not provided.";
             }
         }
@@ -545,6 +552,53 @@ class Application
     public function getValidationMessages(): array
     {
         return $this->ruleMessages;
+    }
+
+    /**
+     * Processes command line arguments, separating regular arguments from options
+     * Options are arguments that start with '--'
+     * Options can also have values like --file=/test.php
+     *
+     * @param array $argv Command line arguments array
+     * @return array Associative array with 'args' and 'options' keys
+     */
+    function processArguments(array $argv): array
+    {
+        $args = [];
+        $options = [];
+
+        // Skip the script name (first argument)
+        for ($i = 0; $i < count($argv); $i++) {
+            $arg = $argv[$i];
+
+            // Check if it's an option (starts with --)
+            if (str_starts_with($arg, '--')) {
+                $option = substr($arg, 2); // Remove the '--'
+
+                // Check if it has a value with '='
+                if (str_contains($option, '=')) {
+                    list($key, $value) = explode('=', $option, 2);
+                    $options[$key] = $value;
+                } else {
+                    // Option without value
+                    $options[$option] = true;
+                }
+            } else {
+                // Regular argument
+                $args[] = $arg;
+            }
+        }
+
+        return [
+            'args' => $args,
+            'options' => $options
+        ];
+    }
+
+    private function requiresOptions(ReflectionMethod $method): bool
+    {
+        return array_any($method->getParameters(), fn($parameter) => $parameter->getName() === "options");
+
     }
 
 

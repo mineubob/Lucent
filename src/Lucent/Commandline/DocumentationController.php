@@ -262,7 +262,7 @@ class DocumentationController
 
             foreach ($endpoint['examples'] as $status => $response) {
                 $responseType = $this->getResponseType($status);
-                $responseData = $response->getArray();
+                $responseData = json_decode($response->render(),true);
 
                 // Format the response data
                 $formattedResponse = $this->formatResponseData($responseData);

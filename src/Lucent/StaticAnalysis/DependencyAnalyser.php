@@ -166,9 +166,9 @@ class DependencyAnalyser
                     }
 
                     // Check if this is a method call on the object (e.g., "$variable->method()")
+                    $isMethodCall = (is_array($tokens[$i+1]) && $tokens[$i+1][1] === "->") || $tokens[$i+1] === "->";
 
-                    if((is_array($tokens[$i+1]) && $tokens[$i+1][1] === "->") || $tokens[$i+1] === "->") {
-
+                    if ($isMethodCall) {
                         $type = "function_call";
 
                         // Extract method arguments
@@ -221,7 +221,7 @@ class DependencyAnalyser
                             }
                         }
 
-                        return;
+                        return; // Important: Return early, don't add a separate "use" entry
                     }
 
                     // Check for output operations (echo, print, etc.)
@@ -242,7 +242,7 @@ class DependencyAnalyser
                         return;
                     }
 
-                    // Record general variable usage
+                    // Only add a "use" entry if it's not part of a method call or return statement
                     $dependencies[$file->getName()][$knownInstantiations[$token[1]]["name"]][] = [
                         "type" => $type,
                         "line" => $token[2],
@@ -252,7 +252,6 @@ class DependencyAnalyser
                     ];
                 }
             });
-
             // 2. Detect static method calls with "::" operator
             $analyser->onToken("::", function ($i, $token, $tokens) use (&$file, &$dependencies, &$knownInstantiations) {
                 $issues = [];
@@ -438,6 +437,8 @@ class DependencyAnalyser
             $analyser->run($file->getContents());
         }
 
+        $dependencies = $this->processDependencies($dependencies);
+
         $this->dependencies = $dependencies;
 
         return $dependencies;
@@ -620,6 +621,7 @@ class DependencyAnalyser
      * Process method chaining patterns
      *
      * Extracts all method calls in a chain (e.g., $obj->method1()->method2()->method3())
+     * Modified to avoid double-counting method calls
      *
      * @param string $className The class name of the object being chained
      * @param string $variableName The variable name of the object
@@ -632,13 +634,15 @@ class DependencyAnalyser
         $running = true;
         $i = $start;
         $uses = [];
+        $processedTokenIndexes = []; // Track which method tokens we've already processed
 
         while($running){
             if ((is_array($tokens[$i]) && $tokens[$i][1] === "->") ||
                 ($tokens[$i] === "->")) {
 
                 // Make sure $tokens[$i+1] is an array before accessing its elements
-                if (is_array($tokens[$i+1])) {
+                // Skip if we've already processed this method token
+                if (is_array($tokens[$i+1]) && !in_array($i+1, $processedTokenIndexes)) {
                     $methodName = $tokens[$i+1][1];
                     $lineNumber = $tokens[$i+1][2];
 
@@ -649,9 +653,12 @@ class DependencyAnalyser
                         "line" => $lineNumber,
                         "name" => $variableName,
                         "method" => $method,
-                        "token_id" => $i,
+                        "token_id" => $i+1, // Important: Use the method name token ID, not the '->' token
                         "issues" => []
                     ];
+
+                    // Mark this method token as processed
+                    $processedTokenIndexes[] = $i+1;
                 }
             }
 
@@ -826,5 +833,45 @@ class DependencyAnalyser
         } else {
             echo $COLOR_BOLD . "No compatibility issues found! Your code is up to date." . $COLOR_RESET . PHP_EOL;
         }
+    }
+
+    /**
+     * Process the collected dependencies to remove duplicates
+     *
+     * This method will clean up the raw dependencies array to ensure each instance
+     * is counted only once in the final result.
+     *
+     * @param array $dependencies The raw dependencies array
+     * @return array The deduplicated dependencies array
+     */
+    private function processDependencies(array $dependencies): array
+    {
+        foreach ($dependencies as $fileName => &$fileContent) {
+            foreach ($fileContent as $className => &$usages) {
+                // Track unique method calls by line to avoid duplicates
+                $seenCalls = [];
+                $uniqueUsages = [];
+
+                foreach ($usages as $index => $usage) {
+                    $uniqueKey = $usage['line'] . '-' . $usage['name'];
+
+                    // For method calls, add the method name to the unique key
+                    if (isset($usage['method']) && isset($usage['method']['name'])) {
+                        $uniqueKey .= '-' . $usage['method']['name'];
+                    }
+
+                    // If we haven't seen this unique call before, add it
+                    if (!isset($seenCalls[$uniqueKey])) {
+                        $uniqueUsages[] = $usage;
+                        $seenCalls[$uniqueKey] = true;
+                    }
+                }
+
+                // Replace the usages with the deduplicated list
+                $usages = $uniqueUsages;
+            }
+        }
+
+        return $dependencies;
     }
 }
