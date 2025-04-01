@@ -3,21 +3,17 @@
 namespace Unit;
 
 use Lucent\Database;
+use Lucent\Facades\FileSystem;
+use Lucent\Filesystem\Folder;
 use PHPUnit\Framework\TestCase;
-use Lucent\Facades\File;
 use Lucent\Application;
 
 class DatabaseDriverSetup extends TestCase
 {
     protected static function setupDatabase(string $driver, array $config): void
     {
-        // Temporarily set EXTERNAL_ROOT to match TEMP_ROOT for testing
-        File::overrideRootPath(TEMP_ROOT.DIRECTORY_SEPARATOR);
-
-        // Create storage directory in our temp environment
-        if (!is_dir(File::rootPath() . 'storage')) {
-            mkdir(File::rootPath() . 'storage', 0755, true);
-        }
+        $storage = new Folder("/storage");
+        $storage->create(0755);
 
         $env = "DB_DRIVER={$driver}\n";
 
@@ -25,7 +21,7 @@ class DatabaseDriverSetup extends TestCase
             $env .= "{$key}={$value}\n";
         }
 
-        $path = File::rootPath(). '.env';
+        $path = FileSystem::rootPath().DIRECTORY_SEPARATOR. '.env';
         file_put_contents($path, $env);
 
         $app = Application::getInstance();
