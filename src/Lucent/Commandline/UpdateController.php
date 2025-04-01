@@ -20,9 +20,16 @@ class UpdateController
         $this->downloadPath = DIRECTORY_SEPARATOR."storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
     }
 
-    public function check($file = null): string
+    public function check(array $options): string
     {
-        if($file === null) {
+
+        $app = new Folder("/App");
+
+        if(!$app->exists()){
+            $app->create();
+        }
+
+        if(!isset($options["file"])) {
             // Directly get version from PHAR metadata
             $currentVersion = App::getLucentVersion();
 
@@ -58,17 +65,23 @@ class UpdateController
                 if(!$downloaded->delete()){
                     return "Failed to delete temp download.\n";
                 }
-                $output = "";
-                exec("cd ".FileSystem::rootPath()."/packages && php ".$downloaded->getName()." update check ".$downloaded->path,$output);
+                $output = [];
+                exec("cd ".FileSystem::rootPath()."/packages && php ".$downloaded->getName()." update check --file=".$downloaded->getName(),$output);
+                $lines = "";
+                foreach ($output as $line) {
+                    $lines .= $line.PHP_EOL;
+                }
 
-                return "Performing compatibility check...\n.$output";
+                $downloaded->delete();
+
+                return "Running update dependency check: \n".$lines."\n";
             } catch (Exception $e) {
                 return "Unable to check for updates: {$e->getMessage()}\n";
             }
         }
 
         $analyser = new DependencyAnalyser();
-        $app = new Folder("/App");
+
         $analyser->parseFiles($app->search()->onlyFiles()->extension("php")->recursive()->collect());
 
         $analyser->printCompatibilityCheck();
@@ -80,6 +93,12 @@ class UpdateController
     {
         $currentVersion = App::getLucentVersion();
         $currentPharPath = Phar::running(false);
+
+        $app = new Folder("/App");
+
+        if(!$app->exists()){
+            $app->create();
+        }
 
         if (!$currentVersion) {
             return "Unable to determine current version.";
@@ -114,7 +133,7 @@ class UpdateController
 
                     $downloaded = $this->downloadLatest();
 
-                    $copy = $downloaded->copy("lucent2.phar",$packagesFolder);
+                    $copy = $downloaded->copy($downloaded->getName(),$packagesFolder);
 
                     if(!$copy->exists()){
                         return "Failed to move download into packages folder...\n";
@@ -132,16 +151,21 @@ class UpdateController
                         return "Failed to delete temp download...\n";
                     }
 
+                    $output = [];
+                    exec("cd ".FileSystem::rootPath()."/packages && php lucent.phar update check --file=".$downloaded->path,$output);
+                    // Join the output array into a string with line breaks
+                    $outputString = implode(PHP_EOL, $output);
+
                     return sprintf(
                         "Successfully updated Lucent! 🎉".PHP_EOL .
                         "Old version: %s\n" .
                         "New version: %s\n\n" .
                         "Backup of old version saved at: %s\n\n" .
-                        "Release Notes:\n%s",
+                        "Compatibility Check:\n%s",
                         $currentVersion,
                         $latestVersion,
                         $backupPharPath,
-                        $latestRelease['body'] ?? 'No release notes available.'
+                        $outputString
                     );
                 } else {
                     return "You're running the latest version of Lucent ({$currentVersion}). 👍".PHP_EOL;
