@@ -70,7 +70,7 @@ abstract class Rule
         }
 
         if($patterns[$key]["message"] !== null){
-            $this->messages["regex"] = $patterns[$key]["message"];
+            $this->customMessages["regex"] = $patterns[$key]["message"];
         }
 
         return preg_match($patterns[$key]["pattern"], $value);
