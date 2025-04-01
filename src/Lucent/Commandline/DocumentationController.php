@@ -4,7 +4,7 @@ namespace Lucent\Commandline;
 
 use Lucent\Facades\App;
 use Lucent\Facades\Faker;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\Attributes\ApiResponse;
@@ -36,7 +36,7 @@ class DocumentationController
         );
 
         // Save to file
-        $outputPath = File::rootPath()."storage" .DIRECTORY_SEPARATOR. 'documentation' . DIRECTORY_SEPARATOR;
+        $outputPath = FileSystem::rootPath().DIRECTORY_SEPARATOR."storage" .DIRECTORY_SEPARATOR. 'documentation' . DIRECTORY_SEPARATOR;
         if (!file_exists($outputPath)) {
             mkdir($outputPath, 0755, true);
         }
