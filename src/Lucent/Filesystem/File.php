@@ -88,14 +88,49 @@ class File extends FileSystemObject
      */
     public function copy(string $name, Folder $folder, bool $absolute = false): ?FileSystemObject
     {
-        $copy = new File($folder->path.DIRECTORY_SEPARATOR.$name, absolute: true);
+        // Construct destination path
+        $destinationPath = $folder->path.DIRECTORY_SEPARATOR.$name;
 
-        // Copy the file
-        if(copy($this->path, $copy->path) && $copy->exists()) {
-            return $copy;
+        // Check source file
+        if (!file_exists($this->path)) {
+            error_log("COPY ERROR: Source file does not exist: {$this->path}");
+            return null;
         }
 
-        return null;
+        // Check destination folder
+        if (!is_dir($folder->path)) {
+            error_log("COPY ERROR: Destination folder does not exist: {$folder->path}");
+            return null;
+        }
+
+        // Check write permissions
+        if (!is_writable($folder->path)) {
+            error_log("COPY ERROR: Destination folder is not writable: {$folder->path}");
+            return null;
+        }
+
+        // Create the new file object
+        $copy = new File($destinationPath, "", true);
+
+        // Perform copy operation
+        $success = @copy($this->path, $copy->path);
+
+        // Check for PHP errors during copy
+        if (!$success) {
+            $error = error_get_last();
+            error_log("COPY ERROR: PHP error during copy: " . ($error ? $error['message'] : 'Unknown error'));
+            error_log("  From: {$this->path}");
+            error_log("  To: {$copy->path}");
+            return null;
+        }
+
+        // Double-check that file now exists
+        if (!$copy->exists()) {
+            error_log("COPY ERROR: File copied but doesn't exist at destination: {$copy->path}");
+            return null;
+        }
+
+        return $copy;
     }
 
     /**
