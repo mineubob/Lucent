@@ -4,7 +4,7 @@ namespace Unit;
 
 use Lucent\Application;
 use Lucent\Facades\App;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
 
@@ -426,7 +426,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = File::rootPath(). "App";
+        $appPath = FileSystem::rootPath(). "/App";
         $modelPath = $appPath . DIRECTORY_SEPARATOR . "Controllers";
 
         if (!is_dir($modelPath)) {
@@ -467,7 +467,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = File::rootPath(). "App";
+        $appPath = FileSystem::rootPath(). "/App";
         $middlewarePath = $appPath . DIRECTORY_SEPARATOR . "Middleware";
 
         if (!is_dir($middlewarePath)) {

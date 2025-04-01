@@ -9,7 +9,6 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
-use Lucent\Commandline\MigrationController;
 use Phar;
 
 class App

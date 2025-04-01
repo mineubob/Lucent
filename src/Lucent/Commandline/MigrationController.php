@@ -4,7 +4,7 @@ namespace Lucent\Commandline;
 
 
 use Lucent\Database\Migration;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 
 class MigrationController
 {
@@ -18,9 +18,9 @@ class MigrationController
     public function make(string $class): string
     {
 
-        if(!file_exists(File::rootPath().$class.".php")){
+        if(!file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR.$class.".php")){
 
-            return "Invalid model class name provided, ".File::rootPath().$class.".php"." was not found";
+            return "Invalid model class name provided, ".FileSystem::rootPath().DIRECTORY_SEPARATOR.$class.".php"." was not found";
         }
 
         $className = str_replace('/', '\\', $class); // Converts to "Models\User"

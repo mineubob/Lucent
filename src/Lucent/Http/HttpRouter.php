@@ -2,7 +2,7 @@
 
 namespace Lucent\Http;
 
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Router;
 
@@ -41,7 +41,7 @@ class HttpRouter extends Router
             $this->prefix = $prefix;
         }
 
-        require_once File::rootPath().$file;
+        require_once FileSystem::rootPath().DIRECTORY_SEPARATOR.$file;
 
         if ($prefix !== null) {
             Log::channel('phpunit')->info("Restoring previous prefix: " . ($previousPrefix ?? 'none'));

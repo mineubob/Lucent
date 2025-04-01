@@ -5,6 +5,7 @@ namespace Unit;
 use App\Commands\TestCommand;
 use Lucent\Application;
 use Lucent\Facades\CommandLine;
+use Lucent\Facades\FileSystem;
 use Lucent\Logging\Channel;
 use PHPUnit\Framework\TestCase;
 
@@ -82,7 +83,15 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test var ABC");
 
-        $this->assertEquals("Ops! App\Commands\TestCommand@var2 requires 1 parameters and 0 were provided.", $result);
+        $this->assertEquals("Ops! App\Commands\TestCommand@var2 requires 0 parameters and 1 were provided.", $result);
+    }
+
+    public function test_command_call_on_phar_directly() : void
+    {
+        $this->assertTrue(file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR."packages".DIRECTORY_SEPARATOR."lucent.phar"));
+        $output = exec("cd ".FileSystem::rootPath().DIRECTORY_SEPARATOR."packages"." && php lucent.phar update rollback");
+
+        $this->assertEquals("No backup versions found to roll back to.",$output);
     }
 
     public static function generateTestConsoleCommand() : void

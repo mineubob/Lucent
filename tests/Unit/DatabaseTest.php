@@ -11,14 +11,13 @@ $driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
 
 if (file_exists($driverSetupPath)) {
     require_once $driverSetupPath;
-} else {
-    // Fallback path if the normal path doesn't work
-    require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
+}else{
+    echo "Unable to locate $driverSetupPath\n";
+    die;
 }
 
 class DatabaseTest extends DatabaseDriverSetup
 {
-
 
     /**
      * @return array<string, array{0: string, 1: array<string, string>}>

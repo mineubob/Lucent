@@ -2,7 +2,7 @@
 
 namespace Lucent\Http;
 
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 
 class HttpClient
@@ -105,7 +105,7 @@ class HttpClient
     public function download(string $url, string $destinationPath, ?callable $progressCallback = null): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
-        $downloadPath = File::rootPath()."storage".DIRECTORY_SEPARATOR."downloads".DIRECTORY_SEPARATOR;
+        $downloadPath = FileSystem::rootPath().DIRECTORY_SEPARATOR."storage".DIRECTORY_SEPARATOR."downloads".DIRECTORY_SEPARATOR;
 
         Log::channel("phpunit")->info("Starting download from {$fullUrl}");
 

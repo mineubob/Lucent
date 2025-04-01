@@ -2,7 +2,8 @@
 
 namespace Unit;
 
-use Lucent\Facades\File;
+use Lucent\Filesystem\File;
+use Lucent\Filesystem\Folder;
 use Lucent\StaticAnalysis\DependencyAnalyser;
 use PHPUnit\Framework\TestCase;
 
@@ -30,12 +31,11 @@ class DependencyAnalyserTest extends TestCase
             }
         }
 
-
-        $this->assertCount(5,$dependencies["StaticAnalysisController.php"]["Lucent\\Filesystem\\File"]);
-        $this->assertCount(10,$dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
+        //$this->streamPrintJsonWithHighlighting($dependencies);
         $this->print($dependencies);
 
-        //$this->streamPrintJsonWithHighlighting($dependencies);
+        $this->assertCount(3,$dependencies["StaticAnalysisController.php"]["Lucent\\Filesystem\\File"]);
+        $this->assertCount(10,$dependencies["StaticAnalysisController.php"]["Lucent\\Http\\JsonResponse"]);
 
     }
 
@@ -97,14 +97,18 @@ class DependencyAnalyserTest extends TestCase
 
     public function test_multiple_files(): void
     {
-        $files = File::getFiles();
+        $root = new Folder("/App");
+
+        $files = $root->search()->extension("php")->recursive()->onlyFiles()->collect();
+
         $tokenizer = new DependencyAnalyser();
         $tokenizer->parseFiles($files);
         $dependencies = $tokenizer->run();
 
-        $this->assertTrue((count($dependencies) >0));
-
         $this->print($dependencies);
+        $this->streamPrintJsonWithHighlighting($dependencies);
+
+        $this->assertTrue((count($dependencies) >0));
     }
 
     function test_no_issues() : void
@@ -120,14 +124,15 @@ class DependencyAnalyserTest extends TestCase
         $this->print($dependencies);
     }
 
-    public function generateTestController(): \Lucent\Filesystem\File
+    public function generateTestController(): File
     {
         $controllerContent = <<<'PHP'
         <?php
         namespace App\Controllers;
         
         use Exception;
-        use Lucent\Facades\File;
+        use Lucent\Facades\FileSystem;
+        use Lucent\Filesystem\File;
         use Lucent\Filesystem\File as FileObject;
         use Lucent\Http\JsonResponse;
 
@@ -158,11 +163,11 @@ class DependencyAnalyserTest extends TestCase
                  
                  $response->setMessage("Hello from test 2");
                  
-                 $file = File::create("/storage/test.txt","a test file!");
+                 $file = new File("/storage/test.txt","a test file!");
                  $file->exists();
                  $file->getAsCSV(",");
                  
-                 $file = new \Lucent\Filesystem\File("/storage/test.txt");
+                 $file = new File("/storage/test.txt");
                  
                  $file2 = new FileObject("/storage/test.txt");
                  
@@ -173,10 +178,10 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController.php",$controllerContent);
     }
 
-    public function generateTestController2(): \Lucent\Filesystem\File
+    public function generateTestController2(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -204,10 +209,10 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController2.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController2.php",$controllerContent);
     }
 
-    public function generateTestController4(): \Lucent\Filesystem\File
+    public function generateTestController4(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -241,10 +246,10 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController4.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController4.php",$controllerContent);
     }
 
-    public function generateTestController5(): \Lucent\Filesystem\File
+    public function generateTestController5(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -349,10 +354,10 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController5.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController5.php",$controllerContent);
     }
 
-    public function generateTestController6(): \Lucent\Filesystem\File
+    public function generateTestController6(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -381,7 +386,7 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController6.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController6.php",$controllerContent);
     }
 
 
@@ -551,6 +556,8 @@ class DependencyAnalyserTest extends TestCase
             echo $COLOR_BOLD . "No compatibility issues found! Your code is up to date." . $COLOR_RESET . PHP_EOL;
         }
     }
+
+
 
 
 }

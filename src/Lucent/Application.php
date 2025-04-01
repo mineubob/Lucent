@@ -6,7 +6,7 @@ use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Http\HttpRouter;
@@ -14,6 +14,7 @@ use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
 use Lucent\Logging\NullChannel;
 use ReflectionClass;
+use ReflectionException;
 use ReflectionMethod;
 
 /**
@@ -145,8 +146,8 @@ class Application
 
         //Check if we have a .env file present, if not
         //then we create the file.
-        if(!file_exists(File::rootPath().".env")){
-            $file = fopen(File::rootPath().".env","w");
+        if(!file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env")){
+            $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env","w");
             fclose($file);
         }
 
@@ -198,7 +199,7 @@ class Application
         }
 
         foreach ($this->commands as $command){
-            require_once File::rootPath().$command;
+            require_once FileSystem::rootPath().DIRECTORY_SEPARATOR.$command;
         }
     }
 
@@ -249,6 +250,7 @@ class Application
      * 6. Executing the controller method
      *
      * @return string JSON response
+     * @throws ReflectionException
      */
     public function executeHttpRequest(): string
     {
@@ -395,7 +397,7 @@ class Application
     public function LoadEnv(): void
     {
 
-        $file = fopen(File::rootPath(). ".env", "r");
+        $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env", "r");
         $output = [];
 
         if($file) {
@@ -435,15 +437,16 @@ class Application
      *
      * @param array $args Command line arguments
      * @return string Command output
+     * @throws ReflectionException
      */
-    public function executeConsoleCommand($args = []): string
+    public function executeConsoleCommand(array $args = []): string
     {
 
         $this->boot();
 
         CommandLine::register("Migration make {class}","make", MigrationController::class);
 
-        CommandLine::register("update check", "check", UpdateController::class);
+        CommandLine::register("update check {file}", "check", UpdateController::class);
         CommandLine::register("update install","install", UpdateController::class);
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
@@ -474,15 +477,34 @@ class Application
         $reflect = new ReflectionClass($response["controller"]);
         $method = $reflect->getMethod($response["method"]);
 
-        $argCount = count($method->getParameters());
         $varCount = count($response["variables"]);
 
-        //Check our var count matches our parameter count, if not return a error.
-        if($argCount !== $varCount){
-            return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$varCount." parameters and ".$argCount." were provided.";
+        if($varCount < $method->getNumberOfRequiredParameters()){
+            return "Ops! ".$response["controller"]."@".$method->getName()." requires at least ".$method->getNumberOfRequiredParameters()." parameters and ".$varCount." were provided.";
         }
 
-        return $method->invokeArgs($controller,$response["variables"]);
+        // With this code that checks for exact parameter count match:
+        $methodParamCount = count($method->getParameters());
+        if($methodParamCount !== $varCount){
+            return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$methodParamCount." parameters and ".$varCount." were provided.";
+        }
+
+        // With this improved code:
+        $methodParams = $method->getParameters();
+        $filteredVariables = [];
+
+        // Only pass variables that match parameter names
+        foreach ($methodParams as $param) {
+            $paramName = $param->getName();
+            if (array_key_exists($paramName, $response["variables"])) {
+                $filteredVariables[$paramName] = $response["variables"][$paramName];
+            } else if (!$param->isOptional()) {
+                return "Ops! ".$response["controller"]."@".$method->getName()." requires parameter '$paramName' which was not provided.";
+            }
+        }
+
+        // Use the filtered variables instead of all variables
+        return $method->invokeArgs($controller, $filteredVariables);
     }
 
     /**
@@ -493,7 +515,7 @@ class Application
      */
     public function loadCommands(string $commandFile): void
     {
-        array_push($this->commands, $commandFile);
+        $this->commands[] = $commandFile;
     }
 
     /**

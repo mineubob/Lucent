@@ -4,16 +4,17 @@ namespace Lucent\Facades;
 
 use Exception;
 use FilesystemIterator;
+use Lucent\Filesystem\Folder;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-
+use Lucent\Filesystem\File;
 /**
- * File facade for file system operations
+ * FileSystem facade for file system operations
  *
  * This class provides static methods for common file operations including
  * file creation, retrieval, and directory listing.
  */
-class File
+class FileSystem
 {
     /**
      * The root path used for resolving relative paths
@@ -27,7 +28,7 @@ class File
      *
      * @return string The current root path
      */
-    public static function rootPath() : string{
+    public static function rootPath() : string {
         return self::$root_path;
     }
 
@@ -39,7 +40,7 @@ class File
      */
     public static function overrideRootPath(string $path) : void
     {
-        self::$root_path = $path;
+        self::$root_path = rtrim($path, '/\\');
     }
 
     /**
@@ -53,10 +54,12 @@ class File
      */
     public static function getFiles(?string $directory = null, string|array|null $extensions = null, bool $recursive = true) : array
     {
+        // Determine the directory path
         if($directory == null) {
-            $directory = self::rootPath();
-        }else{
-            $directory = self::$root_path.$directory;
+            $directoryPath = self::rootPath();
+        } else {
+            $cleanDir = ltrim($directory, '/\\');
+            $directoryPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanDir;
         }
 
         // Normalize extensions to array and lowercase if provided
@@ -70,11 +73,11 @@ class File
         // Set up the appropriate iterator based on a recursive flag
         if ($recursive) {
             $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
+                new RecursiveDirectoryIterator($directoryPath, FilesystemIterator::SKIP_DOTS),
                 RecursiveIteratorIterator::SELF_FIRST
             );
         } else {
-            $iterator = new \DirectoryIterator($directory);
+            $iterator = new \DirectoryIterator($directoryPath);
         }
 
         foreach ($iterator as $fileInfo) {
@@ -87,7 +90,8 @@ class File
                     }
                 }
 
-                $items[] = new \Lucent\Filesystem\File($fileInfo->getRealPath());
+                // Create a file object with absolute path (true)
+                $items[] = new File($fileInfo->getRealPath(), true);
             }
         }
 
@@ -98,12 +102,19 @@ class File
      * Get a file instance if it exists, or null if it doesn't
      *
      * @param string $path Path to the file (relative to root path)
-     * @return \Lucent\Filesystem\File|null File instance or null if file doesn't exist
+     * @return File|null File instance or null if file doesn't exist
      */
-    public static function get(string $path): ?\Lucent\Filesystem\File
+    public static function get(string $path): ?File
     {
-        $fullPath = self::$root_path.$path;
-        return file_exists($fullPath) ? new \Lucent\Filesystem\File($fullPath) : null;
+        try {
+            // Clean the path
+            $cleanPath = ltrim($path, '/\\');
+            $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
+
+            return new File($fullPath, true);
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -114,25 +125,33 @@ class File
      *
      * @param string $path Path to the file (relative to root path)
      * @param string $content Optional initial content for the file
-     * @return \Lucent\Filesystem\File The file instance
+     * @return File|null The file instance or null on failure
      */
-    public static function create(string $path, string $content = ''): \Lucent\Filesystem\File
+    public static function create(string $path, string $content = ''): ?File
     {
-        $fullPath = self::$root_path.$path;
-        $file = new \Lucent\Filesystem\File($fullPath);
+        // Clean the path
+        $cleanPath = ltrim($path, '/\\');
+        $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
 
         // Create directory if it doesn't exist
         $directory = dirname($fullPath);
         if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
+            if (!mkdir($directory, 0755, true)) {
+                return null;
+            }
         }
 
-        // Create the file with initial content if provided
-        if (!empty($content)) {
-            $file->write($content);
+        // Create the file with initial content
+        if (file_put_contents($fullPath, $content) === false) {
+            return null;
         }
 
-        return $file;
+        try {
+            // Return a new File instance with absolute path
+            return new File($fullPath, true);
+        } catch (Exception $e) {
+            return null;
+        }
     }
 
     /**
@@ -152,5 +171,10 @@ class File
         $bytes /= pow(1024, $pow);
 
         return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    public static function root() : Folder
+    {
+        return new Folder(self::$root_path,true);
     }
 }

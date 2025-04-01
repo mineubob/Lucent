@@ -6,7 +6,7 @@ use App\Models\Admin;
 use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
-use Lucent\Facades\File;
+use Lucent\Filesystem\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -265,7 +265,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertEquals("Davey Jones",$lookup->getFullName());
     }
 
-    private static function generate_test_model(): void
+    private static function generate_test_model(): File
     {
         $modelContent = <<<'PHP'
         <?php
@@ -332,21 +332,11 @@ class ModelTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = File::rootPath(). "App";
-        $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
-
-        if (!is_dir($modelPath)) {
-            mkdir($modelPath, 0755, true);
-        }
-
-        file_put_contents(
-            $modelPath.DIRECTORY_SEPARATOR.'TestUser.php',
-            $modelContent
-        );
+        return new File("/App/Models/TestUser.php",$modelContent);
 
     }
 
-    private static function generate_test_extended_model(): void
+    private static function generate_test_extended_model(): File
     {
         $adminModel = <<<'PHP'
 <?php
@@ -395,19 +385,6 @@ class Admin extends TestUser
 }
 PHP;
 
-        // Create directories if they don't exist
-        $appPath = File::rootPath() . "App";
-        $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
-
-        if (!is_dir($modelPath)) {
-            mkdir($modelPath, 0755, true);
-        }
-
-        // Write model files
-        file_put_contents(
-            $modelPath . DIRECTORY_SEPARATOR . 'Admin.php',
-            $adminModel
-        );
-
+        return new File("/App/Models/Admin.php",$adminModel);
     }
 }

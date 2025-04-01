@@ -2,7 +2,7 @@
 
 namespace Unit;
 
-use Lucent\Facades\File;
+use Lucent\Filesystem\File;
 use Lucent\StaticAnalysis\Analyser;
 use PHPUnit\Framework\TestCase;
 
@@ -26,6 +26,7 @@ class AnalyserTest extends TestCase
         $analyser->run($file->getContents());
 
         $this->assertCount(5,$detections);
+
     }
 
     public function test_on_token_exact(){
@@ -54,9 +55,10 @@ class AnalyserTest extends TestCase
         $analyser->run($file->getContents());
 
         $this->assertCount(10,$detections);
+
     }
 
-    public function generateTestController(): \Lucent\Filesystem\File
+    public function generateTestController(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -108,10 +110,10 @@ class AnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/DependencyAnalysisController.php",$controllerContent);
+        return new File("/App/Controllers/DependencyAnalysisController.php",$controllerContent);
     }
 
-    public function generateTestController2(): \Lucent\Filesystem\File
+    public function generateTestController2(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -139,7 +141,7 @@ class AnalyserTest extends TestCase
         }
         PHP;
 
-        return File::create("App/Controllers/StaticAnalysisController2.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController2.php",$controllerContent);
     }
 
 

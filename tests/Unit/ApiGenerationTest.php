@@ -3,7 +3,8 @@
 namespace Unit;
 
 use Lucent\Commandline\DocumentationController;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
+use Lucent\Filesystem\File;
 use PHPUnit\Framework\TestCase;
 
 class ApiGenerationTest extends TestCase
@@ -18,7 +19,7 @@ class ApiGenerationTest extends TestCase
 
         $docsController->generateApi();
 
-        $this->assertTrue(file_exists(File::rootPath()."storage".DIRECTORY_SEPARATOR."documentation".DIRECTORY_SEPARATOR."api.html"));
+        $this->assertTrue(file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR."storage".DIRECTORY_SEPARATOR."documentation".DIRECTORY_SEPARATOR."api.html"));
     }
 
     public function test_api_endpoint_detection(): void
@@ -33,7 +34,7 @@ class ApiGenerationTest extends TestCase
     }
 
 
-    private function generateTestRule(): void
+    private function generateTestRule(): File
     {
         $ruleContent = <<<'PHP'
         <?php
@@ -68,23 +69,11 @@ class ApiGenerationTest extends TestCase
         }
         PHP;
 
-
-        $appPath = File::rootPath(). "App";
-        $rulePath = $appPath . DIRECTORY_SEPARATOR . "Rules";
-
-        if (!is_dir($rulePath)) {
-            mkdir($rulePath, 0755, true);
-        }
-
-        file_put_contents(
-            $rulePath.DIRECTORY_SEPARATOR.'SignupRule.php',
-            $ruleContent
-        );
-
+        return new File("/App/Rules/SignupRule.php",$ruleContent);
     }
 
 
-    public function generateTestController(): void
+    public function generateTestController(): File
     {
         $controllerContent = <<<'PHP'
         <?php
@@ -142,16 +131,6 @@ class ApiGenerationTest extends TestCase
         PHP;
 
 
-        $appPath = File::rootPath(). "App";
-        $controllerPath = $appPath . DIRECTORY_SEPARATOR . "Controllers";
-
-        if (!is_dir($controllerPath)) {
-            mkdir($controllerPath, 0755, true);
-        }
-
-        file_put_contents(
-            $controllerPath.DIRECTORY_SEPARATOR.'RegistrationController.php',
-            $controllerContent
-        );
+        return new File("/App/Controllers/RegistrationController.php",$controllerContent);
     }
 }

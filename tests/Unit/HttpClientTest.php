@@ -2,7 +2,7 @@
 
 namespace Unit;
 
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Http\HttpClient;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ class HttpClientTest extends TestCase
 
         $response = $client->download($download_url, $saved_path);
 
-        $this->assertTrue(file_exists(File::rootPath()."storage/downloads/".$saved_path) && $response->successful());
+        $this->assertTrue(file_exists(FileSystem::rootPath()."/storage/downloads/".$saved_path) && $response->successful());
     }
 
     public function test_http_client_download_404(): void
@@ -43,7 +43,7 @@ class HttpClientTest extends TestCase
 
         $response = $client->download($download_url, $saved_path);
 
-        $this->assertFalse(file_exists(File::rootPath()."storage/downloads/".$saved_path) && !$response->successful());
+        $this->assertFalse(file_exists(FileSystem::rootPath()."/storage/downloads/".$saved_path) && !$response->successful());
 
     }
 
