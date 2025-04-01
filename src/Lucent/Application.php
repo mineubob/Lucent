@@ -268,7 +268,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Invalid API route.");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         // Verify controller exists before trying to instantiate it
@@ -280,7 +280,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Controller class '" . $response["controller"] . "' not found");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         $controller = new $response["controller"]();
@@ -294,7 +294,7 @@ class Application
                 ->setOutcome(false)
                 ->setMessage("Method '" . $response["method"] . "' not found in controller '" . $response["controller"] . "'");
 
-            return json_encode($response->getArray());
+            return $response->render();
         }
 
         //Next we check if we have any variables to pass, if not we run the method.
@@ -353,7 +353,7 @@ class Application
                         ->setOutcome(false)
                         ->setMessage("The requested resource '" . $parameter->getName() . "' doesnt exist.");
 
-                    return json_encode($response->getArray());
+                    return $response->render();
                 }
             }
         }
@@ -361,7 +361,7 @@ class Application
         $result = $method->invokeArgs($controller, $response["variables"]);
 
         $result->set_response_header();
-        return $result->execute();
+        return $result->render();
     }
 
     /**
