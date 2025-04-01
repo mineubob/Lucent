@@ -20,7 +20,7 @@ class UpdateController
         $this->downloadPath = DIRECTORY_SEPARATOR."storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
     }
 
-    public function check(array $options): string
+    public function check(array $options = []): string
     {
 
         $app = new Folder("/App");

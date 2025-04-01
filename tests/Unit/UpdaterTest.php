@@ -66,7 +66,7 @@ class UpdaterTest extends TestCase
     {
         $updater = new UpdateController();
 
-        $output = $updater->check([]);
+        $output = $updater->check();
         $this->assertStringStartsWith("Running update dependency check:",$output);
         echo $output;
     }
