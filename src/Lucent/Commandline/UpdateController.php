@@ -5,7 +5,9 @@ namespace Lucent\Commandline;
 use Exception;
 use Lucent\Commandline\Components\ProgressBar;
 use Lucent\Facades\App;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
+use Lucent\Filesystem\File;
+use Lucent\Filesystem\Folder;
 use Lucent\Http\HttpClient;
 use Lucent\StaticAnalysis\DependencyAnalyser;
 use Phar;
@@ -15,46 +17,63 @@ class UpdateController
     private string $downloadPath;
 
     public function __construct(){
-        $this->downloadPath = File::rootPath(). "storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
+        $this->downloadPath = DIRECTORY_SEPARATOR."storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
     }
 
-    public function check(): string
+    public function check($file = null): string
     {
-        // Directly get version from PHAR metadata
-        $currentVersion = App::getLucentVersion();
+        if($file === null) {
+            // Directly get version from PHAR metadata
+            $currentVersion = App::getLucentVersion();
 
-        if (!$currentVersion) {
-            return "Unable to determine current version.";
-        }
-        try {
-            $client = new HttpClient('https://api.github.com');
-            $response = $client->get('/repos/jackharrispeninsulainteractive/Lucent/releases/latest');
+            if (!$currentVersion) {
+                return "Unable to determine current version.";
+            }
 
-            if ($response->successful()) {
+            try {
+                $client = new HttpClient('https://api.github.com');
+                $response = $client->get('/repos/jackharrispeninsulainteractive/Lucent/releases/latest');
+
+                if (!$response->successful()) {
+                    return "Unable to lookup the latest version.";
+                }
                 $latestRelease = $response->json();
                 $latestVersion = $latestRelease['tag_name'];
 
-                if (version_compare($currentVersion, $latestVersion, '<')) {
-                    return sprintf(
-                        "Update available! 🚀".PHP_EOL .
-                        "Current version: %s".PHP_EOL .
-                        "Latest version:  %s".PHP_EOL .
-                        "Download: %s".PHP_EOL .
-                        "Release Notes:".PHP_EOL."%s",
-                        $currentVersion,
-                        $latestVersion,
-                        $latestRelease['assets'][0]['browser_download_url'],
-                        $latestRelease['body'] ?? 'No release notes available.'
-                    );
-                } else {
+                if (!(version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local"))) {
                     return "You're running the latest version of Lucent ({$currentVersion}). 👍".PHP_EOL;
                 }
-            }
 
-            return "Unable to check for updates. Please check your internet connection.";
-        } catch (Exception $e) {
-            return "Update check failed: " . $e->getMessage();
+                $downloaded = $this->downloadLatest();
+
+                if ($downloaded === null) {
+                    return "Failed to download latest version.\n";
+                }
+
+                // Ensure the packages directory exists
+                $packageFolder = new Folder("/packages");
+
+                $downloaded->copy($downloaded->getName(),$packageFolder);
+
+                if(!$downloaded->delete()){
+                    return "Failed to delete temp download.\n";
+                }
+                $output = "";
+                exec("cd ".FileSystem::rootPath()."/packages && php ".$downloaded->getName()." update check ".$downloaded->path,$output);
+
+                return "Performing compatibility check...\n.$output";
+            } catch (Exception $e) {
+                return "Unable to check for updates: {$e->getMessage()}\n";
+            }
         }
+
+        $analyser = new DependencyAnalyser();
+        $app = new Folder("/App");
+        $analyser->parseFiles($app->search()->onlyFiles()->extension("php")->recursive()->collect());
+
+        $analyser->printCompatibilityCheck();
+
+        return "Compatibility check completed.\n";
     }
 
     public function install(): string
@@ -76,83 +95,42 @@ class UpdateController
 
                 if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
                     // Prepare paths
-                    $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
-                    $tempFileName = "lucent-{$latestVersion}.phar";
                     $targetPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$latestVersion}.phar";
                     $backupPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$currentVersion}.phar.old";
 
-                    // First, use a HEAD request via your client to get the file size
-                    $headClient = new HttpClient();
-                    $headResponse = $headClient->head($downloadUrl);
+                    $phar = new File("/packages/lucent.phar");
 
-                    // Extract file size from the response
-                    $fileSize = isset($headResponse->headers()["download_content_length"]) ?
-                        (int)$headResponse->headers()["download_content_length"] :
-                        1024 * 1024 * 5; // Default 5MB if size can't be determined
-
-                    echo "Downloading Lucent {$latestVersion}..." . PHP_EOL;
-
-                    // Initialize progress bar with file size
-                    $progress = new ProgressBar($fileSize);
-                    $progress->setFormat('[{bar}] {percent}% of ' . $this->formatFileSize($fileSize) . ' - {eta} remaining');
-                    $progress->setBarCharacters(['█', '░']);
-                    $progress->setUpdateInterval(0.1); // Update every 100ms for smoother display
-
-                    // Create progress callback
-                    $progressCallback = function($downloadedBytes, $totalBytes) use ($progress) {
-                        $progress->update($downloadedBytes);
-                    };
-
-                    // Download new PHAR using progress callback
-                    $downloadResponse = $client->download(
-                        $downloadUrl,
-                        $tempFileName,
-                        $progressCallback
-                    );
-
-                    // Complete the progress bar
-                    $progress->finish();
-
-                    echo PHP_EOL . "Download complete! Installing..." . PHP_EOL;
-
-                    if (!$downloadResponse->successful()) {
-                        return "Failed to download update: " . $downloadResponse->error();
+                    if(!$phar->exists()) {
+                        return "Failed to locate lucent.phar.";
                     }
 
-                    $downloadedFilePath = $this->downloadPath . $tempFileName;
+                    $packagesFolder = new Folder("/packages");
 
-                    // Verify the downloaded file exists
-                    if (!file_exists($downloadedFilePath)) {
-                        return "Download failed: File not found in downloads directory";
+                    $backup = $phar->copy("lucent-{$currentVersion}.phar.old",$packagesFolder);
+
+                    if(!$backup->exists()) {
+                        return "Failed to backup current version of lucent.";
                     }
 
-                    // Copy from downloads to target location
-                    if (!copy($downloadedFilePath, $targetPharPath)) {
-                        unlink($downloadedFilePath);
-                        return "Failed to copy downloaded file to target location";
+                    $downloaded = $this->downloadLatest();
+
+                    $copy = $downloaded->copy("lucent2.phar",$packagesFolder);
+
+                    if(!$copy->exists()){
+                        return "Failed to move download into packages folder...\n";
                     }
 
-                    echo PHP_EOL . "Installation complete! Checking codebase..." . PHP_EOL;
+                    if(!$phar->delete()){
+                        return "Failed to replace lucent.phar package...\n";
+                    }
 
-                    $analyser = new DependencyAnalyser();
+                    if(!$copy->rename("lucent.phar")){
+                        return "Failed to replace lucent.phar package...\n";
+                    }
 
-                    $analyser->parseFiles(File::getFiles(extensions: "php"));
-
-                    $dependencies = $analyser->run();
-
-                    $this->printCompatibilityCheck($dependencies);
-
-                    // Clean up downloaded file
-                    unlink($downloadedFilePath);
-
-                    // Make executable
-                    chmod($targetPharPath, 0755);
-
-                    // Backup current PHAR
-                    copy($currentPharPath, $backupPharPath);
-
-                    // Replace current PHAR
-                    rename($targetPharPath, $currentPharPath);
+                    if(!$downloaded->delete()){
+                        return "Failed to delete temp download...\n";
+                    }
 
                     return sprintf(
                         "Successfully updated Lucent! 🎉".PHP_EOL .
@@ -166,7 +144,7 @@ class UpdateController
                         $latestRelease['body'] ?? 'No release notes available.'
                     );
                 } else {
-                    return "You're running the latest version of Lucent ({$currentVersion}). 👍\n";
+                    return "You're running the latest version of Lucent ({$currentVersion}). 👍".PHP_EOL;
                 }
             }
 
@@ -181,25 +159,6 @@ class UpdateController
             }
             return "Update check failed: " . $e->getMessage();
         }
-    }
-
-    /**
-     * Format file size in a human-readable format
-     *
-     * @param int $bytes File size in bytes
-     * @return string Formatted file size
-     */
-    private function formatFileSize(int $bytes): string
-    {
-        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-        $bytes = max($bytes, 0);
-        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-        $pow = min($pow, count($units) - 1);
-
-        $bytes /= pow(1024, $pow);
-
-        return round($bytes, 2) . ' ' . $units[$pow];
     }
 
     public function rollback(): string
@@ -258,124 +217,58 @@ class UpdateController
         }
     }
 
-    function printCompatibilityCheck(array $dependencies): void
+    private function downloadLatest(): ?File
     {
-        // ANSI color codes as variables, not constants
-        $COLOR_RED = "\033[31m";
-        $COLOR_YELLOW = "\033[33m";
-        $COLOR_BLUE = "\033[36m";
-        $COLOR_BOLD = "\033[1m";
-        $COLOR_RESET = "\033[0m";
+        $currentVersion = App::getLucentVersion();
 
-        // Count the issues by file
-        $fileIssues = [];
-        $totalDeprecated = 0;
-        $totalRemoved = 0;
+        $client = new HttpClient();
+        $client->withTimeout(120); // Increase timeout to 2 minutes
 
-        // Show header
-        echo $COLOR_BOLD . "UPDATE COMPATIBILITY" . $COLOR_RESET . PHP_EOL;
-        echo "============================" . PHP_EOL;
+        $response = $client->get('https://api.github.com/repos/jackharrispeninsulainteractive/Lucent/releases/latest');
 
-        foreach ($dependencies as $fileName => $file) {
-            $fileHasIssues = false;
-            $fileDeprecations = 0;
-            $fileRemovals = 0;
+        if ($response->successful()) {
+            $latestRelease = $response->json();
+            $latestVersion = $latestRelease['tag_name'];
 
-            foreach ($file as $dependencyName => $dependency) {
-                foreach ($dependency as $use) {
-                    if (!empty($use["issues"])) {
-                        // Count issues by type
-                        foreach ($use["issues"] as $issue) {
-                            if (isset($issue["status"])) {
-                                if ($issue["status"] === "error") {
-                                    $fileRemovals++;
-                                    $totalRemoved++;
-                                } elseif ($issue["status"] === "warning") {
-                                    $fileDeprecations++;
-                                    $totalDeprecated++;
-                                }
-                            }
-                        }
+            if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
+                // Prepare paths
+                $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
+                $tempFileName = "lucent-{$latestVersion}.phar";
 
-                        $fileHasIssues = true;
+                echo "Downloading Lucent {$latestVersion}..." . PHP_EOL;
 
-                        // Show file name if this is the first issue in the file
-                        if (!isset($fileIssues[$fileName])) {
-                            echo $COLOR_BOLD . $fileName . $COLOR_RESET . PHP_EOL;
-                            $fileIssues[$fileName] = true;
-                        }
+                // Initialize progress bar with an estimated size
+                // We'll let the download method handle getting the actual size
+                $estimatedSize = 5 * 1024 * 1024; // 5MB estimate
+                $progress = new ProgressBar($estimatedSize);
+                $progress->setFormat('[{bar}] {percent}% - {eta} remaining');
+                $progress->setBarCharacters(['█', '░']);
+                $progress->setUpdateInterval(0.1);
 
-                        // Show the dependency usage
-                        $lineInfo = "  Line " . str_pad($use["line"], 4, ' ', STR_PAD_LEFT) . ": ";
-                        echo $lineInfo . $COLOR_BLUE . $dependencyName . $COLOR_RESET;
+                // Create progress callback that updates the progress and adjusts total if needed
+                $progressCallback = function ($downloadedBytes, $totalBytes) use ($progress) {
+                    $progress->update($downloadedBytes);
+                };
 
-                        // Show method if applicable
-                        if (isset($use["method"]) && isset($use["method"]["name"])) {
-                            echo "->" . $use["method"]["name"] . "()";
-                        }
+                // Download new PHAR using progress callback
+                $downloadResponse = $client->download(
+                    $downloadUrl,
+                    $tempFileName,
+                    $progressCallback
+                );
 
-                        echo PHP_EOL;
+                // Complete the progress bar
+                $progress->finish();
 
-                        // Show each issue with appropriate color and clear labeling
-                        foreach ($use["issues"] as $issue) {
-                            $color = $COLOR_YELLOW; // Default for warnings
-                            $issueType = "DEPRECATED";
+                $downloadedFilePath = $tempFileName;
 
-                            if (isset($issue["status"]) && $issue["status"] === "error") {
-                                $color = $COLOR_RED;
-                                $issueType = "REMOVED";
-                            }
-
-                            // Format message
-                            $message = $issue["message"] ?? "Unknown issue";
-                            $since = "";
-
-                            // Extract version info if available in the message
-                            if (preg_match('/since\s+version\s+([0-9.]+)/i', $message, $matches)) {
-                                $since = " (since v" . $matches[1] . ")";
-                            } else if (preg_match('/since\s+v([0-9.]+)/i', $message, $matches)) {
-                                $since = " (since v" . $matches[1] . ")";
-                            }
-
-                            // Show scope if provided
-                            $scopeText = "";
-                            if (isset($issue["scope"])) {
-                                $scopeText = " " . $issue["scope"];
-                            }
-
-                            echo "    " . $color . "⚠ " . $issueType . $scopeText . $since . ": " . $COLOR_RESET . $message . PHP_EOL;
-                        }
-                    }
+                if(file_exists($this->downloadPath.$downloadedFilePath) || $downloadResponse->successful()) {
+                    return new File($this->downloadPath.$downloadedFilePath);
                 }
-            }
-
-            // Show file summary if issues were found
-            if ($fileHasIssues) {
-                echo PHP_EOL;
             }
         }
 
-        // Show grand total
-        if ($totalDeprecated > 0 || $totalRemoved > 0) {
-            echo "============================" . PHP_EOL;
-            echo $COLOR_BOLD . "SUMMARY: " . $COLOR_RESET;
-
-            if ($totalRemoved > 0) {
-                echo $COLOR_RED . $totalRemoved . " removed" . $COLOR_RESET;
-                if ($totalDeprecated > 0) {
-                    echo ", ";
-                }
-            }
-
-            if ($totalDeprecated > 0) {
-                echo $COLOR_YELLOW . $totalDeprecated . " deprecated" . $COLOR_RESET;
-            }
-
-            echo " components found in " . count($fileIssues) . " files" . PHP_EOL;
-            echo "Update your code to ensure compatibility with the latest Lucent version" . PHP_EOL;
-        } else {
-            echo $COLOR_BOLD . "No compatibility issues found! Your code is up to date." . $COLOR_RESET . PHP_EOL;
-        }
+        return null;
     }
 
 
