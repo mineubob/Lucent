@@ -66,8 +66,9 @@ class UpdaterTest extends TestCase
     {
         $updater = new UpdateController();
 
-        $output = $updater->check();
-        $this->assertStringStartsWith("Performing compatibility check...",$output);
+        $output = $updater->check([]);
+        $this->assertStringStartsWith("Running update dependency check:",$output);
+        echo $output;
     }
 
 }
