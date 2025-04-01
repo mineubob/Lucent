@@ -4,6 +4,7 @@ namespace Lucent\Facades;
 
 use Exception;
 use FilesystemIterator;
+use Lucent\Filesystem\Folder;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Lucent\Filesystem\File;
@@ -170,5 +171,10 @@ class FileSystem
         $bytes /= pow(1024, $pow);
 
         return round($bytes, 2) . ' ' . $units[$pow];
+    }
+
+    public static function root() : Folder
+    {
+        return new Folder(self::$root_path,true);
     }
 }
