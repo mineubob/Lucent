@@ -6,7 +6,7 @@ use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
-use Lucent\Facades\FileSystem as File;
+use Lucent\Facades\FileSystem;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Http\HttpRouter;
@@ -146,8 +146,8 @@ class Application
 
         //Check if we have a .env file present, if not
         //then we create the file.
-        if(!file_exists(File::rootPath().".env")){
-            $file = fopen(File::rootPath().".env","w");
+        if(!file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env")){
+            $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env","w");
             fclose($file);
         }
 
@@ -199,7 +199,7 @@ class Application
         }
 
         foreach ($this->commands as $command){
-            require_once File::rootPath().$command;
+            require_once FileSystem::rootPath().DIRECTORY_SEPARATOR.$command;
         }
     }
 
@@ -397,7 +397,7 @@ class Application
     public function LoadEnv(): void
     {
 
-        $file = fopen(File::rootPath(). ".env", "r");
+        $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env", "r");
         $output = [];
 
         if($file) {
