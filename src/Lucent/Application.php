@@ -465,17 +465,17 @@ class Application
         $response = $this->consoleRouter->AnalyseRouteAndLookup($commandArgs);
 
         if(!$response["outcome"]){
-            return "Invalid command, please try again!";
+            return "Unrecognized command. Type 'help' to see available commands.\nDid you mean something similar?";
         }
 
         if (!class_exists($response["controller"])) {
-            return "Ops! We can seem to find the class '".$response["controller"]."' please recheck your command registration.";
+            return "Command registration error: The controller class '".$response["controller"]."' could not be found.\nPlease check your command registration and ensure the class exists.";
         }
 
         $controller = new $response["controller"]();
 
         if(!method_exists($controller,$response["method"])) {
-            return "Ops! We cant seem to find the method '".$response["method"]."' inside '".$controller::class."' please recheck your command registration.";
+            return "Invalid command: The method '".$response["method"]."' is not defined in the '".$controller::class."' class.\nPlease verify the command registration and the controller's method.";
         }
 
         //Next this as we have not returned we have variables to pass
@@ -484,20 +484,18 @@ class Application
 
         $varCount = count($response["variables"]);
 
-        if($varCount < $method->getNumberOfRequiredParameters()){
-            return "Ops! 1".$response["controller"]."@".$method->getName()." requires at least ".$method->getNumberOfRequiredParameters()." parameters and ".$varCount." were provided.";
-        }
-
-        // With this improved code:
-        $methodParams = $method->getParameters();
         $filteredVariables = [];
 
-        foreach ($methodParams as $param) {
+        $variables = "";
+
+        foreach ($method->getParameters() as $param) {
 
             if($param->getName() == "options"){
                 $filteredVariables["options"] = $options;
                 continue;
             }
+
+            $variables .= " [".$param->getName()."]";
 
             if (array_key_exists($param->getName(), $response["variables"])) {
                 $filteredVariables[$param->getName()] = $response["variables"][$param->getName()];
@@ -505,9 +503,13 @@ class Application
             }
 
             if(!$param->isDefaultValueAvailable()){
-                return "Ops! 3".$response["controller"]."@".$method->getName()." requires parameter '$param->name' which was not provided.";
+                return "Argument missing: The '".$param->getName()."' argument is required for this command.\nExpected format: [command] [argument_name]\nExample usage: ".$response["route"].$variables;
             }
 
+        }
+
+        if($varCount < $method->getNumberOfRequiredParameters() || count($method->getParameters()) < $varCount){
+            return "Insufficient arguments! The command requires at least ".$varCount." parameters.\nUsage: ".$response["route"]." ".$variables;
         }
 
 

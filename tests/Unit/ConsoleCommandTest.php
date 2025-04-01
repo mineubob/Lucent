@@ -65,7 +65,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals("Ops! We cant seem to find the method 'run2' inside 'App\Commands\TestCommand' please recheck your command registration.", $result);
+        $this->assertEquals("Invalid command: The method 'run2' is not defined in the 'App\Commands\TestCommand' class.\nPlease verify the command registration and the controller's method.", $result);
     }
 
     public function test_command_with_invalid_controller() : void
@@ -74,7 +74,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals("Ops! We can seem to find the class 'Unit\TestTwoCommand' please recheck your command registration.", $result);
+        $this->assertEquals("Command registration error: The controller class 'Unit\TestTwoCommand' could not be found.\nPlease check your command registration and ensure the class exists.", $result);
     }
 
     public function test_command_with_invalid_arguments() : void
@@ -83,7 +83,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test var ABC");
 
-        $this->assertEquals("Ops! App\Commands\TestCommand@var2 requires 0 parameters and 1 were provided.", $result);
+        $this->assertEquals("Insufficient arguments! The command requires at least 1 parameters.\nUsage: test var {var} ", $result);
     }
 
     public function test_command_call_on_phar_directly() : void
