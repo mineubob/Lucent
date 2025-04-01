@@ -354,7 +354,7 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return new File("App/Controllers/StaticAnalysisController5.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController5.php",$controllerContent);
     }
 
     public function generateTestController6(): File
@@ -386,7 +386,7 @@ class DependencyAnalyserTest extends TestCase
         }
         PHP;
 
-        return new File("App/Controllers/StaticAnalysisController6.php",$controllerContent);
+        return new File("/App/Controllers/StaticAnalysisController6.php",$controllerContent);
     }
 
 
