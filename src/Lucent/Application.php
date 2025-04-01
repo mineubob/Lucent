@@ -485,30 +485,31 @@ class Application
         $varCount = count($response["variables"]);
 
         if($varCount < $method->getNumberOfRequiredParameters()){
-            return "Ops! ".$response["controller"]."@".$method->getName()." requires at least ".$method->getNumberOfRequiredParameters()." parameters and ".$varCount." were provided.";
-        }
-
-        // With this code that checks for exact parameter count match:
-        $methodParamCount = count($method->getParameters());
-        if($methodParamCount !== $varCount){
-            return "Ops! ".$response["controller"]."@".$method->getName()." requires ".$methodParamCount." parameters and ".$varCount." were provided.";
+            return "Ops! 1".$response["controller"]."@".$method->getName()." requires at least ".$method->getNumberOfRequiredParameters()." parameters and ".$varCount." were provided.";
         }
 
         // With this improved code:
         $methodParams = $method->getParameters();
         $filteredVariables = [];
 
-        // Only pass variables that match parameter names
         foreach ($methodParams as $param) {
-            $paramName = $param->getName();
-            if (array_key_exists($paramName, $response["variables"])) {
-                $filteredVariables[$paramName] = $response["variables"][$paramName];
-            } else if($paramName === "options"){
-                $filteredVariables[$paramName] = $options;
-            }else if (!$param->isOptional()) {
-                return "Ops! ".$response["controller"]."@".$method->getName()." requires parameter '$paramName' which was not provided.";
+
+            if($param->getName() == "options"){
+                $filteredVariables["options"] = $options;
+                continue;
             }
+
+            if (array_key_exists($param->getName(), $response["variables"])) {
+                $filteredVariables[$param->getName()] = $response["variables"][$param->getName()];
+                continue;
+            }
+
+            if(!$param->isDefaultValueAvailable()){
+                return "Ops! 3".$response["controller"]."@".$method->getName()." requires parameter '$param->name' which was not provided.";
+            }
+
         }
+
 
         // Use the filtered variables instead of all variables
         return $method->invokeArgs($controller, $filteredVariables);
