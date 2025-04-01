@@ -7,7 +7,7 @@ use Lucent\Application;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
-use Lucent\Facades\File;
+use Lucent\Facades\FileSystem;
 use Lucent\Facades\Regex;
 use Lucent\Validation\Rule;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -693,7 +693,7 @@ class RuleTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = File::rootPath(). "App";
+        $appPath = FileSystem::rootPath(). "/App";
         $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
 
         if (!is_dir($modelPath)) {
