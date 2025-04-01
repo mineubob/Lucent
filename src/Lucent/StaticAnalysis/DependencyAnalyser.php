@@ -96,6 +96,9 @@ class DependencyAnalyser
         // Process each file independently
         foreach ($this->files as $file) {
 
+            //Ensure we have a reference to the file to prevent errors.
+            $dependencies[$file->getName()] = [];
+
             $knownInstantiations = [];  // Tracks variables that hold instances of classes
             $as = [];                  // Maps aliases to fully qualified class names
 
