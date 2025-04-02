@@ -227,7 +227,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("Davey Jones",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -253,7 +253,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("Davey Jones",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
     }
 
     public static function generateTestRestController(): void

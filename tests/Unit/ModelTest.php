@@ -282,6 +282,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertTrue($user->create());
 
         $this->assertNotEquals(-1,$user->id);
+
     }
 
     private static function generate_test_model(): File
