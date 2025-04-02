@@ -131,6 +131,14 @@ class Model
                 return false;
             }
 
+            $pk= Model::getDatabasePrimaryKey($reflection);
+
+            // Get the last inserted ID
+            $lastId = Database::getDriver()->lastInsertId();
+
+            // Set the ID
+            $reflection->getProperty($pk["NAME"])->setValue($this, $lastId);
+
             return true;
         }
     }
