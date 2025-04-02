@@ -3,6 +3,7 @@
 namespace Unit;
 
 use App\Models\Admin;
+use App\Models\TestUser;
 use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
@@ -263,6 +264,24 @@ class ModelTest extends DatabaseDriverSetup
         $lookup = \App\Models\Admin::where("full_name", "Davey Jones")->getFirst();
         $this->assertNotNull($lookup);
         $this->assertEquals("Davey Jones",$lookup->getFullName());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_pk_auto_increment($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_model_migration($driver,$config);
+
+        $user = new \App\Models\TestUser(new Dataset([
+            "full_name" => "AI Test",
+            "email" => "ai@test.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
+        $this->assertNotEquals(-1,$user->id);
     }
 
     private static function generate_test_model(): File
