@@ -27,8 +27,9 @@ class App
 
     }
 
-    public static function currentRoute() : string{
-        return Application::getInstance()->url;
+    public static function currentRoute() : array
+    {
+        return Application::getInstance()->httpRouter->getUriAsArray($_SERVER['REQUEST_URI']);
     }
 
     public static function getLucentVersion() : ?string

@@ -75,10 +75,6 @@ class Application
      */
     private array $loggers = [];
 
-    /**
-     * The current url as an array
-     */
-    public private(set) string $url;
 
     /**
      * An array of globally accessible regex rules.
@@ -264,8 +260,6 @@ class Application
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
 
         $request = new Request();
-
-        $this->url = $response["route"];
 
         if (!$response["outcome"]) {
             http_response_code(404);
