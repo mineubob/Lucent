@@ -285,6 +285,31 @@ class ModelTest extends DatabaseDriverSetup
 
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_get_count($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_model_migration($driver,$config);
+
+        $count = 10;
+        $i = 0;
+        while($i < $count){
+            $user =  new \App\Models\TestUser(new Dataset([
+                "full_name" => "user-".$i,
+                "email" => "user-".$i."@test.com",
+                "password_hash" => "password",
+            ]));
+
+            $this->assertTrue($user->create());
+            $i++;
+        }
+
+        $this->assertEquals($count,TestUser::limit(100)->count());
+    }
+
+
+
     private static function generate_test_model(): File
     {
         $modelContent = <<<'PHP'
