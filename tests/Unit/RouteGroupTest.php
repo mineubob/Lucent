@@ -2,8 +2,11 @@
 
 namespace Unit;
 
+use App\Models\TestUser;
 use Lucent\Application;
+use Lucent\Database\Dataset;
 use Lucent\Facades\App;
+use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -18,6 +21,8 @@ if (file_exists($driverSetupPath)) {
     // Fallback path if the normal path doesn't work
     require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
 }
+
+require_once __DIR__.'/ModelTest.php';
 
 class RouteGroupTest extends DatabaseDriverSetup
 {
@@ -204,8 +209,11 @@ class RouteGroupTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_model_id_raw() : void
+    public function test_route_get_model_id_raw($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
+        $this->perform_model_migration($driver, $config);
+
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/99";
 
@@ -218,8 +226,20 @@ class RouteGroupTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id() : void
+    public function test_route_get_user_model_by_id($driver,$config) : void
     {
+
+        self::setupDatabase($driver, $config);
+        $this->perform_model_migration($driver, $config);
+
+        $user =  new TestUser(new Dataset([
+            "full_name" => "John Doe",
+            "email" => "john@doe.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/1";
 
@@ -227,14 +247,15 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("John Doe",$decodedResponse["content"]["full_name"]);
+
     }
 
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found() : void
     {
         $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user/object/5";
+        $_SERVER["REQUEST_URI"] = "/user/object/100";
 
         $response = App::execute();
 
@@ -244,8 +265,19 @@ class RouteGroupTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_with_middleware() : void
+    public function test_route_get_user_model_with_middleware($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
+        $this->perform_model_migration($driver, $config);
+
+        $user =  new TestUser(new Dataset([
+            "full_name" => "John Doe",
+            "email" => "john@doe.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user2/object/1";
 
@@ -253,7 +285,17 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("John Doe",$decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function perform_model_migration($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+        ModelTest::generate_test_model();
+
+        $output = CommandLine::execute("Migration make App/Models/TestUser");
+        $this->assertEquals("Successfully performed database migration",$output);
     }
 
     public static function generateTestRestController(): void
@@ -307,7 +349,6 @@ class RouteGroupTest extends DatabaseDriverSetup
             $controllerContent
         );
     }
-
 
     public static function generateSecondRestController(): void
     {
@@ -480,8 +521,6 @@ class RouteGroupTest extends DatabaseDriverSetup
         );
 
     }
-
-
 
     private static function generateRoutesFile(): void
     {

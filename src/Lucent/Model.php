@@ -339,25 +339,6 @@ class Model
             return false;
         }
     }
-    public static function where(string $column, string $value): ModelCollection
-    {
-        $collection = new ModelCollection(static::class);
-        return $collection->where($column,$value);
-    }
-
-    public static function limit(int $count) : ModelCollection
-    {
-        $collection = new ModelCollection(static::class);
-        return $collection->limit($count);
-
-    }
-
-    public static function offset(int $count) : ModelCollection
-    {
-        $collection = new ModelCollection(static::class);
-        return $collection->offset($count);
-
-    }
 
     public static function hasDatabaseProperty(string $class, string $name) : bool
     {
@@ -398,5 +379,34 @@ class Model
         return null;
     }
 
+    /**
+     * Dynamically call ModelCollection methods statically
+     *
+     * Allows calling ModelCollection methods directly on the model class,
+     * such as Model::where(), Model::limit(), Model::get(), etc.
+     *
+     * @param string $name The method name being called
+     * @param array $arguments The arguments passed to the method
+     * @return ModelCollection|null A ModelCollection instance if the method exists, null otherwise
+     *
+     * @method static ModelCollection where(string $column, string $value) Add a WHERE condition to the query
+     * @method static ModelCollection orWhere(string $column, string $value) Add a WHERE condition with OR logic
+     * @method static ModelCollection like(string $column, string $value) Add a LIKE condition to the query
+     * @method static ModelCollection orLike(string $column, string $value) Add a LIKE condition with OR logic
+     * @method static ModelCollection limit(int $count) Limit the number of records returned
+     * @method static ModelCollection offset(int $count) Set the offset for pagination
+     * @method static ModelCollection get() Execute the query and return matching records
+     * @method static mixed|null getFirst() Get the first matching record
+     * @method static ModelCollection collection() Return the collection object for method chaining
+     * @method static int count() Count the number of matching records
+     */
+    public static function __callStatic(string $name, array $arguments) : ?ModelCollection
+    {
+        if(method_exists(ModelCollection::class,$name)){
+            return new ModelCollection(static::class)->$name(...$arguments);
+        }
+
+        return null;
+    }
 
 }

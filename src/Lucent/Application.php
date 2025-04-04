@@ -75,6 +75,7 @@ class Application
      */
     private array $loggers = [];
 
+
     /**
      * An array of globally accessible regex rules.
      */

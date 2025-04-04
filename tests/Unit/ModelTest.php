@@ -285,7 +285,70 @@ class ModelTest extends DatabaseDriverSetup
 
     }
 
-    private static function generate_test_model(): File
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_get_count($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_model_migration($driver,$config);
+
+        $count = 10;
+        $i = 0;
+        while($i < $count){
+            $user =  new \App\Models\TestUser(new Dataset([
+                "full_name" => "user-".$i,
+                "email" => "user-".$i."@test.com",
+                "password_hash" => "password",
+            ]));
+
+            $this->assertTrue($user->create());
+            $i++;
+        }
+
+        $this->assertEquals($count,TestUser::limit(100)->count());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_get_like_or($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->test_model_migration($driver,$config);
+
+        $user =  new \App\Models\TestUser(new Dataset([
+            "full_name" => "John Smith",
+            "email" => "john.smith@test.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
+        $user =  new \App\Models\TestUser(new Dataset([
+            "full_name" => "James Smith",
+            "email" => "james.smith@gmail.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
+        $user =  new \App\Models\TestUser(new Dataset([
+            "full_name" => "Bill Clinton",
+            "email" => "bill@gmail.com",
+            "password_hash" => "password",
+        ]));
+
+        $this->assertTrue($user->create());
+
+        $gmailUsers = TestUser::limit(100)->like("email","gmail.com")->get();
+
+        $this->assertCount(2,$gmailUsers);
+
+        $gmailAndBill = TestUser::limit(100)->like("email","gmail.com")->orLike("full_name","Bill")->get();
+
+        $this->assertCount(2,$gmailAndBill);
+    }
+
+    public static function generate_test_model(): File
     {
         $modelContent = <<<'PHP'
         <?php
@@ -356,7 +419,7 @@ class ModelTest extends DatabaseDriverSetup
 
     }
 
-    private static function generate_test_extended_model(): File
+    public static function generate_test_extended_model(): File
     {
         $adminModel = <<<'PHP'
 <?php
