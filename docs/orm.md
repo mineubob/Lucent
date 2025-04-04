@@ -10,11 +10,15 @@ Lucent provides a powerful and intuitive Object-Relational Mapping (ORM) system 
 - [Defining Models](#defining-models)
 - [Database Columns](#database-columns)
 - [CRUD Operations](#crud-operations)
-    - [Creating Records](#creating-records)
-    - [Reading Records](#reading-records)
-    - [Updating Records](#updating-records)
-    - [Deleting Records](#deleting-records)
+  - [Creating Records](#creating-records)
+  - [Reading Records](#reading-records)
+  - [Updating Records](#updating-records)
+  - [Deleting Records](#deleting-records)
 - [Query Building](#query-building)
+  - [Basic Queries](#basic-queries)
+  - [Logical Operators](#logical-operators)
+  - [Like Queries](#like-queries)
+  - [Pagination](#pagination)
 - [Model Relationships](#model-relationships)
 
 ## Model Basics
@@ -191,25 +195,103 @@ $article->delete('article_id');
 
 ## Query Building
 
+### Basic Queries
+
 Lucent provides a fluent interface for building queries:
 
 ```php
 // Basic where clause
 $articles = Article::where('published', true)->get();
 
-// Chain multiple conditions
+// Chain multiple conditions (using AND by default)
 $articles = Article::where('published', true)
     ->where('category_id', 3)
     ->get();
 
-// Limit, offset for pagination
+// Count records
+$count = Article::where('published', true)->count();
+```
+
+### Logical Operators
+
+Lucent supports both AND and OR logical operators in queries:
+
+```php
+// Default behavior uses AND
 $articles = Article::where('published', true)
+    ->where('category_id', 3)
+    ->get();
+    
+// Explicitly specify AND or OR for each condition
+$articles = Article::where('published', true)
+    ->where('category_id', 3, 'AND')  // Explicit AND
+    ->where('featured', true, 'OR')   // Use OR logic for this condition
+    ->get();
+    
+// Convenience methods for OR conditions
+$articles = Article::where('published', true)
+    ->orWhere('featured', true)       // Equivalent to ->where('featured', true, 'OR')
+    ->get();
+    
+// Complex query with mixed operators
+$articles = Article::where('status', 'active')        // AND (default)
+    ->where('category_id', 5)                       // AND (default)
+    ->orWhere('featured', true)                     // OR
+    ->orWhere('popular', true)                      // OR
+    ->get();
+    
+// The query above is equivalent to SQL:
+// WHERE status = 'active' AND category_id = 5 OR featured = true OR popular = true
+```
+
+### Like Queries
+
+You can use LIKE conditions for pattern matching, also with AND/OR support:
+
+```php
+// Basic LIKE query (default AND)
+$articles = Article::like('title', 'Lucent')
+    ->get();
+    
+// Combining LIKE with WHERE
+$articles = Article::where('published', true)
+    ->like('title', 'Lucent')
+    ->get();
+    
+// Using OR with LIKE
+$articles = Article::like('title', 'Lucent')
+    ->orLike('content', 'framework')
+    ->get();
+    
+// Explicit OR operator
+$articles = Article::like('title', 'Lucent')
+    ->like('content', 'framework', 'OR')
+    ->get();
+    
+// Complex query mixing WHERE and LIKE with different operators
+$articles = Article::where('published', true)
+    ->where('category_id', 3)
+    ->like('title', 'Lucent')
+    ->orLike('content', 'framework')
+    ->get();
+```
+
+### Pagination
+
+Use limit and offset for pagination:
+
+```php
+// Get first page (10 items)
+$page1 = Article::where('published', true)
     ->limit(10)
-    ->offset(20)
+    ->offset(0)  // Can be omitted for first page
     ->get();
 
-// Get count
-$count = Article::where('published', true)->count();
+// Get second page (next 10 items)
+$page2 = Article::where('published', true)
+    ->limit(10)
+    ->offset(10)
+    ->get();
 ```
 
 ## Model Relationships
