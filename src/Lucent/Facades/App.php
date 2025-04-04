@@ -27,6 +27,10 @@ class App
 
     }
 
+    public static function currentRoute() : string{
+        return Application::getInstance()->url;
+    }
+
     public static function getLucentVersion() : ?string
     {
         $currentPharPath = Phar::running(false);
