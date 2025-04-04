@@ -227,14 +227,14 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("user-0",$decodedResponse["content"]["full_name"]);
     }
 
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found() : void
     {
         $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user/object/5";
+        $_SERVER["REQUEST_URI"] = "/user/object/100";
 
         $response = App::execute();
 
@@ -253,7 +253,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("AI Test",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("user-0",$decodedResponse["content"]["full_name"]);
     }
 
     public static function generateTestRestController(): void
