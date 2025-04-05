@@ -167,20 +167,6 @@ abstract class Rule
     }
 
     /**
-     * Validates if a value is empty or null
-     *
-     * When this rule is included for a field, validation will pass only if the field
-     * is empty or null. Used in combination with other rules to make them optional.
-     *
-     * @param string $value The value to validate
-     * @return bool Whether the value is empty or null
-     */
-    private function nullable(string $value): bool
-    {
-        return $value === "";
-    }
-
-    /**
      * Validates the given data against the defined rules
      *
      * Processes each field against its validation rules and collects any validation errors.
@@ -214,7 +200,13 @@ abstract class Rule
                 $data[$key] = trim($data[$key]);
             }
 
-            if(in_array("nullable", $rules) && $data[$key] === ""){
+            // Extract special flags like nullable
+            $isNullable = in_array("nullable", $rules);
+            // Remove nullable from a rule array so it's not processed as a validation rule
+            $rules = array_filter($rules, fn($rule) => $rule !== "nullable");
+
+            // Skip validation entirely if field is empty and nullable
+            if ($isNullable && ($data[$key] === "" || !isset($data[$key]))) {
                 continue;
             }
 
