@@ -626,6 +626,48 @@ class RuleTest extends DatabaseDriverSetup
         $this->assertEquals("Global override for first_name with a min of 10",$request->getValidationErrors()["first_name"]);
     }
 
+    public function test_nullable_with_failing_value() : void
+    {
+        $request = Faker::request();
+        $request->setInput("first_name","John");
+        $request->reInitializeRequestData();
+
+        \Lucent\Facades\Rule::overrideMessage("min",":attribute must be at least :min characters");
+
+        $this->assertFalse($request->validate([
+            "first_name" => ["min:10","max:255","nullable"],
+        ]));
+
+
+
+        $this->assertEquals("first_name must be at least 10 characters",$request->getValidationErrors()["first_name"]);
+
+    }
+
+    public function test_nullable_with_passing_value() : void
+    {
+        $request = Faker::request();
+        $request->setInput("first_name","John Smith");
+
+        $request->reInitializeRequestData();
+
+        $this->assertTrue($request->validate([
+            "first_name" => ["min:10","max:255","nullable"],
+        ]));
+
+        var_dump($request->getValidationErrors());
+    }
+
+    public function test_nullable_with_null() : void
+    {
+        $request = Faker::request();
+        $request->reInitializeRequestData();
+
+        $this->assertTrue($request->validate([
+            "first_name" => ["min:10","max:255","nullable"],
+        ]));
+    }
+
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
