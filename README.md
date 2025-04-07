@@ -19,6 +19,8 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - Comprehensive logging
 - [CLI tools for development and maintenance](./docs/commandline.md)
 - [File System](./docs/filesystem/file.md)
+- [UUID's](./docs/facades/uuid.md)
+
 
 ## Installing and Updating
 
