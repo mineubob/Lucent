@@ -99,7 +99,7 @@ class MySQLDriver extends DatabaseInterface
 
         $string = match ($column["TYPE"]) {
             LUCENT_DB_DECIMAL => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . "(20,2)",
-            LUCENT_DB_JSON, LUCENT_DB_TIMESTAMP, LUCENT_DB_DATE => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]],
+            LUCENT_DB_JSON, LUCENT_DB_TIMESTAMP, LUCENT_DB_DATE, LUCENT_DB_LONGTEXT, LUCENT_DB_TEXT, LUCENT_DB_MEDIUMTEXT => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]],
             LUCENT_DB_ENUM => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . $this->buildValues($column["VALUES"]),
             default => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . "(" . $column["LENGTH"] . ")",
         };
