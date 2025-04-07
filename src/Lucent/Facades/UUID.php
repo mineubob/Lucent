@@ -88,6 +88,11 @@ class UUID
      */
     public static function isValid(string $uuid, ?int $version = null): bool
     {
+        // Special case for nil UUID
+        if ($uuid === '00000000-0000-0000-0000-000000000000') {
+            return $version === null; // Nil UUID is valid only when not checking specific version
+        }
+
         if ($version !== null) {
             // Validate specific version
             $pattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-' . $version . '[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i';
@@ -107,6 +112,11 @@ class UUID
      */
     public static function getVersion(string $uuid): ?int
     {
+        // Special case for nil UUID
+        if ($uuid === '00000000-0000-0000-0000-000000000000') {
+            return 0; // Consider nil UUID as version 0
+        }
+
         if (!self::isValid($uuid)) {
             return null;
         }
@@ -182,6 +192,9 @@ class UUID
 
     /**
      * Generate a nil UUID (all zeros)
+     *
+     * Note: The nil UUID is a special case that should still be considered valid,
+     * despite not having the usual version/variant bits set.
      *
      * @return string Nil UUID
      */
