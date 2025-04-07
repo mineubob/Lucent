@@ -348,6 +348,18 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertCount(2,$gmailAndBill);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_migration_long_text($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->generate_test_model_long_text();
+
+        $output = CommandLine::execute("Migration make App/Models/LongTextModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+    }
+
+
     public static function generate_test_model(): File
     {
         $modelContent = <<<'PHP'
@@ -470,4 +482,85 @@ PHP;
 
         return new File("/App/Models/Admin.php",$adminModel);
     }
+
+    public static function generate_test_model_long_text(): File
+    {
+        $modelContent = <<<'PHP'
+        <?php
+        
+        namespace App\Models;
+        
+        use Lucent\Database\Attributes\DatabaseColumn;
+        use Lucent\Database\Dataset;
+        use Lucent\Model;
+        
+        class LongTextModel extends Model
+        {
+        
+            #[DatabaseColumn([
+                "PRIMARY_KEY"=>true,
+                "TYPE"=>LUCENT_DB_INT,
+                "ALLOW_NULL"=>false,
+                "AUTO_INCREMENT"=>true,
+                "LENGTH"=>255
+            ])]
+            public private(set) ?int $id;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_LONGTEXT,
+            ])]
+            protected string $email;
+            
+                  #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_TEXT,
+            ])]
+            protected string $text;
+            
+                    #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_MEDIUMTEXT,
+            ])]
+            protected string $mText;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_LONGTEXT,
+                "ALLOW_NULL"=>false
+            ])]
+            protected string $password_hash;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_VARCHAR,
+                "ALLOW_NULL"=>false,
+                "LENGTH"=>100
+            ])]
+            protected string $full_name;
+        
+            public function __construct(Dataset $dataset){
+                $this->id = $dataset->get("id",-1);
+                $this->email = $dataset->get("email");
+                $this->password_hash = $dataset->get("password_hash");
+                $this->full_name = $dataset->get("full_name");
+            }
+        
+            public function getFullName() : string{
+                return $this->full_name;
+            }
+            
+            public function setFullName(string $full_name){
+                $this->full_name = $full_name;
+            }
+            
+            public function getId() : int
+            {
+                return $this->id;
+            }
+        
+        
+        }
+        PHP;
+
+
+        return new File("/App/Models/LongTextModel.php",$modelContent);
+
+    }
+
 }
