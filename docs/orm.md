@@ -20,6 +20,11 @@ Lucent provides a powerful and intuitive Object-Relational Mapping (ORM) system 
   - [Like Queries](#like-queries)
   - [Pagination](#pagination)
 - [Model Relationships](#model-relationships)
+- [Model Traits](#model-traits)
+  - [Creating Traits](#creating-traits)
+  - [Using Traits](#using-traits)
+  - [Trait Query Scope](#trait-query-scope)
+  - [Example: SoftDelete Trait](#example-softdelete-trait)
 
 ## Model Basics
 
@@ -349,9 +354,247 @@ class Admin extends TestUser
 
 When working with extended models, Lucent will manage foreign keys and joins automatically.
 
-## Related Topics
+## Model Traits
 
-For information on how Lucent's ORM integrates with the routing system, see the [Route Model Binding](route-model-binding.md) documentation.
+Lucent ORM now supports using PHP traits in models with enhanced functionality for traits that define database columns and behavior. This allows you to encapsulate reusable model functionality like soft deletion, timestamping, or user tracking across multiple models.
+
+### Creating Traits
+
+Traits in Lucent can define database columns and methods that should be included in multiple models:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+
+trait Timestampable
+{
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_TIMESTAMP,
+        "ALLOW_NULL" => true
+    ])]
+    public private(set) ?string $created_at = null;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_TIMESTAMP,
+        "ALLOW_NULL" => true
+    ])]
+    public private(set) ?string $updated_at = null;
+    
+    public function setCreatedAt(): void
+    {
+        $this->created_at = date('Y-m-d H:i:s');
+    }
+    
+    public function setUpdatedAt(): void
+    {
+        $this->updated_at = date('Y-m-d H:i:s');
+    }
+}
+```
+
+### Using Traits
+
+To use a trait in your model, simply include it with the PHP `use` statement. **Important:** You must manually initialize the trait properties in your constructor from the Dataset:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Dataset;
+use Lucent\Model;
+use App\Models\Timestampable;
+
+class Article extends Model
+{
+    use Timestampable;
+
+    #[DatabaseColumn([
+        "PRIMARY_KEY" => true,
+        "TYPE" => LUCENT_DB_INT,
+        "ALLOW_NULL" => false,
+        "AUTO_INCREMENT" => true
+    ])]
+    public private(set) ?int $id;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $title;
+    
+    // ... other properties and methods
+
+    public function __construct(Dataset $dataset)
+    {
+        $this->id = $dataset->get("id");
+        $this->title = $dataset->get("title");
+        
+        // You must initialize trait properties from the dataset
+        // Lucent won't do this automatically
+        $this->created_at = $dataset->get("created_at");
+        $this->updated_at = $dataset->get("updated_at");
+    }
+    
+    // Override the create() method to set timestamps
+    public function create(): bool
+    {
+        $this->setCreatedAt();
+        $this->setUpdatedAt();
+        return parent::create();
+    }
+    
+    // Override the save() method to update the updated_at timestamp
+    public function save(string $identifier = "id"): bool
+    {
+        $this->setUpdatedAt();
+        return parent::save($identifier);
+    }
+}
+```
+
+### Trait Query Scope
+
+One of the powerful features of Lucent's trait support is the ability to register global query scopes for models that use specific traits. This allows you to automatically apply certain query conditions whenever a model with that trait is queried.
+
+To register a trait condition:
+
+```php
+use Lucent\ModelCollection;
+
+// Register a condition for models using the SoftDelete trait
+ModelCollection::registerTraitCondition(
+    \App\Models\SoftDelete::class,  // The trait class
+    'deleted_at',                   // The column to apply the condition to
+    null                           // The value to check for (null = include only non-deleted records)
+);
+```
+
+Now, any query on a model that uses the `SoftDelete` trait will automatically include a `WHERE deleted_at IS NULL` condition, effectively filtering out soft-deleted records by default.
+
+### Example: SoftDelete Trait
+
+Here's a complete example of a SoftDelete trait implementation:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Dataset;
+use Lucent\Model;
+
+trait SoftDelete
+{
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_INT,
+        "ALLOW_NULL" => true
+    ])]
+    public private(set) ?int $deleted_at = null;
+
+    /**
+     * Override the base delete method with a soft delete implementation
+     *
+     * @param mixed $propertyName The primary key property name
+     * @return bool Success
+     */
+    public function delete($propertyName = "id"): bool
+    {
+        return $this->softDelete($propertyName);
+    }
+
+    /**
+     * Delete the model by setting the deleted_at timestamp
+     *
+     * @param string $propertyName The primary key property name
+     * @return bool Success
+     */
+    public function softDelete(string $propertyName = "id"): bool
+    {
+        $this->deleted_at = time();
+        return $this->save($propertyName);
+    }
+
+    /**
+     * Restore a soft deleted model
+     *
+     * @return bool Success
+     */
+    public function restore(): bool
+    {
+        $this->deleted_at = null;
+        return $this->save();
+    }
+}
+```
+
+Using the SoftDelete trait in a model:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database\Dataset;
+use Lucent\Model;
+use App\Models\SoftDelete;
+
+class TestUser extends Model
+{
+    use SoftDelete;
+
+    #[DatabaseColumn([
+        "PRIMARY_KEY" => true,
+        "TYPE" => LUCENT_DB_INT,
+        "ALLOW_NULL" => false,
+        "AUTO_INCREMENT" => true
+    ])]
+    public private(set) ?int $id;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $email;
+
+    // ... other properties
+
+    public function __construct(Dataset $dataset)
+    {
+        $this->id = $dataset->get("id", -1);
+        $this->email = $dataset->get("email");
+        
+        // Important: You must manually initialize trait properties
+        // from the dataset in your constructor
+        $this->deleted_at = $dataset->get("deleted_at");
+    }
+}
+```
+
+Automatically applying the soft delete condition:
+
+```php
+// Register the trait condition once (typically in your application bootstrap)
+ModelCollection::registerTraitCondition(
+    App\Models\SoftDelete::class,
+    'deleted_at',
+    null
+);
+
+// Now queries will automatically exclude soft-deleted records
+$users = TestUser::where('email', 'like', '@example.com')->get();
+
+// To include soft-deleted records, you would need to override the condition
+$allUsers = TestUser::where('deleted_at', 'IS NOT NULL', 'OR')
+    ->orWhere('deleted_at', null)
+    ->get();
+```
 
 ---
 
