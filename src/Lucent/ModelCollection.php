@@ -4,6 +4,7 @@ namespace Lucent;
 
 use Lucent\Database\Dataset;
 use ReflectionClass;
+use ReflectionException;
 
 /**
  * ModelCollection class for querying database models
@@ -63,11 +64,14 @@ class ModelCollection
      */
     private array $cache;
 
+    private static array $traitConditions = [];
+
     /**
      * Create a new ModelCollection instance
      *
      * @param string $class The fully qualified class name of the model
      * @return ModelCollection
+     * @throws ReflectionException
      */
     public function __construct($class){
         $this->class = $class;
@@ -331,16 +335,50 @@ class ModelCollection
             $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk["NAME"]} = {$parent->getShortName()}.{$pk["NAME"]}";
         }
 
+        // Apply trait conditions if enabled and the model uses those traits
+        if (count(ModelCollection::$traitConditions) > 0) {
+            foreach (self::$traitConditions as $traitName => $condition) {
+                // Check if the model uses this trait
+                if (class_exists($this->class) && in_array($traitName, $this->class_uses_recursive($this->class))) {
+                    $column = $condition['column'];
+                    $value = $condition['value'];
+
+                    // For null comparisons
+                    if ($value === null) {
+                        $this->whereConditions[] = [
+                            'column' => $column,
+                            'value' => 'IS NULL',
+                            'operator' => 'AND',
+                            'is_raw' => true // Mark as raw SQL to avoid quoting
+                        ];
+                    } else {
+                        $this->whereConditions[] = [
+                            'column' => $column,
+                            'value' => $value,
+                            'operator' => 'AND'
+                        ];
+                    }
+                }
+            }
+        }
+
         // Build WHERE conditions
         if (!empty($this->whereConditions) || !empty($this->likeConditions)) {
             $query .= " WHERE ";
             $conditions = [];
 
             // Process WHERE conditions
+            // Process WHERE conditions
             foreach ($this->whereConditions as $index => $condition) {
                 // Only add the operator for conditions after the first one
                 $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
-                $conditions[] = $prefix . $condition['column'] . "='" . $condition['value'] . "'";
+
+                // Check if this is a raw SQL condition
+                if (isset($condition['is_raw']) && $condition['is_raw']) {
+                    $conditions[] = $prefix . $condition['column'] . " " . $condition['value'];
+                } else {
+                    $conditions[] = $prefix . $condition['column'] . "='" . $condition['value'] . "'";
+                }
             }
 
             // Process LIKE conditions
@@ -362,5 +400,37 @@ class ModelCollection
         }
 
         return $query;
+    }
+
+    // Register a condition that will be applied automatically when querying models
+    public static function registerTraitCondition(string $traitName, string $column, $value): void
+    {
+        self::$traitConditions[$traitName] = [
+            'column' => $column,
+            'value' => $value
+        ];
+    }
+
+    /**
+     * Get all traits used by a class, including traits used by parent classes
+     *
+     * @param string $class
+     * @return array
+     */
+    private function class_uses_recursive(string $class): array
+    {
+        $traits = [];
+
+        // Get traits of the current class
+        $className = is_object($class) ? get_class($class) : $class;
+        $traits = class_uses($className) ?: [];
+
+        // Get traits of all parent classes
+        $parentClass = get_parent_class($className);
+        if ($parentClass) {
+            $traits = array_merge($this->class_uses_recursive($parentClass), $traits);
+        }
+
+        return $traits;
     }
 }
