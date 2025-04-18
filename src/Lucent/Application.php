@@ -262,24 +262,28 @@ class Application
         $request = new Request();
 
         if (!$response["outcome"]) {
-            http_response_code(404);
 
             $response = new JsonResponse()
                 ->setStatusCode(404)
                 ->setOutcome(false)
                 ->setMessage("Invalid API route.");
 
+            http_response_code(404);
+            $this->setHeaders($response->headers);
+
             return $response->render();
         }
 
         // Verify controller exists before trying to instantiate it
         if (!class_exists($response["controller"])) {
-            http_response_code(500);
 
             $response = new JsonResponse()
                 ->setStatusCode(500)
                 ->setOutcome(false)
                 ->setMessage("Controller class '" . $response["controller"] . "' not found");
+
+            http_response_code(500);
+            $this->setHeaders($response->headers);
 
             return $response->render();
         }
@@ -288,12 +292,14 @@ class Application
 
         //Check if we have a valid method, if not throw a 500 error.
         if (!method_exists($controller, $response["method"])) {
-            http_response_code(500);
 
             $response = new JsonResponse()
                 ->setStatusCode(500)
                 ->setOutcome(false)
                 ->setMessage("Method '" . $response["method"] . "' not found in controller '" . $response["controller"] . "'");
+
+            http_response_code(500);
+            $this->setHeaders($response->headers);
 
             return $response->render();
         }
@@ -354,6 +360,9 @@ class Application
                         ->setOutcome(false)
                         ->setMessage("The requested resource '" . $parameter->getName() . "' doesnt exist.");
 
+                    http_response_code($response->status());
+                    $this->setHeaders($response->headers);
+
                     return $response->render();
                 }
             }
@@ -361,7 +370,8 @@ class Application
 
         $result = $method->invokeArgs($controller, $response["variables"]);
 
-        $result->set_response_header();
+        http_response_code($result->status());
+        $this->setHeaders($result->headers);
         return $result->render();
     }
 
@@ -603,6 +613,20 @@ class Application
     {
         return array_any($method->getParameters(), fn($parameter) => $parameter->getName() === "options");
 
+    }
+
+    /**
+     * Set multiple HTTP headers from an associative array
+     *
+     * @param array $headers Associative array where keys are header names and values are header content
+     * @param bool $replace Whether to replace previous headers with the same name (default: true)
+     * @return void
+     */
+    public function setHeaders(array $headers, bool $replace = true): void
+    {
+        foreach ($headers as $name => $value) {
+            header("$name: $value", $replace);
+        }
     }
 
 
