@@ -7,6 +7,7 @@ use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
+use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
 use Lucent\Http\HttpRouter;
@@ -303,6 +304,14 @@ class Application
 
             return $response->render();
         }
+
+        $request->setRouteInfo(new RouteInfo(
+            $response["controller"],
+            $response["method"],
+            $response["route"],
+            $_SERVER["REQUEST_METHOD"],
+            $response["variables"]
+        ));
 
         //Next we check if we have any variables to pass, if not we run the method.
         //Next this as we have not returned we have variables to pass
