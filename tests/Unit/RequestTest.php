@@ -3,6 +3,7 @@
 namespace Unit;
 
 use Lucent\Http\Request;
+use Lucent\Http\RouteInfo;
 use PHPUnit\Framework\TestCase;
 
 class RequestTest extends TestCase
@@ -121,6 +122,36 @@ class RequestTest extends TestCase
         $this->assertArrayHasKey('X-Unsafe', $headers);
         $this->assertEquals("test\r\nX-Injected: malicious", $headers['X-Unsafe']);
         $this->assertArrayNotHasKey('X-Injected', $headers);
+    }
+
+    public function test_route_info() : void
+    {
+        $request = new Request();
+
+        $routeResponse = [
+            "outcome" => true,
+            "controller" => "App\\Controllers\\TestController",
+            "method" => "show",
+            "route" => "/test/123",
+            "variables" => ["id" => "123"],
+            "middleware" => []
+        ];
+
+        $routeInfo = new RouteInfo(
+            $routeResponse["controller"],
+            $routeResponse["method"],
+            $routeResponse["route"],
+            'GET',
+            $routeResponse["variables"]
+        );
+
+        // Set the RouteInfo on the Request
+        $request->setRouteInfo($routeInfo);
+
+        // Assert RouteInfo was set correctly
+        $this->assertNotNull($request->routeInfo);
+        $this->assertEquals("App\\Controllers\\TestController", $request->routeInfo->controllerClass);
+        $this->assertEquals("show", $request->routeInfo->method);
     }
 
     /**

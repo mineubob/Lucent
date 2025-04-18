@@ -7,11 +7,14 @@ class JsonResponse extends HttpResponse
 
     public function __construct($content = '', $status = 200){
         parent::__construct($content, $status);
+
         $this->body = [];
         $this->body["message"] = "Request successfully executed.";
         $this->body["outcome"] = true;
         $this->body["status"] = $status;
         $this->body["content"] = [];
+
+        $this->headers["Content-Type"] = "application/json; charset=utf-8";
     }
 
     public function setOutcome(bool $outcome) : JsonResponse
@@ -58,12 +61,6 @@ class JsonResponse extends HttpResponse
         $this->statusCode = 400;
         $this->body["errors"][$key] = $error;
         return $this;
-    }
-
-    public function set_response_header(): void
-    {
-
-        header('Content-Type: application/json; charset=utf-8');
     }
 
     public function render(): string

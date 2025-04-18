@@ -6,11 +6,11 @@ class HttpResponse
 {
 
     public function __construct(
-        protected string|bool|null|array $body,
-        protected int $statusCode,
-        protected array $headers = [],
-        protected ?string $error = null,
-        protected int $errorCode = 0
+        public protected(set) string|bool|null|array $body,
+        public protected(set) int $statusCode,
+        public protected(set) array $headers = [],
+        public protected(set) ?string $error = null,
+        public protected(set) int $errorCode = 0
     ) {}
 
     public function successful(): bool
