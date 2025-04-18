@@ -46,6 +46,13 @@ class Request
     private array $urlVars;
 
     /**
+     * Information about the current route
+     *
+     * @var RouteInfo|null
+     */
+    public private(set) ?RouteInfo $routeInfo = null;
+
+    /**
      * Constructor for the Request class
      *
      * Initializes request data and creates a new session
@@ -53,6 +60,20 @@ class Request
     public function __construct()
     {
         $this->initializeRequestData();
+    }
+
+    /**
+     * Sets the current route information for this request
+     *
+     * This method stores details about the controller and method that are
+     * handling the current request.
+     *
+     * @param RouteInfo $routeInfo Object containing controller, method, and route details
+     * @return void
+     */
+    public function setRouteInfo(RouteInfo $routeInfo): void
+    {
+        $this->routeInfo = $routeInfo;
     }
 
     /**
