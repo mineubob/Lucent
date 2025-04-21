@@ -37,6 +37,13 @@ class ModelCollection
     private array $likeConditions;
 
     /**
+     * Array to store order by clauses
+     *
+     * @var array
+     */
+    private array $orderByClauses = [];
+
+    /**
      * Maximum number of records to return
      *
      * @var int
@@ -174,6 +181,32 @@ class ModelCollection
     public function orLike(string $column, string $value): ModelCollection
     {
         return $this->like($column, $value, 'OR');
+    }
+
+    /**
+     * Add an ORDER BY clause to the query
+     *
+     * @param string $column The column to sort by
+     * @param string $direction The sort direction ('ASC' or 'DESC')
+     * @return ModelCollection
+     */
+    public function orderBy(string $column, string $direction = 'ASC'): ModelCollection
+    {
+        // Normalize direction
+        $direction = strtoupper($direction);
+        if ($direction !== 'ASC' && $direction !== 'DESC') {
+            $direction = 'ASC'; // Default to ASC if invalid direction provided
+        }
+
+        // Format column name based on inheritance structure
+        $formattedColumn = $this->formatColumnName($column);
+
+        $this->orderByClauses[] = [
+            'column' => $formattedColumn,
+            'direction' => $direction
+        ];
+
+        return $this;
     }
 
     /**
@@ -385,7 +418,6 @@ class ModelCollection
             $conditions = [];
 
             // Process WHERE conditions
-            // Process WHERE conditions
             foreach ($this->whereConditions as $index => $condition) {
                 // Only add the operator for conditions after the first one
                 $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
@@ -407,6 +439,17 @@ class ModelCollection
             }
 
             $query .= implode(' ', $conditions);
+        }
+
+        if (!empty($this->orderByClauses)) {
+            $query .= " ORDER BY ";
+            $orderClauses = [];
+
+            foreach ($this->orderByClauses as $clause) {
+                $orderClauses[] = $clause['column'] . ' ' . $clause['direction'];
+            }
+
+            $query .= implode(', ', $orderClauses);
         }
 
         // Add limit and offset
