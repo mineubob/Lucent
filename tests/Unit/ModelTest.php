@@ -6,6 +6,7 @@ use App\Extensions\View\View;
 use App\Models\Admin;
 use App\Models\TestUser;
 use App\Models\TestUserTwo;
+use App\Models\TransactionModel;
 use Lucent\Database;
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
@@ -428,6 +429,156 @@ class ModelTest extends DatabaseDriverSetup
         // $this->assertCount(1, $users);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_get_sum_of_column($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 25.5,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>1,
+            "amount" => -50,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 120,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 4.5,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        //0 = credit, 1 = debit
+        $sum = \App\Models\TransactionModel::where("type",0)->sum("amount");
+
+        $this->assertEquals(150,$sum);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_get_sum_of_column_with_subtraction($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 25.5,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => -50,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 120,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        $transaction = new \App\Models\TransactionModel(new Dataset([
+            "type" =>0,
+            "amount" => 4.5,
+        ]));
+
+        $this->assertTrue($transaction->create());
+
+        //0 = credit, 1 = debit
+        $sum = \App\Models\TransactionModel::where("type",0)->sum("amount");
+
+        $this->assertEquals(100,$sum);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_sorting_asc($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $i = 0;
+        while($i < 10){
+
+            $transaction = new \App\Models\TransactionModel(new Dataset([
+                "type" => 0,
+                "amount" => rand(10,200),
+            ]));
+
+            $this->assertTrue($transaction->create());
+
+            $i++;
+        }
+
+        $last = -1;
+        foreach (TransactionModel::where("type",0)->orderBy('amount')->get() as $transaction){
+            $this->assertTrue($last <= $transaction->amount);
+            $last = $transaction->amount;
+        }
+
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_sorting_dsc($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $i = 0;
+        while($i < 10){
+
+            $transaction = new \App\Models\TransactionModel(new Dataset([
+                "type" => 0,
+                "amount" => rand(10,200),
+            ]));
+
+            $this->assertTrue($transaction->create());
+
+            $i++;
+        }
+
+        $last = 200;
+        foreach (TransactionModel::where("type",0)->orderBy('amount',"DESC")->get() as $transaction){
+            $this->assertTrue($last >= $transaction->amount);
+            $last = $transaction->amount;
+        }
+
+    }
+
 
     public static function generate_test_model(): File
     {
@@ -766,6 +917,63 @@ PHP;
         return new File("/App/Models/TestUserTwo.php",$modelContent);
 
     }
+
+    public static function generate_transaction_model(): File
+    {
+        $modelContent = <<<'PHP'
+        <?php
+        
+        namespace App\Models;
+        
+        use Lucent\Database\Attributes\DatabaseColumn;
+        use Lucent\Database\Dataset;
+        use Lucent\Model;
+        use App\Models\SoftDelete;
+        
+        class TransactionModel extends Model
+        {
+        
+            #[DatabaseColumn([
+                "PRIMARY_KEY"=>true,
+                "TYPE"=>LUCENT_DB_INT,
+                "ALLOW_NULL"=>false,
+                "AUTO_INCREMENT"=>true,
+                "LENGTH"=>255
+            ])]
+            public private(set) ?int $id;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_VARCHAR,
+                "ALLOW_NULL"=>true
+            ])]
+            protected ?string $description;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_DECIMAL,
+                "ALLOW_NULL"=>false
+            ])]
+            public protected(set) float $amount;
+            
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_INT,
+                "ALLOW_NULL"=>false
+            ])]
+            protected int $type;
+        
+            public function __construct(Dataset $dataset){
+                $this->id = $dataset->get("id",-1);
+                $this->description = $dataset->get("description");
+                $this->amount = $dataset->get("amount");
+                $this->type = $dataset->get("type");
+            }   
+        }
+        PHP;
+
+
+        return new File("/App/Models/TransactionModel.php",$modelContent);
+
+    }
+
 
 
 

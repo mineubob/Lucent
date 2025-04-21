@@ -399,7 +399,8 @@ class Model
      * @method static mixed|null getFirst() Get the first matching record
      * @method static ModelCollection collection() Return the collection object for method chaining
      * @method static int count() Count the number of matching records
-     */
+     * @method static float sum(string $column) Sum of all values in a given column
+ */
     public static function __callStatic(string $name, array $arguments) : ?ModelCollection
     {
         if(method_exists(ModelCollection::class,$name)){

@@ -37,6 +37,13 @@ class ModelCollection
     private array $likeConditions;
 
     /**
+     * Array to store order by clauses
+     *
+     * @var array
+     */
+    private array $orderByClauses = [];
+
+    /**
      * Maximum number of records to return
      *
      * @var int
@@ -177,6 +184,32 @@ class ModelCollection
     }
 
     /**
+     * Add an ORDER BY clause to the query
+     *
+     * @param string $column The column to sort by
+     * @param string $direction The sort direction ('ASC' or 'DESC')
+     * @return ModelCollection
+     */
+    public function orderBy(string $column, string $direction = 'ASC'): ModelCollection
+    {
+        // Normalize direction
+        $direction = strtoupper($direction);
+        if ($direction !== 'ASC' && $direction !== 'DESC') {
+            $direction = 'ASC'; // Default to ASC if invalid direction provided
+        }
+
+        // Format column name based on inheritance structure
+        $formattedColumn = $this->formatColumnName($column);
+
+        $this->orderByClauses[] = [
+            'column' => $formattedColumn,
+            'direction' => $direction
+        ];
+
+        return $this;
+    }
+
+    /**
      * Format column name based on inheritance structure
      *
      * Handles column prefixing for inherited models to ensure correct
@@ -311,6 +344,23 @@ class ModelCollection
     }
 
     /**
+     *
+     * Calculate the sum of values in a specified column
+     *
+     * Executes a SUM() query with the current conditions to calculate
+     * the total sum of values in the specified column for all matching records.
+     * Use the same WHERE conditions as the main query.
+     *
+     * @param string $column The column name to sum
+     * @return float The sum of all values in the specified column
+     */
+    public function sum(string $column): float
+    {
+        $query = str_replace("*", "sum({$column})", $this->buildQuery());
+        return (float)Database::select($query, false)["sum({$column})"];
+    }
+
+    /**
      * Build the SQL query based on the conditions
      *
      * Constructs a complete SQL query string from all the conditions, joins,
@@ -368,7 +418,6 @@ class ModelCollection
             $conditions = [];
 
             // Process WHERE conditions
-            // Process WHERE conditions
             foreach ($this->whereConditions as $index => $condition) {
                 // Only add the operator for conditions after the first one
                 $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
@@ -390,6 +439,17 @@ class ModelCollection
             }
 
             $query .= implode(' ', $conditions);
+        }
+
+        if (!empty($this->orderByClauses)) {
+            $query .= " ORDER BY ";
+            $orderClauses = [];
+
+            foreach ($this->orderByClauses as $clause) {
+                $orderClauses[] = $clause['column'] . ' ' . $clause['direction'];
+            }
+
+            $query .= implode(', ', $orderClauses);
         }
 
         // Add limit and offset

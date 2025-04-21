@@ -22,7 +22,7 @@ class SQLiteDriver extends DatabaseInterface
         $this->typeMap = [
             LUCENT_DB_BINARY => "BLOB",
             LUCENT_DB_TINYINT => "INTEGER",
-            LUCENT_DB_DECIMAL => "DECIMAL",
+            LUCENT_DB_DECIMAL => "REAL",
             LUCENT_DB_INT => "INTEGER",
             LUCENT_DB_JSON => "TEXT",
             LUCENT_DB_TIMESTAMP => "DATETIME",
