@@ -311,6 +311,23 @@ class ModelCollection
     }
 
     /**
+     *
+     * Calculate the sum of values in a specified column
+     *
+     * Executes a SUM() query with the current conditions to calculate
+     * the total sum of values in the specified column for all matching records.
+     * Use the same WHERE conditions as the main query.
+     *
+     * @param string $column The column name to sum
+     * @return float The sum of all values in the specified column
+     */
+    public function sum(string $column): float
+    {
+        $query = str_replace("*", "sum({$column})", $this->buildQuery());
+        return (float)Database::select($query, false)["sum({$column})"];
+    }
+
+    /**
      * Build the SQL query based on the conditions
      *
      * Constructs a complete SQL query string from all the conditions, joins,
