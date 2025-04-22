@@ -145,7 +145,7 @@ class ModelCollection
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' =>  'IN (' . implode(', ', $values) . ')',
+            'value' =>  "IN ('" . implode("', '", $values) . "')",
             'operator' => $operator,
             'is_raw' => true
         ];
