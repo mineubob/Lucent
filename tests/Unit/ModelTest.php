@@ -8,9 +8,9 @@ use App\Models\TestUser;
 use App\Models\TestUserTwo;
 use App\Models\TransactionModel;
 use Lucent\Database;
-use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
+use Lucent\Facades\Faker;
 use Lucent\Filesystem\File;
 use Lucent\ModelCollection;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -577,6 +577,82 @@ class ModelTest extends DatabaseDriverSetup
             $last = $transaction->amount;
         }
 
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_collection_in($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $i = 0;
+        while($i < 10){
+
+            $transaction = new \App\Models\TransactionModel(new Dataset([
+                "type" => rand(0,1),
+                "amount" => rand(10,200),
+                "description" => Faker::randomString(rand(0,50))
+            ]));
+
+            $this->assertTrue($transaction->create());
+
+            $i++;
+        }
+
+        //Ids we are counting.
+        $ids = [1,2,3];
+
+        $manualAmount = 0;
+        //Manually check the sum with n+1 query.
+        foreach ($ids as $id){
+            $manualAmount += TransactionModel::where("id",$id)->sum("amount");
+        }
+
+        $inAmount = TransactionModel::in("id",$ids)->orderBy('amount',"DESC")->sum("amount");
+
+        $this->assertEquals($manualAmount,$inAmount);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_collection_in_with_where($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $i = 0;
+        while($i < 10){
+
+            $transaction = new \App\Models\TransactionModel(new Dataset([
+                "type" => rand(0,1),
+                "amount" => rand(10,200),
+                "description" => Faker::randomString(rand(0,50))
+            ]));
+
+            $this->assertTrue($transaction->create());
+
+            $i++;
+        }
+
+        //Ids we are counting.
+        $ids = [1,2,3];
+
+        $manualAmount = 0;
+        //Manually check the sum with n+1 query.
+        foreach ($ids as $id){
+            $manualAmount += TransactionModel::where("id",$id)->where("type",0)->sum("amount");
+        }
+
+        $inAmount = TransactionModel::in("id",$ids)->orderBy('amount',"DESC")->where("type",0)->sum("amount");
+
+        $this->assertEquals($manualAmount,$inAmount);
     }
 
 

@@ -123,6 +123,37 @@ class ModelCollection
     }
 
     /**
+     * Add a WHERE condition to the query
+     *
+     * Adds a condition to match records where the specified column equals a value provided in an array of values.
+     * Multiple conditions can be combined with logical operators (AND/OR).
+     *
+     * @param string $column The column name to check
+     * @param array $values
+     * @param string $operator The logical operator (AND or OR) to use
+     * @return ModelCollection
+     */
+    public function in(string $column, array $values, string $operator = 'AND'): ModelCollection
+    {
+        $operator = strtoupper($operator);
+        if ($operator !== 'AND' && $operator !== 'OR') {
+            $operator = 'AND'; // Default to AND if invalid operator provided
+        }
+
+        // Format column name based on inheritance structure
+        $formattedColumn = $this->formatColumnName($column);
+
+        $this->whereConditions[] = [
+            'column' => $formattedColumn,
+            'value' =>  'IN (' . implode(', ', $values) . ')',
+            'operator' => $operator,
+            'is_raw' => true
+        ];
+
+        return $this;
+    }
+
+    /**
      * Add a WHERE condition with OR logic
      *
      * Convenience method that adds a WHERE condition using OR logic,
