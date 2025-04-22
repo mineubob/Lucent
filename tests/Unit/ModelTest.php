@@ -655,6 +655,35 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertEquals($manualAmount,$inAmount);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_collection_where_greater_then($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+        $this->assertTrue($this->generate_transaction_model()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $i = 0;
+        while($i < 10){
+
+            $transaction = new \App\Models\TransactionModel(new Dataset([
+                "type" => rand(0,1),
+                "amount" => rand(10,200),
+                "description" => Faker::randomString(rand(0,50)),
+                "date" => time() - (86400*$i)
+            ]));
+
+            $this->assertTrue($transaction->create());
+            $i++;
+        }
+
+        $transactions = TransactionModel::compare("date","<=",time()-(86400*5))->get();
+
+        $this->assertCount(5,$transactions);
+
+    }
+
 
     public static function generate_test_model(): File
     {
@@ -1035,12 +1064,19 @@ PHP;
                 "ALLOW_NULL"=>false
             ])]
             protected int $type;
+            
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_INT,
+                "ALLOW_NULL"=>false
+            ])]
+            public protected(set) int $date;
         
             public function __construct(Dataset $dataset){
                 $this->id = $dataset->get("id",-1);
                 $this->description = $dataset->get("description");
                 $this->amount = $dataset->get("amount");
                 $this->type = $dataset->get("type");
+                $this->date = $dataset->get("date", time());
             }   
         }
         PHP;

@@ -154,6 +154,42 @@ class ModelCollection
     }
 
     /**
+     * Add a WHERE condition with a custom comparison operator
+     *
+     * Allows flexible comparison operations including equals, greater than, less than, etc.
+     * Can be used in two ways:
+     * 1. compare("column", "value") - Uses equality comparison (same as where)
+     * 2. compare("column", "<operator>", "value") - Uses the specified operator
+     *
+     * @param string $column The column name to check
+     * @param string $logicalOperator The logical operator (AND or OR) to combine with other conditions
+     * @param mixed|null $value The value to compare against if using operator (null if using 2-parameter syntax)
+     * @param string $operator
+     * @return ModelCollection Current collection instance for method chaining
+     */
+    public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): ModelCollection
+    {
+        $operator = strtoupper($operator);
+        if ($operator !== 'AND' && $operator !== 'OR') {
+            $operator = 'AND'; // Default to AND if invalid operator provided
+        }
+
+        // Format column name based on inheritance structure
+        $formattedColumn = $this->formatColumnName($column);
+
+
+        $this->whereConditions[] = [
+            'column' => $formattedColumn,
+            'value' =>  " {$logicalOperator} '{$value}'",
+            'operator' => $operator,
+            'is_raw' => true
+        ];
+
+
+        return $this;
+    }
+
+    /**
      * Add a WHERE condition with OR logic
      *
      * Convenience method that adds a WHERE condition using OR logic,
