@@ -9,10 +9,12 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
+use Lucent\Service;
 use Phar;
 
 class App
 {
+    private static ?Service $service;
 
     public static function env(string $key, $default = null)
     {
@@ -55,6 +57,14 @@ class App
     public static function execute() : string
     {
         return Application::getInstance()->executeHttpRequest();
+    }
+
+    public static function service() : Service
+    {
+        if(!isset(self::$service)) {
+            self::$service = new Service();
+        }
+        return self::$service;
     }
 
 

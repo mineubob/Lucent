@@ -63,6 +63,13 @@ class Application
     private static ?Application $instance = null;
 
     /**
+     * Singleton instance of service classes
+     *
+     * @var array
+     */
+    public private(set) array $services = [];
+
+    /**
      * Environment variables loaded from .env file
      *
      * @var array
@@ -74,13 +81,13 @@ class Application
      *
      * @var array<string, Channel>
      */
-    private array $loggers = [];
+    public private(set) array $loggers = [];
 
 
     /**
      * An array of globally accessible regex rules.
      */
-    private array $regexRules = [
+    public private(set) array $regexRules = [
         'password' => [
             "pattern" => '/^(?=.*[a-z])(?=.*[A-Z]).{8,}$/',
             "message" => "Password must contain at least one lowercase letter, one uppercase letter, and be at least 8 characters long.",
@@ -289,7 +296,25 @@ class Application
             return $response->render();
         }
 
-        $controller = new $response["controller"]();
+        $controllerReflection =  new ReflectionClass($response["controller"]);
+        $controllerConstructor = $controllerReflection->getConstructor();
+        $parameters = [];
+
+        if($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0){
+
+            foreach ($controllerReflection->getConstructor()->getParameters() as $parameter){
+                if(array_key_exists($parameter->getType()->getName(), $this->services)){
+                    $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
+                }
+            }
+
+        }
+
+        if($parameters !== []){
+            $controller = $controllerReflection->newInstanceArgs($parameters);
+        }else{
+            $controller = new $response["controller"]();
+        }
 
         //Check if we have a valid method, if not throw a 500 error.
         if (!method_exists($controller, $response["method"])) {
@@ -373,6 +398,11 @@ class Application
                     $this->setHeaders($response->headers);
 
                     return $response->render();
+                }
+            }else{
+                //Else perform dependency injection
+                if(array_key_exists($parameter->getType()->getName(), $this->services)){
+                    $response["variables"][$parameter->getName()] = $this->services[$parameter->getType()->getName()];
                 }
             }
         }
@@ -636,6 +666,14 @@ class Application
         foreach ($headers as $name => $value) {
             header("$name: $value", $replace);
         }
+    }
+
+    public function addService(string $className) : mixed
+    {
+        $instance = new $className();
+        $this->services[$className] = $instance;
+
+        return $instance;
     }
 
 
