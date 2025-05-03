@@ -3,7 +3,6 @@ namespace Lucent\Http;
 
 use InvalidArgumentException;
 use Lucent\Database\Dataset;
-use Lucent\Model;
 use Lucent\Validation\BlankRule;
 use Lucent\Validation\Rule;
 
@@ -360,5 +359,18 @@ class Request
     public function setUrlVars(array $vars): void
     {
         $this->urlVars = $vars;
+    }
+
+    /**
+     * Set a specific header
+     *
+     * @param string $key The header name
+     * @param string $value The header value
+     */
+    public function setHeader(string $key, string $value): void
+    {
+        // Normalize the header key
+        $key = str_replace(' ', '-', ucwords(strtolower($key), '-'));
+        $this->headers[$key] = $value;
     }
 }
