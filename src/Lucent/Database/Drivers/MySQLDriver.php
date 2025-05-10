@@ -84,7 +84,15 @@ class MySQLDriver extends DatabaseInterface
         $port = App::env("DB_PORT");
         $database = App::env("DB_DATABASE");
 
-        return new mysqli($host, $username, $password, $database, $port);
+        $mysqli = new mysqli();
+        $mysqli->options(MYSQLI_OPT_CONNECT_TIMEOUT, 3);
+        $mysqli->options(MYSQLI_CLIENT_COMPRESS, true);
+
+        $mysqli->real_connect('p:'.$host, $username, $password, $database, $port);
+        $mysqli->set_charset('utf8mb4');
+        $mysqli->autocommit(true);
+
+        return $mysqli;
     }
 
     public function buildColumnString(array $column): string
