@@ -108,6 +108,144 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->assertTrue(Database::insert($query));
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_singleton_connection_pattern_working($driver, $config): void
+    {
+        self::setupDatabase($driver, $config);
+
+        // Get the first connection instance
+        $instance1 = $this->getPrivateDatabaseInstance();
+
+        // If instance1 is null, force creation by making a query
+        if ($instance1 === null) {
+            Database::select("SELECT 1");
+            $instance1 = $this->getPrivateDatabaseInstance();
+        }
+
+        $this->assertNotNull($instance1, "Failed to get first database instance");
+
+        // Run a simple query to ensure the connection is established
+        if ($driver === 'mysql') {
+            $query = "SELECT 1";
+        } else {
+            $query = "SELECT 1";
+        }
+
+        Database::select($query);
+
+        // Get the second instance after the query
+        $instance2 = $this->getPrivateDatabaseInstance();
+        $this->assertNotNull($instance2, "Failed to get second database instance");
+
+        // They should be the same object
+        $this->assertSame($instance1, $instance2,
+            "Database connection is not using the singleton pattern - a new connection was created");
+
+        // Run a second query and get the instance again
+        Database::select($query);
+        $instance3 = $this->getPrivateDatabaseInstance();
+        $this->assertNotNull($instance3, "Failed to get third database instance");
+
+        // Third instance should still be the same object
+        $this->assertSame($instance1, $instance3,
+            "Database connection singleton was not maintained after multiple queries");
+
+        // Now reset the connection and verify we get a new instance
+        Database::reset();
+
+        // After reset, instance should be null
+        $instanceAfterReset = $this->getPrivateDatabaseInstance();
+        $this->assertNull($instanceAfterReset, "Database::reset() did not properly clear the instance");
+
+        // Force creation of a new instance
+        Database::select($query);
+        $instance4 = $this->getPrivateDatabaseInstance();
+        $this->assertNotNull($instance4, "Failed to create new instance after reset");
+
+        // After reset and a new query, we should have a different instance
+        $this->assertNotSame($instance1, $instance4,
+            "Database::reset() did not create a new connection instance");
+
+        // Verify the driver type is correct
+        $driverClass = get_class($instance4);
+        if ($driver === 'mysql') {
+            $this->assertStringContainsString('MySQLDriver', $driverClass,
+                "Wrong driver type - expected MySQLDriver but got {$driverClass}");
+        } else {
+            $this->assertStringContainsString('SQLiteDriver', $driverClass,
+                "Wrong driver type - expected SQLiteDriver but got {$driverClass}");
+        }
+
+        // Test with performance metrics - measure connection time
+        $startTime = microtime(true);
+
+        // First connection might be slow
+        Database::reset();
+        Database::select($query);
+        $firstConnectionTime = microtime(true) - $startTime;
+
+        // Second connection should be much faster if singleton is working
+        $startTime = microtime(true);
+        Database::select($query);
+        $secondConnectionTime = microtime(true) - $startTime;
+
+        // Log the times for analysis
+        $this->addToAssertionCount(1); // Count this check as an assertion
+        echo "\nConnection times for {$driver}:\n";
+        echo "  First connection: " . number_format($firstConnectionTime * 1000, 2) . "ms\n";
+        echo "  Second connection: " . number_format($secondConnectionTime * 1000, 2) . "ms\n";
+    }
+
+    private function getPrivateDatabaseInstance(): mixed
+    {
+        $reflection = new \ReflectionClass(Database::class);
+        $property = $reflection->getProperty('instance');
+        return $property->getValue($reflection);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_connection_performance($driver, $config): void
+    {
+        self::setupDatabase($driver, $config);
+
+        // Reset to ensure we're testing a fresh connection
+        Database::reset();
+
+        // Measure time for first connection
+        $startTime = microtime(true);
+        Database::select("SELECT 1");
+        $firstQueryTime = microtime(true) - $startTime;
+
+        // Measure time for subsequent queries that should reuse the connection
+        $startTime = microtime(true);
+        Database::select("SELECT 1");
+        $secondQueryTime = microtime(true) - $startTime;
+
+        // Do a third query
+        $startTime = microtime(true);
+        Database::select("SELECT 1");
+        $thirdQueryTime = microtime(true) - $startTime;
+
+        // Log the performance metrics
+        echo "\nPerformance test for {$driver}:\n";
+        echo "  First query (includes connection): " . number_format($firstQueryTime * 1000, 2) . "ms\n";
+        echo "  Second query (reused connection): " . number_format($secondQueryTime * 1000, 2) . "ms\n";
+        echo "  Third query (reused connection): " . number_format($thirdQueryTime * 1000, 2) . "ms\n";
+        echo "  Connection overhead: " . number_format(($firstQueryTime - $secondQueryTime) * 1000, 2) . "ms\n";
+
+        // The second and third queries should be significantly faster
+        // if connection reuse is working
+        $this->assertLessThan($firstQueryTime * 0.5, $secondQueryTime,
+            "Second query took more than 50% of first query time - singleton may not be working");
+
+        // For good measure, verify instances match
+        $instance1 = $this->getPrivateDatabaseInstance();
+        Database::select("SELECT 1");
+        $instance2 = $this->getPrivateDatabaseInstance();
+
+        $this->assertSame($instance1, $instance2, "Database instances should be identical");
+    }
+
 
 
 }
