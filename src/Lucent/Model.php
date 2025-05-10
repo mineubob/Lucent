@@ -379,35 +379,73 @@ class Model
         return null;
     }
 
-    /**
-     * Dynamically call ModelCollection methods statically
-     *
-     * Allows calling ModelCollection methods directly on the model class,
-     * such as Model::where(), Model::limit(), Model::get(), etc.
-     *
-     * @param string $name The method name being called
-     * @param array $arguments The arguments passed to the method
-     * @return ModelCollection|null A ModelCollection instance if the method exists, null otherwise
-     *
-     * @method static ModelCollection where(string $column, string $value) Add a WHERE condition to the query
-     * @method static ModelCollection orWhere(string $column, string $value) Add a WHERE condition with OR logic
-     * @method static ModelCollection like(string $column, string $value) Add a LIKE condition to the query
-     * @method static ModelCollection orLike(string $column, string $value) Add a LIKE condition with OR logic
-     * @method static ModelCollection limit(int $count) Limit the number of records returned
-     * @method static ModelCollection offset(int $count) Set the offset for pagination
-     * @method static ModelCollection get() Execute the query and return matching records
-     * @method static mixed|null getFirst() Get the first matching record
-     * @method static ModelCollection collection() Return the collection object for method chaining
-     * @method static int count() Count the number of matching records
-     * @method static float sum(string $column) Sum of all values in a given column
- */
-    public static function __callStatic(string $name, array $arguments) : ?ModelCollection
+    public static function where(string $column, string $value) : ModelCollection
     {
-        if(method_exists(ModelCollection::class,$name)){
-            return new ModelCollection(static::class)->$name(...$arguments);
-        }
-
-        return null;
+        return new ModelCollection(static::class)->where($column, $value);
     }
+    public static function orWhere(string $column, string $value) : ModelCollection
+    {
+        return new ModelCollection(static::class)->orWhere($column, $value);
+    }
+
+    public static function like(string $column, string $value) : ModelCollection
+    {
+        return new ModelCollection(static::class)->like($column, $value);
+    }
+    public static function orLike(string $column, string $value) : ModelCollection
+    {
+        return new ModelCollection(static::class)->orLike($column, $value);
+    }
+
+    public static function limit(int $count) : ModelCollection
+    {
+        return new ModelCollection(static::class)->limit($count);
+    }
+
+    public static function offset(int $offset) : ModelCollection
+    {
+        return new ModelCollection(static::class)->offset($offset);
+    }
+
+    public static function orderBy(string $column, string $direction = "ASC") : ModelCollection
+    {
+        return new ModelCollection(static::class)->orderBy($column,$direction);
+    }
+
+    public static function count() : int
+    {
+        return new ModelCollection(static::class)->count();
+    }
+
+    public static function sum(string $column) : float
+    {
+        return new ModelCollection(static::class)->sum($column);
+    }
+
+    public static function collection() : ModelCollection
+    {
+        return new ModelCollection(static::class);
+    }
+
+    public static function get() : array
+    {
+        return new ModelCollection(static::class)->get();
+    }
+
+    public static function getFirst() : self|null
+    {
+        return new ModelCollection(static::class)->getFirst();
+    }
+
+    public static function in(string $column, array $values, string $operator = "AND") : ModelCollection
+    {
+        return new ModelCollection(static::class)->in($column, $values, $operator);
+    }
+
+    public static function compare(string $column, string $logicalOperator, string $value) : ModelCollection
+    {
+        return new ModelCollection(static::class)->compare($column, $logicalOperator, $value);
+    }
+
 
 }
