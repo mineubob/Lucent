@@ -119,6 +119,26 @@ class DependencyInjectionTest extends TestCase
         $this->assertEquals("pong", $response["message"]);
     }
 
+    public function test_service_set_with_class() : void
+    {
+        $this->assertTrue($this->generatePingPongService()->exists());
+
+        $test = new PingPongService();
+        App::service()->instance($test);
+
+        $this->assertTrue(App::service()->has($test::class));
+        $this->assertEquals($test,App::service()->get($test::class));
+    }
+
+    public function test_service_set_with_alias() : void
+    {
+        $this->assertTrue($this->generatePingPongService()->exists());
+        $test = new PingPongService();
+        App::service()->instance($test,"my-service");
+        $this->assertTrue(App::service()->has("my-service"));
+        $this->assertEquals($test,App::service()->get("my-service"));
+    }
+
     private function generateControllerWithNoConstructor() : File
     {
 
