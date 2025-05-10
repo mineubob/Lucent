@@ -26,7 +26,8 @@ class DatabaseDriverSetup extends TestCase
 
         $app = Application::getInstance();
         $app->LoadEnv();
-        Database::initialize();
+
+        Database::reset();
 
         if ($driver === "mysql") {
             // For MySQL, disable foreign key checks before dropping tables
