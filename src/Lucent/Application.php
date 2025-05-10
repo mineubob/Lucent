@@ -668,12 +668,16 @@ class Application
         }
     }
 
-    public function addService(string $className) : mixed
+    public function addService(object|string $service, ?string $alias = null) : mixed
     {
-        $instance = new $className();
-        $this->services[$className] = $instance;
+        if(getType($service) === "string"){
+            $instance = new $service();
+            $this->services[$alias ?? $service] = $instance;
+            return $instance;
+        }
 
-        return $instance;
+        $this->services[$alias ?? get_class($service)] = $service;
+        return $service;
     }
 
 
