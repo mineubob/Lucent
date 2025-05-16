@@ -266,34 +266,15 @@ class Application
         $this->boot();
 
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
-
         $request = new Request();
 
         if (!$response["outcome"]) {
-
-            $response = new JsonResponse()
-                ->setStatusCode(404)
-                ->setOutcome(false)
-                ->setMessage("Invalid API route.");
-
-            http_response_code(404);
-            $this->setHeaders($response->headers);
-
-            return $response->render();
+            return $this->responseWithError(404);
         }
 
         // Verify controller exists before trying to instantiate it
         if (!class_exists($response["controller"])) {
-
-            $response = new JsonResponse()
-                ->setStatusCode(500)
-                ->setOutcome(false)
-                ->setMessage("Controller class '" . $response["controller"] . "' not found");
-
-            http_response_code(500);
-            $this->setHeaders($response->headers);
-
-            return $response->render();
+            return $this->responseWithError(500);
         }
 
         $controllerReflection =  new ReflectionClass($response["controller"]);
@@ -310,24 +291,9 @@ class Application
 
         }
 
-        if($parameters !== []){
-            $controller = $controllerReflection->newInstanceArgs($parameters);
-        }else{
-            $controller = new $response["controller"]();
-        }
-
         //Check if we have a valid method, if not throw a 500 error.
-        if (!method_exists($controller, $response["method"])) {
-
-            $response = new JsonResponse()
-                ->setStatusCode(500)
-                ->setOutcome(false)
-                ->setMessage("Method '" . $response["method"] . "' not found in controller '" . $response["controller"] . "'");
-
-            http_response_code(500);
-            $this->setHeaders($response->headers);
-
-            return $response->render();
+        if (!$controllerReflection->hasMethod($response["method"])) {
+            return $this->responseWithError(500);
         }
 
         $request->setRouteInfo(new RouteInfo(
@@ -340,8 +306,7 @@ class Application
 
         //Next we check if we have any variables to pass, if not we run the method.
         //Next this as we have not returned we have variables to pass
-        $reflect = new ReflectionClass($response["controller"]);
-        $method = $reflect->getMethod($response["method"]);
+        $method = $controllerReflection->getMethod($response["method"]);
 
         //Pass our URL variables to the request object.
         $request->setUrlVars($response["variables"]);
@@ -350,6 +315,12 @@ class Application
         foreach ($response["middleware"] as $middleware) {
             $object = new $middleware();
             $request = $object->handle($request);
+        }
+
+        if($parameters !== []){
+            $controller = $controllerReflection->newInstanceArgs($parameters);
+        }else{
+            $controller = $controllerReflection->newInstance();
         }
 
         //Check if we require our request object.
@@ -384,21 +355,12 @@ class Application
                     $instance = $class::where($pkKey,$pkValue)->getFirst();
                 }
 
-                if($instance !== null){
-                    $response["variables"][$parameter->getName()] = $instance;
-                }else{
-                    http_response_code(404);
-
-                    $response = new JsonResponse()
-                        ->setStatusCode(404)
-                        ->setOutcome(false)
-                        ->setMessage("The requested resource '" . $parameter->getName() . "' doesnt exist.");
-
-                    http_response_code($response->status());
-                    $this->setHeaders($response->headers);
-
-                    return $response->render();
+                if($instance === null){
+                    return $this->responseWithError(404);
                 }
+
+                $response["variables"][$parameter->getName()] = $instance;
+
             }else{
                 //Else perform dependency injection
                 if(array_key_exists($parameter->getType()->getName(), $this->services)){
@@ -678,6 +640,28 @@ class Application
 
         $this->services[$alias ?? get_class($service)] = $service;
         return $service;
+    }
+
+    private function responseWithError(int $code, ?string $message = null): string
+    {
+        if ($message === null) {
+            $message = match ($code) {
+                404 => "The page you're looking for cannot be found. It may have been moved, deleted, or never existed.",
+                500 => "We're experiencing technical difficulties. Our team has been notified and is working to resolve the issue.",
+                401 => "Authentication required. Please log in to access this resource.",
+                403 => "You don't have permission to access this resource.",
+                default => "An error occurred while processing your request."
+            };
+        }
+
+        $response = new JsonResponse()
+            ->setStatusCode($code)
+            ->setOutcome(false)
+            ->setMessage($message);
+
+        http_response_code($code);
+
+        return $response->render();
     }
 
 
