@@ -9,6 +9,7 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
+use Lucent\Http\HttpResponse;
 use Lucent\Routing\RestRouteBuilder;
 
 class Route
@@ -18,5 +19,9 @@ class Route
         return new RestRouteBuilder(Application::getInstance()->httpRouter);
     }
 
+    public static function error(int $code, HttpResponse $response) : void
+    {
+        Application::getInstance()->registerErrorTemplate($code,$response);
+    }
 
 }
