@@ -7,6 +7,7 @@ use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
+use Lucent\Http\HttpResponse;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Commandline\CliRouter;
@@ -82,6 +83,13 @@ class Application
      * @var array<string, Channel>
      */
     public private(set) array $loggers = [];
+
+    /**
+     * Registered error pages
+     *
+     * @var array<string, HttpResponse>
+     */
+    public private(set) array $errorPageResponses;
 
 
     /**
@@ -373,6 +381,7 @@ class Application
 
         http_response_code($result->status());
         $this->setHeaders($result->headers);
+
         return $result->render();
     }
 
@@ -654,7 +663,7 @@ class Application
             };
         }
 
-        $response = new JsonResponse()
+        $response = $this->errorPageResponses[$code] ?? new JsonResponse()
             ->setStatusCode($code)
             ->setOutcome(false)
             ->setMessage($message);
@@ -662,6 +671,11 @@ class Application
         http_response_code($code);
 
         return $response->render();
+    }
+
+    public function registerErrorTemplate(int $code, HttpResponse $response): void
+    {
+        $this->errorPageResponses[$code] = $response;
     }
 
 
