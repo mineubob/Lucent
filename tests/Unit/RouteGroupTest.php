@@ -252,8 +252,11 @@ class RouteGroupTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id_not_found() : void
+    public function test_route_get_user_model_by_id_not_found($driver,$config) : void
     {
+        self::setupDatabase($driver, $config);
+        $this->perform_model_migration($driver, $config);
+
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/100";
 
