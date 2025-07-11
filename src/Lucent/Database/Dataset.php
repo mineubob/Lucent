@@ -45,6 +45,13 @@ class Dataset
         return $this;
     }
 
+    public function only(string|array $keys): array
+    {
+        $keysArray = is_array($keys) ? $keys : [$keys];
+
+        return array_intersect_key($this->data, array_flip($keysArray));
+    }
+
     public function array() : array
     {
         return $this->data;
