@@ -11,7 +11,26 @@ use ReflectionClass;
 class Model
 {
 
-    protected Dataset $dataset;
+    public protected(set) Dataset $dataset;
+
+    public function hydrate(Dataset $dataset): void
+    {
+        $this->dataset = $dataset;
+
+        $reflection = new ReflectionClass($this);
+
+        foreach ($reflection->getProperties() as $property) {
+            $propertyName = $property->getName();
+
+            // Skip the dataset property itself
+            if ($propertyName === 'dataset') {
+                continue;
+            }
+
+            $property->setAccessible(true);
+            $property->setValue($this, $dataset->get($propertyName));
+        }
+    }
 
     public function delete($propertyName = "id"): bool
     {
