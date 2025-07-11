@@ -706,33 +706,26 @@ class ModelTest extends DatabaseDriverSetup
                 "AUTO_INCREMENT"=>true,
                 "LENGTH"=>255
             ])]
-            public private(set) ?int $id;
+            public protected(set) ?int $id;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            protected string $email;
+            public protected(set) string $email;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false
             ])]
-            protected string $password_hash;
+            public protected(set) string $password_hash;
         
             #[DatabaseColumn([
                 "TYPE"=>LUCENT_DB_VARCHAR,
                 "ALLOW_NULL"=>false,
                 "LENGTH"=>100
             ])]
-            protected string $full_name;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-            }
+            public protected(set) string $full_name;
         
             public function getFullName() : string{
                 return $this->full_name;
@@ -746,7 +739,6 @@ class ModelTest extends DatabaseDriverSetup
             {
                 return $this->id;
             }
-        
         
         }
         PHP;
