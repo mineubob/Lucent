@@ -355,7 +355,9 @@ class ModelCollection
         $class = new ReflectionClass($this->class);
 
         foreach ($results as $result) {
-            array_push($instances, $class->newInstance(new Dataset($result)));
+            $instance = $class->newInstanceWithoutConstructor();
+            $instance->hydrate(new Dataset($result));
+            array_push($instances, $instance);
         }
 
         $this->cache[$query] = $instances;
@@ -377,7 +379,9 @@ class ModelCollection
 
         if ($data !== null && !empty($data)) {
             $class = new ReflectionClass($this->class);
-            return $class->newInstance(new Dataset($data));
+            $instance = $class->newInstanceWithoutConstructor();
+            $instance->hydrate(new Dataset($data));
+            return $instance;
         } else {
             return null;
         }
