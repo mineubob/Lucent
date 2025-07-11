@@ -726,6 +726,13 @@ class ModelTest extends DatabaseDriverSetup
                 "LENGTH"=>100
             ])]
             public protected(set) string $full_name;
+            
+            public function __construct(Dataset $dataset) {
+                $this->id = $dataset->get("id",-1);
+                $this->email = $dataset->get("email");
+                $this->password_hash = $dataset->get("password_hash");
+                $this->full_name = $dataset->get("full_name");
+            }
         
             public function getFullName() : string{
                 return $this->full_name;
