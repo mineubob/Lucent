@@ -185,7 +185,7 @@ class Model
             $columns .= "`" . $key . "`, ";
 
             // Handle NULL values and formatting for different types
-            if ($value === null) {
+            if (!isset($value)) {
                 $values .= "NULL, ";
             } else if (is_bool($value)) {
                 // Convert boolean to integer for SQLite
