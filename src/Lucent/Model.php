@@ -27,8 +27,19 @@ class Model
                 continue;
             }
 
+            $value = match ($property->getType()->getName()) {
+                'string' => (string)$dataset->get($propertyName),
+                'int', 'integer' => $dataset->integer($propertyName),
+                'float', 'double' => (float)$dataset->get($propertyName),
+                'bool', 'boolean' => (bool)$dataset->get($propertyName),
+                'array' => (array)$dataset->get($propertyName),
+                'null' => null,
+                default => $dataset->get($propertyName)
+            };
+
+            /** @noinspection PhpExpressionResultUnusedInspection */
             $property->setAccessible(true);
-            $property->setValue($this, $dataset->get($propertyName));
+            $property->setValue($this, $value);
         }
     }
 
