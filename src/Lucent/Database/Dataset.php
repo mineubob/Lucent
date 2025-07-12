@@ -8,10 +8,11 @@ class Dataset
     private array $data;
 
     public function __construct(array $data){
-        $this->data =$data;
+        $this->data = $data;
     }
 
-    public function get(string $key,$default = null){
+    public function get(string $key,$default = null) : mixed
+    {
         if(array_key_exists($key,$this->data)){
             return $this->data[$key];
         }else{
