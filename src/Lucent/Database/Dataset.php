@@ -4,58 +4,66 @@ namespace Lucent\Database;
 
 class Dataset
 {
-
     private array $data;
 
-    public function __construct(array $data){
+    public function __construct(array $data)
+    {
         $this->data = $data;
     }
 
-    public function get(string $key,$default = null) : mixed
+    public function get(string $key, $default = null): mixed
     {
-        if(array_key_exists($key,$this->data)){
-            return $this->data[$key];
-        }else{
-            return $default;
-        }
+        return array_key_exists($key, $this->data) ? $this->data[$key] : $default;
     }
 
-    public function set(string $key, $value): void
+    public function set(string $key, $value): Dataset
     {
         $this->data[$key] = $value;
+
+        return $this;
     }
 
-    public function integer(string $key, int $default = -1) : int
+    public function transform(array $transformations): Dataset
     {
-        if(array_key_exists($key,$this->data)){
-            return (int)$this->data[$key];
-        }else{
-            return $default;
+        $newData = $this->data;
+
+        foreach ($transformations as $key => $transformer) {
+            if (array_key_exists($key, $newData) && is_callable($transformer)) {
+                $newData[$key] = $transformer($newData[$key]);
+            }
         }
+
+        return new Dataset($newData);
+    }
+
+    public function with(array $additions): Dataset
+    {
+        return new Dataset(array_merge($this->data, $additions));
+    }
+
+    public function only(string|array $keys): Dataset
+    {
+        $keysArray = is_array($keys) ? $keys : [$keys];
+        $filtered = array_intersect_key($this->data, array_flip($keysArray));
+        return new Dataset($filtered);
     }
 
     public function except(array $keys): Dataset
     {
         $new = $this->data;
-        foreach ($keys as $key){
+        foreach ($keys as $key) {
             unset($new[$key]);
         }
-
-        $this->data = $new;
-
-        return $this;
+        return new Dataset($new);
     }
 
-    public function only(string|array $keys): array
+    public function integer(string $key, int $default = -1): int
     {
-        $keysArray = is_array($keys) ? $keys : [$keys];
-
-        return array_intersect_key($this->data, array_flip($keysArray));
+        return array_key_exists($key, $this->data) ? (int)$this->data[$key] : $default;
     }
 
-    public function array() : array
+    public function array(): array
     {
         return $this->data;
     }
-
 }

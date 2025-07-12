@@ -260,7 +260,6 @@ class Model
                     $parentProp = $parent->getProperty($propName);
                     $parentProp->setAccessible(true);
 
-
                     if(!$parentProp->isInitialized($this)){
                         $value = null;
                     }else{
@@ -294,7 +293,12 @@ class Model
                     $propName = $property["NAME"];
                     $reflProp = $reflection->getProperty($propName);
                     $reflProp->setAccessible(true);
-                    $value = $reflProp->getValue($this);
+
+                    if(!$reflProp->isInitialized($this)){
+                        $value = null;
+                    }else{
+                        $value = $reflProp->getValue($this);
+                    }
 
                     // Format the value based on its type
                     if ($value === null) {
@@ -337,7 +341,13 @@ class Model
 
             if (count($attributes) > 0) {
                 $property->setAccessible(true);
-                $value = $property->getValue($this);
+
+
+                if(!$property->isInitialized($this)){
+                    $value = null;
+                }else{
+                    $value = $property->getValue($this);
+                }
 
                 if ($value !== null) {
                     $skip = false;
