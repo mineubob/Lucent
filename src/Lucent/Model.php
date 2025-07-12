@@ -214,7 +214,12 @@ class Model
 
             if (count($attributes) > 0 && $declaringClass->getName() === $class) {
 
-                $value = $property->getValue($this);
+                if(!$property->isInitialized($this)){
+                    $value = null;
+                }else{
+                    $value = $property->getValue($this);
+                }
+
                 if ($value !== null) {
                     $skip = false;
 
@@ -254,7 +259,13 @@ class Model
                     $propName = $property["NAME"];
                     $parentProp = $parent->getProperty($propName);
                     $parentProp->setAccessible(true);
-                    $value = $parentProp->getValue($this);
+
+
+                    if(!$parentProp->isInitialized($this)){
+                        $value = null;
+                    }else{
+                        $value = $parentProp->getValue($this);
+                    }
 
                     // Format the value based on its type
                     if ($value === null) {
