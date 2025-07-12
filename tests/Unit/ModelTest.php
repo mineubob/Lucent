@@ -727,6 +727,13 @@ class ModelTest extends DatabaseDriverSetup
             ])]
             public protected(set) string $full_name;
             
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_BOOLEAN,
+                "ALLOW_NULL"=>true,
+                "DEFAULT"=>false
+            ])]
+            public protected(set) ?string $mfa_set;
+            
             public function __construct(Dataset $dataset) {
                 $this->id = $dataset->get("id",-1);
                 $this->email = $dataset->get("email");
