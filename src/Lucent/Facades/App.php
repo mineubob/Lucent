@@ -9,6 +9,7 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
+use Lucent\Middleware;
 use Lucent\Service;
 use Phar;
 
@@ -52,6 +53,11 @@ class App
     public static function registerCommands(string $commandFile): void
     {
         Application::getInstance()->loadCommands($commandFile);
+    }
+
+    public static function registerGlobalMiddlewares(Middleware|string $middleware): void
+    {
+        Application::getInstance()->registerGlobalMiddleware($middleware);
     }
 
     public static function execute() : string
