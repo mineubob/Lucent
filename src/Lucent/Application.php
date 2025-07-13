@@ -150,6 +150,11 @@ class Application
     ];
 
     /**
+     * An array of globally applicable middleware thats ran for all requests.
+     */
+    private array $globalMiddlewares = [];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
@@ -320,7 +325,7 @@ class Application
         $request->setUrlVars($response["variables"]);
 
         //Run all our middleware
-        foreach ($response["middleware"] as $middleware) {
+        foreach (array_merge($this->globalMiddlewares,$response["middleware"]) as $middleware) {
             if($middleware instanceof Middleware){
                 $request = $middleware->handle($request);
             }else {
@@ -680,6 +685,11 @@ class Application
     public function registerErrorTemplate(int $code, HttpResponse $response): void
     {
         $this->errorPageResponses[$code] = $response;
+    }
+
+    public function registerGlobalMiddleware(Middleware|string $middleware): void
+    {
+        $this->globalMiddlewares[] = $middleware;
     }
 
 
