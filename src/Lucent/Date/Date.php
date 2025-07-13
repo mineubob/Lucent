@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Service\Date;
+namespace Lucent\Date;
 
 use DateTimeZone;
 
