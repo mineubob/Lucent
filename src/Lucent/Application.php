@@ -321,8 +321,12 @@ class Application
 
         //Run all our middleware
         foreach ($response["middleware"] as $middleware) {
-            $object = new $middleware();
-            $request = $object->handle($request);
+            if($middleware instanceof Middleware){
+                $request = $middleware->handle($request);
+            }else {
+                $object = new $middleware();
+                $request = $object->handle($request);
+            }
         }
 
         if($parameters !== []){
