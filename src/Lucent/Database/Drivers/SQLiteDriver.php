@@ -24,6 +24,7 @@ class SQLiteDriver extends DatabaseInterface
             LUCENT_DB_TINYINT => "INTEGER",
             LUCENT_DB_DECIMAL => "REAL",
             LUCENT_DB_INT => "INTEGER",
+            LUCENT_DB_BIGINT => "INTEGER",
             LUCENT_DB_JSON => "TEXT",
             LUCENT_DB_TIMESTAMP => "DATETIME",
             LUCENT_DB_ENUM => "TEXT",
@@ -56,7 +57,7 @@ class SQLiteDriver extends DatabaseInterface
         ];
 
         $this->allowed_delete_prefix = [
-            "DELETE FROM",
+            "DELETE",
         ];
 
         $this->allowed_update_prefix = [
@@ -138,6 +139,12 @@ class SQLiteDriver extends DatabaseInterface
         // Add NULL constraint
         if (!$column["ALLOW_NULL"]) {
             $string .= " NOT NULL";
+        }
+
+        if (isset($column["UNSIGNED"]) && $column["UNSIGNED"] &&
+            in_array($column["TYPE"], [LUCENT_DB_TINYINT, LUCENT_DB_INT, LUCENT_DB_BIGINT, LUCENT_DB_FLOAT, LUCENT_DB_DOUBLE])) {
+            // SQLite doesn't have UNSIGNED, but we can add a CHECK constraint for positive values
+            $string .= " CHECK(" . $column["NAME"] . " >= 0)";
         }
 
         // Add default value

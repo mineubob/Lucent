@@ -24,7 +24,8 @@ class DatabaseColumn
             "UNIQUE_KEY_TO" => null,
             "ON_UPDATE" => null,
             "REFERENCES" => null,
-            "UNIQUE" => null
+            "UNIQUE" => null,
+            "UNSIGNED" => false
         ];
 
         //Loop over all our properties and translate them into our column
