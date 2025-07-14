@@ -20,3 +20,9 @@ const LUCENT_DB_BOOLEAN = 15;
 const LUCENT_DB_CHAR = 16;
 const LUCENT_DB_LONGTEXT = 17;
 const LUCENT_DB_MEDIUMTEXT = 18;
+
+// NEW: Add BIGINT support
+const LUCENT_DB_BIGINT = 19;
+
+// NEW: Add UNSIGNED modifier (can be combined with other types)
+const LUCENT_DB_UNSIGNED = 'UNSIGNED';

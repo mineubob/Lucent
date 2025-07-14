@@ -26,6 +26,7 @@ class MySQLDriver extends DatabaseInterface
             LUCENT_DB_TINYINT => "tinyint",
             LUCENT_DB_DECIMAL => "decimal",
             LUCENT_DB_INT => "int",
+            LUCENT_DB_BIGINT => "bigint",
             LUCENT_DB_JSON => "json",
             LUCENT_DB_TIMESTAMP => "timestamp",
             LUCENT_DB_ENUM => "enum",
@@ -64,7 +65,7 @@ class MySQLDriver extends DatabaseInterface
         ];
 
         $this->allowed_delete_prefix = [
-            "DELETE FROM",
+            "DELETE",
         ];
 
         $this->allowed_update_prefix = [
@@ -112,6 +113,11 @@ class MySQLDriver extends DatabaseInterface
             default => "`" . $column["NAME"] . "` " . $this->typeMap[$column["TYPE"]] . "(" . $column["LENGTH"] . ")",
         };
 
+        // NEW: Add UNSIGNED support for numeric types
+        if (isset($column["UNSIGNED"]) && $column["UNSIGNED"] &&
+            in_array($column["TYPE"], [LUCENT_DB_TINYINT, LUCENT_DB_INT, LUCENT_DB_BIGINT, LUCENT_DB_FLOAT, LUCENT_DB_DOUBLE, LUCENT_DB_DECIMAL])) {
+            $string .= " UNSIGNED";
+        }
 
         if (!$column["ALLOW_NULL"]) {
             $string .= " NOT NULL";
