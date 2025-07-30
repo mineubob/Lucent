@@ -285,12 +285,14 @@ class Application
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
         $request = new Request();
 
-        if(isset($this->fallbackResponse)){
-            http_response_code(200);
-            return $this->fallbackResponse->render();
-        }
-
+        // Check if route was found - if not, use fallback or 404
         if (!$response["outcome"]) {
+            // If we have a fallback response and no route was found, use it
+            if (isset($this->fallbackResponse)) {
+                http_response_code(200);
+                return $this->fallbackResponse->render();
+            }
+            // Otherwise, return 404 error
             return $this->responseWithError(404);
         }
 
