@@ -24,4 +24,10 @@ class Route
         Application::getInstance()->registerErrorTemplate($code,$response);
     }
 
+    public static function fallback(HttpResponse $response) : void
+    {
+        Application::getInstance()->registerFallback($response);
+
+    }
+
 }
