@@ -91,6 +91,10 @@ class Application
      */
     public private(set) array $errorPageResponses;
 
+    /**
+     * Fallback route when no error page or route is set.
+     */
+    public private(set) HttpResponse $fallbackResponse;
 
     /**
      * An array of globally accessible regex rules.
@@ -280,6 +284,11 @@ class Application
 
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
         $request = new Request();
+
+        if(isset($this->fallbackResponse)){
+            http_response_code(200);
+            return $this->fallbackResponse->render();
+        }
 
         if (!$response["outcome"]) {
             return $this->responseWithError(404);
@@ -626,6 +635,10 @@ class Application
             'args' => $args,
             'options' => $options
         ];
+    }
+
+    public function registerFallback(HttpResponse $response)
+    {
     }
 
     private function requiresOptions(ReflectionMethod $method): bool
