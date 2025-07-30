@@ -637,8 +637,9 @@ class Application
         ];
     }
 
-    public function registerFallback(HttpResponse $response)
+    public function registerFallback(HttpResponse $response): void
     {
+        $this->fallbackResponse = $response;
     }
 
     private function requiresOptions(ReflectionMethod $method): bool
