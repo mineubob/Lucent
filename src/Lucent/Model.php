@@ -2,6 +2,7 @@
 
 namespace Lucent;
 
+use Error;
 use Exception;
 use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Database\Dataset;
@@ -100,7 +101,7 @@ class Model
             return Database::transaction(function() use ($reflection, $parent, $parentPK, $parentProperties) {
                 // Insert into parent table first
                 $parentTable = $parent->getShortName();
-                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
+                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties,$reflection);
 
                 Log::channel("phpunit")->info("Parent query: " . $parentQuery);
                 $result = Database::insert($parentQuery);
@@ -129,7 +130,7 @@ class Model
 
                 // Insert into the current model's table
                 $tableName = $reflection->getShortName();
-                $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
+                $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps, $reflection);
 
                 Log::channel("phpunit")->info("Child query: " . $childQuery);
                 $result = Database::insert($childQuery);
@@ -151,7 +152,7 @@ class Model
 
             // Insert into the current model's table
             $tableName = $reflection->getShortName();
-            $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
+            $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties, $reflection);
 
             Log::channel("phpunit")->info("Query: " . $query);
             $result = Database::insert($query);
@@ -172,7 +173,7 @@ class Model
             return true;
         }
     }
-    public function buildQueryString(array $properties): string
+    public function buildQueryString(array $properties, ReflectionClass $reflection): string
     {
         if (empty($properties)) {
             return " DEFAULT VALUES";  // SQLite syntax for inserting default values
@@ -182,15 +183,23 @@ class Model
         $values = " VALUES (";
 
         foreach ($properties as $key => $value) {
+
+            Log::channel("phpunit")->info("Processing column: " . $key." with value: " . $value);
             $columns .= "`" . $key . "`, ";
 
+            try {
+                $type = $reflection->getProperty($key)->getType()->getName();
+            } catch (Error $e) {
+                // Fallback for union types or other reflection issues
+                $type = 'string';
+            }
             // Handle NULL values and formatting for different types
             if (!isset($value)) {
                 $values .= "NULL, ";
-            } else if (is_bool($value)) {
+            } else if ($type === "bool") {
                 // Convert boolean to integer for SQLite
                 $values .= ($value ? "1" : "0") . ", ";
-            } else if (is_numeric($value)) {
+            } else if ($type === "int" || $type === "integer" || $type === "float" || $type === "double") {
                 $values .= $value . ", ";
             } else {
                 // Escape single quotes in string values
