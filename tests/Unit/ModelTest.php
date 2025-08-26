@@ -2,7 +2,6 @@
 
 namespace Unit;
 
-use App\Extensions\View\View;
 use App\Models\Admin;
 use App\Models\TestUser;
 use App\Models\TestUserTwo;
@@ -684,6 +683,25 @@ class ModelTest extends DatabaseDriverSetup
 
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_numeric_string_bug($driver,$config) : void
+    {
+        self::setupDatabase($driver, $config);
+        $this->assertTrue($this->generate_test_model_numeric_string_bug()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TestCustomer");
+        $this->assertEquals("Successfully performed database migration",$output);
+
+        $mobile = "0423235427";
+
+        $customer = new \App\Models\TestCustomer($mobile);
+
+        $this->assertTrue($customer->create());
+
+        $lookup = \App\Models\TestCustomer::where("mobile",$mobile)->getFirst();
+        $this->assertNotNull($lookup);
+    }
+
 
     public static function generate_test_model(): File
     {
@@ -1091,6 +1109,48 @@ PHP;
         return new File("/App/Models/TransactionModel.php",$modelContent);
 
     }
+
+    public static function generate_test_model_numeric_string_bug(): File
+    {
+        $modelContent = <<<'PHP'
+        <?php
+        
+        namespace App\Models;
+        
+        use Lucent\Database\Attributes\DatabaseColumn;
+        use Lucent\Database\Dataset;
+        use Lucent\Model;
+        
+        class TestCustomer extends Model
+        {
+        
+            #[DatabaseColumn([
+                "PRIMARY_KEY"=>true,
+                "TYPE"=>LUCENT_DB_INT,
+                "ALLOW_NULL"=>false,
+                "AUTO_INCREMENT"=>true,
+                "LENGTH"=>255
+            ])]
+            public protected(set) ?int $id;
+        
+            #[DatabaseColumn([
+                "TYPE"=>LUCENT_DB_VARCHAR,
+                "ALLOW_NULL"=>false
+            ])]
+            public protected(set) string $mobile;
+            
+            public function __construct(string $mobile) {
+                $this->mobile = $mobile;
+            }
+
+        }
+        PHP;
+
+
+        return new File("/App/Models/TestCustomer.php",$modelContent);
+
+    }
+
 
 
 
