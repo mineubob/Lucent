@@ -2,19 +2,19 @@
 
 namespace Lucent;
 
+use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Http\HttpResponse;
-use Lucent\Http\RouteInfo;
-use Lucent\Logging\Channel;
-use Lucent\Commandline\CliRouter;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
-use Lucent\Logging\NullChannel;
+use Lucent\Http\RouteInfo;
+use Lucent\Logging\Channel;
+use Lucent\Logging\Channels\NullChannel;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
