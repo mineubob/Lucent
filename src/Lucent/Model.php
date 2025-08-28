@@ -103,11 +103,11 @@ class Model
                 $parentTable = $parent->getShortName();
                 $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
 
-                Log::channel("phpunit")->info("Parent query: " . $parentQuery);
+                Log::channel("db")->info("Parent query: " . $parentQuery);
                 $result = Database::insert($parentQuery);
 
                 if (!$result) {
-                    Log::channel("phpunit")->error("Failed to create parent model: " . $parentQuery);
+                    Log::channel("db")->error("Failed to create parent model: " . $parentQuery);
                     // The transaction will be rolled back automatically
                     return false;
                 }
@@ -132,11 +132,11 @@ class Model
                 $tableName = $reflection->getShortName();
                 $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
 
-                Log::channel("phpunit")->info("Child query: " . $childQuery);
+                Log::channel("db")->info("Child query: " . $childQuery);
                 $result = Database::insert($childQuery);
 
                 if (!$result) {
-                    Log::channel("phpunit")->error("Failed to create child model: " . $childQuery);
+                    Log::channel("db")->error("Failed to create child model: " . $childQuery);
                     // The transaction will be rolled back automatically
                     return false;
                 }
@@ -146,7 +146,7 @@ class Model
             });
         } else {
             // Standard model creation (no transaction needed)
-            Log::channel("phpunit")->info("Process code for non inherited model");
+            Log::channel("db")->info("Process code for non inherited model");
             // No inheritance - just collect properties from this model
             $properties = $this->getProperties($reflection->getProperties(), $reflection->getName());
 
@@ -154,11 +154,11 @@ class Model
             $tableName = $reflection->getShortName();
             $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
 
-            Log::channel("phpunit")->info("Query: " . $query);
+            Log::channel("db")->info("Query: " . $query);
             $result = Database::insert($query);
 
             if (!$result) {
-                Log::channel("phpunit")->error("Failed to create model: " . $query);
+                Log::channel("db")->error("Failed to create model: " . $query);
                 return false;
             }
 
@@ -184,7 +184,7 @@ class Model
 
         foreach ($properties as $key => $value) {
 
-            Log::channel("phpunit")->info("Processing column: " . $key." with value: " . $value);
+            Log::channel("db")->info("Processing column: " . $key." with value: " . $value);
             $columns .= "`" . $key . "`, ";
 
             $type = gettype($value);
@@ -288,7 +288,7 @@ class Model
             $parentQuery .= " WHERE {$identifier}=";
             $parentQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
 
-            Log::channel("phpunit")->info("Query: " . $parentQuery);
+            Log::channel("db")->info("Query: " . $parentQuery);
 
             $childUpdates = [];
             $childQuery = "UPDATE {$reflection->getShortName()} SET ";
@@ -327,7 +327,7 @@ class Model
             $childQuery .= " WHERE {$identifier}=";
             $childQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
 
-            Log::channel("phpunit")->info("Query: " . $childQuery);
+            Log::channel("db")->info("Query: " . $childQuery);
 
             return Database::transaction(function() use ($childQuery, $parentQuery) {
                 Database::update($parentQuery);
@@ -336,7 +336,7 @@ class Model
         }
 
         // Non-extended model handling
-        Log::channel("phpunit")->info("Saving standard model (non extended)");
+        Log::channel("db")->info("Saving standard model (non extended)");
 
         $query = "UPDATE " . $reflection->getShortName() . " SET ";
         $updates = [];
@@ -386,7 +386,7 @@ class Model
         $query .= " WHERE {$identifier}=";
         $query .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
 
-        Log::channel("phpunit")->info("Query: " . $query);
+        Log::channel("db")->info("Query: " . $query);
 
         try {
             return Database::update($query);
