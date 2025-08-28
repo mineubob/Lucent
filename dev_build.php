@@ -2,6 +2,7 @@
 // local-build.php
 use Lucent\Application;
 use Lucent\Logging\Channel;
+use Lucent\Logging\Drivers\FileDriver;
 
 cleanupDirectory(__DIR__ . '/temp_install');
 
@@ -44,10 +45,10 @@ if (file_exists($originalPharFile)) {
 
     $app = Application::getInstance();
 
-    $phpunitLog = new Channel("phpunit", "local_file", "phpunit.log");
+    $phpunitLog = new Channel("phpunit", new FileDriver("phpunit.log"),false);
     $app->addLoggingChannel("phpunit", $phpunitLog);
 
-    $dbLog = new Channel("db", "local_file", "db.log");
+    $dbLog = new Channel("db", new FileDriver("db.log"));
     $app->addLoggingChannel("db", $dbLog);
 
     createFiles();

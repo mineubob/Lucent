@@ -6,6 +6,7 @@ use Lucent\Database;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\Folder;
 use Lucent\Logging\Channel;
+use Lucent\Logging\Drivers\FileDriver;
 use PHPUnit\Framework\TestCase;
 use Lucent\Application;
 
@@ -28,10 +29,10 @@ class DatabaseDriverSetup extends TestCase
         $app = Application::getInstance();
         $app->LoadEnv();
 
-        $phpunitLog = new Channel("phpunit", "local_file", "phpunit.log");
+        $phpunitLog = new Channel("phpunit", new FileDriver("phpunit.log"));
         $app->addLoggingChannel("phpunit", $phpunitLog);
 
-        $dbLog = new Channel("db", "local_file", "db.log");
+        $dbLog = new Channel("db", new FileDriver("db.log"));
         $app->addLoggingChannel("db", $dbLog);
 
         Database::reset();

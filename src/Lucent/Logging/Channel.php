@@ -6,8 +6,7 @@ use Lucent\Facades\FileSystem;
 
 class Channel {
     private string $channel;
-    private string $driver;
-    private string $path;
+    private Driver $driver;
     private bool $useColors;
 
     // Simplified color scheme to start with
@@ -22,10 +21,9 @@ class Channel {
         'debug'     => "\033[0;37m"     // White
     ];
 
-    public function __construct(string $channel, string $driver = 'local_file', string $path = '', bool $useColors = true) {
+    public function __construct(string $channel, Driver $driver, bool $useColors = true) {
         $this->channel = $channel;
         $this->driver = $driver;
-        $this->path = $path;
         $this->useColors = $useColors && PHP_SAPI === 'cli';
     }
 
@@ -92,32 +90,7 @@ class Channel {
     }
 
     private function write(string $level, string $message): void {
-        $formattedMessage = $this->formatMessage($level, $message);
-
-        if ($this->driver === 'local_file') {
-            // Create logs directory if it doesn't exist
-            $logDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR ."logs";
-            if (!is_dir($logDir)) {
-                mkdir($logDir, 0755, true);
-            }
-
-            $logPath = $logDir . DIRECTORY_SEPARATOR . $this->path;
-
-            // Try to open file and handle any errors
-            $file = @fopen($logPath, "a");
-            if ($file === false) {
-                error_log("Failed to open log file: " . $logPath);
-                return;
-            }
-
-            // Strip ANSI color codes for file logging
-            fwrite($file, preg_replace('/\033\[[0-9;]*m/', '', $formattedMessage));
-            fclose($file);
-        }
-
-        if (PHP_SAPI === 'cli') {
-            fwrite(STDOUT, $formattedMessage);
-        }
+        $this->driver->write($this->formatMessage($level, $message));
     }
 
     // PSR-3 log levels
