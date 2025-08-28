@@ -12,9 +12,9 @@ if (!is_dir($buildDir)) {
     mkdir($buildDir, 0777, true);
 }
 
-$version = 'v0.' . date('ymd')  . '.local';
+$version = 'v0.' . date('ymd') . '.local';
 
-const TEMP_ROOT = __DIR__ . DIRECTORY_SEPARATOR."temp_install".DIRECTORY_SEPARATOR;
+const TEMP_ROOT = __DIR__ . DIRECTORY_SEPARATOR . "temp_install" . DIRECTORY_SEPARATOR;
 
 $files = copyDevClasses();
 
@@ -44,9 +44,11 @@ if (file_exists($originalPharFile)) {
 
     $app = Application::getInstance();
 
-    $log = new Channel("phpunit","local_file","phpunit.log");
+    $phpunitLog = new Channel("phpunit", "local_file", "phpunit.log");
+    $app->addLoggingChannel("phpunit", $phpunitLog);
 
-    $app->addLoggingChannel("phpunit",$log);
+    $dbLog = new Channel("db", "local_file", "db.log");
+    $app->addLoggingChannel("db", $dbLog);
 
     createFiles();
 
@@ -54,7 +56,7 @@ if (file_exists($originalPharFile)) {
         unlink($path);
     }
 
-}else {
+} else {
 
     foreach ($files as $path) {
         unlink($path);
@@ -97,7 +99,7 @@ function checkAndLoadEnviromentTestingVariables(string $filePath): bool
         } elseif (is_array($value) || is_object($value)) {
             $value = json_encode($value);
         } else {
-            $value = (string)$value;
+            $value = (string) $value;
         }
 
         putenv("$key=$value");
@@ -108,17 +110,17 @@ function checkAndLoadEnviromentTestingVariables(string $filePath): bool
     return true;
 }
 
-function copyDevClasses() : array
+function copyDevClasses(): array
 {
 
-    $dev_folder = __DIR__.DIRECTORY_SEPARATOR."dev_classes".DIRECTORY_SEPARATOR;
+    $dev_folder = __DIR__ . DIRECTORY_SEPARATOR . "dev_classes" . DIRECTORY_SEPARATOR;
     $files = array_diff(scandir($dev_folder), array('.', '..'));
     $paths = [];
 
     foreach ($files as $file) {
-        $path =  __DIR__.DIRECTORY_SEPARATOR."src".DIRECTORY_SEPARATOR."Lucent".DIRECTORY_SEPARATOR.$file;
+        $path = __DIR__ . DIRECTORY_SEPARATOR . "src" . DIRECTORY_SEPARATOR . "Lucent" . DIRECTORY_SEPARATOR . $file;
         $paths[] = $path;
-        file_put_contents($path, file_get_contents($dev_folder.$file));
+        file_put_contents($path, file_get_contents($dev_folder . $file));
     }
 
     return $paths;
@@ -144,6 +146,6 @@ $app = Application::getInstance();
 echo $app->executeConsoleCommand();
 PHP;
 
-    file_put_contents(TEMP_ROOT."cli", $cli);
+    file_put_contents(TEMP_ROOT . "cli", $cli);
 }
 

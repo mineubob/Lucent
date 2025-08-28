@@ -80,7 +80,8 @@ class ModelCollection
      * @return ModelCollection
      * @throws ReflectionException
      */
-    public function __construct($class){
+    public function __construct($class)
+    {
         $this->class = $class;
         $this->whereConditions = [];
         $this->likeConditions = [];
@@ -145,7 +146,7 @@ class ModelCollection
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' =>  "IN ('" . implode("', '", $values) . "')",
+            'value' => "IN ('" . implode("', '", $values) . "')",
             'operator' => $operator,
             'is_raw' => true
         ];
@@ -180,7 +181,7 @@ class ModelCollection
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' =>  " {$logicalOperator} '{$value}'",
+            'value' => " {$logicalOperator} '{$value}'",
             'operator' => $operator,
             'is_raw' => true
         ];
@@ -411,7 +412,7 @@ class ModelCollection
     public function count(): int
     {
         $query = str_replace("*", "count(*)", $this->buildQuery());
-        return (int)Database::select($query, false)["count(*)"];
+        return (int) Database::select($query, false)["count(*)"];
     }
 
     /**
@@ -428,7 +429,7 @@ class ModelCollection
     public function sum(string $column): float
     {
         $query = str_replace("*", "sum({$column})", $this->buildQuery());
-        return (float)Database::select($query, false)["sum({$column})"];
+        return (float) Database::select($query, false)["sum({$column})"];
     }
 
     /**
@@ -443,7 +444,7 @@ class ModelCollection
     private function buildQuery(): string
     {
         $modelClass = $this->class;
-        $reflection = new \ReflectionClass($modelClass);
+        $reflection = new ReflectionClass($modelClass);
         $parent = $reflection->getParentClass();
 
         $array = explode("\\", $this->class);
@@ -497,7 +498,7 @@ class ModelCollection
                 if (isset($condition['is_raw']) && $condition['is_raw']) {
                     $conditions[] = $prefix . $condition['column'] . " " . $condition['value'];
                 } else {
-                    $conditions[] = $prefix . $condition['column'] . "='" . $condition['value'] . "'";
+                    $conditions[] = $prefix . $condition['column'] . " = " . Model::getSqlString($condition['value']);
                 }
             }
 

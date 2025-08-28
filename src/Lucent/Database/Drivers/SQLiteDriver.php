@@ -87,7 +87,7 @@ class SQLiteDriver extends DatabaseInterface
         if (!file_exists($path)) {
             $directory = dirname($path);
 
-            Log::channel("phpunit")->info($directory);
+            Log::channel("db")->info($directory);
 
             // Create directory if it doesn't exist
             if (!is_dir($directory)) {
@@ -294,7 +294,7 @@ class SQLiteDriver extends DatabaseInterface
         try {
             // THIS IS THE CRITICAL BUG - Using deleteIsAllowed instead of updateIsAllowed
             if (!$this->validator->updateIsAllowed($query)) {
-                Log::channel("phpunit")->error("Update query not allowed: " . $query);
+                Log::channel("db")->error("Update query not allowed: " . $query);
                 throw new \Exception("Invalid statement, {$query} is not allowed to execute.");
             }
 
@@ -302,7 +302,7 @@ class SQLiteDriver extends DatabaseInterface
             // Don't require affected rows > 0, just require no error
             return $result !== false;
         } catch (\Exception $e) {
-            Log::channel("phpunit")->error("Exception in SQLiteDriver::update: " . $e->getMessage());
+            Log::channel("db")->error("Exception in SQLiteDriver::update: " . $e->getMessage());
             throw $e; // Rethrow so Database::update can catch it
         }
     }
