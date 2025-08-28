@@ -29,11 +29,11 @@ class Model
             }
 
             $value = match ($property->getType()->getName()) {
-                'string' => (string)$dataset->get($propertyName),
+                'string' => (string) $dataset->get($propertyName),
                 'int', 'integer' => $dataset->integer($propertyName),
-                'float', 'double' => (float)$dataset->get($propertyName),
-                'bool', 'boolean' => (bool)$dataset->get($propertyName),
-                'array' => (array)$dataset->get($propertyName),
+                'float', 'double' => (float) $dataset->get($propertyName),
+                'bool', 'boolean' => (bool) $dataset->get($propertyName),
+                'array' => (array) $dataset->get($propertyName),
                 'null' => null,
                 default => $dataset->get($propertyName)
             };
@@ -41,6 +41,27 @@ class Model
             /** @noinspection PhpExpressionResultUnusedInspection */
             $property->setAccessible(true);
             $property->setValue($this, $value);
+        }
+    }
+
+    private function getSqlString(mixed $value): string
+    {
+        // Handle NULL values.
+        if (!isset($value)) {
+            return "NULL";
+        }
+
+        // formatting for different types
+        $type = gettype($value);
+
+        if ($type === "bool") {
+            return ($value ? "1" : "0");
+        } else if ($type === "int" || $type === "integer" || $type === "float" || $type === "double") {
+            return strval($value);
+        } else {
+            // Escape single quotes in string values
+            $escaped = str_replace("'", "''", $value);
+            return "'" . $escaped . "'";
         }
     }
 
@@ -55,11 +76,11 @@ class Model
             $value = $propertyReflection->getValue($this);
 
             // FIXED: Correct table names - delete from child first, then parent
-            $childQuery = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
-            $parentQuery = "DELETE FROM " . $parent->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
+            $childQuery = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $this->getSqlString($value) . "'";
+            $parentQuery = "DELETE FROM " . $parent->getShortName() . " WHERE " . $propertyName . "='" . $this->getSqlString($value) . "'";
 
             try {
-                return Database::transaction(function() use ($childQuery, $parentQuery) {
+                return Database::transaction(function () use ($childQuery, $parentQuery) {
                     $childResult = Database::delete($childQuery);
                     if (!$childResult) {
                         return false;
@@ -77,9 +98,9 @@ class Model
             $property->setAccessible(true);
             $value = $property->getValue($this);
 
-            $query = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $value . "'";
+            $query = "DELETE FROM " . $reflection->getShortName() . " WHERE " . $propertyName . "='" . $this->getSqlString($value) . "'";
 
-            if(Database::delete($query)){
+            if (Database::delete($query)) {
                 return true;
             } else {
                 Log::channel("db")->error("Failed to delete model with query " . $query);
@@ -98,10 +119,10 @@ class Model
             $parentProperties = $this->getProperties($parent->getProperties(), $parent->getName());
 
             // Start a transaction
-            return Database::transaction(function() use ($reflection, $parent, $parentPK, $parentProperties) {
+            return Database::transaction(function () use ($reflection, $parent, $parentPK, $parentProperties) {
                 // Insert into parent table first
                 $parentTable = $parent->getShortName();
-                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildQueryString($parentProperties);
+                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildInsertQueryString($parentProperties);
 
                 Log::channel("db")->info("Parent query: " . $parentQuery);
                 $result = Database::insert($parentQuery);
@@ -130,7 +151,7 @@ class Model
 
                 // Insert into the current model's table
                 $tableName = $reflection->getShortName();
-                $childQuery = "INSERT INTO {$tableName}" . $this->buildQueryString($childProps);
+                $childQuery = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($childProps);
 
                 Log::channel("db")->info("Child query: " . $childQuery);
                 $result = Database::insert($childQuery);
@@ -152,7 +173,7 @@ class Model
 
             // Insert into the current model's table
             $tableName = $reflection->getShortName();
-            $query = "INSERT INTO {$tableName}" . $this->buildQueryString($properties);
+            $query = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($properties);
 
             Log::channel("db")->info("Query: " . $query);
             $result = Database::insert($query);
@@ -162,7 +183,7 @@ class Model
                 return false;
             }
 
-            $pk= Model::getDatabasePrimaryKey($reflection);
+            $pk = Model::getDatabasePrimaryKey($reflection);
 
             // Get the last inserted ID
             $lastId = Database::getDriver()->lastInsertId();
@@ -173,7 +194,8 @@ class Model
             return true;
         }
     }
-    public function buildQueryString(array $properties): string
+
+    public function buildInsertQueryString(array $properties): string
     {
         if (empty($properties)) {
             return " DEFAULT VALUES";  // SQLite syntax for inserting default values
@@ -184,24 +206,9 @@ class Model
 
         foreach ($properties as $key => $value) {
 
-            Log::channel("db")->info("Processing column: " . $key." with value: " . $value);
+            Log::channel("db")->info("Processing column: " . $key . " with value: " . $value);
             $columns .= "`" . $key . "`, ";
-
-            $type = gettype($value);
-
-            // Handle NULL values and formatting for different types
-            if (!isset($value)) {
-                $values .= "NULL, ";
-            } else if ($type === "bool") {
-                // Convert boolean to integer for SQLite
-                $values .= ($value ? "1" : "0") . ", ";
-            } else if ($type === "int" || $type === "integer" || $type === "float" || $type === "double") {
-                $values .= $value . ", ";
-            } else {
-                // Escape single quotes in string values
-                $escaped = str_replace("'", "''", $value);
-                $values .= "'" . $escaped . "', ";
-            }
+            $values .= $this->getSqlString($value) . ", ";
         }
 
         $columns = rtrim($columns, ", ") . ")";
@@ -209,7 +216,7 @@ class Model
 
         return $columns . $values;
     }
-    public function getProperties(array $properties,string $class) : array
+    public function getProperties(array $properties, string $class): array
     {
         $output = [];
         foreach ($properties as $property) {
@@ -219,9 +226,9 @@ class Model
 
             if (count($attributes) > 0 && $declaringClass->getName() === $class) {
 
-                if(!$property->isInitialized($this)){
+                if (!$property->isInitialized($this)) {
                     $value = null;
-                }else{
+                } else {
                     $value = $property->getValue($this);
                 }
 
@@ -260,33 +267,24 @@ class Model
             $parentUpdates = [];
 
             foreach (Model::getDatabaseProperties($parent->getName()) as $property) {
-                if(!$property["PRIMARY_KEY"]) {
+                if (!$property["PRIMARY_KEY"]) {
                     $propName = $property["NAME"];
                     $parentProp = $parent->getProperty($propName);
                     $parentProp->setAccessible(true);
 
-                    if(!$parentProp->isInitialized($this)){
+                    if (!$parentProp->isInitialized($this)) {
                         $value = null;
-                    }else{
+                    } else {
                         $value = $parentProp->getValue($this);
                     }
 
-                    // Format the value based on its type
-                    if ($value === null) {
-                        $parentUpdates[] = $propName . "=NULL";
-                    } else if (is_bool($value) || (isset($property["TYPE"]) && strpos($property["TYPE"], 'tinyint') !== false)) {
-                        $parentUpdates[] = $propName . "=" . ($value ? "1" : "0");
-                    } else if (is_numeric($value)) {
-                        $parentUpdates[] = $propName . "=" . $value;
-                    } else {
-                        $parentUpdates[] = $propName . "='" . addslashes($value) . "'";
-                    }
+                    $parentUpdates[] = $propName . " = " . $this->getSqlString($value);
                 }
             }
 
             $parentQuery .= implode(", ", $parentUpdates);
-            $parentQuery .= " WHERE {$identifier}=";
-            $parentQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
+            $parentQuery .= " WHERE {$identifier} = ";
+            $parentQuery .= $this->getSqlString($idValue);
 
             Log::channel("db")->info("Query: " . $parentQuery);
 
@@ -294,27 +292,18 @@ class Model
             $childQuery = "UPDATE {$reflection->getShortName()} SET ";
 
             foreach (Model::getDatabaseProperties($reflection->getName()) as $property) {
-                if(!$property["PRIMARY_KEY"]) {
+                if (!$property["PRIMARY_KEY"]) {
                     $propName = $property["NAME"];
                     $reflProp = $reflection->getProperty($propName);
                     $reflProp->setAccessible(true);
 
-                    if(!$reflProp->isInitialized($this)){
+                    if (!$reflProp->isInitialized($this)) {
                         $value = null;
-                    }else{
+                    } else {
                         $value = $reflProp->getValue($this);
                     }
 
-                    // Format the value based on its type
-                    if ($value === null) {
-                        $childUpdates[] = $propName . "=NULL";
-                    } else if (is_bool($value) || (isset($property["TYPE"]) && strpos($property["TYPE"], 'tinyint') !== false)) {
-                        $childUpdates[] = $propName . "=" . ($value ? "1" : "0");
-                    } else if (is_numeric($value)) {
-                        $childUpdates[] = $propName . "=" . $value;
-                    } else {
-                        $childUpdates[] = $propName . "='" . addslashes($value) . "'";
-                    }
+                    $parentUpdates[] = $propName . " = " . $this->getSqlString($value);
                 }
             }
 
@@ -324,12 +313,12 @@ class Model
             }
 
             $childQuery .= implode(", ", $childUpdates);
-            $childQuery .= " WHERE {$identifier}=";
-            $childQuery .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
+            $childQuery .= " WHERE {$identifier} = ";
+            $childQuery .= $this->getSqlString($idValue);
 
             Log::channel("db")->info("Query: " . $childQuery);
 
-            return Database::transaction(function() use ($childQuery, $parentQuery) {
+            return Database::transaction(function () use ($childQuery, $parentQuery) {
                 Database::update($parentQuery);
                 return Database::update($childQuery);
             });
@@ -348,9 +337,9 @@ class Model
                 $property->setAccessible(true);
 
 
-                if(!$property->isInitialized($this)){
+                if (!$property->isInitialized($this)) {
                     $value = null;
-                }else{
+                } else {
                     $value = $property->getValue($this);
                 }
 
@@ -366,13 +355,7 @@ class Model
                         // Format the value based on its type
                         $propName = $property->getName();
 
-                        if (is_bool($value)) {
-                            $updates[] = $propName . "=" . ($value ? "1" : "0");
-                        } else if (is_numeric($value)) {
-                            $updates[] = $propName . "=" . $value;
-                        } else {
-                            $updates[] = $propName . "='" . addslashes($value) . "'";
-                        }
+                        $updates[] = $propName . " = " . $this->getSqlString($value);
                     }
                 }
             }
@@ -383,31 +366,32 @@ class Model
         }
 
         $query .= implode(", ", $updates);
-        $query .= " WHERE {$identifier}=";
-        $query .= is_numeric($idValue) ? $idValue : "'" . $idValue . "'";
+        $query .= " WHERE {$identifier} = ";
+        $query .= $this->getSqlString($idValue);
 
         Log::channel("db")->info("Query: " . $query);
 
         try {
             return Database::update($query);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Log::channel("db")->error("Failed to save model with query " . $query . ". Error: " . $e->getMessage());
             return false;
         }
     }
 
-    public static function hasDatabaseProperty(string $class, string $name) : bool
+    public static function hasDatabaseProperty(string $class, string $name): bool
     {
-        return array_key_exists($name,Model::getDatabaseProperties($class));
+        return array_key_exists($name, Model::getDatabaseProperties($class));
     }
 
-    public static function getDatabaseProperties(string $class) : array{
+    public static function getDatabaseProperties(string $class): array
+    {
         $reflection = new ReflectionClass($class);
         $properties = [];
 
         foreach ($reflection->getProperties() as $property) {
 
-            if($property->getDeclaringClass()->getName() === $reflection->getName()) {
+            if ($property->getDeclaringClass()->getName() === $reflection->getName()) {
                 $attributes = $property->getAttributes(DatabaseColumn::class);
                 foreach ($attributes as $attribute) {
                     $instance = $attribute->newInstance();
@@ -435,70 +419,70 @@ class Model
         return null;
     }
 
-    public static function where(string $column, string $value) : ModelCollection
+    public static function where(string $column, string $value): ModelCollection
     {
         return new ModelCollection(static::class)->where($column, $value);
     }
-    public static function orWhere(string $column, string $value) : ModelCollection
+    public static function orWhere(string $column, string $value): ModelCollection
     {
         return new ModelCollection(static::class)->orWhere($column, $value);
     }
 
-    public static function like(string $column, string $value) : ModelCollection
+    public static function like(string $column, string $value): ModelCollection
     {
         return new ModelCollection(static::class)->like($column, $value);
     }
-    public static function orLike(string $column, string $value) : ModelCollection
+    public static function orLike(string $column, string $value): ModelCollection
     {
         return new ModelCollection(static::class)->orLike($column, $value);
     }
 
-    public static function limit(int $count) : ModelCollection
+    public static function limit(int $count): ModelCollection
     {
         return new ModelCollection(static::class)->limit($count);
     }
 
-    public static function offset(int $offset) : ModelCollection
+    public static function offset(int $offset): ModelCollection
     {
         return new ModelCollection(static::class)->offset($offset);
     }
 
-    public static function orderBy(string $column, string $direction = "ASC") : ModelCollection
+    public static function orderBy(string $column, string $direction = "ASC"): ModelCollection
     {
-        return new ModelCollection(static::class)->orderBy($column,$direction);
+        return new ModelCollection(static::class)->orderBy($column, $direction);
     }
 
-    public static function count() : int
+    public static function count(): int
     {
         return new ModelCollection(static::class)->count();
     }
 
-    public static function sum(string $column) : float
+    public static function sum(string $column): float
     {
         return new ModelCollection(static::class)->sum($column);
     }
 
-    public static function collection() : ModelCollection
+    public static function collection(): ModelCollection
     {
         return new ModelCollection(static::class);
     }
 
-    public static function get() : array
+    public static function get(): array
     {
         return new ModelCollection(static::class)->get();
     }
 
-    public static function getFirst() : self|null
+    public static function getFirst(): self|null
     {
         return new ModelCollection(static::class)->getFirst();
     }
 
-    public static function in(string $column, array $values, string $operator = "AND") : ModelCollection
+    public static function in(string $column, array $values, string $operator = "AND"): ModelCollection
     {
         return new ModelCollection(static::class)->in($column, $values, $operator);
     }
 
-    public static function compare(string $column, string $logicalOperator, string $value) : ModelCollection
+    public static function compare(string $column, string $logicalOperator, string $value): ModelCollection
     {
         return new ModelCollection(static::class)->compare($column, $logicalOperator, $value);
     }
