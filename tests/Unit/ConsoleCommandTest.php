@@ -7,6 +7,7 @@ use Lucent\Application;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Logging\Channel;
+use Lucent\Logging\Drivers\FileDriver;
 use PHPUnit\Framework\TestCase;
 
 class ConsoleCommandTest extends TestCase
@@ -19,7 +20,7 @@ class ConsoleCommandTest extends TestCase
         self::generateTestConsoleCommand();
         self::generateTestCliFile();
 
-        $channel = new Channel("phpunit","local_file","phpunit.log");
+        $channel = new Channel("phpunit",new FileDriver("phpunit.log"));
         Application::getInstance()->addLoggingChannel("phpunit", $channel);
     }
 
