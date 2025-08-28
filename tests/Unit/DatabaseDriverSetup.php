@@ -5,6 +5,7 @@ namespace Unit;
 use Lucent\Database;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\Folder;
+use Lucent\Logging\Channel;
 use PHPUnit\Framework\TestCase;
 use Lucent\Application;
 
@@ -21,11 +22,17 @@ class DatabaseDriverSetup extends TestCase
             $env .= "{$key}={$value}\n";
         }
 
-        $path = FileSystem::rootPath().DIRECTORY_SEPARATOR. '.env';
+        $path = FileSystem::rootPath() . DIRECTORY_SEPARATOR . '.env';
         file_put_contents($path, $env);
 
         $app = Application::getInstance();
         $app->LoadEnv();
+
+        $phpunitLog = new Channel("phpunit", "local_file", "phpunit.log");
+        $app->addLoggingChannel("phpunit", $phpunitLog);
+
+        $dbLog = new Channel("db", "local_file", "db.log");
+        $app->addLoggingChannel("db", $dbLog);
 
         Database::reset();
 

@@ -750,7 +750,7 @@ class ModelTest extends DatabaseDriverSetup
                 "ALLOW_NULL"=>true,
                 "DEFAULT"=>false
             ])]
-            public protected(set) ?string $mfa_set;
+            public protected(set) ?bool $mfa_set;
             
             public function __construct(Dataset $dataset) {
                 $this->id = $dataset->get("id",-1);

@@ -50,16 +50,16 @@ class Migration
         // Drop the existing table
         $query = "DROP TABLE IF EXISTS " . $tableName;
         if (!Database::statement($query)) {
-            Log::channel("phpunit")->error("Failed to drop table {$tableName}");
+            Log::channel("db")->error("Failed to drop table {$tableName}");
             return false;
         }
 
         // Create new table using the appropriate driver
         $query = $this->driver->createTable($tableName, $columns);
-        Log::channel("phpunit")->info($query);
+        Log::channel("db")->info($query);
 
         if (!Database::statement($query)) {
-            Log::channel("phpunit")->critical("Failed to create table {$tableName}");
+            Log::channel("db")->critical("Failed to create table {$tableName}");
             return false;
         }
 
@@ -85,7 +85,7 @@ class Migration
         if ($parent->getName() !== Model::class) {
             $parentPK = Model::getDatabasePrimaryKey($parent);
             if ($parentPK === null) {
-                Log::channel("phpunit")->critical("Could not retrieve primary key from parent class {$parent->getName()}");
+                Log::channel("db")->critical("Could not retrieve primary key from parent class {$parent->getName()}");
                 exit(1);
             }
 
@@ -98,7 +98,7 @@ class Migration
 
             if (!Schema::hasTable($tableName)) {
                 if(!$this->make($parent->getName())){
-                    Log::channel("phpunit")->critical("Could not create parent table {$tableName}");
+                    Log::channel("db")->critical("Could not create parent table {$tableName}");
                 }
             }
         }
@@ -117,15 +117,15 @@ class Migration
             );
 
             if ($result && $result->num_rows > 0) {
-                Log::channel("phpunit")->info("Backing up data from {$tableName}");
+                Log::channel("db")->info("Backing up data from {$tableName}");
                 $data = Database::select("SELECT * FROM {$tableName}");
                 if (!empty($data)) {
                     $this->preservedData = $data;
-                    Log::channel("phpunit")->info("Backed up " . count($data) . " rows from {$tableName}");
+                    Log::channel("db")->info("Backed up " . count($data) . " rows from {$tableName}");
                 }
             }
         } catch (\Exception $e) {
-            Log::channel("phpunit")->critical("Could not backup data from {$tableName}: " . $e->getMessage());
+            Log::channel("db")->critical("Could not backup data from {$tableName}: " . $e->getMessage());
         }
     }
 

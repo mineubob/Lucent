@@ -30,7 +30,7 @@ class Model
 
             $value = match ($property->getType()->getName()) {
                 'string' => (string) $dataset->get($propertyName),
-                'int', 'integer' => $dataset->integer($propertyName),
+                'int', 'integer' => (int) $dataset->integer($propertyName),
                 'float', 'double' => (float) $dataset->get($propertyName),
                 'bool', 'boolean' => (bool) $dataset->get($propertyName),
                 'array' => (array) $dataset->get($propertyName),
@@ -44,7 +44,7 @@ class Model
         }
     }
 
-    private function getSqlString(mixed $value): string
+    public static function getSqlString(mixed $value): string
     {
         // Handle NULL values.
         if (!isset($value)) {
@@ -54,9 +54,9 @@ class Model
         // formatting for different types
         $type = gettype($value);
 
-        if ($type === "bool") {
-            return ($value ? "1" : "0");
-        } else if ($type === "int" || $type === "integer" || $type === "float" || $type === "double") {
+        if ($type === "boolean") {
+            return $value ? "1" : "0";
+        } else if ($type === "integer" || $type === "double") {
             return strval($value);
         } else {
             // Escape single quotes in string values
@@ -303,7 +303,7 @@ class Model
                         $value = $reflProp->getValue($this);
                     }
 
-                    $parentUpdates[] = $propName . " = " . $this->getSqlString($value);
+                    $childUpdates[] = $propName . " = " . $this->getSqlString($value);
                 }
             }
 
