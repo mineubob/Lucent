@@ -167,11 +167,6 @@ class PDODriver extends DatabaseInterface
         })->toSql();
     }
 
-    public function getTypeMap(): array
-    {
-        return [];
-    }
-
     public function lastInsertId(): string|int
     {
         return $this->connection->lastInsertId();
@@ -245,22 +240,6 @@ class PDODriver extends DatabaseInterface
             $this->connection->rollBack();
         }
         return $result;
-    }
-
-    public function hasTable(string $name): bool
-    {
-        return Schema::table($name)->exists();
-    }
-
-    public function hasColumn(string $table, array|string $column): bool
-    {
-        if(is_array($column)){
-            if (array_any($column, fn($item) => !Schema::table($table)->column($item)->exists())) {
-                return false;
-            }
-        }
-
-       return Schema::table($table)->column($column)->exists();
     }
 
     function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
