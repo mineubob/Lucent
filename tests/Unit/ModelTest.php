@@ -77,6 +77,8 @@ class ModelTest extends DatabaseDriverSetup
         ]));
 
         self::assertTrue($user->create());
+
+        $this->assertNotNull(\App\Models\TestUser::where("email","john@doe.com")->getFirst());
     }
 
     #[DataProvider('databaseDriverProvider')]
