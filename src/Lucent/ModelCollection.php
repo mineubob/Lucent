@@ -6,80 +6,21 @@ use Lucent\Database\Dataset;
 use ReflectionClass;
 use ReflectionException;
 
-/**
- * ModelCollection class for querying database models
- *
- * Provides a fluent interface for building and executing database queries
- * with support for where conditions, like conditions, limit, offset, and
- * logical operators (AND/OR).
- */
 class ModelCollection
 {
-    /**
-     * The fully qualified class name of the model
-     *
-     * @var string
-     */
     private string $class;
-
-    /**
-     * Array of WHERE conditions with their operators
-     *
-     * @var array
-     */
     private array $whereConditions;
-
-    /**
-     * Array of LIKE conditions with their operators
-     *
-     * @var array
-     */
     private array $likeConditions;
-
-    /**
-     * Array to store order by clauses
-     *
-     * @var array
-     */
     private array $orderByClauses = [];
-
-    /**
-     * Maximum number of records to return
-     *
-     * @var int
-     */
     private int $limit;
-
-    /**
-     * Number of records to skip
-     *
-     * @var int
-     */
     private int $offset;
-
-    /**
-     * Reflection of the model class
-     *
-     * @var ReflectionClass
-     */
     private ReflectionClass $reflection;
-
-    /**
-     * Query result cache
-     *
-     * @var array
-     */
     private array $cache;
-
     private static array $traitConditions = [];
 
-    /**
-     * Create a new ModelCollection instance
-     *
-     * @param string $class The fully qualified class name of the model
-     * @return ModelCollection
-     * @throws ReflectionException
-     */
+    // NEW: Store bind values separately
+    private array $bindValues = [];
+
     public function __construct($class)
     {
         $this->class = $class;
@@ -93,180 +34,98 @@ class ModelCollection
         return $this;
     }
 
-    /**
-     * Add a WHERE condition to the query
-     *
-     * Adds a condition to match records where the specified column equals the provided value.
-     * Multiple conditions can be combined with logical operators (AND/OR).
-     *
-     * @param string $column The column name to check
-     * @param string $value The value to match
-     * @param string $operator The logical operator (AND or OR) to use
-     * @return ModelCollection
-     */
     public function where(string $column, string $value, string $operator = 'AND'): ModelCollection
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
-            $operator = 'AND'; // Default to AND if invalid operator provided
+            $operator = 'AND';
         }
 
-        // Format column name based on inheritance structure
         $formattedColumn = $this->formatColumnName($column);
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' => $value,
-            'operator' => $operator
+            'value' => $value,  // Store raw value
+            'operator' => $operator,
+            'type' => '='  // NEW: Track comparison type
         ];
 
         return $this;
     }
 
-    /**
-     * Add a WHERE condition to the query
-     *
-     * Adds a condition to match records where the specified column equals a value provided in an array of values.
-     * Multiple conditions can be combined with logical operators (AND/OR).
-     *
-     * @param string $column The column name to check
-     * @param array $values
-     * @param string $operator The logical operator (AND or OR) to use
-     * @return ModelCollection
-     */
     public function in(string $column, array $values, string $operator = 'AND'): ModelCollection
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
-            $operator = 'AND'; // Default to AND if invalid operator provided
+            $operator = 'AND';
         }
 
-        // Format column name based on inheritance structure
         $formattedColumn = $this->formatColumnName($column);
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' => "IN ('" . implode("', '", $values) . "')",
+            'value' => $values,  // Store array of values
             'operator' => $operator,
-            'is_raw' => true
+            'type' => 'IN'  // NEW: Mark as IN clause
         ];
 
         return $this;
     }
 
-    /**
-     * Add a WHERE condition with a custom comparison operator
-     *
-     * Allows flexible comparison operations including equals, greater than, less than, etc.
-     * Can be used in two ways:
-     * 1. compare("column", "value") - Uses equality comparison (same as where)
-     * 2. compare("column", "<operator>", "value") - Uses the specified operator
-     *
-     * @param string $column The column name to check
-     * @param string $logicalOperator The logical operator (AND or OR) to combine with other conditions
-     * @param mixed|null $value The value to compare against if using operator (null if using 2-parameter syntax)
-     * @param string $operator
-     * @return ModelCollection Current collection instance for method chaining
-     */
     public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): ModelCollection
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
-            $operator = 'AND'; // Default to AND if invalid operator provided
+            $operator = 'AND';
         }
 
-        // Format column name based on inheritance structure
         $formattedColumn = $this->formatColumnName($column);
-
 
         $this->whereConditions[] = [
             'column' => $formattedColumn,
-            'value' => " {$logicalOperator} '{$value}'",
+            'value' => $value,  // Store raw value
             'operator' => $operator,
-            'is_raw' => true
+            'type' => $logicalOperator  // NEW: Store the comparison operator (>, <, >=, etc)
         ];
-
 
         return $this;
     }
 
-    /**
-     * Add a WHERE condition with OR logic
-     *
-     * Convenience method that adds a WHERE condition using OR logic,
-     * equivalent to calling where($column, $value, 'OR').
-     *
-     * @param string $column The column name to check
-     * @param string $value The value to match
-     * @return ModelCollection
-     */
     public function orWhere(string $column, string $value): ModelCollection
     {
         return $this->where($column, $value, 'OR');
     }
 
-    /**
-     * Add a LIKE condition to the query
-     *
-     * Adds a condition to match records where the specified column contains the provided value.
-     * The search is case-insensitive and matches partial strings (adds % wildcards automatically).
-     * Multiple conditions can be combined with logical operators (AND/OR).
-     *
-     * @param string $column The column name to search
-     * @param string $value The value to search for (partial match)
-     * @param string $operator The logical operator (AND or OR) to use
-     * @return ModelCollection
-     */
     public function like(string $column, string $value, string $operator = 'AND'): ModelCollection
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
-            $operator = 'AND'; // Default to AND if invalid operator provided
+            $operator = 'AND';
         }
 
-        // Format column name based on inheritance structure
         $formattedColumn = $this->formatColumnName($column);
 
         $this->likeConditions[] = [
             'column' => $formattedColumn,
-            'value' => $value,
+            'value' => $value,  // Store raw value
             'operator' => $operator
         ];
 
         return $this;
     }
 
-    /**
-     * Add a LIKE condition with OR logic
-     *
-     * Convenience method that adds a LIKE condition using OR logic,
-     * equivalent to calling like($column, $value, 'OR').
-     *
-     * @param string $column The column name to search
-     * @param string $value The value to search for (partial match)
-     * @return ModelCollection
-     */
     public function orLike(string $column, string $value): ModelCollection
     {
         return $this->like($column, $value, 'OR');
     }
 
-    /**
-     * Add an ORDER BY clause to the query
-     *
-     * @param string $column The column to sort by
-     * @param string $direction The sort direction ('ASC' or 'DESC')
-     * @return ModelCollection
-     */
     public function orderBy(string $column, string $direction = 'ASC'): ModelCollection
     {
-        // Normalize direction
         $direction = strtoupper($direction);
         if ($direction !== 'ASC' && $direction !== 'DESC') {
-            $direction = 'ASC'; // Default to ASC if invalid direction provided
+            $direction = 'ASC';
         }
 
-        // Format column name based on inheritance structure
         $formattedColumn = $this->formatColumnName($column);
 
         $this->orderByClauses[] = [
@@ -277,16 +136,6 @@ class ModelCollection
         return $this;
     }
 
-    /**
-     * Format column name based on inheritance structure
-     *
-     * Handles column prefixing for inherited models to ensure correct
-     * table references in SQL queries. If a model extends another model,
-     * this determines whether the column belongs to the parent or child table.
-     *
-     * @param string $column Original column name
-     * @return string Formatted column name with appropriate table prefix
-     */
     private function formatColumnName(string $column): string
     {
         if ($this->reflection->getParentClass()->getName() !== Model::class) {
@@ -300,53 +149,28 @@ class ModelCollection
         return $column;
     }
 
-    /**
-     * Set the limit for the query
-     *
-     * Specifies the maximum number of records to return in the query result.
-     *
-     * @param int $count Maximum number of records to return
-     * @return ModelCollection
-     */
     public function limit(int $count): ModelCollection
     {
         $this->limit = $count;
         return $this;
     }
 
-    /**
-     * Set the offset for the query
-     *
-     * Specifies the number of records to skip before starting to return results.
-     * Used for pagination in combination with limit().
-     *
-     * @param int $count Number of records to skip
-     * @return ModelCollection
-     */
     public function offset(int $count): ModelCollection
     {
         $this->offset = $count;
         return $this;
     }
 
-    /**
-     * Execute the query and get all matching records
-     *
-     * Builds and executes the SQL query based on all conditions and returns
-     * an array of model instances. Results are cached by query string for
-     * improved performance on repeated calls.
-     *
-     * @return array Array of model instances matching the query conditions
-     */
     public function get(): array
     {
-        $query = $this->buildQuery();
+        [$query, $bindValues] = $this->buildQuery();
 
-        if (array_key_exists($query, $this->cache)) {
-            return $this->cache[$query];
+        $cacheKey = $query . '|' . json_encode($bindValues);
+        if (array_key_exists($cacheKey, $this->cache)) {
+            return $this->cache[$cacheKey];
         }
 
-        $results = Database::select($query);
+        $results = Database::select($query, true, $bindValues);
 
         if ($results === null) {
             return [];
@@ -361,88 +185,50 @@ class ModelCollection
             array_push($instances, $instance);
         }
 
-        $this->cache[$query] = $instances;
+        $this->cache[$cacheKey] = $instances;
         return $instances;
     }
 
-    /**
-     * Execute the query and get the first matching record
-     *
-     * Builds and executes the SQL query with a limit of 1 and returns
-     * a single model instance or null if no matching record is found.
-     *
-     * @return mixed|null A model instance or null if no matching record exists
-     */
     public function getFirst(): mixed
     {
         $this->limit = 1;
-        $data = Database::select($this->buildQuery(), false);
+        [$query, $bindValues] = $this->buildQuery();
+
+        $data = Database::select($query, false, $bindValues);
 
         if ($data !== null && !empty($data)) {
             $class = new ReflectionClass($this->class);
             $instance = $class->newInstanceWithoutConstructor();
             $instance->hydrate(new Dataset($data));
             return $instance;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
-    /**
-     * Return the collection object for method chaining
-     *
-     * Helper method that returns the current ModelCollection instance
-     * to facilitate method chaining in query building.
-     *
-     * @return ModelCollection Current ModelCollection instance
-     */
     public function collection(): ModelCollection
     {
         return $this;
     }
 
-    /**
-     * Count the number of records that match the query
-     *
-     * Executes a COUNT(*) query with the current conditions to determine
-     * the total number of matching records without retrieving the actual records.
-     *
-     * @return int Number of matching records
-     */
     public function count(): int
     {
-        $query = str_replace("*", "count(*)", $this->buildQuery());
-        return (int) Database::select($query, false)["count(*)"];
+        [$query, $bindValues] = $this->buildQuery();
+        $query = str_replace("*", "count(*)", $query);
+        return (int) Database::select($query, false, $bindValues)["count(*)"];
     }
 
-    /**
-     *
-     * Calculate the sum of values in a specified column
-     *
-     * Executes a SUM() query with the current conditions to calculate
-     * the total sum of values in the specified column for all matching records.
-     * Use the same WHERE conditions as the main query.
-     *
-     * @param string $column The column name to sum
-     * @return float The sum of all values in the specified column
-     */
     public function sum(string $column): float
     {
-        $query = str_replace("*", "sum({$column})", $this->buildQuery());
-        return (float) Database::select($query, false)["sum({$column})"];
+        [$query, $bindValues] = $this->buildQuery();
+        $query = str_replace("*", "sum({$column})", $query);
+        return (float) Database::select($query, false, $bindValues)["sum({$column})"];
     }
 
-    /**
-     * Build the SQL query based on the conditions
-     *
-     * Constructs a complete SQL query string from all the conditions, joins,
-     * limits, and offsets specified in the ModelCollection. Handles model
-     * inheritance by creating appropriate JOIN clauses when needed.
-     *
-     * @return string Complete SQL query ready for execution
-     */
-    private function buildQuery(): string
+    // MODIFIED: Now returns both query and bind values
+    private function buildQuery(): array
     {
+        $bindValues = [];
         $modelClass = $this->class;
         $reflection = new ReflectionClass($modelClass);
         $parent = $reflection->getParentClass();
@@ -457,27 +243,26 @@ class ModelCollection
             $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk["NAME"]} = {$parent->getShortName()}.{$pk["NAME"]}";
         }
 
-        // Apply trait conditions if enabled and the model uses those traits
+        // Apply trait conditions
         if (count(ModelCollection::$traitConditions) > 0) {
             foreach (self::$traitConditions as $traitName => $condition) {
-                // Check if the model uses this trait
                 if (class_exists($this->class) && in_array($traitName, $this->class_uses_recursive($this->class))) {
                     $column = $condition['column'];
                     $value = $condition['value'];
 
-                    // For null comparisons
                     if ($value === null) {
                         $this->whereConditions[] = [
                             'column' => $column,
-                            'value' => 'IS NULL',
+                            'value' => null,
                             'operator' => 'AND',
-                            'is_raw' => true // Mark as raw SQL to avoid quoting
+                            'type' => 'IS NULL'
                         ];
                     } else {
                         $this->whereConditions[] = [
                             'column' => $column,
                             'value' => $value,
-                            'operator' => 'AND'
+                            'operator' => 'AND',
+                            'type' => '='
                         ];
                     }
                 }
@@ -491,23 +276,33 @@ class ModelCollection
 
             // Process WHERE conditions
             foreach ($this->whereConditions as $index => $condition) {
-                // Only add the operator for conditions after the first one
                 $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
 
-                // Check if this is a raw SQL condition
-                if (isset($condition['is_raw']) && $condition['is_raw']) {
-                    $conditions[] = $prefix . $condition['column'] . " " . $condition['value'];
+                // Handle different condition types
+                if ($condition['type'] === 'IN') {
+                    // Build IN clause with placeholders
+                    $placeholders = implode(', ', array_fill(0, count($condition['value']), '?'));
+                    $conditions[] = $prefix . $condition['column'] . " IN (" . $placeholders . ")";
+
+                    // Add each value to bind array
+                    foreach ($condition['value'] as $val) {
+                        $bindValues[] = is_bool($val) ? ($val ? 1 : 0) : $val;
+                    }
+                } elseif ($condition['type'] === 'IS NULL') {
+                    $conditions[] = $prefix . $condition['column'] . " IS NULL";
+                    // No bind value for IS NULL
                 } else {
-                    $conditions[] = $prefix . $condition['column'] . " = " . Model::getSqlString($condition['value']);
+                    // Regular comparison (=, >, <, >=, <=, !=)
+                    $conditions[] = $prefix . $condition['column'] . " " . $condition['type'] . " ?";
+                    $bindValues[] = is_bool($condition['value']) ? ($condition['value'] ? 1 : 0) : $condition['value'];
                 }
             }
 
             // Process LIKE conditions
             foreach ($this->likeConditions as $index => $condition) {
-                // If we already have WHERE conditions or this is not the first LIKE condition,
-                // prepend the operator
                 $prefix = (!empty($this->whereConditions) || $index > 0) ? $condition['operator'] . ' ' : '';
-                $conditions[] = $prefix . $condition['column'] . " LIKE '%" . $condition['value'] . "%'";
+                $conditions[] = $prefix . $condition['column'] . " LIKE ?";
+                $bindValues[] = '%' . $condition['value'] . '%';
             }
 
             $query .= implode(' ', $conditions);
@@ -531,10 +326,9 @@ class ModelCollection
             $query .= " OFFSET " . $this->offset;
         }
 
-        return $query;
+        return [$query, $bindValues];
     }
 
-    // Register a condition that will be applied automatically when querying models
     public static function registerTraitCondition(string $traitName, string $column, $value): void
     {
         self::$traitConditions[$traitName] = [
@@ -543,21 +337,12 @@ class ModelCollection
         ];
     }
 
-    /**
-     * Get all traits used by a class, including traits used by parent classes
-     *
-     * @param string $class
-     * @return array
-     */
     private function class_uses_recursive(string $class): array
     {
         $traits = [];
-
-        // Get traits of the current class
         $className = is_object($class) ? get_class($class) : $class;
         $traits = class_uses($className) ?: [];
 
-        // Get traits of all parent classes
         $parentClass = get_parent_class($className);
         if ($parentClass) {
             $traits = array_merge($this->class_uses_recursive($parentClass), $traits);
