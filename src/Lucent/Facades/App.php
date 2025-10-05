@@ -9,6 +9,7 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
+use Lucent\Database\DatabaseInterface;
 use Lucent\Middleware;
 use Lucent\Service;
 use Phar;
@@ -53,6 +54,11 @@ class App
     public static function registerCommands(string $commandFile): void
     {
         Application::getInstance()->loadCommands($commandFile);
+    }
+
+    public static function registerDatabaseDriver(string $key, string $driverClass) : void
+    {
+        Application::getInstance()->registerDatabaseDriver($key, $driverClass);
     }
 
     public static function registerGlobalMiddlewares(Middleware|string $middleware): void
