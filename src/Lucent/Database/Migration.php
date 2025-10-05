@@ -8,11 +8,8 @@
 namespace Lucent\Database;
 
 use Lucent\Database;
-use Lucent\Database\Drivers\MySQLDriver;
-use Lucent\Database\Drivers\SQLiteDriver;
 use Lucent\Facades\App;
 use Lucent\Facades\Log;
-use Lucent\Facades\Schema;
 use Lucent\Model;
 use ReflectionClass;
 
@@ -25,10 +22,7 @@ class Migration
 
     public function __construct()
     {
-        $this->driver = match(App::env("DB_DRIVER")) {
-            "sqlite" => new SQLiteDriver(),
-            default => new MySQLDriver()
-        };
+        $this->driver = Database::getDriver();
     }
 
     public function make($class): bool
@@ -94,11 +88,9 @@ class Migration
 
             $columns[] = $parentPK;
 
-            $tableName = $parent->getShortName();
-
-            if (!Schema::hasTable($tableName)) {
+            if (!Schema::table($parent->getShortName())->exists()) {
                 if(!$this->make($parent->getName())){
-                    Log::channel("db")->critical("Could not create parent table {$tableName}");
+                    Log::channel("db")->critical("Could not create parent table {$parent->getName()}");
                 }
             }
         }
