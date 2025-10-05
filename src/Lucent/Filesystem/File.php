@@ -3,6 +3,7 @@
 namespace Lucent\Filesystem;
 
 use Lucent\Facades\FileSystem;
+use Lucent\Facades\Log;
 
 /**
  * File class for handling file operations
@@ -19,7 +20,7 @@ class File extends FileSystemObject
      * @param mixed $content Optional content to write to the file
      * @param bool $absolute Whether the provided path is absolute (true) or relative to root (false)
      */
-    public function __construct(string $path, mixed $content = "", bool $absolute = false)
+    public function __construct(string $path, mixed $content = null, bool $absolute = false)
     {
         if(!$absolute) {
             $path = FileSystem::rootPath() . $path;
@@ -27,7 +28,7 @@ class File extends FileSystemObject
 
         $this->path = $path;
 
-        if($content !== ""){
+        if($content !== null){
             $this->create($content);
         }
     }
@@ -40,7 +41,7 @@ class File extends FileSystemObject
      * @param mixed $params Content to write to the file
      * @return bool True if successful, false otherwise
      */
-    public function create(mixed $params) : bool
+    public function create(mixed $params = null) : bool
     {
         if(!file_exists($this->path)) {
             $directory = dirname($this->path);
@@ -50,12 +51,17 @@ class File extends FileSystemObject
                 mkdir($directory, 0755, true);
             }
 
-            $outcome = $this->write($params);
-        }else{
-            $outcome = true;
+            if($params !== null){
+                Log::channel("db")->debug("Using write");
+                return $this->write($params);
+            }else{
+                Log::channel("db")->debug("Using touch");
+                return touch($this->path);
+            }
+
         }
 
-        return $outcome;
+        return true;
     }
 
     /**
@@ -66,6 +72,11 @@ class File extends FileSystemObject
     public function exists(): bool
     {
         return file_exists($this->path);
+    }
+
+    public function setPermissions(int $permissions) : bool
+    {
+        return chmod($this->path, $permissions);
     }
 
     /**
@@ -139,9 +150,9 @@ class File extends FileSystemObject
      * @param mixed $content Content to write to the file
      * @return bool True if successful, false otherwise
      */
-    public function write(mixed $content): bool
+    public function write(mixed $content = null): bool
     {
-        return file_put_contents($this->path, $content);
+        return file_put_contents($this->path, $content) !== false;
     }
 
     /**
