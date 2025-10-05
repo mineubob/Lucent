@@ -146,7 +146,7 @@ class Table implements SqlSerializable
         return new Column($name,"undefined",$this->driver,$this);
     }
 
-    public function drop(): void
+    public function drop(): bool
     {
         // Validate table name against allowed characters
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $this->name)) {
@@ -158,7 +158,7 @@ class Table implements SqlSerializable
 
         $query = PDODriver::$map[$this->driver]["functions"]["drop_table"];
         $query = str_replace('{table}', $this->name, $query);
-        Database::statement($query);
+        return Database::statement($query);
     }
 
     public function exists() : bool
