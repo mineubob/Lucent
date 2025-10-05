@@ -174,19 +174,57 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
-        if (count($params) > 0) {
-            $stmt = $this->connection->prepare($query);
-            $stmt->execute($params);
+        try {
+            if (count($params) > 0) {
+                $stmt = $this->connection->prepare($query);
 
-            return $stmt->rowCount() > 0;
+                if (!$stmt) {
+                    Log::channel("db")->error("Failed to prepare statement: " . $query);
+                    Log::channel("db")->error("PDO Error: " . json_encode($this->connection->errorInfo()));
+                    return false;
+                }
+
+                $result = $stmt->execute($params);
+
+                if (!$result) {
+                    Log::channel("db")->error("Failed to execute statement: " . $query);
+                    Log::channel("db")->error("Params: " . json_encode($params));
+                    Log::channel("db")->error("Error: " . json_encode($stmt->errorInfo()));
+                    return false;
+                }
+
+                // For INSERT/UPDATE/DELETE, we want to know if it succeeded
+                // rowCount() can be 0 for successful INSERTs in some cases
+                return true;
+            }
+
+            $result = $this->connection->exec($query);
+
+            if ($result === false) {
+                Log::channel("db")->error("Failed to exec query: " . $query);
+                Log::channel("db")->error("Error: " . json_encode($this->connection->errorInfo()));
+            }
+
+            return $result !== false;
+        } catch (\PDOException $e) {
+            Log::channel("db")->error("PDO Exception: " . $e->getMessage());
+            Log::channel("db")->error("Query: " . $query);
+            Log::channel("db")->error("Params: " . json_encode($params));
+            return false;
         }
-
-        return $this->connection->exec($query) !== false;
     }
 
     public function insert(string $query, array $params = []): bool
     {
-        return $this->statement($query, $params);
+        Log::channel("db")->info("INSERT Query: " . $query);
+        Log::channel("db")->info("INSERT Params: " . json_encode($params));
+
+        $result = $this->statement($query, $params);
+
+        Log::channel("db")->info("INSERT Result: " . ($result ? 'true' : 'false'));
+        Log::channel("db")->info("Last Insert ID: " . $this->connection->lastInsertId());
+
+        return $result;
     }
 
     public function delete(string $query,array $params = []): bool
