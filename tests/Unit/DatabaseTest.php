@@ -26,7 +26,7 @@ class DatabaseTest extends DatabaseDriverSetup
     {
         return [
             'sqlite' => ['sqlite', [
-                'DB_DATABASE' => '/database.sqlite'
+                'DB_DATABASE' => '/storage/database.sqlite'
             ]],
             'mysql' => ['mysql', [
                 'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
@@ -45,12 +45,14 @@ class DatabaseTest extends DatabaseDriverSetup
 
         // Force a connection and query
         try {
-            if ($driver == 'mysql') {
-                // Use a MySQL-specific query to ensure we're testing MySQL
-                $result = Database::select("SELECT VERSION()");
-            } else {
+            if ($driver == 'sqlite') {
                 // SQLite query
                 $result = Database::select("SELECT name FROM sqlite_master WHERE type='table'");
+
+            } else {
+                // Use a MySQL-specific query to ensure we're testing MySQL
+
+                $result = Database::select("SELECT VERSION()");
             }
 
             // If we get here, the connection succeeded
@@ -125,11 +127,8 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->assertNotNull($instance1, "Failed to get first database instance");
 
         // Run a simple query to ensure the connection is established
-        if ($driver === 'mysql') {
-            $query = "SELECT 1";
-        } else {
-            $query = "SELECT 1";
-        }
+
+        $query = "SELECT 1";
 
         Database::select($query);
 
@@ -168,13 +167,16 @@ class DatabaseTest extends DatabaseDriverSetup
 
         // Verify the driver type is correct
         $driverClass = get_class($instance4);
-        if ($driver === 'mysql') {
-            $this->assertStringContainsString('MySQLDriver', $driverClass,
-                "Wrong driver type - expected MySQLDriver but got {$driverClass}");
-        } else {
-            $this->assertStringContainsString('SQLiteDriver', $driverClass,
-                "Wrong driver type - expected SQLiteDriver but got {$driverClass}");
-        }
+
+        if ($driver === 'sqlite') {
+            $this->assertStringContainsString('PDODriver', $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}");
+        } else if($driver === 'mysql') {
+            $this->assertStringContainsString('PDODriver', $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}");
+        }else if($driver === 'pdo'){
+            $this->assertStringContainsString('PDODriver', $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}");        }
 
         // Test with performance metrics - measure connection time
         $startTime = microtime(true);
@@ -245,7 +247,5 @@ class DatabaseTest extends DatabaseDriverSetup
 
         $this->assertSame($instance1, $instance2, "Database instances should be identical");
     }
-
-
 
 }

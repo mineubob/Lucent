@@ -34,7 +34,7 @@ class ModelTest extends DatabaseDriverSetup
     {
         return [
             'sqlite' => ['sqlite', [
-                'DB_DATABASE' => '/database.sqlite'
+                'DB_DATABASE' => '/storage/database.sqlite'
             ]],
             'mysql' => ['mysql', [
                 'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
@@ -120,6 +120,10 @@ class ModelTest extends DatabaseDriverSetup
     public function test_extended_model_migration($driver,$config) : void
     {
         self::setupDatabase($driver, $config);
+
+        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS,function(){
+            Database::statement("DROP TABLE IF EXISTS TestUser");
+        });
 
         if($driver == "mysql"){
             Database::statement("SET FOREIGN_KEY_CHECKS=0");
