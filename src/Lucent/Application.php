@@ -6,6 +6,7 @@ use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
 use Lucent\Commandline\UpdateController;
+use Lucent\Database\Drivers\PDODriver;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Http\HttpResponse;
@@ -159,12 +160,21 @@ class Application
     private array $globalMiddlewares = [];
 
     /**
+     * An array of globally applicable middleware thats ran for all requests.
+     */
+    public private(set) array $databaseDrivers = [];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
      * loads environment variables, and initializes a null logger.
      */
     public function __construct(){
+
+        //Default database drivers
+        $this->databaseDrivers["mysql"] = PDODriver::class;
+        $this->databaseDrivers["sqlite"] = PDODriver::class;
 
         //Create our router instance
         $this->httpRouter = new HttpRouter();
@@ -706,6 +716,11 @@ class Application
     public function registerGlobalMiddleware(Middleware|string $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
+    }
+
+    public function registerDatabaseDriver(string $key, string $driverClass): void
+    {
+        $this->databaseDrivers[$key] = $driverClass;
     }
 
 

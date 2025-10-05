@@ -8,71 +8,69 @@
 namespace Lucent\Database;
 
 use Lucent\Database;
-use Lucent\Database\Drivers\MySQLDriver;
-use Lucent\Database\Drivers\SQLiteDriver;
-use Lucent\Facades\App;
 use Lucent\Facades\Log;
-use Lucent\Facades\Schema;
 use Lucent\Model;
 use ReflectionClass;
 
 
 class Migration
 {
-    private array $preservedData = [];
-
-    private DatabaseInterface $driver;
-
-    public function __construct()
-    {
-        $this->driver = match(App::env("DB_DRIVER")) {
-            "sqlite" => new SQLiteDriver(),
-            default => new MySQLDriver()
-        };
-    }
 
     public function make($class): bool
     {
-        // Disable foreign key checks
-        if (App::env("DB_DRIVER") === "mysql") {
-            Database::statement("SET FOREIGN_KEY_CHECKS=0");
-        }
 
-        $reflection = new ReflectionClass($class);
-        $tableName = $reflection->getShortName();
+        return Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS,function() use ($class) {
 
-        // Backup existing data if table exists
-        //$this->backupExistingData($tableName);
+            $reflection = new ReflectionClass($class);
 
-        // Get the new column structure
-        $columns = $this->analyzeNewStructure($reflection);
+            $table = Schema::table($reflection->getShortName());
 
-        // Drop the existing table
-        $query = "DROP TABLE IF EXISTS " . $tableName;
-        if (!Database::statement($query)) {
-            Log::channel("db")->error("Failed to drop table {$tableName}");
-            return false;
-        }
+            // Backup existing data if table exists
+            $data = [];
 
-        // Create new table using the appropriate driver
-        $query = $this->driver->createTable($tableName, $columns);
-        Log::channel("db")->info($query);
+            if($table->exists()){
+                $data = Database::select("SELECT * FROM ".$table->name);
 
-        if (!Database::statement($query)) {
-            Log::channel("db")->critical("Failed to create table {$tableName}");
-            return false;
-        }
+                // Drop the existing table
+                if (!$table->drop()) {
+                    Log::channel("db")->error("Failed to drop table {$table->name}");
+                    return false;
+                }
+            }
 
-        // Restore data if we have any
-        if (!empty($this->preservedData)) {
-            $this->restoreData($tableName);
-        }
+            // Get the new column structure
+            $columns = $this->analyzeNewStructure($reflection);
 
-        if (App::env("DB_DRIVER") === "mysql") {
-            Database::statement("SET FOREIGN_KEY_CHECKS=1");
-        }
+            // Create a new table using the appropriate driver
+            $query = Database::createTable($table->name,$columns);
 
-        return true;
+            Log::channel("db")->info($query);
+
+            if (!Database::statement($query)) {
+                Log::channel("db")->critical("Failed to create table {$table->name}");
+                return false;
+            }
+
+            // Restore data if we have any
+            if (count($data) > 0) {
+                foreach ($data as $row) {
+                    $columns = array_keys($row);
+                    $placeholders = array_fill(0, count($columns), '?');
+
+                    $query = sprintf(
+                        "INSERT INTO %s (`%s`) VALUES (%s)",
+                        $table->name,
+                        implode('`, `', $columns),
+                        implode(', ', $placeholders)
+                    );
+
+                    Database::insert($query, array_values($row));
+                }
+            }
+
+            return true;
+        });
+
     }
 
     private function analyzeNewStructure(ReflectionClass $reflection): array
@@ -80,7 +78,6 @@ class Migration
         //Check if we are extending anything.
         $parent = $reflection->getParentClass();
         $columns = [];
-
 
         if ($parent->getName() !== Model::class) {
             $parentPK = Model::getDatabasePrimaryKey($parent);
@@ -94,79 +91,13 @@ class Migration
 
             $columns[] = $parentPK;
 
-            $tableName = $parent->getShortName();
-
-            if (!Schema::hasTable($tableName)) {
+            if (!Schema::table($parent->getShortName())->exists()) {
                 if(!$this->make($parent->getName())){
-                    Log::channel("db")->critical("Could not create parent table {$tableName}");
+                    Log::channel("db")->critical("Could not create parent table {$parent->getName()}");
                 }
             }
         }
 
         return array_merge($columns,Model::getDatabaseProperties($reflection->getName()));
     }
-
-
-    private function backupExistingData(string $tableName): void
-    {
-        try {
-            // Check if table exists - SQLite compatible version
-            $result = Database::select(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-                [$tableName]
-            );
-
-            if ($result && $result->num_rows > 0) {
-                Log::channel("db")->info("Backing up data from {$tableName}");
-                $data = Database::select("SELECT * FROM {$tableName}");
-                if (!empty($data)) {
-                    $this->preservedData = $data;
-                    Log::channel("db")->info("Backed up " . count($data) . " rows from {$tableName}");
-                }
-            }
-        } catch (\Exception $e) {
-            Log::channel("db")->critical("Could not backup data from {$tableName}: " . $e->getMessage());
-        }
-    }
-
-
-    private function restoreData(string $tableName): void
-    {
-        if (empty($this->preservedData)) {
-            return;
-        }
-
-        Log::channel("db")->info("Attempting to restore data to {$tableName}");
-
-        foreach ($this->preservedData as $row) {
-            $columns = array_keys($row);
-            $values = array_values($row);
-
-            // Escape values
-            $values = array_map(function($value) {
-                if ($value === null) {
-                    return 'NULL';
-                }
-                return "'" . addslashes($value) . "'";
-            }, $values);
-
-            $query = sprintf(
-                "INSERT INTO %s (`%s`) VALUES (%s)",
-                $tableName,
-                implode('`, `', $columns),
-                implode(', ', $values)
-            );
-
-            try {
-                if (!Database::insert($query)) {
-                    Log::channel("db")->critical("Failed to restore row in {$tableName}");
-                }
-            } catch (\Exception $e) {
-                Log::channel("db")->critical("Error restoring data: " . $e->getMessage());
-            }
-        }
-
-        Log::channel("db")->info("Completed data restoration for {$tableName}");
-    }
-
 }
