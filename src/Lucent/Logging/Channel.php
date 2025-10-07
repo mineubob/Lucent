@@ -35,13 +35,6 @@ class Channel
         if ($sql === '')
             return false;
 
-        // Extract SQL starting from first SQL keyword
-        if (preg_match('/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET)\b/i', $sql, $matches, PREG_OFFSET_CAPTURE)) {
-            $sql = substr($sql, $matches[0][1]);
-        } else {
-            return false; // No SQL keyword found
-        }
-
         $commands = [
             'SELECT',
             'INSERT',
@@ -55,8 +48,16 @@ class Channel
             'WITH',
             'SHOW',
             'DESCRIBE',
-            'SET'
+            'SET',
+            'PRAGMA'
         ];
+
+        // Extract SQL starting from first SQL keyword
+        if (preg_match('/\b(' . implode('|', $commands) . ')\b/i', $sql, $matches, PREG_OFFSET_CAPTURE)) {
+            $sql = substr($sql, $matches[0][1]);
+        } else {
+            return false; // No SQL keyword found
+        }
 
         $firstWord = strtoupper(strtok($sql, " \t\n\r("));
         if (!in_array($firstWord, $commands, true))
