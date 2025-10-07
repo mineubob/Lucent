@@ -67,56 +67,46 @@ class Channel
         // -----------------------------
         $strictPatterns = [
             // SELECT ... FROM table [WHERE ...] [GROUP BY ...] [ORDER BY ...]
-            // Basic prefix: SELECT
             '/^SELECT\s+.+\s+FROM\s+\S+(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?$/is',
 
             // INSERT INTO table (...) VALUES (...)
-            // Basic prefix: INSERT INTO
             '/^INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
 
             // UPDATE table SET ... [WHERE ...]
-            // Basic prefix: UPDATE
             '/^UPDATE\s+\S+\s+SET\s+.+(\s+WHERE\s+.+)?$/is',
 
             // DELETE FROM table [WHERE ...]
-            // Basic prefix: DELETE FROM
             '/^DELETE\s+FROM\s+\S+(\s+WHERE\s+.+)?$/is',
 
-            // CREATE TABLE (IF NOT EXISTS) table (...)
-            // Basic prefix: CREATE TABLE
+            // CREATE TABLE [IF NOT EXISTS] table (...)
             '/^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\S+\s*\(.*\)$/is',
 
             // ALTER TABLE table ...
-            // Basic prefix: ALTER TABLE
             '/^ALTER\s+TABLE\s+\S+.+$/is',
 
-            // DROP TABLE/INDEX ...
-            // Basic prefix: DROP TABLE or DROP INDEX
-            '/^DROP\s+(TABLE|INDEX)\s+\S+$/is',
+            // DROP TABLE/INDEX [IF EXISTS] name
+            '/^DROP\s+(TABLE|INDEX)\s+(IF\s+EXISTS\s+)?\S+$/is',
 
-            // REPLACE INTO ...
-            // Basic prefix: REPLACE INTO
+            // REPLACE INTO table (...) VALUES (...)
             '/^REPLACE\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
 
             // TRUNCATE TABLE ...
-            // Basic prefix: TRUNCATE TABLE
             '/^TRUNCATE\s+TABLE\s+\S+$/is',
 
             // WITH ... (CTE)
-            // Basic prefix: WITH
             '/^WITH\s+.+$/is',
 
             // SHOW ...
-            // Basic prefix: SHOW
             '/^SHOW\s+.+$/is',
 
             // DESCRIBE table
-            // Basic prefix: DESCRIBE
             '/^DESCRIBE\s+\S+$/is',
 
-            // SET variable = value;
-            // Basic prefix: SET
+            // SET variable = value
             '/^SET\s+.+$/is',
+
+            // PRAGMA variable = value
+            '/^PRAGMA\s+.+$/is',
         ];
 
         foreach ($strictPatterns as $p) {
@@ -151,6 +141,7 @@ class Channel
             'VALUES',
             'UPDATE',
             'SET',
+            'PRAGMA',
             'DELETE',
             'CREATE',
             'TABLE',
@@ -256,35 +247,45 @@ class Channel
         // Identifiers
         $sql = preg_replace('/[`"]([^`"]+)[`"]/', $colors['identifier'] . '`$1`' . $colors['reset'], $sql);
 
-        // Highlight SET variable assignments separately
-        if (preg_match('/^\s*SET\s+/i', $sql)) {
-            // Split by comma in case of multiple assignments: SET var1 = val1, var2 = val2
-            $sql = preg_replace_callback(
-                '/SET\s+(.*)/i',
-                function ($m) use ($colors) {
-                    $assignments = $m[1];
-                    // Highlight numbers
-                    $assignments = preg_replace(
-                        '/\b\d+(\.\d+)?\b/',
-                        $colors['number'] . '$0' . $colors['reset'],
-                        $assignments
-                    );
-                    // Highlight variable names (@var or UPPERCASE identifiers)
-                    $assignments = preg_replace(
-                        '/(\b[A-Z_][A-Z0-9_]*\b|@[A-Za-z0-9_]+)/',
-                        $colors['identifier'] . '$1' . $colors['reset'],
-                        $assignments
-                    );
-                    // Highlight operators (=)
-                    $assignments = preg_replace(
-                        '/=/',
-                        $colors['operator'] . '=' . $colors['reset'],
-                        $assignments
-                    );
-                    return $colors['keyword'] . 'SET' . $colors['reset'] . ' ' . $assignments;
-                },
-                $sql
-            );
+
+        // Special handling for SET and PRAGMA
+        foreach (['SET', 'PRAGMA'] as $cmd) {
+            if (preg_match("/^\s*$cmd\s+/i", $sql)) {
+                $sql = preg_replace_callback(
+                    "/$cmd\s+(.*)/i",
+                    function ($m) use ($colors, $cmd) {
+                        $assignments = $m[1];
+                        // Highlight numbers
+                        $assignments = preg_replace(
+                            '/\b\d+(\.\d+)?\b/',
+                            $colors['number'] . '$0' . $colors['reset'],
+                            $assignments
+                        );
+                        // Highlight variables
+                        $assignments = preg_replace(
+                            '/(\b[A-Z_][A-Z0-9_]*\b|@[A-Za-z0-9_]+)/i',
+                            $colors['identifier'] . '$1' . $colors['reset'],
+                            $assignments
+                        );
+                        // Highlight ON/OFF/TRUE/FALSE for PRAGMA
+                        if ($cmd === 'PRAGMA') {
+                            $assignments = preg_replace(
+                                '/\b(ON|OFF|TRUE|FALSE)\b/i',
+                                $colors['keyword'] . '$0' . $colors['reset'],
+                                $assignments
+                            );
+                        }
+                        // Highlight operators
+                        $assignments = preg_replace(
+                            '/=/',
+                            $colors['operator'] . '=' . $colors['reset'],
+                            $assignments
+                        );
+                        return $colors['keyword'] . $cmd . $colors['reset'] . ' ' . $assignments;
+                    },
+                    $sql
+                );
+            }
         }
 
         // Functions
@@ -345,7 +346,7 @@ class Channel
     private function highlightLine(string $line): string
     {
         // Match SQL statements
-        $sqlPattern = '/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET)\b.*?(?=(\bSELECT|\bINSERT|\bUPDATE|\bDELETE|\bCREATE|\bALTER|\bDROP|\bREPLACE|\bTRUNCATE|\bWITH|\bSHOW|\bDESCRIBE|\bSET\b|$))/is';
+        $sqlPattern = '/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET|PRAGMA)\b.*?(?=(\bSELECT|\bINSERT|\bUPDATE|\bDELETE|\bCREATE|\bALTER|\bDROP|\bREPLACE|\bTRUNCATE|\bWITH|\bSHOW|\bDESCRIBE|\bSET\b|\bPRAGMA\b|$))/is';
 
         $line = preg_replace_callback($sqlPattern, function ($matches) {
             $sql = $matches[0];
