@@ -35,7 +35,12 @@ class Channel
         if ($sql === '')
             return false;
 
-        $firstWord = strtoupper(strtok($sql, " \t\n\r("));
+        // Extract SQL starting from first SQL keyword
+        if (preg_match('/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET)\b/i', $sql, $matches, PREG_OFFSET_CAPTURE)) {
+            $sql = substr($sql, $matches[0][1]);
+        } else {
+            return false; // No SQL keyword found
+        }
 
         $commands = [
             'SELECT',
@@ -49,29 +54,69 @@ class Channel
             'TRUNCATE',
             'WITH',
             'SHOW',
-            'DESCRIBE'
+            'DESCRIBE',
+            'SET'
         ];
 
-        if (!in_array($firstWord, $commands, true)) {
+        $firstWord = strtoupper(strtok($sql, " \t\n\r("));
+        if (!in_array($firstWord, $commands, true))
             return false;
-        }
 
-        // Strict regexes (MySQL & SQLite friendly)
+        // -----------------------------
+        // STRICT PATTERNS
+        // -----------------------------
         $strictPatterns = [
             // SELECT ... FROM table [WHERE ...] [GROUP BY ...] [ORDER BY ...]
+            // Basic prefix: SELECT
             '/^SELECT\s+.+\s+FROM\s+\S+(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?$/is',
 
             // INSERT INTO table (...) VALUES (...)
-            '/^INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^)]+\)$/is',
+            // Basic prefix: INSERT INTO
+            '/^INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
 
             // UPDATE table SET ... [WHERE ...]
+            // Basic prefix: UPDATE
             '/^UPDATE\s+\S+\s+SET\s+.+(\s+WHERE\s+.+)?$/is',
 
             // DELETE FROM table [WHERE ...]
+            // Basic prefix: DELETE FROM
             '/^DELETE\s+FROM\s+\S+(\s+WHERE\s+.+)?$/is',
 
             // CREATE TABLE (IF NOT EXISTS) table (...)
+            // Basic prefix: CREATE TABLE
             '/^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\S+\s*\(.*\)$/is',
+
+            // ALTER TABLE table ...
+            // Basic prefix: ALTER TABLE
+            '/^ALTER\s+TABLE\s+\S+.+$/is',
+
+            // DROP TABLE/INDEX ...
+            // Basic prefix: DROP TABLE or DROP INDEX
+            '/^DROP\s+(TABLE|INDEX)\s+\S+$/is',
+
+            // REPLACE INTO ...
+            // Basic prefix: REPLACE INTO
+            '/^REPLACE\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
+
+            // TRUNCATE TABLE ...
+            // Basic prefix: TRUNCATE TABLE
+            '/^TRUNCATE\s+TABLE\s+\S+$/is',
+
+            // WITH ... (CTE)
+            // Basic prefix: WITH
+            '/^WITH\s+.+$/is',
+
+            // SHOW ...
+            // Basic prefix: SHOW
+            '/^SHOW\s+.+$/is',
+
+            // DESCRIBE table
+            // Basic prefix: DESCRIBE
+            '/^DESCRIBE\s+\S+$/is',
+
+            // SET variable = value;
+            // Basic prefix: SET
+            '/^SET\s+.+$/is',
         ];
 
         foreach ($strictPatterns as $p) {
@@ -84,21 +129,19 @@ class Channel
 
     private function highlightSql(string $sql): string
     {
-        if (!$this->isValidSql($sql))
-            return $sql; // not SQL -> return plain
 
-        // ANSI colors
         $colors = [
-            'keyword' => "\033[1;34m", // blue
-            'type' => "\033[1;35m", // magenta
-            'identifier' => "\033[1;36m", // cyan
-            'string' => "\033[0;32m", // green
-            'number' => "\033[0;36m", // light cyan
-            'function' => "\033[1;33m", // yellow
+            'keyword' => "\033[1;34m", // Blue
+            'type' => "\033[1;35m", // Magenta
+            'identifier' => "\033[1;37m", // White
+            'string' => "\033[0;32m", // Green
+            'number' => "\033[0;36m", // Cyan
+            'function' => "\033[1;33m", // Yellow
+            'operator' => "\033[1;37m", // White
+            'comment' => "\033[0;90m", // Dark Grey
             'reset' => "\033[0m",
         ];
 
-        // ✅ Combined keyword list (MySQL + SQLite)
         $keywords = [
             'SELECT',
             'FROM',
@@ -154,11 +197,11 @@ class Channel
             'AUTOINCREMENT'
         ];
 
-        // ✅ SQLite + MySQL compatible data types
         $types = [
             'INT',
             'INTEGER',
             'SMALLINT',
+            'TINYINT',
             'BIGINT',
             'DECIMAL',
             'NUMERIC',
@@ -195,61 +238,121 @@ class Channel
             'RANDOM'
         ];
 
-        // --- ANSI-safe highlighting using placeholders ---
+        // Protect existing ANSI codes
         $placeholders = [];
-
-        // 1 Protect existing ANSI codes (none yet, but for safety if reused)
         $sql = preg_replace_callback('/\033\[[0-9;]*m/', function ($m) use (&$placeholders) {
             $key = "%%ANSI" . count($placeholders) . "%%";
             $placeholders[$key] = $m[0];
             return $key;
         }, $sql);
 
-        // 2 Strings first: 'value'
+        // Comments
+        $sql = preg_replace_callback('/\/\*.*?\*\//s', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
+        $sql = preg_replace_callback('/--.*$/m', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
+
+        // Strings
         $sql = preg_replace("/'([^']*)'/", $colors['string'] . "'$1'" . $colors['reset'], $sql);
 
-        // 3 Identifiers: `table` or "table"
+        // Identifiers
         $sql = preg_replace('/[`"]([^`"]+)[`"]/', $colors['identifier'] . '`$1`' . $colors['reset'], $sql);
 
-        // 4 Functions
+        // Highlight SET variable assignments separately
+        if (preg_match('/^\s*SET\s+/i', $sql)) {
+            // Split by comma in case of multiple assignments: SET var1 = val1, var2 = val2
+            $sql = preg_replace_callback(
+                '/SET\s+(.*)/i',
+                function ($m) use ($colors) {
+                    $assignments = $m[1];
+                    // Highlight numbers
+                    $assignments = preg_replace(
+                        '/\b\d+(\.\d+)?\b/',
+                        $colors['number'] . '$0' . $colors['reset'],
+                        $assignments
+                    );
+                    // Highlight variable names (@var or UPPERCASE identifiers)
+                    $assignments = preg_replace(
+                        '/(\b[A-Z_][A-Z0-9_]*\b|@[A-Za-z0-9_]+)/',
+                        $colors['identifier'] . '$1' . $colors['reset'],
+                        $assignments
+                    );
+                    // Highlight operators (=)
+                    $assignments = preg_replace(
+                        '/=/',
+                        $colors['operator'] . '=' . $colors['reset'],
+                        $assignments
+                    );
+                    return $colors['keyword'] . 'SET' . $colors['reset'] . ' ' . $assignments;
+                },
+                $sql
+            );
+        }
+
+        // Functions
         $sql = preg_replace_callback(
             '/\b(' . implode('|', $functions) . ')\s*(?=\()/i',
             fn($m) => $colors['function'] . strtoupper($m[1]) . $colors['reset'] . '(',
             $sql
         );
 
-        // 5 Types
+        // Types
         $sql = preg_replace_callback(
             '/\b(' . implode('|', $types) . ')\b/i',
             fn($m) => $colors['type'] . strtoupper($m[1]) . $colors['reset'],
             $sql
         );
 
-        // 6 Keywords
+        // Keywords
         $sql = preg_replace_callback(
             '/\b(' . implode('|', $keywords) . ')\b/i',
             fn($m) => $colors['keyword'] . strtoupper($m[1]) . $colors['reset'],
             $sql
         );
 
-        // 7 Protect existing ANSI codes before the numbers pass.
+        // Operators
+        $sql = preg_replace(
+            '/(\=|<|>|\!|\+|\-|\*|\/|\(|\)|,)/',
+            $colors['operator'] . '$1' . $colors['reset'],
+            $sql
+        );
+
+        // Protect ANSI codes before number pass.
         $sql = preg_replace_callback('/\033\[[0-9;]*m/', function ($m) use (&$placeholders) {
             $key = "%%ANSI" . count($placeholders) . "%%";
             $placeholders[$key] = $m[0];
             return $key;
         }, $sql);
 
-        // 8 Numbers last
+        // Numbers
         $sql = preg_replace(
             '/\b\d+(\.\d+)?\b/',
             $colors['number'] . '$0' . $colors['reset'],
             $sql
         );
 
-        // 9 Restore protected ANSI sequences
+        // Placeholders
+        $sql = preg_replace(
+            '/\?/',
+            $colors['number'] . '?' . $colors['reset'],
+            $sql
+        );
+
+        // Restore ANSI codes
         $sql = strtr($sql, $placeholders);
 
         return $sql;
+    }
+
+    private function highlightLine(string $line): string
+    {
+        // Match SQL statements
+        $sqlPattern = '/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET)\b.*?(?=(\bSELECT|\bINSERT|\bUPDATE|\bDELETE|\bCREATE|\bALTER|\bDROP|\bREPLACE|\bTRUNCATE|\bWITH|\bSHOW|\bDESCRIBE|\bSET\b|$))/is';
+
+        $line = preg_replace_callback($sqlPattern, function ($matches) {
+            $sql = $matches[0];
+            return $this->isValidSql($sql) ? $this->highlightSql($sql) : $sql;
+        }, $line);
+
+        return $line;
     }
 
     private function formatMessage(string $level, string $message): string
@@ -259,7 +362,7 @@ class Channel
 
         if ($this->useColors) {
             $levelColor = $this->levelColors[$level] ?? "\033[0m";
-            $formattedMessage = $this->highlightSql($message);
+            $formattedMessage = $this->highlightLine($message);
             return sprintf(
                 "[%s] %s%s\033[0m | %s | %s\n",
                 $timestamp,
