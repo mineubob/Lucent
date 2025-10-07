@@ -98,7 +98,7 @@ class Channel
             'reset' => "\033[0m",
         ];
 
-        // Keywords, types, functions (cover SQLite + MySQL)
+        // ✅ Combined keyword list (MySQL + SQLite)
         $keywords = [
             'SELECT',
             'FROM',
@@ -148,18 +148,13 @@ class Channel
             'PRIMARY',
             'KEY',
             'DEFAULT',
+            'CHECK',
+            'CONSTRAINT',
             'AUTO_INCREMENT',
-            'INT',
-            'TINYINT',
-            'VARCHAR',
-            'TEXT',
-            'ENGINE',
-            'REAL',
-            'NUMERIC',
-            'BLOB',
-            'BOOLEAN'
+            'AUTOINCREMENT'
         ];
 
+        // ✅ SQLite + MySQL compatible data types
         $types = [
             'INT',
             'INTEGER',
@@ -184,7 +179,21 @@ class Channel
             'UUID'
         ];
 
-        $functions = ['COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'NOW', 'CURRENT_TIMESTAMP', 'UPPER', 'LOWER', 'LENGTH'];
+        $functions = [
+            'COUNT',
+            'SUM',
+            'AVG',
+            'MIN',
+            'MAX',
+            'NOW',
+            'CURRENT_TIMESTAMP',
+            'UPPER',
+            'LOWER',
+            'LENGTH',
+            'ABS',
+            'ROUND',
+            'RANDOM'
+        ];
 
         // --- ANSI-safe highlighting using placeholders ---
         $placeholders = [];
