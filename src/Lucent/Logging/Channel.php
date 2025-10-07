@@ -145,6 +145,8 @@ class Channel
             'DELETE',
             'CREATE',
             'TABLE',
+            'DESCRIBE',
+            'SHOW',
             'ALTER',
             'DROP',
             'JOIN',
@@ -241,12 +243,27 @@ class Channel
         $sql = preg_replace_callback('/\/\*.*?\*\//s', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
         $sql = preg_replace_callback('/--.*$/m', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
 
-        // Strings
-        $sql = preg_replace("/'([^']*)'/", $colors['string'] . "'$1'" . $colors['reset'], $sql);
+        // Strings (protected from other stages)
+        $sql = preg_replace_callback(
+            "/'([^']*)'/",
+            function ($m) use (&$placeholders, $colors) {
+                $key = "%%STR" . count($placeholders) . "%%";
+                $placeholders[$key] = $colors['string'] . $m[0] . $colors['reset'];
+                return $key;
+            },
+            $sql
+        );
 
-        // Identifiers
-        $sql = preg_replace('/[`"]([^`"]+)[`"]/', $colors['identifier'] . '`$1`' . $colors['reset'], $sql);
-
+        // Identifiers (protected from other stages)
+        $sql = preg_replace_callback(
+            '/[`"]([^`"]+)[`"]/',
+            function ($m) use (&$placeholders, $colors) {
+                $key = "%%IDENT" . count($placeholders) . "%%";
+                $placeholders[$key] = $colors['identifier'] . $m[0] . $colors['reset'];
+                return $key;
+            },
+            $sql
+        );
 
         // Special handling for SET and PRAGMA
         foreach (['SET', 'PRAGMA'] as $cmd) {
