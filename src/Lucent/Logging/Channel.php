@@ -129,6 +129,7 @@ class Channel
             'function' => "\033[1;33m", // Yellow
             'operator' => "\033[1;37m", // White
             'comment' => "\033[0;90m", // Dark Grey
+            'placeholder' => "\033[1;37m", // White
             'reset' => "\033[0m",
         ];
 
@@ -350,7 +351,7 @@ class Channel
         // Placeholders
         $sql = preg_replace(
             '/\?/',
-            $colors['number'] . '?' . $colors['reset'],
+            $colors['placeholder'] . '?' . $colors['reset'],
             $sql
         );
 
