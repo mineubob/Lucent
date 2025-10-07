@@ -235,6 +235,8 @@ class PDODriver extends DatabaseInterface
 
     public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
+        Log::channel("db")->debug("Select: {$query}");
+
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
