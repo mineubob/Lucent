@@ -176,6 +176,8 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
+        Log::channel("db")->debug("Statement: {$query}");
+
         try {
             if (count($params) > 0) {
                 $stmt = $this->connection->prepare($query);
@@ -218,15 +220,7 @@ class PDODriver extends DatabaseInterface
 
     public function insert(string $query, array $params = []): bool
     {
-        Log::channel("db")->info("INSERT Query: " . $query);
-        Log::channel("db")->info("INSERT Params: " . json_encode($params));
-
-        $result = $this->statement($query, $params);
-
-        Log::channel("db")->info("INSERT Result: " . ($result ? 'true' : 'false'));
-        Log::channel("db")->info("Last Insert ID: " . $this->connection->lastInsertId());
-
-        return $result;
+        return $this->statement($query, $params);
     }
 
     public function delete(string $query, array $params = []): bool
