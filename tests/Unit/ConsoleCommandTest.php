@@ -7,7 +7,9 @@ use Lucent\Application;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Logging\Channel;
+use Lucent\Logging\Drivers\CliDriver;
 use Lucent\Logging\Drivers\FileDriver;
+use Lucent\Logging\Drivers\TeeDriver;
 use PHPUnit\Framework\TestCase;
 
 class ConsoleCommandTest extends TestCase
@@ -20,14 +22,22 @@ class ConsoleCommandTest extends TestCase
         self::generateTestConsoleCommand();
         self::generateTestCliFile();
 
-        $channel = new Channel("phpunit",new FileDriver("phpunit.log"));
-        Application::getInstance()->addLoggingChannel("phpunit", $channel);
+        $app = Application::getInstance();
+
+        $phpunitLog = new Channel("phpunit", new TeeDriver(new CliDriver(), new FileDriver("phpunit.log")), false);
+        $app->addLoggingChannel("phpunit", $phpunitLog);
+
+        $dbLog = new Channel("db", new TeeDriver(new CliDriver(), new FileDriver("db.log")));
+        $app->addLoggingChannel("db", $dbLog);
+
+        $fsLog = new Channel("fs", new TeeDriver(new CliDriver(), new FileDriver("fs.log")));
+        $app->addLoggingChannel("fs", $fsLog);
     }
 
 
-    public function test_basic_console_command() :void
+    public function test_basic_console_command(): void
     {
-        CommandLine::register("test run","run",TestCommand::class);
+        CommandLine::register("test run", "run", TestCommand::class);
 
 
         $result = CommandLine::execute("test run");
@@ -35,16 +45,16 @@ class ConsoleCommandTest extends TestCase
         $this->assertEquals("Test command successfully run", $result);
     }
 
-    public function test_variable_console_command() :void
+    public function test_variable_console_command(): void
     {
-        CommandLine::register("test var {var}","var",TestCommand::class);
+        CommandLine::register("test var {var}", "var", TestCommand::class);
 
         $result = CommandLine::execute("test var ABC");
 
         $this->assertEquals("ABC", $result);
     }
 
-    public function test_commandline_from_cli() :void
+    public function test_commandline_from_cli(): void
     {
         //As we are executing a new php process, we need to register our command in the cli script file, not here.
         //CommandLine::register("test run", "run", TestCommand::class);
@@ -60,42 +70,42 @@ class ConsoleCommandTest extends TestCase
         $this->assertEquals("Test command successfully run", $output);
     }
 
-    public function test_command_with_invalid_method() : void
+    public function test_command_with_invalid_method(): void
     {
-        CommandLine::register("test run","run2",TestCommand::class);
+        CommandLine::register("test run", "run2", TestCommand::class);
 
         $result = CommandLine::execute("test run");
 
         $this->assertEquals("Invalid command: The method 'run2' is not defined in the 'App\Commands\TestCommand' class.\nPlease verify the command registration and the controller's method.", $result);
     }
 
-    public function test_command_with_invalid_controller() : void
+    public function test_command_with_invalid_controller(): void
     {
-        CommandLine::register("test run","run",TestTwoCommand::class);
+        CommandLine::register("test run", "run", TestTwoCommand::class);
 
         $result = CommandLine::execute("test run");
 
         $this->assertEquals("Command registration error: The controller class 'Unit\TestTwoCommand' could not be found.\nPlease check your command registration and ensure the class exists.", $result);
     }
 
-    public function test_command_with_invalid_arguments() : void
+    public function test_command_with_invalid_arguments(): void
     {
-        CommandLine::register("test var {var}","var2",TestCommand::class);
+        CommandLine::register("test var {var}", "var2", TestCommand::class);
 
         $result = CommandLine::execute("test var ABC");
 
         $this->assertEquals("Insufficient arguments! The command requires at least 1 parameters.\nUsage: test var {var} ", $result);
     }
 
-    public function test_command_call_on_phar_directly() : void
+    public function test_command_call_on_phar_directly(): void
     {
-        $this->assertTrue(file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR."packages".DIRECTORY_SEPARATOR."lucent.phar"));
-        $output = exec("cd ".FileSystem::rootPath().DIRECTORY_SEPARATOR."packages"." && php lucent.phar update rollback");
+        $this->assertTrue(file_exists(FileSystem::rootPath() . DIRECTORY_SEPARATOR . "packages" . DIRECTORY_SEPARATOR . "lucent.phar"));
+        $output = exec("cd " . FileSystem::rootPath() . DIRECTORY_SEPARATOR . "packages" . " && php lucent.phar update rollback");
 
-        $this->assertEquals("No backup versions found to roll back to.",$output);
+        $this->assertEquals("No backup versions found to roll back to.", $output);
     }
 
-    public static function generateTestConsoleCommand() : void
+    public static function generateTestConsoleCommand(): void
     {
         $commandContent = <<<'PHP'
         <?php
@@ -124,7 +134,7 @@ class ConsoleCommandTest extends TestCase
         PHP;
 
 
-        $appPath = TEMP_ROOT. "App";
+        $appPath = TEMP_ROOT . "App";
         $commandsPath = $appPath . DIRECTORY_SEPARATOR . "Commands";
 
         if (!is_dir($commandsPath)) {
@@ -132,12 +142,12 @@ class ConsoleCommandTest extends TestCase
         }
 
         file_put_contents(
-            $commandsPath.DIRECTORY_SEPARATOR.'TestCommand.php',
+            $commandsPath . DIRECTORY_SEPARATOR . 'TestCommand.php',
             $commandContent
         );
     }
 
-    public static function generateTestCliFile() : void
+    public static function generateTestCliFile(): void
     {
         $commandContent = <<<'PHP'
         #!/usr/bin/env php
@@ -158,7 +168,7 @@ class ConsoleCommandTest extends TestCase
         PHP;
 
         file_put_contents(
-            TEMP_ROOT.DIRECTORY_SEPARATOR.'cli',
+            TEMP_ROOT . DIRECTORY_SEPARATOR . 'cli',
             $commandContent
         );
     }

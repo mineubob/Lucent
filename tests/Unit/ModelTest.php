@@ -33,16 +33,22 @@ class ModelTest extends DatabaseDriverSetup
     public static function databaseDriverProvider(): array
     {
         return [
-            'sqlite' => ['sqlite', [
-                'DB_DATABASE' => '/storage/database.sqlite'
-            ]],
-            'mysql' => ['mysql', [
-                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
-                'DB_PORT' => getenv('DB_PORT') ?: '3306',
-                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-            ]]
+            'sqlite' => [
+                'sqlite',
+                [
+                    'DB_DATABASE' => '/storage/database.sqlite'
+                ]
+            ],
+            'mysql' => [
+                'mysql',
+                [
+                    'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                    'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+                ]
+            ]
         ];
     }
 
@@ -55,20 +61,20 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_migration($driver,$config) : void
+    public function test_model_migration($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_creation($driver,$config) : void
+    public function test_model_creation($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_model_migration($driver,$config);
+        $this->test_model_migration($driver, $config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -78,15 +84,15 @@ class ModelTest extends DatabaseDriverSetup
 
         self::assertTrue($user->create());
 
-        $this->assertNotNull(\App\Models\TestUser::where("email","john@doe.com")->getFirst());
+        $this->assertNotNull(\App\Models\TestUser::where("email", "john@doe.com")->getFirst());
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_updating($driver, $config) : void
+    public function test_model_updating($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_model_migration($driver,$config);
+        $this->test_model_migration($driver, $config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Doe",
@@ -103,9 +109,9 @@ class ModelTest extends DatabaseDriverSetup
         $user->setFullName("Jack Harris");
 
         $result = false;
-        try{
+        try {
             $result = $user->save();
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             $this->fail($e->getMessage());
         }
 
@@ -114,37 +120,37 @@ class ModelTest extends DatabaseDriverSetup
         $user = \App\Models\TestUser::where("full_name", "Jack Harris")->getFirst();
 
         $this->assertNotNull($user);
-        $this->assertEquals("Jack Harris",$user->getFullName());
+        $this->assertEquals("Jack Harris", $user->getFullName());
 
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_migration($driver,$config) : void
+    public function test_extended_model_migration($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS,function(){
+        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
             Database::statement("DROP TABLE IF EXISTS TestUser");
         });
 
-        if($driver == "mysql"){
+        if ($driver == "mysql") {
             Database::statement("SET FOREIGN_KEY_CHECKS=0");
         }
         //Drop our test user from the prior tests to ensure it generates both.
         Database::statement("DROP TABLE IF EXISTS TestUser");
-        if($driver == "mysql"){
+        if ($driver == "mysql") {
             Database::statement("SET FOREIGN_KEY_CHECKS=1");
         }
         $output = CommandLine::execute("Migration make App/Models/Admin");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_creation($driver,$config) : void
+    public function test_extended_model_creation($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration($driver,$config);
+        $this->test_extended_model_migration($driver, $config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "John Doe",
@@ -157,17 +163,18 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($adminUser->create());
 
-        $lookup = Admin::where("email", "john@doe.com")->where("can_lock_accounts",true)->getFirst();
-        $this->assertEquals("John Doe",$lookup->getFullName());
+        $lookup = Admin::where("email", "john@doe.com")->where("can_lock_accounts", true)->getFirst();
+        $this->assertEquals("John Doe", $lookup->getFullName());
         $this->assertTrue($lookup->can_lock_accounts);
         $this->assertFalse($lookup->can_reset_passwords);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_counts($driver,$config) : void{
+    public function test_extended_model_counts($driver, $config): void
+    {
         self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration($driver,$config);
+        $this->test_extended_model_migration($driver, $config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -197,11 +204,11 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_delete($driver,$config) : void
+    public function test_extended_model_delete($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration($driver,$config);
+        $this->test_extended_model_migration($driver, $config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -222,11 +229,11 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_update($driver,$config) : void
+    public function test_extended_model_update($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration($driver,$config);
+        $this->test_extended_model_migration($driver, $config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Joshamee Gibbs",
@@ -244,21 +251,21 @@ class ModelTest extends DatabaseDriverSetup
 
         try {
             $adminUser->save();
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             $this->fail($e->getMessage());
         }
 
         $lookup = \App\Models\Admin::where("full_name", "Jack Harris")->getFirst();
         $this->assertNotNull($lookup);
-        $this->assertEquals("Not a pirate any more!",$lookup->notes);
+        $this->assertEquals("Not a pirate any more!", $lookup->notes);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_extended_model_getFirst($driver,$config) : void
+    public function test_extended_model_getFirst($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_extended_model_migration($driver,$config);
+        $this->test_extended_model_migration($driver, $config);
 
         $adminUser = new \App\Models\Admin(new Dataset([
             "full_name" => "Davey Jones",
@@ -273,15 +280,15 @@ class ModelTest extends DatabaseDriverSetup
 
         $lookup = \App\Models\Admin::where("full_name", "Davey Jones")->getFirst();
         $this->assertNotNull($lookup);
-        $this->assertEquals("Davey Jones",$lookup->getFullName());
+        $this->assertEquals("Davey Jones", $lookup->getFullName());
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_pk_auto_increment($driver,$config) : void
+    public function test_model_pk_auto_increment($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_model_migration($driver,$config);
+        $this->test_model_migration($driver, $config);
 
         $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "AI Test",
@@ -291,23 +298,23 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($user->create());
 
-        $this->assertNotEquals(-1,$user->id);
+        $this->assertNotEquals(-1, $user->id);
 
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_get_count($driver,$config) : void
+    public function test_model_get_count($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_model_migration($driver,$config);
+        $this->test_model_migration($driver, $config);
 
         $count = 10;
         $i = 0;
-        while($i < $count){
-            $user =  new \App\Models\TestUser(new Dataset([
-                "full_name" => "user-".$i,
-                "email" => "user-".$i."@test.com",
+        while ($i < $count) {
+            $user = new \App\Models\TestUser(new Dataset([
+                "full_name" => "user-" . $i,
+                "email" => "user-" . $i . "@test.com",
                 "password_hash" => "password",
             ]));
 
@@ -315,17 +322,17 @@ class ModelTest extends DatabaseDriverSetup
             $i++;
         }
 
-        $this->assertEquals($count,TestUser::limit(100)->count());
+        $this->assertEquals($count, TestUser::limit(100)->count());
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_get_like_or($driver,$config) : void
+    public function test_model_get_like_or($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
-        $this->test_model_migration($driver,$config);
+        $this->test_model_migration($driver, $config);
 
-        $user =  new \App\Models\TestUser(new Dataset([
+        $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "John Smith",
             "email" => "john.smith@test.com",
             "password_hash" => "password",
@@ -333,7 +340,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($user->create());
 
-        $user =  new \App\Models\TestUser(new Dataset([
+        $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "James Smith",
             "email" => "james.smith@gmail.com",
             "password_hash" => "password",
@@ -341,7 +348,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($user->create());
 
-        $user =  new \App\Models\TestUser(new Dataset([
+        $user = new \App\Models\TestUser(new Dataset([
             "full_name" => "Bill Clinton",
             "email" => "bill@gmail.com",
             "password_hash" => "password",
@@ -349,28 +356,28 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($user->create());
 
-        $gmailUsers = TestUser::limit(100)->like("email","gmail.com")->get();
+        $gmailUsers = TestUser::limit(100)->like("email", "gmail.com")->get();
 
-        $this->assertCount(2,$gmailUsers);
+        $this->assertCount(2, $gmailUsers);
 
-        $gmailAndBill = TestUser::limit(100)->like("email","gmail.com")->orLike("full_name","Bill")->get();
+        $gmailAndBill = TestUser::limit(100)->like("email", "gmail.com")->orLike("full_name", "Bill")->get();
 
-        $this->assertCount(2,$gmailAndBill);
+        $this->assertCount(2, $gmailAndBill);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_migration_long_text($driver,$config) : void
+    public function test_model_migration_long_text($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $this->generate_test_model_long_text();
 
         $output = CommandLine::execute("Migration make App/Models/LongTextModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_migration_with_trait($driver,$config) : void
+    public function test_model_migration_with_trait($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
@@ -378,14 +385,14 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertTrue($this->generate_soft_delete_trait_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TestUserTwo");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_trait_use($driver,$config) : void
+    public function test_model_trait_use($driver, $config): void
     {
         self::setupDatabase($driver, $config);
-        $this->test_model_migration_with_trait($driver,$config);
+        $this->test_model_migration_with_trait($driver, $config);
 
         $user = new \App\Models\TestUserTwo(new Dataset([
             "full_name" => "John Smith",
@@ -397,7 +404,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($user->delete());
 
-        $user = \App\Models\TestUserTwo::where("email","john.smith@test.com")->getFirst();
+        $user = \App\Models\TestUserTwo::where("email", "john.smith@test.com")->getFirst();
         $this->assertNotNull($user->deleted_at);
     }
 
@@ -405,7 +412,7 @@ class ModelTest extends DatabaseDriverSetup
     public function test_model_trait_model_collection_hook($driver, $config): void
     {
         self::setupDatabase($driver, $config);
-        $this->test_model_migration_with_trait($driver,$config);
+        $this->test_model_migration_with_trait($driver, $config);
 
         // Create and save a model
         $user = new \App\Models\TestUserTwo(new Dataset([
@@ -435,110 +442,110 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_get_sum_of_column($driver,$config) : void
+    public function test_model_get_sum_of_column($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 25.5,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>1,
+            "type" => 1,
             "amount" => -50,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 120,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 4.5,
         ]));
 
         $this->assertTrue($transaction->create());
 
         //0 = credit, 1 = debit
-        $sum = \App\Models\TransactionModel::where("type",0)->sum("amount");
+        $sum = \App\Models\TransactionModel::where("type", 0)->sum("amount");
 
-        $this->assertEquals(150,$sum);
+        $this->assertEquals(150, $sum);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_get_sum_of_column_with_subtraction($driver,$config) : void
+    public function test_model_get_sum_of_column_with_subtraction($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 25.5,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => -50,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 120,
         ]));
 
         $this->assertTrue($transaction->create());
 
         $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" =>0,
+            "type" => 0,
             "amount" => 4.5,
         ]));
 
         $this->assertTrue($transaction->create());
 
         //0 = credit, 1 = debit
-        $sum = \App\Models\TransactionModel::where("type",0)->sum("amount");
+        $sum = \App\Models\TransactionModel::where("type", 0)->sum("amount");
 
-        $this->assertEquals(100,$sum);
+        $this->assertEquals(100, $sum);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_sorting_asc($driver,$config) : void
+    public function test_model_sorting_asc($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $i = 0;
-        while($i < 10){
+        while ($i < 10) {
 
             $transaction = new \App\Models\TransactionModel(new Dataset([
                 "type" => 0,
-                "amount" => rand(10,200),
+                "amount" => rand(10, 200),
             ]));
 
             $this->assertTrue($transaction->create());
@@ -547,7 +554,7 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         $last = -1;
-        foreach (TransactionModel::where("type",0)->orderBy('amount')->get() as $transaction){
+        foreach (TransactionModel::where("type", 0)->orderBy('amount')->get() as $transaction) {
             $this->assertTrue($last <= $transaction->amount);
             $last = $transaction->amount;
         }
@@ -555,20 +562,20 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_sorting_dsc($driver,$config) : void
+    public function test_model_sorting_dsc($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $i = 0;
-        while($i < 10){
+        while ($i < 10) {
 
             $transaction = new \App\Models\TransactionModel(new Dataset([
                 "type" => 0,
-                "amount" => rand(10,200),
+                "amount" => rand(10, 200),
             ]));
 
             $this->assertTrue($transaction->create());
@@ -577,7 +584,7 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         $last = 200;
-        foreach (TransactionModel::where("type",0)->orderBy('amount',"DESC")->get() as $transaction){
+        foreach (TransactionModel::where("type", 0)->orderBy('amount', "DESC")->get() as $transaction) {
             $this->assertTrue($last >= $transaction->amount);
             $last = $transaction->amount;
         }
@@ -585,22 +592,22 @@ class ModelTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_collection_in($driver,$config) : void
+    public function test_model_collection_in($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $i = 0;
-        while($i < 10){
+        while ($i < 10) {
 
             $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0,1),
-                "amount" => rand(10,200),
-                "description" => Faker::randomString(rand(0,50))
+                "type" => rand(0, 1),
+                "amount" => rand(10, 200),
+                "description" => Faker::randomString(rand(0, 50))
             ]));
 
             $this->assertTrue($transaction->create());
@@ -609,36 +616,36 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         //Ids we are counting.
-        $ids = [1,2,3];
+        $ids = [1, 2, 3];
 
         $manualAmount = 0;
         //Manually check the sum with n+1 query.
-        foreach ($ids as $id){
-            $manualAmount += TransactionModel::where("id",$id)->sum("amount");
+        foreach ($ids as $id) {
+            $manualAmount += TransactionModel::where("id", $id)->sum("amount");
         }
 
-        $inAmount = TransactionModel::in("id",$ids)->orderBy('amount',"DESC")->sum("amount");
+        $inAmount = TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->sum("amount");
 
-        $this->assertEquals($manualAmount,$inAmount);
+        $this->assertEquals($manualAmount, $inAmount);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_collection_in_with_where($driver,$config) : void
+    public function test_model_collection_in_with_where($driver, $config): void
     {
         self::setupDatabase($driver, $config);
 
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $i = 0;
-        while($i < 10){
+        while ($i < 10) {
 
             $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0,1),
-                "amount" => rand(10,200),
-                "description" => Faker::randomString(rand(0,50))
+                "type" => rand(0, 1),
+                "amount" => rand(10, 200),
+                "description" => Faker::randomString(rand(0, 50))
             ]));
 
             $this->assertTrue($transaction->create());
@@ -647,56 +654,56 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         //Ids we are counting.
-        $ids = [1,2,3];
+        $ids = [1, 2, 3];
 
         $manualAmount = 0;
         //Manually check the sum with n+1 query.
-        foreach ($ids as $id){
-            $manualAmount += TransactionModel::where("id",$id)->where("type",0)->sum("amount");
+        foreach ($ids as $id) {
+            $manualAmount += TransactionModel::where("id", $id)->where("type", 0)->sum("amount");
         }
 
-        $inAmount = TransactionModel::in("id",$ids)->orderBy('amount',"DESC")->where("type",0)->sum("amount");
+        $inAmount = TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->where("type", 0)->sum("amount");
 
-        $this->assertEquals($manualAmount,$inAmount);
+        $this->assertEquals($manualAmount, $inAmount);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_model_collection_where_greater_then($driver,$config) : void
+    public function test_model_collection_where_greater_then($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $i = 0;
-        while($i < 10){
+        while ($i < 10) {
 
             $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0,1),
-                "amount" => rand(10,200),
-                "description" => Faker::randomString(rand(0,50)),
-                "date" => time() - (86400*$i)
+                "type" => rand(0, 1),
+                "amount" => rand(10, 200),
+                "description" => Faker::randomString(rand(0, 50)),
+                "date" => time() - (86400 * $i)
             ]));
 
             $this->assertTrue($transaction->create());
             $i++;
         }
 
-        $transactions = TransactionModel::compare("date","<=",time()-(86400*5))->get();
+        $transactions = TransactionModel::compare("date", "<=", time() - (86400 * 5))->get();
 
-        $this->assertCount(5,$transactions);
+        $this->assertCount(5, $transactions);
 
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_numeric_string_bug($driver,$config) : void
+    public function test_numeric_string_bug($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_test_model_numeric_string_bug()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/TestCustomer");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
 
         $mobile = "0423235427";
 
@@ -704,7 +711,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($customer->create());
 
-        $lookup = \App\Models\TestCustomer::where("mobile",$mobile)->getFirst();
+        $lookup = \App\Models\TestCustomer::where("mobile", $mobile)->getFirst();
         $this->assertNotNull($lookup);
     }
 
@@ -782,7 +789,7 @@ class ModelTest extends DatabaseDriverSetup
         PHP;
 
 
-        return new File("/App/Models/TestUser.php",$modelContent);
+        return new File("/App/Models/TestUser.php", $modelContent);
 
     }
 
@@ -835,7 +842,7 @@ class Admin extends TestUser
 }
 PHP;
 
-        return new File("/App/Models/Admin.php",$adminModel);
+        return new File("/App/Models/Admin.php", $adminModel);
     }
 
     public static function generate_test_model_long_text(): File
@@ -914,7 +921,7 @@ PHP;
         PHP;
 
 
-        return new File("/App/Models/LongTextModel.php",$modelContent);
+        return new File("/App/Models/LongTextModel.php", $modelContent);
 
     }
 
@@ -975,7 +982,7 @@ PHP;
         PHP;
 
 
-        return new File("/App/Models/SoftDelete.php",$modelContent);
+        return new File("/App/Models/SoftDelete.php", $modelContent);
 
     }
 
@@ -1049,7 +1056,7 @@ PHP;
         PHP;
 
 
-        return new File("/App/Models/TestUserTwo.php",$modelContent);
+        return new File("/App/Models/TestUserTwo.php", $modelContent);
 
     }
 
@@ -1112,7 +1119,7 @@ PHP;
         PHP;
 
 
-        return new File("/App/Models/TransactionModel.php",$modelContent);
+        return new File("/App/Models/TransactionModel.php", $modelContent);
 
     }
 
@@ -1153,7 +1160,7 @@ PHP;
         PHP;
 
 
-        return new File("/App/Models/TestCustomer.php",$modelContent);
+        return new File("/App/Models/TestCustomer.php", $modelContent);
 
     }
 
