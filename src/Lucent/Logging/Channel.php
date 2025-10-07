@@ -106,7 +106,7 @@ class Channel
             '/^SET\s+.+$/is',
 
             // PRAGMA variable = value
-            '/^PRAGMA\s+.+$/is',
+            '/^PRAGMA\s+\S+(\s*=\s*\S+)?$/is',
         ];
 
         foreach ($strictPatterns as $p) {
