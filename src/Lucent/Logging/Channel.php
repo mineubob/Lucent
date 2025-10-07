@@ -291,7 +291,7 @@ class Channel
         // Functions
         $sql = preg_replace_callback(
             '/\b(' . implode('|', $functions) . ')\s*(?=\()/i',
-            fn($m) => $colors['function'] . strtoupper($m[1]) . $colors['reset'] . '(',
+            fn($m) => $colors['function'] . strtoupper($m[1]) . $colors['reset'],
             $sql
         );
 
