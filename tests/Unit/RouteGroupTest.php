@@ -22,7 +22,7 @@ if (file_exists($driverSetupPath)) {
     require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
 }
 
-require_once __DIR__.'/ModelTest.php';
+require_once __DIR__ . '/ModelTest.php';
 
 class RouteGroupTest extends DatabaseDriverSetup
 {
@@ -33,16 +33,22 @@ class RouteGroupTest extends DatabaseDriverSetup
     public static function databaseDriverProvider(): array
     {
         return [
-            'sqlite' => ['sqlite', [
-                'DB_DATABASE' => '/database.sqlite'
-            ]],
-            'mysql' => ['mysql', [
-                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
-                'DB_PORT' => getenv('DB_PORT') ?: '3306',
-                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-            ]]
+            'sqlite' => [
+                'sqlite',
+                [
+                    'DB_DATABASE' => '/storage/database.sqlite'
+                ]
+            ],
+            'mysql' => [
+                'mysql',
+                [
+                    'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                    'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+                ]
+            ]
         ];
     }
 
@@ -69,13 +75,13 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
         try {
-            $response = (array)json_decode(App::execute());
+            $response = (array) json_decode(App::execute());
 
-            if($response == null || !isset($response)){
+            if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
             }
 
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             $this->fail($e->getMessage());
         }
 
@@ -98,7 +104,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
             $decodedResponse = json_decode($response, true);
 
-            if($decodedResponse === null) {
+            if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
 
@@ -127,7 +133,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
             $decodedResponse = json_decode($response, true);
 
-            if($decodedResponse === null) {
+            if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
 
@@ -152,7 +158,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $response = App::execute();
             $decodedResponse = json_decode($response, true);
 
-            if($decodedResponse === null) {
+            if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
 
@@ -171,7 +177,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $response = App::execute();
             $decodedResponse = json_decode($response, true);
 
-            if($decodedResponse === null) {
+            if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
 
@@ -195,7 +201,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
             $decodedResponse = json_decode($response, true);
 
-            if($decodedResponse === null) {
+            if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
 
@@ -209,7 +215,7 @@ class RouteGroupTest extends DatabaseDriverSetup
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_model_id_raw($driver,$config) : void
+    public function test_route_get_model_id_raw($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
@@ -221,18 +227,18 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals(200,$decodedResponse["status"]);
-        $this->assertEquals(99,$decodedResponse["content"]["id"]);
+        $this->assertEquals(200, $decodedResponse["status"]);
+        $this->assertEquals(99, $decodedResponse["content"]["id"]);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id($driver,$config) : void
+    public function test_route_get_user_model_by_id($driver, $config): void
     {
 
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
 
-        $user =  new TestUser(new Dataset([
+        $user = new TestUser(new Dataset([
             "full_name" => "John Doe",
             "email" => "john@doe.com",
             "password_hash" => "password",
@@ -247,12 +253,12 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("John Doe",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
 
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id_not_found($driver,$config) : void
+    public function test_route_get_user_model_by_id_not_found($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
@@ -264,16 +270,16 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals(404,$decodedResponse["status"]);
+        $this->assertEquals(404, $decodedResponse["status"]);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_with_middleware($driver,$config) : void
+    public function test_route_get_user_model_with_middleware($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
 
-        $user =  new TestUser(new Dataset([
+        $user = new TestUser(new Dataset([
             "full_name" => "John Doe",
             "email" => "john@doe.com",
             "password_hash" => "password",
@@ -288,17 +294,17 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $decodedResponse = json_decode($response, true);
 
-        $this->assertEquals("John Doe",$decodedResponse["content"]["full_name"]);
+        $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function perform_model_migration($driver,$config) : void
+    public function perform_model_migration($driver, $config): void
     {
         self::setupDatabase($driver, $config);
         ModelTest::generate_test_model();
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
-        $this->assertEquals("Successfully performed database migration",$output);
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     public static function generateTestRestController(): void
@@ -425,7 +431,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = TEMP_ROOT. "app";
+        $appPath = TEMP_ROOT . "app";
         $controllerPath = $appPath . DIRECTORY_SEPARATOR . "controllers";
 
         if (!is_dir($controllerPath)) {
@@ -433,7 +439,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         }
 
         file_put_contents(
-            $controllerPath.DIRECTORY_SEPARATOR.'RouteGroupRpcTestingController.php',
+            $controllerPath . DIRECTORY_SEPARATOR . 'RouteGroupRpcTestingController.php',
             $controllerContent
         );
     }
@@ -470,7 +476,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = FileSystem::rootPath(). "/App";
+        $appPath = FileSystem::rootPath() . "/App";
         $modelPath = $appPath . DIRECTORY_SEPARATOR . "Controllers";
 
         if (!is_dir($modelPath)) {
@@ -478,7 +484,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         }
 
         file_put_contents(
-            $modelPath.DIRECTORY_SEPARATOR.'UserController.php',
+            $modelPath . DIRECTORY_SEPARATOR . 'UserController.php',
             $modelContent
         );
 
@@ -511,7 +517,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         PHP;
 
 
-        $appPath = FileSystem::rootPath(). "/App";
+        $appPath = FileSystem::rootPath() . "/App";
         $middlewarePath = $appPath . DIRECTORY_SEPARATOR . "Middleware";
 
         if (!is_dir($middlewarePath)) {
@@ -519,7 +525,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         }
 
         file_put_contents(
-            $middlewarePath.DIRECTORY_SEPARATOR.'AuthMiddleware.php',
+            $middlewarePath . DIRECTORY_SEPARATOR . 'AuthMiddleware.php',
             $middlewareContent
         );
 
