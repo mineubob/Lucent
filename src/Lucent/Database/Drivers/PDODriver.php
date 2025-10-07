@@ -17,25 +17,25 @@ class PDODriver extends DatabaseInterface
     public static array $map = [
         "mysql" => [
             "types" => [
-                "binary"=> "binary",
+                "binary" => "binary",
                 "tinyint" => "tinyint",
                 "decimal" => "decimal",
                 "int" => "int",
                 "bigint" => "bigint",
-                "json"=> "json",
+                "json" => "json",
                 "timestamp" => "timestamp",
-                "enum"=> "enum",
-                "date"=> "date",
+                "enum" => "enum",
+                "date" => "date",
                 "text" => "text",
                 "varchar" => "varchar",
                 "bool" => "tinyint",
                 "float" => "float",
                 "double" => "double",
                 "char" => "char",
-                "longtext"=> "longtext",
+                "longtext" => "longtext",
                 "mediumtext" => "mediumtext"
             ],
-            "functions" =>[
+            "functions" => [
                 "foreign_key_checks" => [
                     "disable" => "SET FOREIGN_KEY_CHECKS=0",
                     "enable" => "SET FOREIGN_KEY_CHECKS=1"
@@ -71,7 +71,7 @@ class PDODriver extends DatabaseInterface
                 "longtext" => "TEXT",
                 "mediumtext" => "TEXT"
             ],
-            "functions" =>[
+            "functions" => [
                 "foreign_key_checks" => [
                     "disable" => "PRAGMA foreign_keys = OFF",
                     "enable" => "PRAGMA foreign_keys = ON"
@@ -84,7 +84,8 @@ class PDODriver extends DatabaseInterface
         ]
     ];
 
-    public function __construct(){
+    public function __construct()
+    {
         parent::__construct();
 
         // Check if database name is set
@@ -92,38 +93,39 @@ class PDODriver extends DatabaseInterface
             throw new \Exception("DB_DRIVER environment variable is not set or empty");
         }
 
-        if(App::env("DB_DRIVER") === "sqlite"){
 
-            $file = new File(App::env('DB_DATABASE'));
+        $driver_name = App::env("DB_DRIVER");
+        switch ($driver_name) {
+            case "sqlite":
+                $file = new File(App::env('DB_DATABASE'));
 
-            if(!$file->exists()){
-                $file->create();
-                $file->setPermissions(0666);
-            }
+                if (!$file->exists()) {
+                    $file->create();
+                    $file->setPermissions(0666);
+                }
 
-            // Verify file is writable
-            if (!is_writable($file->path)) {
-                throw new \RuntimeException("SQLite database file is not writable: " . $path);
-            }
+                // Verify file is writable
+                if (!is_writable($file->path)) {
+                    throw new \RuntimeException("SQLite database file is not writable: $file->path");
+                }
 
-            $dsn = "sqlite:".$file->path;
-            $this->connection = new PDO($dsn);
+                $this->connection = new PDO("sqlite:$file->path");
+                break;
+            case "mysql":
+                $host = App::env("DB_HOST");
+                $database = App::env("DB_DATABASE");
+                $username = App::env("DB_USERNAME");
+                $password = App::env("DB_PASSWORD");
+                $port = App::env("DB_PORT") ?: "3306";
 
-        }else{
-            $host = App::env("DB_HOST");
-            $database = App::env("DB_DATABASE");
-            $username = App::env("DB_USERNAME");
-            $password = App::env("DB_PASSWORD");
-            $port = App::env("DB_PORT") ?: "3306";
-
-            $dsn = "mysql:host={$host};port={$port};dbname={$database}";
-            $this->connection = new PDO($dsn, $username, $password);
-
-            //SQL only
-            $this->connection->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+                $dsn = "mysql:host={$host};port={$port};dbname={$database}";
+                $this->connection = new PDO($dsn, $username, $password);
+                break;
+            default:
+                throw new \RuntimeException("Unknown driver type: $driver_name");
         }
 
-        Log::channel("db")->debug("PDO created for ".App::env("DB_DRIVER"));
+        Log::channel("db")->debug("PDO created for " . App::env("DB_DRIVER"));
     }
 
     public function getDriverName(): string
@@ -134,25 +136,25 @@ class PDODriver extends DatabaseInterface
     public function createTable(string $name, array $columns): string
     {
         //Dynamically generate our table
-        return Schema::table($name,function($table) use ($columns) {
+        return Schema::table($name, function ($table) use ($columns) {
 
             //Foreach of our column attributes, transform them into table columns
-            foreach ($columns as $column){
+            foreach ($columns as $column) {
 
                 $name = $column["NAME"];
                 $type = $column["TYPE"];
                 $column["nullable"] = $column["ALLOW_NULL"];
 
                 $tableColumn = $table->$type($name);
-                $keysToExclude = ["NAME", "UNIQUE_KEY_TO", "ON_UPDATE", "TYPE","ALLOW_NULL"];
+                $keysToExclude = ["NAME", "UNIQUE_KEY_TO", "ON_UPDATE", "TYPE", "ALLOW_NULL"];
 
-                if(!($tableColumn instanceof Schema\NumericColumn)){
+                if (!($tableColumn instanceof Schema\NumericColumn)) {
                     $keysToExclude[] = "AUTO_INCREMENT";
                     $keysToExclude[] = "UNSIGNED";
                 }
 
                 //Remove our excluded keys
-                $diff = $this->getValuesNotInArrayAsMap($column,$keysToExclude);
+                $diff = $this->getValuesNotInArrayAsMap($column, $keysToExclude);
 
                 //For each of our remaining column properties, call the method
                 foreach ($diff as $key => $value) {
@@ -227,22 +229,22 @@ class PDODriver extends DatabaseInterface
         return $result;
     }
 
-    public function delete(string $query,array $params = []): bool
+    public function delete(string $query, array $params = []): bool
     {
         return $this->statement($query, $params);
     }
 
-    public function update(string $query,array $params = []): bool
+    public function update(string $query, array $params = []): bool
     {
         return $this->statement($query, $params);
     }
 
-    public function select(string $query, bool $fetchAll = true,array $params = []): ?array
+    public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
-        }else{
+        } else {
             $stmt = $this->connection->query($query);
         }
 
