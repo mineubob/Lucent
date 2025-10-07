@@ -247,7 +247,7 @@ class Channel
 
         // Strings (protected from other stages)
         $sql = preg_replace_callback(
-            "/'([^']*)'/",
+            '/(\'[^\']*\'|"[^"]*")/',
             function ($m) use (&$placeholders, $colors) {
                 $key = "%%STR" . count($placeholders) . "%%";
                 $placeholders[$key] = $colors['string'] . $m[0] . $colors['reset'];
