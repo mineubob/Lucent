@@ -278,7 +278,7 @@ class PDODriver extends DatabaseInterface
         return $result;
     }
 
-    function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
+    private function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
     {
         // Create a temporary array from the excludeArray where values are keys
         // This allows for efficient key comparison with array_diff_key
