@@ -19,9 +19,9 @@ class Table implements SqlSerializable
     {
         // Validate table name against allowed characters
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-            Log::channel("db")->error("Attempted to create table class with invalid name: {$this->name}");
+            Log::channel("db")->error("Attempted to create table class with invalid name: {$name}");
             throw new \InvalidArgumentException(
-                "Invalid table name '{$this->name}'. Table names must contain only alphanumeric characters and underscores."
+                "Invalid table name '{$name}'. Table names must contain only alphanumeric characters and underscores."
             );
         }
 
