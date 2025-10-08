@@ -369,9 +369,19 @@ class Channel
     private function highlightLine(string $line): string
     {
         // Match SQL statements
-        $sqlPattern = '/\b(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET|PRAGMA)\b.*?(?=(\bSELECT|\bINSERT|\bUPDATE|\bDELETE|\bCREATE|\bALTER|\bDROP|\bREPLACE|\bTRUNCATE|\bWITH|\bSHOW|\bDESCRIBE|\bSET\b|\bPRAGMA\b|$))/is';
+        $sqlExtractor = '/
+            \b
+            (SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET|PRAGMA)
+            \b
+            [^;\'"]*                           # consume until quote or semicolon
+            (?:
+                (?:\'[^\']*\'|"[^"]*")[^;\'"]* # allow quoted strings
+            )*
+            (?=;|$)                            # stop at ; or end of line
+        /ix';
 
-        $line = preg_replace_callback($sqlPattern, function ($matches) {
+
+        $line = preg_replace_callback($sqlExtractor, function ($matches) {
             $sql = $matches[0];
             return $this->isValidSql($sql) ? $this->highlightSql($sql) : $sql;
         }, $line);
