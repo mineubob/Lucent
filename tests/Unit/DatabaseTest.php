@@ -4,6 +4,7 @@ namespace Unit;
 
 use Exception;
 use Lucent\Database;
+use Lucent\Database\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -74,21 +75,12 @@ class DatabaseTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config);
 
-        // Use the appropriate syntax based on the driver
-        if ($driver === 'sqlite') {
-            $query = 'CREATE TABLE IF NOT EXISTS test_users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
-        )';
-        } else {
-            $query = 'CREATE TABLE IF NOT EXISTS test_users (
-            id INT NOT NULL AUTO_INCREMENT,
-            name TEXT NOT NULL,
-            PRIMARY KEY (id)
-        )';
-        }
+        $result = Schema::table("test_users", function ($table) {
+            $table->int('id')->autoIncrement()->primaryKey();
+            $table->text('name');
+        })->create();
 
-        $this->assertTrue(Database::statement($query));
+        $this->assertTrue($result);
     }
 
     #[DataProvider('databaseDriverProvider')]
