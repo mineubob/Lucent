@@ -71,7 +71,7 @@ class Channel
             '/^SELECT\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)[^;]+$/is',
 
             // SELECT ... FROM <table> [[INNER|LEFT|RIGHT|FULL] [OUTER] JOIN .. ON ..] [WHERE ...] [GROUP BY ...] [ORDER BY ...]
-            '/^SELECT\s+.+\s+FROM\s+\S+(?:\s+(?:INNER|LEFT|RIGHT|FULL)?(?:\s+OUTER)?\s+JOIN\s+\S+\s+ON\s+.+?)*(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?(\s+LIMIT\s+\d+)?(\s+OFFSET\s+\d+)?$/is',
+            '/^SELECT\s+.+\s+FROM\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?JOIN\s+\S+\s+ON\s+.+?)*(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?(\s+LIMIT\s+\d+)?(\s+OFFSET\s+\d+)?$/is',
 
             // INSERT INTO table (...) VALUES (...)
             '/^INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
