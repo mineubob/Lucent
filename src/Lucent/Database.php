@@ -29,6 +29,8 @@ class Database
         return self::$instance;
     }
 
+
+    #[\Deprecated("Prefer use of the Schema::table function directly.")]
     public static function createTable(string $table, array $columns): string
     {
         return self::getInstance()->createTable($table, $columns);
