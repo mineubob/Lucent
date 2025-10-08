@@ -132,15 +132,7 @@ class ModelTest extends DatabaseDriverSetup
         Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
             Database::statement("DROP TABLE IF EXISTS TestUser");
         });
-
-        if ($driver == "mysql") {
-            Database::statement("SET FOREIGN_KEY_CHECKS=0");
-        }
-        //Drop our test user from the prior tests to ensure it generates both.
-        Database::statement("DROP TABLE IF EXISTS TestUser");
-        if ($driver == "mysql") {
-            Database::statement("SET FOREIGN_KEY_CHECKS=1");
-        }
+        
         $output = CommandLine::execute("Migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration", $output);
     }

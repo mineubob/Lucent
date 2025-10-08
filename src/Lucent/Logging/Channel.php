@@ -2,9 +2,15 @@
 
 namespace Lucent\Logging;
 
-use Lucent\Facades\FileSystem;
+interface Highlighter
+{
+    public function shouldHighlight(string $level, string $line): bool;
 
-class Channel {
+    public function highlight(string $level, string $line): string;
+}
+
+class Channel
+{
     private string $channel;
     private Driver $driver;
     private bool $useColors;
@@ -12,64 +18,54 @@ class Channel {
     // Simplified color scheme to start with
     private array $levelColors = [
         'emergency' => "\033[1;37;41m", // Bold white on red
-        'alert'     => "\033[1;31m",    // Bold red
-        'critical'  => "\033[0;31m",    // Red
-        'error'     => "\033[0;31m",    // Red
-        'warning'   => "\033[0;33m",    // Yellow
-        'notice'    => "\033[0;36m",    // Cyan
-        'info'      => "\033[0;32m",    // Green
-        'debug'     => "\033[0;37m"     // White
+        'alert' => "\033[1;31m",    // Bold red
+        'critical' => "\033[0;31m",    // Red
+        'error' => "\033[0;31m",    // Red
+        'warning' => "\033[0;33m",    // Yellow
+        'notice' => "\033[0;36m",    // Cyan
+        'info' => "\033[0;32m",    // Green
+        'debug' => "\033[0;37m"     // White
     ];
 
-    public function __construct(string $channel, Driver $driver, bool $useColors = true) {
+    /**
+     * A list of highlighter's.
+     * @var Highlighter[]
+     */
+    private array $highlighters;
+
+    public function __construct(string $channel, Driver $driver, bool $useColors = true)
+    {
         $this->channel = $channel;
         $this->driver = $driver;
         $this->useColors = $useColors && PHP_SAPI === 'cli';
+        $this->highlighters = [
+            new SqlHighlighter(),
+        ];
     }
 
-    private function highlightSql(string $message): string {
-        if (!preg_match('/(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)/i', $message)) {
-            return $message;
+    private function highlightLine(string $line): string
+    {
+        foreach ($this->highlighters as $highlighter) {
+            if (!($highlighter instanceof Highlighter)) {
+                continue;
+            }
+
+            if ($highlighter->shouldHighlight($line, $line)) {
+                $line = $highlighter->highlight($line, $line);
+            }
         }
 
-        // SQL Keywords
-        $message = preg_replace(
-            '/(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|FROM|WHERE|AND|OR|JOIN|GROUP BY|ORDER BY|LIMIT|OFFSET|VALUES|INTO|SET|FOREIGN KEY|REFERENCES|PRIMARY KEY)/i',
-            "\033[36m$1\033[0m",
-            $message
-        );
-
-        // Identifiers (quoted names)
-        $message = preg_replace(
-            '/`([^`]+)`/',
-            "\033[33m`$1`\033[0m",
-            $message
-        );
-
-        // String literals
-        $message = preg_replace(
-            '/\'([^\']+)\'/',
-            "\033[32m'$1'\033[0m",
-            $message
-        );
-
-        // Numbers
-        $message = preg_replace(
-            '/\b(\d+)\b/',
-            "\033[35m$1\033[0m",
-            $message
-        );
-
-        return $message;
+        return $line;
     }
 
-    private function formatMessage(string $level, string $message): string {
+    private function formatMessage(string $level, string $message): string
+    {
         $timestamp = date('Y-m-d H:i:s');
         $levelUpper = strtoupper($level);
 
         if ($this->useColors) {
             $levelColor = $this->levelColors[$level] ?? "\033[0m";
-            $formattedMessage = $this->highlightSql($message);
+            $formattedMessage = $this->highlightLine($message);
             return sprintf(
                 "[%s] %s%s\033[0m | %s | %s\n",
                 $timestamp,
@@ -89,40 +85,49 @@ class Channel {
         );
     }
 
-    private function write(string $level, string $message): void {
+    private function write(string $level, string $message): void
+    {
         $this->driver->write($this->formatMessage($level, $message));
     }
 
     // PSR-3 log levels
-    public function emergency(string $message): void {
+    public function emergency(string $message): void
+    {
         $this->write('emergency', $message);
     }
 
-    public function alert(string $message): void {
+    public function alert(string $message): void
+    {
         $this->write('alert', $message);
     }
 
-    public function critical(string $message): void {
+    public function critical(string $message): void
+    {
         $this->write('critical', $message);
     }
 
-    public function error(string $message): void {
+    public function error(string $message): void
+    {
         $this->write('error', $message);
     }
 
-    public function warning(string $message): void {
+    public function warning(string $message): void
+    {
         $this->write('warning', $message);
     }
 
-    public function notice(string $message): void {
+    public function notice(string $message): void
+    {
         $this->write('notice', $message);
     }
 
-    public function info(string $message): void {
+    public function info(string $message): void
+    {
         $this->write('info', $message);
     }
 
-    public function debug(string $message): void {
+    public function debug(string $message): void
+    {
         $this->write('debug', $message);
     }
 }

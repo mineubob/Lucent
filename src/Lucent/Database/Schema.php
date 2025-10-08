@@ -7,7 +7,12 @@ use Lucent\Database\Schema\Table;
 
 class Schema
 {
-
+    /**
+     * Create a new table.
+     * @param string $name
+     * @param ?callable(Table): void $callback
+     * @return Database\Schema\Table
+     */
     public static function table(string $name, ?callable $callback = null): Table
     {
         $table = new Table($name);

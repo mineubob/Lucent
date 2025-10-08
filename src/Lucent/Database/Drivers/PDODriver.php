@@ -176,6 +176,8 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
+        Log::channel("db")->debug("Statement: {$query}");
+
         try {
             if (count($params) > 0) {
                 $stmt = $this->connection->prepare($query);
@@ -218,15 +220,7 @@ class PDODriver extends DatabaseInterface
 
     public function insert(string $query, array $params = []): bool
     {
-        Log::channel("db")->info("INSERT Query: " . $query);
-        Log::channel("db")->info("INSERT Params: " . json_encode($params));
-
-        $result = $this->statement($query, $params);
-
-        Log::channel("db")->info("INSERT Result: " . ($result ? 'true' : 'false'));
-        Log::channel("db")->info("Last Insert ID: " . $this->connection->lastInsertId());
-
-        return $result;
+        return $this->statement($query, $params);
     }
 
     public function delete(string $query, array $params = []): bool
@@ -241,6 +235,8 @@ class PDODriver extends DatabaseInterface
 
     public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
+        Log::channel("db")->debug("Select: {$query}");
+
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
             $stmt->execute($params);
@@ -282,7 +278,7 @@ class PDODriver extends DatabaseInterface
         return $result;
     }
 
-    function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
+    private function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
     {
         // Create a temporary array from the excludeArray where values are keys
         // This allows for efficient key comparison with array_diff_key
@@ -297,6 +293,4 @@ class PDODriver extends DatabaseInterface
 
         return $resultMap;
     }
-
-
 }

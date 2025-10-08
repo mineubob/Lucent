@@ -30,8 +30,6 @@ class ModelCollection
         $this->offset = 0;
         $this->cache = [];
         $this->reflection = new ReflectionClass($class);
-
-        return $this;
     }
 
     public function where(string $column, string $value, string $operator = 'AND'): ModelCollection
