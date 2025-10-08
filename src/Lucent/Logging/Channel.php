@@ -2,7 +2,12 @@
 
 namespace Lucent\Logging;
 
-use Lucent\Facades\FileSystem;
+interface Highlighter
+{
+    public function shouldHighlight(string $level, string $line): bool;
+
+    public function highlight(string $level, string $line): string;
+}
 
 class Channel
 {
@@ -22,369 +27,33 @@ class Channel
         'debug' => "\033[0;37m"     // White
     ];
 
+    /**
+     * A list of highlighter's.
+     * @var Highlighter[]
+     */
+    private array $highlighters;
+
     public function __construct(string $channel, Driver $driver, bool $useColors = true)
     {
         $this->channel = $channel;
         $this->driver = $driver;
         $this->useColors = $useColors && PHP_SAPI === 'cli';
-    }
-
-    private function isValidSql(string $sql): bool
-    {
-        $sql = trim($sql, " \t\n\r;");
-        if ($sql === '')
-            return false;
-
-        $commands = [
-            'SELECT',
-            'INSERT',
-            'UPDATE',
-            'DELETE',
-            'CREATE',
-            'DROP',
-            'ALTER',
-            'REPLACE',
-            'TRUNCATE',
-            'WITH',
-            'SHOW',
-            'DESCRIBE',
-            'SET',
-            'PRAGMA'
+        $this->highlighters = [
+            new SqlHighlighter(),
         ];
-
-        // Extract SQL starting from first SQL keyword
-        if (preg_match('/\b(' . implode('|', $commands) . ')\b/i', $sql, $matches, PREG_OFFSET_CAPTURE)) {
-            $sql = substr($sql, $matches[0][1]);
-        } else {
-            return false; // No SQL keyword found
-        }
-
-        $firstWord = strtoupper(strtok($sql, " \t\n\r("));
-        if (!in_array($firstWord, $commands, true))
-            return false;
-
-        // -----------------------------
-        // STRICT PATTERNS
-        // -----------------------------
-        $strictPatterns = [
-            // SELECT <value>
-            '/^SELECT\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)[^;]+$/is',
-
-            // SELECT ... FROM <table> [[INNER|LEFT|RIGHT|FULL] [OUTER] JOIN .. ON ..] [WHERE ...] [GROUP BY ...] [ORDER BY ...]
-            '/^SELECT\s+.+\s+FROM\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?JOIN\s+\S+\s+ON\s+.+?)*(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?(\s+LIMIT\s+\d+)?(\s+OFFSET\s+\d+)?$/is',
-
-            // INSERT INTO table (...) VALUES (...)
-            '/^INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
-
-            // UPDATE table SET ... [WHERE ...]
-            '/^UPDATE\s+\S+\s+SET\s+.+(\s+WHERE\s+.+)?$/is',
-
-            // DELETE FROM table [WHERE ...]
-            '/^DELETE\s+FROM\s+\S+(\s+WHERE\s+.+)?$/is',
-
-            // CREATE TABLE [IF NOT EXISTS] table (...)
-            '/^CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\S+\s*\(.*\)$/is',
-
-            // ALTER TABLE table ...
-            '/^ALTER\s+TABLE\s+\S+.+$/is',
-
-            // DROP TABLE/INDEX [IF EXISTS] name
-            '/^DROP\s+(TABLE|INDEX)\s+(IF\s+EXISTS\s+)?\S+$/is',
-
-            // REPLACE INTO table (...) VALUES (...)
-            '/^REPLACE\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)$/is',
-
-            // TRUNCATE TABLE ...
-            '/^TRUNCATE\s+TABLE\s+\S+$/is',
-
-            // WITH ... (CTE)
-            '/^WITH\s+.+$/is',
-
-            // SHOW ...
-            '/^SHOW\s+.+$/is',
-
-            // DESCRIBE table
-            '/^DESCRIBE\s+\S+$/is',
-
-            // SET variable = value
-            '/^SET\s+.+$/is',
-
-            // PRAGMA variable = value
-            '/^PRAGMA\s+\S+(\s*=\s*\S+)?$/is',
-        ];
-
-        foreach ($strictPatterns as $p) {
-            if (preg_match($p, $sql))
-                return true;
-        }
-
-        return false;
-    }
-
-    private function highlightSql(string $sql): string
-    {
-
-        $colors = [
-            'keyword' => "\033[1;34m", // Blue
-            'type' => "\033[1;35m", // Magenta
-            'identifier' => "\033[1;37m", // White
-            'string' => "\033[0;32m", // Green
-            'number' => "\033[0;36m", // Cyan
-            'function' => "\033[1;33m", // Yellow
-            'operator' => "\033[1;37m", // White
-            'comment' => "\033[0;90m", // Dark Grey
-            'placeholder' => "\033[1;37m", // White
-            'reset' => "\033[0m",
-        ];
-
-        $keywords = [
-            'SELECT',
-            'FROM',
-            'WHERE',
-            'INSERT',
-            'INTO',
-            'VALUES',
-            'UPDATE',
-            'SET',
-            'PRAGMA',
-            'DELETE',
-            'CREATE',
-            'TABLE',
-            'DESCRIBE',
-            'SHOW',
-            'ALTER',
-            'DROP',
-            'JOIN',
-            'LEFT',
-            'RIGHT',
-            'INNER',
-            'OUTER',
-            'FULL',
-            'ON',
-            'AS',
-            'AND',
-            'OR',
-            'NOT',
-            'NULL',
-            'DISTINCT',
-            'GROUP',
-            'BY',
-            'ORDER',
-            'LIMIT',
-            'OFFSET',
-            'HAVING',
-            'CASE',
-            'WHEN',
-            'THEN',
-            'ELSE',
-            'END',
-            'IN',
-            'IS',
-            'LIKE',
-            'UNION',
-            'ALL',
-            'DESC',
-            'ASC',
-            'IF',
-            'EXISTS',
-            'PRIMARY',
-            'KEY',
-            'DEFAULT',
-            'CHECK',
-            'CONSTRAINT',
-            'AUTO_INCREMENT',
-            'AUTOINCREMENT'
-        ];
-
-        $types = [
-            'INT',
-            'INTEGER',
-            'SMALLINT',
-            'TINYINT',
-            'BIGINT',
-            'DECIMAL',
-            'NUMERIC',
-            'FLOAT',
-            'REAL',
-            'DOUBLE',
-            'CHAR',
-            'VARCHAR',
-            'TEXT',
-            'BLOB',
-            'DATE',
-            'TIME',
-            'DATETIME',
-            'TIMESTAMP',
-            'BOOLEAN',
-            'BOOL',
-            'JSON',
-            'UUID'
-        ];
-
-        $functions = [
-            'COUNT',
-            'SUM',
-            'AVG',
-            'MIN',
-            'MAX',
-            'NOW',
-            'CURRENT_TIMESTAMP',
-            'UPPER',
-            'LOWER',
-            'LENGTH',
-            'ABS',
-            'ROUND',
-            'RANDOM'
-        ];
-
-        // Protect existing ANSI codes
-        $placeholders = [];
-        $sql = preg_replace_callback('/\033\[[0-9;]*m/', function ($m) use (&$placeholders) {
-            $key = "%%ANSI" . count($placeholders) . "%%";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $sql);
-
-        // Comments
-        $sql = preg_replace_callback('/\/\*.*?\*\//s', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
-        $sql = preg_replace_callback('/--.*$/m', fn($m) => $colors['comment'] . $m[0] . $colors['reset'], $sql);
-
-        // Strings (protected from other stages)
-        $sql = preg_replace_callback(
-            '/(\'[^\']*\'|"[^"]*")/',
-            function ($m) use (&$placeholders, $colors) {
-                $key = "%%STR" . count($placeholders) . "%%";
-                $placeholders[$key] = $colors['string'] . $m[0] . $colors['reset'];
-                return $key;
-            },
-            $sql
-        );
-
-        // Identifiers (protected from other stages)
-        $sql = preg_replace_callback(
-            '/[`"]([^`"]+)[`"]/',
-            function ($m) use (&$placeholders, $colors) {
-                $key = "%%IDENT" . count($placeholders) . "%%";
-                $placeholders[$key] = $colors['identifier'] . $m[0] . $colors['reset'];
-                return $key;
-            },
-            $sql
-        );
-
-        // Special handling for SET and PRAGMA
-        foreach (['SET', 'PRAGMA'] as $cmd) {
-            if (preg_match("/^\s*$cmd\s+/i", $sql)) {
-                $sql = preg_replace_callback(
-                    "/$cmd\s+(.*)/i",
-                    function ($m) use ($colors, $cmd) {
-                        $assignments = $m[1];
-                        // Highlight numbers
-                        $assignments = preg_replace(
-                            '/\b\d+(\.\d+)?\b/',
-                            $colors['number'] . '$0' . $colors['reset'],
-                            $assignments
-                        );
-                        // Highlight variables
-                        $assignments = preg_replace(
-                            '/(\b[A-Z_][A-Z0-9_]*\b|@[A-Za-z0-9_]+)/i',
-                            $colors['identifier'] . '$1' . $colors['reset'],
-                            $assignments
-                        );
-                        // Highlight ON/OFF/TRUE/FALSE for PRAGMA
-                        if ($cmd === 'PRAGMA') {
-                            $assignments = preg_replace(
-                                '/\b(ON|OFF|TRUE|FALSE)\b/i',
-                                $colors['keyword'] . '$0' . $colors['reset'],
-                                $assignments
-                            );
-                        }
-                        // Highlight operators
-                        $assignments = preg_replace(
-                            '/=/',
-                            $colors['operator'] . '=' . $colors['reset'],
-                            $assignments
-                        );
-                        return $colors['keyword'] . $cmd . $colors['reset'] . ' ' . $assignments;
-                    },
-                    $sql
-                );
-            }
-        }
-
-        // Functions
-        $sql = preg_replace_callback(
-            '/\b(' . implode('|', $functions) . ')\s*(?=\()/i',
-            fn($m) => $colors['function'] . strtoupper($m[1]) . $colors['reset'],
-            $sql
-        );
-
-        // Types
-        $sql = preg_replace_callback(
-            '/\b(' . implode('|', $types) . ')\b/i',
-            fn($m) => $colors['type'] . strtoupper($m[1]) . $colors['reset'],
-            $sql
-        );
-
-        // Keywords
-        $sql = preg_replace_callback(
-            '/\b(' . implode('|', $keywords) . ')\b/i',
-            fn($m) => $colors['keyword'] . strtoupper($m[1]) . $colors['reset'],
-            $sql
-        );
-
-        // Operators
-        $sql = preg_replace(
-            '/(\=|<|>|\!|\+|\-|\*|\/|\(|\)|,)/',
-            $colors['operator'] . '$1' . $colors['reset'],
-            $sql
-        );
-
-        // Protect ANSI codes before number pass.
-        $sql = preg_replace_callback('/\033\[[0-9;]*m/', function ($m) use (&$placeholders) {
-            $key = "%%ANSI" . count($placeholders) . "%%";
-            $placeholders[$key] = $m[0];
-            return $key;
-        }, $sql);
-
-        // Numbers
-        $sql = preg_replace(
-            '/\b\d+(\.\d+)?\b/',
-            $colors['number'] . '$0' . $colors['reset'],
-            $sql
-        );
-
-        // Placeholders
-        $sql = preg_replace(
-            '/\?/',
-            $colors['placeholder'] . '?' . $colors['reset'],
-            $sql
-        );
-
-        // Restore ANSI codes
-        $sql = strtr($sql, $placeholders);
-
-        return $sql;
     }
 
     private function highlightLine(string $line): string
     {
-        // Match SQL statements
-        $sqlExtractor = '/
-            \b
-            (SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|REPLACE|TRUNCATE|WITH|SHOW|DESCRIBE|SET|PRAGMA)
-            \b
-            [^;\'"]*                           # consume until quote or semicolon
-            (?:
-                (?:\'[^\']*\'|"[^"]*")[^;\'"]* # allow quoted strings
-            )*
-            (?=;|$)                            # stop at ; or end of line
-        /ix';
+        foreach ($this->highlighters as $highlighter) {
+            if (!($highlighter instanceof Highlighter)) {
+                continue;
+            }
 
-
-        $line = preg_replace_callback($sqlExtractor, function ($matches) {
-            $sql = $matches[0];
-            return $this->isValidSql($sql) ? $this->highlightSql($sql) : $sql;
-        }, $line);
+            if ($highlighter->shouldHighlight($line, $line)) {
+                $line = $highlighter->highlight($line, $line);
+            }
+        }
 
         return $line;
     }
