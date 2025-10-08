@@ -293,6 +293,4 @@ class PDODriver extends DatabaseInterface
 
         return $resultMap;
     }
-
-
 }
