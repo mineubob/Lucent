@@ -176,7 +176,7 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
-        Log::channel("db")->debug("Statement: {$query};");
+        Log::channel("db")->debug("Statement: {$query}");
 
         try {
             if (count($params) > 0) {
@@ -235,7 +235,7 @@ class PDODriver extends DatabaseInterface
 
     public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
-        Log::channel("db")->debug("Select: {$query};");
+        Log::channel("db")->debug("Select: {$query}");
 
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
