@@ -5,6 +5,7 @@ namespace Lucent;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
+use Lucent\Commandline\DevServerController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Database\Drivers\PDODriver;
 use Lucent\Facades\CommandLine;
@@ -502,6 +503,8 @@ class Application
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
         CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
+
+        CommandLine::register("serve","start",DevServerController::class);
 
         if($args === []){
             $args = array_slice($_SERVER["argv"],1);
