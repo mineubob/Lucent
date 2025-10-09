@@ -186,13 +186,8 @@ class SqlHighlighter implements Highlighter
 
     public function shouldHighlight(string $level, string $line): bool
     {
-        foreach ($this->sqlPatterns as $pattern) {
-            if (preg_match($pattern, $line)) {
-                return true;
-            }
-        }
+        return array_any($this->sqlPatterns, fn($pattern) => preg_match($pattern, $line));
 
-        return false;
     }
 
     private function highlightCore(string $sql): string
