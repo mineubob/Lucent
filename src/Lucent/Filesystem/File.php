@@ -22,13 +22,13 @@ class File extends FileSystemObject
      */
     public function __construct(string $path, mixed $content = null, bool $absolute = false)
     {
-        if(!$absolute) {
+        if (!$absolute) {
             $path = FileSystem::rootPath() . $path;
         }
 
         $this->path = $path;
 
-        if($content !== null){
+        if ($content !== null) {
             $this->create($content);
         }
     }
@@ -41,9 +41,9 @@ class File extends FileSystemObject
      * @param mixed $params Content to write to the file
      * @return bool True if successful, false otherwise
      */
-    public function create(mixed $params = null) : bool
+    public function create(mixed $params = null): bool
     {
-        if(!file_exists($this->path)) {
+        if (!file_exists($this->path)) {
             $directory = dirname($this->path);
 
             // Create directory if it doesn't exist
@@ -51,11 +51,11 @@ class File extends FileSystemObject
                 mkdir($directory, 0755, true);
             }
 
-            if($params !== null){
-                Log::channel("db")->debug("Using write");
+            if ($params !== null) {
+                Log::channel("fs")->debug("Using write");
                 return $this->write($params);
-            }else{
-                Log::channel("db")->debug("Using touch");
+            } else {
+                Log::channel("fs")->debug("Using touch");
                 return touch($this->path);
             }
 
@@ -74,7 +74,7 @@ class File extends FileSystemObject
         return file_exists($this->path);
     }
 
-    public function setPermissions(int $permissions) : bool
+    public function setPermissions(int $permissions): bool
     {
         return chmod($this->path, $permissions);
     }
@@ -100,7 +100,7 @@ class File extends FileSystemObject
     public function copy(string $name, Folder $folder, bool $absolute = false): ?FileSystemObject
     {
         // Construct destination path
-        $destinationPath = $folder->path.DIRECTORY_SEPARATOR.$name;
+        $destinationPath = $folder->path . DIRECTORY_SEPARATOR . $name;
 
         // Check source file
         if (!file_exists($this->path)) {

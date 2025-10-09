@@ -4,6 +4,7 @@ namespace Unit;
 
 use Exception;
 use Lucent\Database;
+use Lucent\Database\Schema;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -11,7 +12,7 @@ $driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
 
 if (file_exists($driverSetupPath)) {
     require_once $driverSetupPath;
-}else{
+} else {
     echo "Unable to locate $driverSetupPath\n";
     die;
 }
@@ -25,16 +26,22 @@ class DatabaseTest extends DatabaseDriverSetup
     public static function databaseDriverProvider(): array
     {
         return [
-            'sqlite' => ['sqlite', [
-                'DB_DATABASE' => '/storage/database.sqlite'
-            ]],
-            'mysql' => ['mysql', [
-                'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
-                'DB_PORT' => getenv('DB_PORT') ?: '3306',
-                'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-            ]]
+            'sqlite' => [
+                'sqlite',
+                [
+                    'DB_DATABASE' => '/storage/database.sqlite'
+                ]
+            ],
+            'mysql' => [
+                'mysql',
+                [
+                    'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
+                    'DB_PORT' => getenv('DB_PORT') ?: '3306',
+                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
+                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
+                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
+                ]
+            ]
         ];
     }
 
@@ -68,42 +75,33 @@ class DatabaseTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config);
 
-        // Use the appropriate syntax based on the driver
-        if ($driver === 'sqlite') {
-            $query = 'CREATE TABLE IF NOT EXISTS test_users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
-        )';
-        } else {
-            $query = 'CREATE TABLE IF NOT EXISTS test_users (
-            id INT NOT NULL AUTO_INCREMENT,
-            name TEXT NOT NULL,
-            PRIMARY KEY (id)
-        )';
-        }
+        $result = Schema::table("test_users", function ($table) {
+            $table->int('id')->autoIncrement()->primaryKey();
+            $table->text('name');
+        })->create();
 
-        $this->assertTrue(Database::statement($query));
+        $this->assertTrue($result);
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_statement_failed_select_all($driver,$config) : void
+    public function test_statement_failed_select_all($driver, $config): void
     {
-        self::setupDatabase($driver,$config);
+        self::setupDatabase($driver, $config);
 
-        $this->test_statement_create_table_success($driver,$config);
+        $this->test_statement_create_table_success($driver, $config);
         $query = 'SELECT * FROM test_users';
         try {
             Database::statement($query);
-        }catch (Exception $e){
-            $this->assertEquals("Invalid statement, SELECT * FROM test_users is not allowed to execute.",$e->getMessage());
+        } catch (Exception $e) {
+            $this->assertEquals("Invalid statement, SELECT * FROM test_users is not allowed to execute.", $e->getMessage());
         }
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_statement_insert_success($driver,$config) : void
+    public function test_statement_insert_success($driver, $config): void
     {
 
-        $this->test_statement_create_table_success($driver,$config);
+        $this->test_statement_create_table_success($driver, $config);
 
         $query = 'INSERT INTO test_users (name) VALUES ("Homer Simpson")';
 
@@ -137,8 +135,11 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->assertNotNull($instance2, "Failed to get second database instance");
 
         // They should be the same object
-        $this->assertSame($instance1, $instance2,
-            "Database connection is not using the singleton pattern - a new connection was created");
+        $this->assertSame(
+            $instance1,
+            $instance2,
+            "Database connection is not using the singleton pattern - a new connection was created"
+        );
 
         // Run a second query and get the instance again
         Database::select($query);
@@ -146,8 +147,11 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->assertNotNull($instance3, "Failed to get third database instance");
 
         // Third instance should still be the same object
-        $this->assertSame($instance1, $instance3,
-            "Database connection singleton was not maintained after multiple queries");
+        $this->assertSame(
+            $instance1,
+            $instance3,
+            "Database connection singleton was not maintained after multiple queries"
+        );
 
         // Now reset the connection and verify we get a new instance
         Database::reset();
@@ -162,21 +166,34 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->assertNotNull($instance4, "Failed to create new instance after reset");
 
         // After reset and a new query, we should have a different instance
-        $this->assertNotSame($instance1, $instance4,
-            "Database::reset() did not create a new connection instance");
+        $this->assertNotSame(
+            $instance1,
+            $instance4,
+            "Database::reset() did not create a new connection instance"
+        );
 
         // Verify the driver type is correct
         $driverClass = get_class($instance4);
 
         if ($driver === 'sqlite') {
-            $this->assertStringContainsString('PDODriver', $driverClass,
-                "Wrong driver type - expected PDODriver but got {$driverClass}");
-        } else if($driver === 'mysql') {
-            $this->assertStringContainsString('PDODriver', $driverClass,
-                "Wrong driver type - expected PDODriver but got {$driverClass}");
-        }else if($driver === 'pdo'){
-            $this->assertStringContainsString('PDODriver', $driverClass,
-                "Wrong driver type - expected PDODriver but got {$driverClass}");        }
+            $this->assertStringContainsString(
+                'PDODriver',
+                $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}"
+            );
+        } else if ($driver === 'mysql') {
+            $this->assertStringContainsString(
+                'PDODriver',
+                $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}"
+            );
+        } else if ($driver === 'pdo') {
+            $this->assertStringContainsString(
+                'PDODriver',
+                $driverClass,
+                "Wrong driver type - expected PDODriver but got {$driverClass}"
+            );
+        }
 
         // Test with performance metrics - measure connection time
         $startTime = microtime(true);
@@ -237,8 +254,11 @@ class DatabaseTest extends DatabaseDriverSetup
 
         // The second and third queries should be significantly faster
         // if connection reuse is working
-        $this->assertLessThan($firstQueryTime * 0.5, $secondQueryTime,
-            "Second query took more than 50% of first query time - singleton may not be working");
+        $this->assertLessThan(
+            $firstQueryTime * 0.5,
+            $secondQueryTime,
+            "Second query took more than 50% of first query time - singleton may not be working"
+        );
 
         // For good measure, verify instances match
         $instance1 = $this->getPrivateDatabaseInstance();

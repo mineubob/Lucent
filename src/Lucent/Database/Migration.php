@@ -19,7 +19,7 @@ class Migration
     public function make($class): bool
     {
 
-        return Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS,function() use ($class) {
+        return Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () use ($class) {
 
             $reflection = new ReflectionClass($class);
 
@@ -28,8 +28,8 @@ class Migration
             // Backup existing data if table exists
             $data = [];
 
-            if($table->exists()){
-                $data = Database::select("SELECT * FROM ".$table->name);
+            if ($table->exists()) {
+                $data = Database::select("SELECT * FROM " . $table->name);
 
                 // Drop the existing table
                 if (!$table->drop()) {
@@ -42,7 +42,7 @@ class Migration
             $columns = $this->analyzeNewStructure($reflection);
 
             // Create a new table using the appropriate driver
-            $query = Database::createTable($table->name,$columns);
+            $query = Database::createTable($table->name, $columns);
 
             Log::channel("db")->info($query);
 
@@ -87,17 +87,17 @@ class Migration
             }
 
             $parentPK["AUTO_INCREMENT"] = false;
-            $parentPK["REFERENCES"] = $parent->getShortName()."(".$parentPK["NAME"].")";
+            $parentPK["REFERENCES"] = $parent->getShortName() . "(" . $parentPK["NAME"] . ")";
 
             $columns[] = $parentPK;
 
             if (!Schema::table($parent->getShortName())->exists()) {
-                if(!$this->make($parent->getName())){
+                if (!$this->make($parent->getName())) {
                     Log::channel("db")->critical("Could not create parent table {$parent->getName()}");
                 }
             }
         }
 
-        return array_merge($columns,Model::getDatabaseProperties($reflection->getName()));
+        return array_merge($columns, Model::getDatabaseProperties($reflection->getName()));
     }
 }
