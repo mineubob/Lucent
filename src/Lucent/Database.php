@@ -20,7 +20,7 @@ class Database
 
         $driver = Application::getInstance()->databaseDrivers[App::env("DB_DRIVER")] ?? null;
 
-        if(!$driver) {
+        if (!$driver) {
             throw new Exception("Unknown database driver provided");
         }
 
@@ -29,6 +29,8 @@ class Database
         return self::$instance;
     }
 
+
+    #[\Deprecated("Prefer use of the Schema::table function directly.")]
     public static function createTable(string $table, array $columns): string
     {
         return self::getInstance()->createTable($table, $columns);
@@ -54,9 +56,9 @@ class Database
         return self::getInstance()->delete($query, $args);
     }
 
-    public static function select($query,bool $fetchAll = true, array $args = []): ?array
+    public static function select($query, bool $fetchAll = true, array $args = []): ?array
     {
-        return self::getInstance()->select($query,$fetchAll, $args);
+        return self::getInstance()->select($query, $fetchAll, $args);
     }
 
     public static function transaction(callable $callback): bool
@@ -68,27 +70,29 @@ class Database
     {
         $driver = self::getInstance()->getDriverName();
         $featureCommands = PDODriver::$map[$driver]["functions"][$feature] ?? null;
+        $disableFeatureSql = $featureCommands["disable"] ?? null;
+        $enableFeatureSql = $featureCommands["enable"] ?? null;
 
         // If feature not supported for this driver, just run callback
-        if ($featureCommands === null) {
+        if ($disableFeatureSql === null || $enableFeatureSql === null) {
             Log::channel("db")->warning("Feature '{$feature}' not supported for driver '{$driver}'");
             return $callback();
         }
 
         try {
-            self::getInstance()->statement($featureCommands["disable"]);
+            self::getInstance()->statement($disableFeatureSql);
             return $callback();
         } finally {
-            self::getInstance()->statement($featureCommands["enable"]);
+            self::getInstance()->statement($enableFeatureSql);
         }
     }
 
-    public static function getDriver() : DatabaseInterface
+    public static function getDriver(): DatabaseInterface
     {
         return self::getInstance();
     }
 
-    public static function reset() : void
+    public static function reset(): void
     {
         self::$instance = null;
     }
