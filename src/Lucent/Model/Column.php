@@ -59,21 +59,23 @@ class Column
         public ?bool $autoIncrement = null,
         public ?bool $unsigned = null
     ) {
-        $this->validateColumn();
+        $validationError = $this->validateColumn();
+        if ($validationError !== null) {
+            throw $validationError;
+        }
     }
 
-    private function validateColumn(): void
+    private function validateColumn(): ?\Exception
     {
-
         if ($this->type == null || !($this->type instanceof ColumnType)) {
-            throw new \InvalidArgumentException("Invalid type provided");
+            return new \InvalidArgumentException("Invalid type provided");
         }
 
         $type_name = $this->type->name;
         switch ($this->type) {
             case ColumnType::VARCHAR:
                 if ($this->length === null) {
-                    throw new \InvalidArgumentException("$type_name must have a length.");
+                    return new \InvalidArgumentException("$type_name must have a length.");
                 }
                 break;
         }
