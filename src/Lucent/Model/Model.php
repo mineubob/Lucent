@@ -20,16 +20,21 @@ class Model
 
         $reflection = new ReflectionClass($this);
 
-        foreach ($reflection->getProperties() as $property) {
-            $column = Column::fromProperty($property);
-
-            // Skip if it's not a db column.
-            if ($column === null) {
-                continue;
-            }
-
+        foreach (Model::getDatabaseProperties($reflection) as $column) {
+            $property = $reflection->getProperty($column->classPropertyName);
             $value = $dataset->get($column->name);
+
             TypedProperty::set($this, $property, $value);
+        }
+
+        $parentClass = $reflection->getParentClass();
+        if ($parentClass instanceof ReflectionClass) {
+            foreach (Model::getDatabaseProperties($parentClass) as $column) {
+                $property = $parentClass->getProperty($column->classPropertyName);
+                $value = $dataset->get($column->name);
+
+                TypedProperty::set($this, $property, $value);
+            }
         }
     }
 
@@ -105,7 +110,7 @@ class Model
                     $lastId = Database::getDriver()->lastInsertId();
 
                     // Set the ID
-                    TypedProperty::set($this, $reflection->getProperty($parentPK->classPropertyName), $lastId);
+                    TypedProperty::set($this, $parent->getProperty($parentPK->classPropertyName), $lastId);
                 } else {
                     $lastId = $reflection->getProperty($parentPK->classPropertyName)->getValue($this);
                 }
