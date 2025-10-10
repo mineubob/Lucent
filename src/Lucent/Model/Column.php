@@ -38,7 +38,7 @@ class Column
      * @param int|null              $length         Character length (for string types).
      * @param bool|null             $autoIncrement  Whether the column auto-increments.
      * @param bool|null             $primaryKey     Whether this column is a primary key.
-     * @param string|null           $default        The default value for the column.
+     * @param mixed                 $default        The default value for the column.
      * @param array<string>|null    $values         Allowed enum values if type is LUCENT_DB_ENUM.
      * @param string|null           $references     Foreign key reference target.
      * @param bool|null             $unique         Whether the column should be unique.
@@ -52,7 +52,7 @@ class Column
         public ?bool $nullable = null,
         public ?int $length = null,
         public ?bool $primaryKey = null,
-        public ?string $default = null,
+        public mixed $default = null,
         public ?array $values = null,
         public ?string $references = null,
         public ?bool $unique = null,
