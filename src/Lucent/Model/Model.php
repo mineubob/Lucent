@@ -6,8 +6,8 @@ use Exception;
 use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\Log;
+use Lucent\Helpers\Reflection\TypedProperty;
 use ReflectionClass;
-use function Lucent\Helpers\Reflection\setTypedProperty;
 
 class Model
 {
@@ -29,8 +29,7 @@ class Model
             }
 
             $value = $dataset->get($column->name);
-
-            setTypedProperty($this, $property, $value);
+            TypedProperty::set($this, $property, $value);
         }
     }
 
@@ -82,7 +81,7 @@ class Model
         if ($parent->getName() !== Model::class) {
             // This is a child model, handle parent first
             $parentPK = Model::getDatabasePrimaryKey($parent);
-            $parentProperties = $this->getProperties($parent->getProperties(), $parent->getName());
+            $parentProperties = $this->getProperties($parent->getProperties(), $parent->getName(), true);
 
             // Start a transaction
             return Database::transaction(function () use ($reflection, $parent, $parentPK, $parentProperties) {
@@ -106,13 +105,13 @@ class Model
                     $lastId = Database::getDriver()->lastInsertId();
 
                     // Set the ID
-                    setTypedProperty($this, $reflection->getProperty($parentPK->classPropertyName), $lastId);
+                    TypedProperty::set($this, $reflection->getProperty($parentPK->classPropertyName), $lastId);
                 } else {
                     $lastId = $reflection->getProperty($parentPK->classPropertyName)->getValue($this);
                 }
 
                 // Get properties for the child model
-                $childProps = $this->getProperties($reflection->getProperties(), $reflection->getName());
+                $childProps = $this->getProperties($reflection->getProperties(), $reflection->getName(), true);
 
                 // Add the parent's primary key to the child properties
                 $childProps[$parentPK->name] = $lastId;
@@ -135,7 +134,7 @@ class Model
             });
         } else {
             // Standard model creation (no transaction needed)
-            $properties = $this->getProperties($reflection->getProperties(), $reflection->getName());
+            $properties = $this->getProperties($reflection->getProperties(), $reflection->getName(), true);
 
             // Insert into the current model's table
             $tableName = $reflection->getShortName();
@@ -158,7 +157,7 @@ class Model
             $lastId = Database::getDriver()->lastInsertId();
 
             // Set the ID
-            setTypedProperty($this, $reflection->getProperty($pk->classPropertyName), $lastId);
+            TypedProperty::set($this, $reflection->getProperty($pk->classPropertyName), $lastId);
 
             return true;
         }
@@ -166,7 +165,7 @@ class Model
 
     /**
      * Summary of buildInsertQueryString
-     * @param array $properties
+     * @param array<string, mixed> $properties
      * @param array $bindValues
      * @return string
      */
@@ -205,15 +204,21 @@ class Model
      * @param string $class
      * @return array<string, mixed>
      */
-    public function getProperties(array $properties, string $class): array
+    public function getProperties(array $properties, string $class, bool $skipAutoIncrement): array
     {
         $output = [];
         foreach ($properties as $property) {
             $declaringClass = $property->getDeclaringClass();
             $dbColumn = Column::fromProperty($property);
 
-            if ($dbColumn !== null && $declaringClass->getName() === $class && $property->isInitialized($this)) {
-                $output[$property->getName()] = $property->getValue($this);
+            if ($dbColumn === null || $declaringClass->getName() !== $class)
+                continue;
+
+            if ($skipAutoIncrement && $dbColumn->autoIncrement)
+                continue;
+
+            if ($property->isInitialized($this)) {
+                $output[$dbColumn->name] = $property->getValue($this);
             }
         }
 
@@ -233,13 +238,12 @@ class Model
             $parentUpdates = [];
             $parentBindValues = [];
 
-            foreach (Model::getDatabaseProperties($parent) as $property) {
-                if (!$property->primaryKey) {
-                    $parentProp = $parent->getProperty($property->classPropertyName);
+            foreach (Model::getDatabaseProperties($parent) as $column) {
+                if (!$column->primaryKey) {
+                    $parentProperty = $parent->getProperty($column->classPropertyName);
+                    $value = $parentProperty->isInitialized($this) ? $parentProperty->getValue($this) : null;
 
-                    $value = $parentProp->isInitialized($this) ? $parentProp->getValue($this) : null;
-
-                    $parentUpdates[] = "$property->name = ?";
+                    $parentUpdates[] = "$column->name = ?";
                     $parentBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
                 }
             }
@@ -250,13 +254,12 @@ class Model
             $childUpdates = [];
             $childBindValues = [];
 
-            foreach (Model::getDatabaseProperties($reflection) as $property) {
-                if (!$property->primaryKey) {
-                    $reflProp = $reflection->getProperty($property->classPropertyName);
+            foreach (Model::getDatabaseProperties($reflection) as $column) {
+                if (!$column->primaryKey) {
+                    $property = $reflection->getProperty($column->classPropertyName);
+                    $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
-                    $value = $reflProp->isInitialized($this) ? $reflProp->getValue($this) : null;
-
-                    $childUpdates[] = "$property->name = ?";
+                    $childUpdates[] = "$column->name = ?";
                     $childBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
                 }
             }
@@ -290,14 +293,12 @@ class Model
         $updates = [];
         $bindValues = [];
 
-        foreach ($reflection->getProperties() as $property) {
-            $column = Column::fromProperty($property);
-            if ($property->isInitialized($this)) {
-                $value = $property->getValue($this);
+        foreach (Model::getDatabaseProperties($reflection) as $column) {
+            $property = $reflection->getProperty($column->classPropertyName);
+            $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
-                $updates[] = "$column->name = ?";
-                $bindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
-            }
+            $updates[] = "$column->name = ?";
+            $bindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
         }
 
         if (empty($updates)) {

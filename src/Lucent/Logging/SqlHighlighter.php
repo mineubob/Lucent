@@ -10,50 +10,51 @@ class SqlHighlighter implements Highlighter
      */
     private array $sqlPatterns = [
         // SELECT <value>
-        '/SELECT\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)+/is',
+        '/\bSELECT\b\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)+/is',
 
         // SELECT ... FROM <table> [[INNER|LEFT|RIGHT|FULL] [OUTER] JOIN .. ON ..] [WHERE ...] [GROUP BY ...] [ORDER BY ...]
-        '/SELECT\s+.+\s+FROM\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?JOIN\s+\S+\s+ON\s+.+?)*(\s+WHERE\s+.+)?(\s+GROUP\s+BY\s+.+)?(\s+ORDER\s+BY\s+.+)?(\s+LIMIT\s+\d+)?(\s+OFFSET\s+\d+)?/is',
+        '/\bSELECT\b\s+.+?\s+\bFROM\b\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?\bJOIN\b\s+\S+\s+\bON\b\s+.+?)*(\s+\bWHERE\b\s+.+)?(\s+\bGROUP\s+\bBY\b\s+.+)?(\s+\bORDER\s+\bBY\b\s+.+)?(\s+\bLIMIT\b\s+\d+)?(\s+\bOFFSET\b\s+\d+)?/is',
 
         // INSERT INTO table (...) VALUES (...)
-        '/INSERT\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)/is',
+        '/\bINSERT\b\s+\bINTO\b\s+\S+\s*\([^)]+\)\s+\bVALUES\b\s*\([^)]+?\)/is',
 
         // UPDATE table SET ... [WHERE ...]
-        '/UPDATE\s+\S+\s+SET\s+.+(\s+WHERE\s+.+)?/is',
+        '/\bUPDATE\b\s+\S+\s+\bSET\b\s+.+?(?:\s+\bWHERE\b\s+.+)?/is',
 
         // DELETE FROM table [WHERE ...]
-        '/DELETE\s+FROM\s+\S+(\s+WHERE\s+.+)?/is',
+        '/\bDELETE\b\s+\bFROM\b\s+\S+(?:\s+\bWHERE\b\s+.+)?/is',
 
         // CREATE TABLE [IF NOT EXISTS] table (...)
-        '/CREATE\s+TABLE\s+(IF\s+NOT\s+EXISTS\s+)?\S+\s*\(.*\)/is',
+        '/\bCREATE\b\s+\bTABLE\b\s+(?:\bIF\b\s+\bNOT\b\s+\bEXISTS\b\s+)?\S+\s*\(.*?\)/is',
 
         // ALTER TABLE table ...
-        '/ALTER\s+TABLE\s+\S+.+/is',
+        '/\bALTER\b\s+\bTABLE\b\s+\S+.+/is',
 
         // DROP TABLE/INDEX [IF EXISTS] name
-        '/DROP\s+(TABLE|INDEX)\s+(IF\s+EXISTS\s+)?\S+/is',
+        '/\bDROP\b\s+(?:\bTABLE\b|\bINDEX\b)\s+(?:\bIF\b\s+\bEXISTS\b\s+)?\S+/is',
 
         // REPLACE INTO table (...) VALUES (...)
-        '/REPLACE\s+INTO\s+\S+\s*\([^)]+\)\s+VALUES\s*\([^\)]*?\)/is',
+        '/\bREPLACE\b\s+\bINTO\b\s+\S+\s*\([^)]+\)\s+\bVALUES\b\s*\([^)]+?\)/is',
 
         // TRUNCATE TABLE ...
-        '/TRUNCATE\s+TABLE\s+\S+/is',
+        '/\bTRUNCATE\b\s+\bTABLE\b\s+\S+/is',
 
         // WITH ... (CTE)
-        '/WITH\s+.+/is',
+        '/\bWITH\b\s+.+/is',
 
         // SHOW ...
-        '/SHOW\s+.+/is',
+        '/\bSHOW\b\s+.+/is',
 
         // DESCRIBE table
-        '/DESCRIBE\s+\S+/is',
+        '/\bDESCRIBE\b\s+\S+/is',
 
-        // SET variable = value
-        '/SET\s+.+/is',
+        // SET variable = value (not part of column names)
+        '/\bSET\b\s+[^;]+/is',
 
         // PRAGMA variable = value
-        '/PRAGMA\s+\S+(\s*=\s*\S+)?/is',
+        '/\bPRAGMA\b\s+\S+(?:\s*=\s*[^;]+)?/is',
     ];
+
 
     /**
      * Array of colors to use for highlighting.

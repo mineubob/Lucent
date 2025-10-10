@@ -401,7 +401,7 @@ class Application
             $reflection = new ReflectionClass($type);
 
             $pkValue = $response["variables"][$name];
-            $pkKey = $type::getDatabasePrimaryKey($reflection)["NAME"];
+            $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
 
             if (
                 array_key_exists($name, $request->context)
