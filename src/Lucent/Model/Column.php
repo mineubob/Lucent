@@ -79,6 +79,8 @@ class Column
                 }
                 break;
         }
+
+        return null;
     }
 
     public static function fromProperty(ReflectionProperty $property): ?self
