@@ -51,16 +51,23 @@ class DatabaseDriverSetup extends TestCase
         Database::reset();
 
         //Drop all our tables, disable FK checks to ensure we can drop them in any order.
-        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
-
+        $failedTables = Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
             $tables = Database\Schema::list();
+            $failedTables = [];
 
             //Drop all our tables
             foreach ($tables as $table) {
-                $table->drop();
+                if (!$table->drop()) {
+                    $failedTables[] = $table->name;
+                }
             }
 
+            return $failedTables;
         });
+        if (count($failedTables) >= 1) {
+            $table_names = implode(', ', $failedTables);
+            throw new \Exception("Failed to drop all tables: Tables {$table_names} failed to drop.");
+        }
 
         Log::channel("db")->info("Switched driver to " . $driver);
     }
