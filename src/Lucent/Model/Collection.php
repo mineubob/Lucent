@@ -320,7 +320,7 @@ class Collection
         // Add limit and offset
         $query .= " LIMIT " . $this->limit;
 
-        if ($this->offset != 0) {
+        if ($this->offset !== 0) {
             $query .= " OFFSET " . $this->offset;
         }
 

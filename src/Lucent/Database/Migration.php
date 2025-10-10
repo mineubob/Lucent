@@ -38,7 +38,7 @@ class Migration
                         $tableColumn->nullable();
                     }
 
-                    if ($column->length != null) {
+                    if ($column->length !== null) {
                         $tableColumn->length($column->length);
                     }
 
@@ -46,11 +46,11 @@ class Migration
                         $tableColumn->primaryKey();
                     }
 
-                    if ($column->default != null) {
+                    if ($column->default !== null) {
                         $tableColumn->default($column->default);
                     }
 
-                    if ($column->references != null) {
+                    if ($column->references !== null) {
                         $tableColumn->references($column->references);
                     }
 

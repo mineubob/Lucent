@@ -352,7 +352,7 @@ class Model
     {
         foreach ($reflection->getProperties() as $property) {
             $dbColumn = Column::fromProperty($property);
-            if ($dbColumn != null && $dbColumn->primaryKey === true) {
+            if ($dbColumn !== null && $dbColumn->primaryKey === true) {
                 return $dbColumn;
             }
         }
