@@ -652,7 +652,7 @@ class Admin extends TestUser
     #[Column(ColumnType::BOOLEAN, default: false)]
     public private(set) bool $can_lock_accounts;
 
-    #[Column(ColumnType::VARCHAR, nullable: true)]
+    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
     public private(set) ?string $notes;
 
 
@@ -812,10 +812,10 @@ class TestUserTwo extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR)]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $email;
 
-    #[Column(ColumnType::VARCHAR)]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $password_hash;
 
     #[Column(ColumnType::VARCHAR, length: 100)]
@@ -865,7 +865,7 @@ class TransactionModel extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR, nullable: true)]
+    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
     protected ?string $description;
 
     #[Column(ColumnType::DECIMAL)]
@@ -907,7 +907,7 @@ class TestCustomer extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public protected(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR)]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     public protected(set) string $mobile;
 
     public function __construct(string $mobile)
