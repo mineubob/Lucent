@@ -1,13 +1,13 @@
 <?php
 
-namespace Lucent;
+namespace Lucent\Model;
 
-use Error;
 use Exception;
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Facades\Log;
 use ReflectionClass;
+use function Lucent\Helpers\Reflection\setTypedProperty;
 
 class Model
 {
@@ -21,26 +21,16 @@ class Model
         $reflection = new ReflectionClass($this);
 
         foreach ($reflection->getProperties() as $property) {
-            $propertyName = $property->getName();
+            $column = Column::fromProperty($property);
 
-            // Skip the dataset property itself
-            if ($propertyName === 'dataset') {
+            // Skip if it's not a db column.
+            if ($column === null) {
                 continue;
             }
 
-            $value = match ($property->getType()->getName()) {
-                'string' => (string) $dataset->get($propertyName),
-                'int', 'integer' => (int) $dataset->integer($propertyName),
-                'float', 'double' => (float) $dataset->get($propertyName),
-                'bool', 'boolean' => (bool) $dataset->get($propertyName),
-                'array' => (array) $dataset->get($propertyName),
-                'null' => null,
-                default => $dataset->get($propertyName)
-            };
+            $value = $dataset->get($column->name);
 
-            /** @noinspection PhpExpressionResultUnusedInspection */
-            $property->setAccessible(true);
-            $property->setValue($this, $value);
+            setTypedProperty($this, $property, $value);
         }
     }
 
@@ -51,12 +41,13 @@ class Model
 
         $property = $reflection->getProperty($propertyName);
         $value = $property->getValue($this);
+        $column = Column::fromProperty($property);
 
         //Delete normal model
-        if($parent->getName() === Model::class){
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$propertyName}= ?";
+        if ($parent->getName() === Model::class) {
+            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
-            if(!Database::delete($query,[$value])){
+            if (!Database::delete($query, [$value])) {
                 Log::channel("db")->info("Failed to deleted model with query " . $query);
                 return false;
             }
@@ -65,17 +56,16 @@ class Model
         }
 
         //Delete extended model
-        return Database::transaction(function() use ($value, $propertyName, $parent, $reflection) {
-
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$propertyName} = ?";
-            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$propertyName} = ?";
+        return Database::transaction(function () use ($value, $column, $parent, $reflection) {
+            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
+            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
 
             if (!Database::delete($query, [$value])) {
                 Log::channel("db")->info("Failed to deleted model with query " . $query);
                 return false;
             }
 
-            if(!Database::delete($parentQuery, [$value])){
+            if (!Database::delete($parentQuery, [$value])) {
                 Log::channel("db")->info("Failed to deleted model with query " . $parentQuery);
                 return false;
             }
@@ -96,14 +86,14 @@ class Model
 
             // Start a transaction
             return Database::transaction(function () use ($reflection, $parent, $parentPK, $parentProperties) {
-
                 $values = [];
+
                 // Insert into parent table first
                 $parentTable = $parent->getShortName();
-                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildInsertQueryString($parentProperties,$values);
+                $parentQuery = "INSERT INTO {$parentTable}" . $this->buildInsertQueryString($parentProperties, $values);
 
                 Log::channel("db")->info("Parent query: " . $parentQuery);
-                $result = Database::insert($parentQuery,$values);
+                $result = Database::insert($parentQuery, $values);
 
                 if (!$result) {
                     Log::channel("db")->error("Failed to create parent model: " . $parentQuery);
@@ -111,28 +101,28 @@ class Model
                     return false;
                 }
 
-                if ($parentPK["AUTO_INCREMENT"] === true) {
+                if ($parentPK->autoIncrement === true) {
                     // Get the last inserted ID
                     $lastId = Database::getDriver()->lastInsertId();
 
                     // Set the ID
-                    $parent->getProperty($parentPK["NAME"])->setValue($this, $lastId);
+                    setTypedProperty($this, $reflection->getProperty($parentPK->classPropertyName), $lastId);
                 } else {
-                    $lastId = $reflection->getProperty($parentPK["NAME"])->getValue($this);
+                    $lastId = $reflection->getProperty($parentPK->classPropertyName)->getValue($this);
                 }
 
                 // Get properties for the child model
                 $childProps = $this->getProperties($reflection->getProperties(), $reflection->getName());
 
                 // Add the parent's primary key to the child properties
-                $childProps[$parentPK["NAME"]] = $lastId;
+                $childProps[$parentPK->name] = $lastId;
                 $values = [];
                 // Insert into the current model's table
                 $tableName = $reflection->getShortName();
-                $childQuery = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($childProps,$values);
+                $childQuery = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($childProps, $values);
 
                 Log::channel("db")->info("Child query: " . $childQuery);
-                $result = Database::insert($childQuery,$values);
+                $result = Database::insert($childQuery, $values);
 
                 if (!$result) {
                     Log::channel("db")->error("Failed to create child model: " . $childQuery);
@@ -151,11 +141,11 @@ class Model
             $tableName = $reflection->getShortName();
 
             $values = [];
-            $query = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($properties,$values);
+            $query = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($properties, $values);
 
             Log::channel("db")->info("Query: " . $query);
 
-            $result = Database::insert($query,$values);
+            $result = Database::insert($query, $values);
 
             if (!$result) {
                 Log::channel("db")->error("Failed to create model: " . $query);
@@ -168,12 +158,18 @@ class Model
             $lastId = Database::getDriver()->lastInsertId();
 
             // Set the ID
-            $reflection->getProperty($pk["NAME"])->setValue($this, $lastId);
+            setTypedProperty($this, $reflection->getProperty($pk->classPropertyName), $lastId);
 
             return true;
         }
     }
 
+    /**
+     * Summary of buildInsertQueryString
+     * @param array $properties
+     * @param array $bindValues
+     * @return string
+     */
     public function buildInsertQueryString(array $properties, array &$bindValues = []): string
     {
         if (empty($properties)) {
@@ -203,35 +199,21 @@ class Model
         return $columns . $placeholders;
     }
 
+    /**
+     * Summary of getProperties
+     * @param array<\ReflectionProperty> $properties
+     * @param string $class
+     * @return array<string, mixed>
+     */
     public function getProperties(array $properties, string $class): array
     {
         $output = [];
         foreach ($properties as $property) {
-
-            $attributes = $property->getAttributes(DatabaseColumn::class);
             $declaringClass = $property->getDeclaringClass();
+            $dbColumn = Column::fromProperty($property);
 
-            if (count($attributes) > 0 && $declaringClass->getName() === $class) {
-
-                if (!$property->isInitialized($this)) {
-                    $value = null;
-                } else {
-                    $value = $property->getValue($this);
-                }
-
-                if ($value !== null) {
-                    $skip = false;
-
-                    foreach ($attributes as $attribute) {
-                        $instance = $attribute->newInstance();
-                        $skip = $instance->shouldSkip();
-                    }
-
-                    if (!$skip) {
-                        $output[$property->name] = $property->getValue($this);
-                    }
-
-                }
+            if ($dbColumn !== null && $declaringClass->getName() === $class && $property->isInitialized($this)) {
+                $output[$property->getName()] = $property->getValue($this);
             }
         }
 
@@ -251,14 +233,13 @@ class Model
             $parentUpdates = [];
             $parentBindValues = [];
 
-            foreach (Model::getDatabaseProperties($parent->getName()) as $property) {
-                if (!$property["PRIMARY_KEY"]) {
-                    $propName = $property["NAME"];
-                    $parentProp = $parent->getProperty($propName);
+            foreach (Model::getDatabaseProperties($parent) as $property) {
+                if (!$property->primaryKey) {
+                    $parentProp = $parent->getProperty($property->classPropertyName);
 
                     $value = $parentProp->isInitialized($this) ? $parentProp->getValue($this) : null;
 
-                    $parentUpdates[] = $propName . " = ?";
+                    $parentUpdates[] = "$property->name = ?";
                     $parentBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
                 }
             }
@@ -269,14 +250,13 @@ class Model
             $childUpdates = [];
             $childBindValues = [];
 
-            foreach (Model::getDatabaseProperties($reflection->getName()) as $property) {
-                if (!$property["PRIMARY_KEY"]) {
-                    $propName = $property["NAME"];
-                    $reflProp = $reflection->getProperty($propName);
+            foreach (Model::getDatabaseProperties($reflection) as $property) {
+                if (!$property->primaryKey) {
+                    $reflProp = $reflection->getProperty($property->classPropertyName);
 
                     $value = $reflProp->isInitialized($this) ? $reflProp->getValue($this) : null;
 
-                    $childUpdates[] = $propName . " = ?";
+                    $childUpdates[] = "$property->name = ?";
                     $childBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
                 }
             }
@@ -311,24 +291,12 @@ class Model
         $bindValues = [];
 
         foreach ($reflection->getProperties() as $property) {
-            $attributes = $property->getAttributes(DatabaseColumn::class);
+            $column = Column::fromProperty($property);
+            if ($property->isInitialized($this)) {
+                $value = $property->getValue($this);
 
-            if (count($attributes) > 0) {
-                $value = $property->isInitialized($this) ? $property->getValue($this) : null;
-
-                if ($value !== null) {
-                    $skip = false;
-
-                    foreach ($attributes as $attribute) {
-                        $instance = $attribute->newInstance();
-                        $skip = $instance->shouldSkip();
-                    }
-
-                    if (!$skip && $property->getName() !== $identifier) {
-                        $updates[] = $property->getName() . " = ?";
-                        $bindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
-                    }
-                }
+                $updates[] = "$column->name = ?";
+                $bindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
             }
         }
 
@@ -350,113 +318,112 @@ class Model
             return false;
         }
     }
-    public static function hasDatabaseProperty(string $class, string $name): bool
+
+    public static function hasDatabaseProperty(ReflectionClass $class, string $name): bool
     {
         return array_key_exists($name, Model::getDatabaseProperties($class));
     }
 
-    public static function getDatabaseProperties(string $class): array
+    /**
+     * Get the Model Columns on this Model.
+     * @param ReflectionClass $class
+     * @return array<string, Column>
+     */
+    public static function getDatabaseProperties(ReflectionClass $class): array
     {
-        $reflection = new ReflectionClass($class);
         $properties = [];
 
-        foreach ($reflection->getProperties() as $property) {
+        foreach ($class->getProperties() as $property) {
+            if ($property->getDeclaringClass()->getName() !== $class->getName())
+                continue;
 
-            if ($property->getDeclaringClass()->getName() === $reflection->getName()) {
-                $attributes = $property->getAttributes(DatabaseColumn::class);
-                foreach ($attributes as $attribute) {
-                    $instance = $attribute->newInstance();
-                    $instance->setName($property->name);
-                    $properties[$property->name] = $instance->column;
-                }
+            $column = Column::fromProperty($property);
+
+            if ($column !== null) {
+                $properties[$column->name] = $column;
             }
         }
 
         return $properties;
     }
 
-    public static function getDatabasePrimaryKey(ReflectionClass $reflection): ?array
+    public static function getDatabasePrimaryKey(ReflectionClass $reflection): Column
     {
         foreach ($reflection->getProperties() as $property) {
-            $attributes = $property->getAttributes(DatabaseColumn::class);
-            foreach ($attributes as $attribute) {
-                $instance = $attribute->newInstance();
-                $instance->setName($property->name);
-                return $instance->column;
+            $dbColumn = Column::fromProperty($property);
+            if ($dbColumn != null && $dbColumn->primaryKey === true) {
+                return $dbColumn;
             }
         }
 
-        // Return empty string or throw an exception if no primary key found
-        return null;
+        throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 
-    public static function where(string $column, string $value): ModelCollection
+    public static function where(string $column, string $value): Collection
     {
-        return new ModelCollection(static::class)->where($column, $value);
+        return new Collection(static::class)->where($column, $value);
     }
-    public static function orWhere(string $column, string $value): ModelCollection
+    public static function orWhere(string $column, string $value): Collection
     {
-        return new ModelCollection(static::class)->orWhere($column, $value);
-    }
-
-    public static function like(string $column, string $value): ModelCollection
-    {
-        return new ModelCollection(static::class)->like($column, $value);
-    }
-    public static function orLike(string $column, string $value): ModelCollection
-    {
-        return new ModelCollection(static::class)->orLike($column, $value);
+        return new Collection(static::class)->orWhere($column, $value);
     }
 
-    public static function limit(int $count): ModelCollection
+    public static function like(string $column, string $value): Collection
     {
-        return new ModelCollection(static::class)->limit($count);
+        return new Collection(static::class)->like($column, $value);
+    }
+    public static function orLike(string $column, string $value): Collection
+    {
+        return new Collection(static::class)->orLike($column, $value);
     }
 
-    public static function offset(int $offset): ModelCollection
+    public static function limit(int $count): Collection
     {
-        return new ModelCollection(static::class)->offset($offset);
+        return new Collection(static::class)->limit($count);
     }
 
-    public static function orderBy(string $column, string $direction = "ASC"): ModelCollection
+    public static function offset(int $offset): Collection
     {
-        return new ModelCollection(static::class)->orderBy($column, $direction);
+        return new Collection(static::class)->offset($offset);
+    }
+
+    public static function orderBy(string $column, string $direction = "ASC"): Collection
+    {
+        return new Collection(static::class)->orderBy($column, $direction);
     }
 
     public static function count(): int
     {
-        return new ModelCollection(static::class)->count();
+        return new Collection(static::class)->count();
     }
 
     public static function sum(string $column): float
     {
-        return new ModelCollection(static::class)->sum($column);
+        return new Collection(static::class)->sum($column);
     }
 
-    public static function collection(): ModelCollection
+    public static function collection(): Collection
     {
-        return new ModelCollection(static::class);
+        return new Collection(static::class);
     }
 
     public static function get(): array
     {
-        return new ModelCollection(static::class)->get();
+        return new Collection(static::class)->get();
     }
 
     public static function getFirst(): self|null
     {
-        return new ModelCollection(static::class)->getFirst();
+        return new Collection(static::class)->getFirst();
     }
 
-    public static function in(string $column, array $values, string $operator = "AND"): ModelCollection
+    public static function in(string $column, array $values, string $operator = "AND"): Collection
     {
-        return new ModelCollection(static::class)->in($column, $values, $operator);
+        return new Collection(static::class)->in($column, $values, $operator);
     }
 
-    public static function compare(string $column, string $logicalOperator, string $value): ModelCollection
+    public static function compare(string $column, string $logicalOperator, string $value): Collection
     {
-        return new ModelCollection(static::class)->compare($column, $logicalOperator, $value);
+        return new Collection(static::class)->compare($column, $logicalOperator, $value);
     }
-
-
 }

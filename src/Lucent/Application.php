@@ -173,7 +173,8 @@ class Application
      * Sets up HTTP and CLI routers, ensures .env file exists,
      * loads environment variables, and initializes a null logger.
      */
-    public function __construct(){
+    public function __construct()
+    {
 
         //Default database drivers
         $this->databaseDrivers["mysql"] = PDODriver::class;
@@ -185,8 +186,8 @@ class Application
 
         //Check if we have a .env file present, if not
         //then we create the file.
-        if(!file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env")){
-            $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env","w");
+        if (!file_exists(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env")) {
+            $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "w");
             fclose($file);
         }
 
@@ -216,9 +217,9 @@ class Application
      * @param string $key Channel identifier
      * @return Channel Logger instance
      */
-    public function getLoggingChannel(string $key) : Channel
+    public function getLoggingChannel(string $key): Channel
     {
-        if(!array_key_exists($key, $this->loggers)){
+        if (!array_key_exists($key, $this->loggers)) {
             return $this->loggers["blank"];
         }
         return $this->loggers[$key];
@@ -233,12 +234,12 @@ class Application
      */
     public function boot(): void
     {
-        foreach ($this->routes as $route){
+        foreach ($this->routes as $route) {
             $this->httpRouter->loadRoutes($route["file"]);
         }
 
-        foreach ($this->commands as $command){
-            require_once FileSystem::rootPath().DIRECTORY_SEPARATOR.$command;
+        foreach ($this->commands as $command) {
+            require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
         }
     }
 
@@ -259,7 +260,7 @@ class Application
      */
     public static function getInstance(): Application
     {
-        if(Application::$instance == null){
+        if (Application::$instance == null) {
             Application::$instance = new Application();
         }
 
@@ -308,14 +309,14 @@ class Application
             return $this->responseWithError(500);
         }
 
-        $controllerReflection =  new ReflectionClass($response["controller"]);
+        $controllerReflection = new ReflectionClass($response["controller"]);
         $controllerConstructor = $controllerReflection->getConstructor();
         $parameters = [];
 
-        if($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0){
+        if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
 
-            foreach ($controllerReflection->getConstructor()->getParameters() as $parameter){
-                if(array_key_exists($parameter->getType()->getName(), $this->services)){
+            foreach ($controllerReflection->getConstructor()->getParameters() as $parameter) {
+                if (array_key_exists($parameter->getType()->getName(), $this->services)) {
                     $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
                 }
             }
@@ -343,18 +344,18 @@ class Application
         $request->setUrlVars($response["variables"]);
 
         //Run all our middleware
-        foreach (array_merge($this->globalMiddlewares,$response["middleware"]) as $middleware) {
-            if($middleware instanceof Middleware){
+        foreach (array_merge($this->globalMiddlewares, $response["middleware"]) as $middleware) {
+            if ($middleware instanceof Middleware) {
                 $request = $middleware->handle($request);
-            }else {
+            } else {
                 $object = new $middleware();
                 $request = $object->handle($request);
             }
         }
 
-        if($parameters !== []){
+        if ($parameters !== []) {
             $controller = $controllerReflection->newInstanceArgs($parameters);
-        }else{
+        } else {
             $controller = $controllerReflection->newInstance();
         }
 
@@ -371,7 +372,7 @@ class Application
             $type = $parameter->getType()?->getName();
             $name = $parameter->getName();
 
-            if($type === null){
+            if ($type === null) {
                 continue;
             }
 
@@ -387,13 +388,13 @@ class Application
             }
 
             //Service Injection
-            if(array_key_exists($type, $this->services)){
+            if (array_key_exists($type, $this->services)) {
                 $response["variables"][$name] = $this->services[$type];
                 continue;
             }
 
             //Skip non model types
-            if(!is_subclass_of($parameter->getType()->getName(), Model::class)){
+            if (!is_subclass_of($parameter->getType()->getName(), Model::class)) {
                 continue;
             }
 
@@ -402,17 +403,18 @@ class Application
             $pkValue = $response["variables"][$name];
             $pkKey = $type::getDatabasePrimaryKey($reflection)["NAME"];
 
-            if(array_key_exists($name,$request->context)
+            if (
+                array_key_exists($name, $request->context)
                 && $request->context[$name] instanceof $type
-                && property_exists($request->context[$name],$pkKey)
+                && property_exists($request->context[$name], $pkKey)
                 && $request->context[$name]->$pkKey == $pkValue
-            ){
+            ) {
                 $instance = $request->context[$name];
-            }else{
-                $instance = $type::where($pkKey,$pkValue)->getFirst();
+            } else {
+                $instance = $type::where($pkKey, $pkValue)->getFirst();
             }
 
-            if($instance === null){
+            if ($instance === null) {
                 return $this->responseWithError(404);
             }
 
@@ -437,11 +439,11 @@ class Application
     {
         $name = null;
 
-        foreach ($method->getParameters() as $parameter){
+        foreach ($method->getParameters() as $parameter) {
 
-            if($parameter->getType() !== null){
-                if($parameter->getType()->getName() === Request::class){
-                    $name =  $parameter->getName();
+            if ($parameter->getType() !== null) {
+                if ($parameter->getType()->getName() === Request::class) {
+                    $name = $parameter->getName();
                 }
             }
         }
@@ -460,27 +462,27 @@ class Application
     public function loadEnv(): void
     {
 
-        $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env", "r");
+        $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "r");
         $output = [];
 
-        if($file) {
-            while(($line = fgets($file)) !== false) {
+        if ($file) {
+            while (($line = fgets($file)) !== false) {
                 // Skip comments and empty lines
                 $line = trim($line);
-                if(empty($line) || str_starts_with($line, '#')) {
+                if (empty($line) || str_starts_with($line, '#')) {
                     continue;
                 }
 
                 // Find position of first equals sign
                 $pos = strpos($line, '=');
-                if($pos !== false) {
+                if ($pos !== false) {
                     $key = trim(substr($line, 0, $pos));
                     $value = trim(substr($line, $pos + 1));
 
                     // Remove quotes if present
                     $value = trim($value, '"\'');
 
-                    if(!empty($key)) {
+                    if (!empty($key)) {
                         $output[$key] = $value;
                     }
                 }
@@ -507,18 +509,18 @@ class Application
 
         $this->boot();
 
-        CommandLine::register("Migration make {class}","make", MigrationController::class);
+        CommandLine::register("Migration make {class}", "make", MigrationController::class);
 
         CommandLine::register("update check", "check", UpdateController::class);
-        CommandLine::register("update install","install", UpdateController::class);
+        CommandLine::register("update install", "install", UpdateController::class);
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
         CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
 
-        CommandLine::register("serve","start",DevServerController::class);
+        CommandLine::register("serve", "start", DevServerController::class);
 
-        if($args === []){
-            $args = array_slice($_SERVER["argv"],1);
+        if ($args === []) {
+            $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);
         }
 
@@ -529,18 +531,18 @@ class Application
 
         $response = $this->consoleRouter->AnalyseRouteAndLookup($commandArgs);
 
-        if(!$response["outcome"]){
+        if (!$response["outcome"]) {
             return "Unrecognized command. Type 'help' to see available commands.\nDid you mean something similar?";
         }
 
         if (!class_exists($response["controller"])) {
-            return "Command registration error: The controller class '".$response["controller"]."' could not be found.\nPlease check your command registration and ensure the class exists.";
+            return "Command registration error: The controller class '" . $response["controller"] . "' could not be found.\nPlease check your command registration and ensure the class exists.";
         }
 
         $controller = new $response["controller"]();
 
-        if(!method_exists($controller,$response["method"])) {
-            return "Invalid command: The method '".$response["method"]."' is not defined in the '".$controller::class."' class.\nPlease verify the command registration and the controller's method.";
+        if (!method_exists($controller, $response["method"])) {
+            return "Invalid command: The method '" . $response["method"] . "' is not defined in the '" . $controller::class . "' class.\nPlease verify the command registration and the controller's method.";
         }
 
         //Next this as we have not returned we have variables to pass
@@ -555,26 +557,26 @@ class Application
 
         foreach ($method->getParameters() as $param) {
 
-            if($param->getName() == "options"){
+            if ($param->getName() == "options") {
                 $filteredVariables["options"] = $options;
                 continue;
             }
 
-            $variables .= " [".$param->getName()."]";
+            $variables .= " [" . $param->getName() . "]";
 
             if (array_key_exists($param->getName(), $response["variables"])) {
                 $filteredVariables[$param->getName()] = $response["variables"][$param->getName()];
                 continue;
             }
 
-            if(!$param->isDefaultValueAvailable()){
-                return "Argument missing: The '".$param->getName()."' argument is required for this command.\nExpected format: [command] [argument_name]\nExample usage: ".$response["route"].$variables;
+            if (!$param->isDefaultValueAvailable()) {
+                return "Argument missing: The '" . $param->getName() . "' argument is required for this command.\nExpected format: [command] [argument_name]\nExample usage: " . $response["route"] . $variables;
             }
 
         }
 
-        if($varCount < $method->getNumberOfRequiredParameters() || count($method->getParameters()) < $varCount){
-            return "Insufficient arguments! The command requires at least ".$varCount." parameters.\nUsage: ".$response["route"]." ".$variables;
+        if ($varCount < $method->getNumberOfRequiredParameters() || count($method->getParameters()) < $varCount) {
+            return "Insufficient arguments! The command requires at least " . $varCount . " parameters.\nUsage: " . $response["route"] . " " . $variables;
         }
 
 
@@ -603,12 +605,13 @@ class Application
         Application::$instance = new Application();
     }
 
-    public function addRegex(string $key, string $pattern,?string $message = null): void
+    public function addRegex(string $key, string $pattern, ?string $message = null): void
     {
-        $this->regexRules[$key] = ["pattern"=>$pattern,"message"=>$message];
+        $this->regexRules[$key] = ["pattern" => $pattern, "message" => $message];
     }
 
-    public function getRegexRules(): array{
+    public function getRegexRules(): array
+    {
         return $this->regexRules;
     }
 
@@ -688,9 +691,9 @@ class Application
         }
     }
 
-    public function addService(object|string $service, ?string $alias = null) : mixed
+    public function addService(object|string $service, ?string $alias = null): mixed
     {
-        if(getType($service) === "string"){
+        if (getType($service) === "string") {
             $instance = new $service();
             $this->services[$alias ?? $service] = $instance;
             return $instance;
@@ -702,7 +705,7 @@ class Application
 
     private function responseWithError(int $code, ?string $message = null): string
     {
-        if($code === 404) {
+        if ($code === 404) {
             $fallback = $this->fallbackResponse ?? null;
 
             if ($fallback) {

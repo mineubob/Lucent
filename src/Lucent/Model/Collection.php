@@ -1,12 +1,12 @@
 <?php
 
-namespace Lucent;
+namespace Lucent\Model;
 
+use Lucent\Database;
 use Lucent\Database\Dataset;
 use ReflectionClass;
-use ReflectionException;
 
-class ModelCollection
+class Collection
 {
     private string $class;
     private array $whereConditions;
@@ -32,7 +32,7 @@ class ModelCollection
         $this->reflection = new ReflectionClass($class);
     }
 
-    public function where(string $column, string $value, string $operator = 'AND'): ModelCollection
+    public function where(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
@@ -51,7 +51,7 @@ class ModelCollection
         return $this;
     }
 
-    public function in(string $column, array $values, string $operator = 'AND'): ModelCollection
+    public function in(string $column, array $values, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
@@ -70,7 +70,7 @@ class ModelCollection
         return $this;
     }
 
-    public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): ModelCollection
+    public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
@@ -89,12 +89,12 @@ class ModelCollection
         return $this;
     }
 
-    public function orWhere(string $column, string $value): ModelCollection
+    public function orWhere(string $column, string $value): self
     {
         return $this->where($column, $value, 'OR');
     }
 
-    public function like(string $column, string $value, string $operator = 'AND'): ModelCollection
+    public function like(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
@@ -112,12 +112,12 @@ class ModelCollection
         return $this;
     }
 
-    public function orLike(string $column, string $value): ModelCollection
+    public function orLike(string $column, string $value): self
     {
         return $this->like($column, $value, 'OR');
     }
 
-    public function orderBy(string $column, string $direction = 'ASC'): ModelCollection
+    public function orderBy(string $column, string $direction = 'ASC'): self
     {
         $direction = strtoupper($direction);
         if ($direction !== 'ASC' && $direction !== 'DESC') {
@@ -137,7 +137,7 @@ class ModelCollection
     private function formatColumnName(string $column): string
     {
         if ($this->reflection->getParentClass()->getName() !== Model::class) {
-            if (!Model::hasDatabaseProperty($this->reflection->getName(), $column)) {
+            if (!Model::hasDatabaseProperty($this->reflection, $column)) {
                 return "{$this->reflection->getParentClass()->getShortName()}.{$column}";
             } else {
                 return "{$this->reflection->getShortName()}.{$column}";
@@ -147,13 +147,13 @@ class ModelCollection
         return $column;
     }
 
-    public function limit(int $count): ModelCollection
+    public function limit(int $count): self
     {
         $this->limit = $count;
         return $this;
     }
 
-    public function offset(int $count): ModelCollection
+    public function offset(int $count): self
     {
         $this->offset = $count;
         return $this;
@@ -204,7 +204,7 @@ class ModelCollection
         return null;
     }
 
-    public function collection(): ModelCollection
+    public function collection(): self
     {
         return $this;
     }
@@ -238,11 +238,11 @@ class ModelCollection
         // Handle inheritance
         if ($parent->getName() !== Model::class) {
             $pk = Model::getDatabasePrimaryKey($parent);
-            $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk["NAME"]} = {$parent->getShortName()}.{$pk["NAME"]}";
+            $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk->name} = {$parent->getShortName()}.{$pk->name}";
         }
 
         // Apply trait conditions
-        if (count(ModelCollection::$traitConditions) > 0) {
+        if (count(self::$traitConditions) > 0) {
             foreach (self::$traitConditions as $traitName => $condition) {
                 if (class_exists($this->class) && in_array($traitName, $this->class_uses_recursive($this->class))) {
                     $column = $condition['column'];
