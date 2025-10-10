@@ -59,8 +59,22 @@ class Column
         public ?bool $autoIncrement = null,
         public ?bool $unsigned = null
     ) {
-        if ($type == null || !($type instanceof ColumnType)) {
+        $this->validateColumn();
+    }
+
+    private function validateColumn(): void
+    {
+
+        if ($this->type == null || !($this->type instanceof ColumnType)) {
             throw new \InvalidArgumentException("Invalid type provided");
+        }
+
+        switch ($this->type) {
+            case ColumnType::VARCHAR:
+                if ($this->length === null) {
+                    throw new \InvalidArgumentException("VARCHAR must have a length.");
+                }
+                break;
         }
     }
 
