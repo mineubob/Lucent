@@ -9,7 +9,7 @@ namespace Lucent\Database;
 
 use Lucent\Database;
 use Lucent\Facades\Log;
-use Lucent\Model;
+use Lucent\Model\Model;
 use ReflectionClass;
 
 
@@ -18,12 +18,57 @@ class Migration
 
     public function make($class): bool
     {
-
         return Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () use ($class) {
-
             $reflection = new ReflectionClass($class);
 
-            $table = Schema::table($reflection->getShortName());
+            // Get the new column structure
+            $columns = $this->analyzeNewStructure($reflection);
+
+            $table = Schema::table($reflection->getShortName(), function ($table) use ($columns) {
+                //Foreach of our column attributes, transform them into table columns
+                foreach ($columns as $column) {
+                    $type = $column->type->value;
+
+                    /**
+                     * @var \Lucent\Database\Schema\Column|\Lucent\Database\Schema\NumericColumn
+                     */
+                    $tableColumn = $table->$type($column->name);
+
+                    if ($column->nullable == true) {
+                        $tableColumn->nullable();
+                    }
+
+                    if ($column->length !== null) {
+                        $tableColumn->length($column->length);
+                    }
+
+                    if ($column->primaryKey == true) {
+                        $tableColumn->primaryKey();
+                    }
+
+                    if ($column->default !== null) {
+                        $tableColumn->default($column->default);
+                    }
+
+                    if ($column->references !== null) {
+                        $tableColumn->references($column->references);
+                    }
+
+                    if ($column->unique == true) {
+                        $tableColumn->unique();
+                    }
+
+                    if ($tableColumn instanceof \Lucent\Database\Schema\NumericColumn) {
+                        if ($column->autoIncrement) {
+                            $tableColumn->autoIncrement();
+                        }
+
+                        if ($column->unsigned) {
+                            $tableColumn->unsigned();
+                        }
+                    }
+                }
+            });
 
             // Backup existing data if table exists
             $data = [];
@@ -38,15 +83,8 @@ class Migration
                 }
             }
 
-            // Get the new column structure
-            $columns = $this->analyzeNewStructure($reflection);
 
-            // Create a new table using the appropriate driver
-            $query = Database::createTable($table->name, $columns);
-
-            Log::channel("db")->info($query);
-
-            if (!Database::statement($query)) {
+            if (!$table->create(false)) {
                 Log::channel("db")->critical("Failed to create table {$table->name}");
                 return false;
             }
@@ -73,23 +111,30 @@ class Migration
 
     }
 
+
+    /**
+     * @param \ReflectionClass $reflection
+     * @return array<\Lucent\Model\Column>
+     */
     private function analyzeNewStructure(ReflectionClass $reflection): array
     {
         //Check if we are extending anything.
         $parent = $reflection->getParentClass();
-        $columns = [];
+        $columns = Model::getDatabaseProperties($reflection);
 
         if ($parent->getName() !== Model::class) {
-            $parentPK = Model::getDatabasePrimaryKey($parent);
-            if ($parentPK === null) {
-                Log::channel("db")->critical("Could not retrieve primary key from parent class {$parent->getName()}");
-                exit(1);
+            $pk = Model::getDatabasePrimaryKey($parent);
+            if (array_key_exists($pk->name, $columns)) {
+                throw new \RuntimeException("Parent primary key already exists in {$reflection->getName()}");
             }
 
-            $parentPK["AUTO_INCREMENT"] = false;
-            $parentPK["REFERENCES"] = $parent->getShortName() . "(" . $parentPK["NAME"] . ")";
+            $pk->autoIncrement = false;
+            $pk->references = $parent->getShortName() . "(" . $pk->name . ")";
 
-            $columns[] = $parentPK;
+            // Add primary key to front of columns.
+            $columns = array_merge([
+                $pk->name => $pk
+            ], $columns);
 
             if (!Schema::table($parent->getShortName())->exists()) {
                 if (!$this->make($parent->getName())) {
@@ -98,6 +143,6 @@ class Migration
             }
         }
 
-        return array_merge($columns, Model::getDatabaseProperties($reflection->getName()));
+        return $columns;
     }
 }

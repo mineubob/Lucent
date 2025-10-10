@@ -478,14 +478,9 @@ class RuleTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->test_model_migration($driver, $config);
 
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "unique-test@email.com",
-            "password_hash" => "password",
-        ]));
+        $user = new TestUser("unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
-
 
         $request = Faker::request();
         $request->setInput("email", "unique-test@email.com");
@@ -503,12 +498,7 @@ class RuleTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->test_model_migration($driver, $config);
 
-
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "not-unique-test@email.com",
-            "password_hash" => "password",
-        ]));
+        $user = new TestUser("not-unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -680,68 +670,62 @@ class RuleTest extends DatabaseDriverSetup
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        class TestUser extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public private(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $email;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $password_hash;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false,
-                "LENGTH"=>100
-            ])]
-            protected string $full_name;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-            }
-        
-            public function getFullName() : string{
-                return $this->full_name;
-            }
-            
-            public function setFullName(string $full_name){
-                $this->full_name = $full_name;
-            }
-            
-            public function getId() : int
-            {
-                return $this->id;
-            }
-        
-        
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TestUser extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $email;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $password_hash;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false,
+        "LENGTH" => 100
+    ])]
+    protected string $full_name;
+
+    public function __construct(string $email, string $password_hash, string $full_name)
+    {
+        $this->email = $email;
+        $this->password_hash = $password_hash;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+}
+PHP;
 
 
         $appPath = FileSystem::rootPath() . "/App";

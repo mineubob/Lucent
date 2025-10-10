@@ -7,8 +7,7 @@ const LUCENT_DB_JSON = "json";
 const LUCENT_DB_TIMESTAMP = "timestamp";
 const LUCENT_DB_ENUM = "enum";
 const LUCENT_DB_DATE = "date";
-const LUCENT_DB_TEXT = "text"
-;
+const LUCENT_DB_TEXT = "text";
 const LUCENT_DB_VARCHAR = "varchar";
 
 // Additional useful constants

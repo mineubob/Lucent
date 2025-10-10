@@ -24,7 +24,7 @@ class Column implements SqlSerializable
 
     protected ?string $castType;
 
-    public function __construct(string $name, string $type, string $driver, Table $table,?string $castType = null)
+    public function __construct(string $name, string $type, string $driver, Table $table, ?string $castType = null)
     {
         $this->name = $name;
         $this->type = $type;
@@ -41,57 +41,60 @@ class Column implements SqlSerializable
         $this->castType = $castType;
     }
 
-    public function default(mixed $default = null) : Column
+    public function default(mixed $default): self
     {
         $this->default = $default;
         return $this;
     }
 
-    public function nullable(bool $bool = false) : Column
+    public function nullable(): self
     {
-        $this->nullable = $bool;
+        $this->nullable = true;
         return $this;
     }
 
-    public function length(int $length = 0) : Column
+    public function length(int $length): self
     {
         $this->length = $length;
         return $this;
     }
 
-    public function primaryKey(bool $value = true) : Column
+    public function primaryKey(): self
     {
-        $this->primaryKey = $value;
+        $this->primaryKey = true;
         return $this;
     }
 
-    public function unique(?bool $bool = false) : Column
+    public function unique(): self
     {
-        $this->unique = $bool ?? false;
+        $this->unique = true;
         return $this;
     }
 
-    public function references(?string $data) : Column
+    public function references(string $data): self
     {
-        if($data !== null) {
-            $data = explode('(', $data);
-            $this->references = ["table" => $data[0], "column" => substr($data[1], 0, -1)];
-        }
+        $data = explode('(', $data);
+        $this->references = ["table" => $data[0], "column" => substr($data[1], 0, -1)];
+
         return $this;
     }
 
-    public function values(array $values) : Column
+    /**
+     * @param array<string> $values
+     * @return Database\Schema\Column
+     */
+    public function values(array $values): self
     {
         $this->values = $values;
         return $this;
     }
 
-    public function exists() : bool
+    public function exists(): bool
     {
         $query = PDODriver::$map[$this->driver]["functions"]["column_exists"];
-        $query = str_replace("{table}",$this->table->name,$query);
+        $query = str_replace("{table}", $this->table->name, $query);
 
-        return Database::statement($query,[$this->name]);
+        return Database::statement($query, [$this->name]);
     }
 
     //What the fuck is this
@@ -109,43 +112,44 @@ class Column implements SqlSerializable
         $typesWithoutLength = ['text', 'longtext', 'mediumtext', 'json', 'date', 'timestamp', 'blob'];
         $normalizedType = strtolower($this->type);
 
-        if($this->driver !== "sqlite" && $this->length > 0 && !in_array($normalizedType, $typesWithoutLength)){
+        if ($this->driver !== "sqlite" && $this->length > 0 && !in_array($normalizedType, $typesWithoutLength)) {
             $length = "({$this->length})";
         }
 
-        if($this->default !== null){
+        if ($this->default !== null) {
             $defaultValue = $this->default;
 
-            if($this->castType !== null){
+            if ($this->castType !== null) {
                 settype($defaultValue, $this->castType);
             }
 
             // Check if we need quotes or not
-            if(is_bool($defaultValue) || is_int($defaultValue) || is_float($defaultValue)) {
-                $default = " DEFAULT " . (int)$defaultValue;
+            if (is_bool($defaultValue) || is_int($defaultValue) || is_float($defaultValue)) {
+                $default = " DEFAULT " . (int) $defaultValue;
             } else {
                 $default = " DEFAULT '" . $defaultValue . "'";
             }
         }
 
-        if($this->primaryKey){
+        if ($this->primaryKey) {
             $primaryKey = " PRIMARY KEY";
         }
 
         //If this is a PK it will enforce not null regardless
-        if(!$this->nullable && !$this->primaryKey){
+        if (!$this->nullable && !$this->primaryKey) {
             $nullable = " NOT NULL";
         }
 
-        if($this->unique){
+        if ($this->unique) {
             $unique = " UNIQUE";
         }
 
-        if($this->references !== null){
+        if ($this->references !== null) {
             $table = $this->references['table'];
             $column = $this->references['column'];
             $references = " REFERENCES {$table}({$column})";
         }
 
-        return "`{$this->name}` {$this->type}{$length}{$default}{$primaryKey}{$nullable}{$unique}{$references}";    }
+        return "`{$this->name}` {$this->type}{$length}{$default}{$primaryKey}{$nullable}{$unique}{$references}";
+    }
 }

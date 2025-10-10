@@ -23,8 +23,8 @@ if (file_exists($composerAutoloader)) {
     require_once $composerAutoloader;
 }
 
-define("APP", FileSystem::rootPath() .DIRECTORY_SEPARATOR. 'App' . DIRECTORY_SEPARATOR);
-define("CONTROLLERS", FileSystem::rootPath() .DIRECTORY_SEPARATOR. "App" . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR);
+define("APP", FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR);
+define("CONTROLLERS", FileSystem::rootPath() . DIRECTORY_SEPARATOR . "App" . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR);
 
 $modules = [LUCENT, FileSystem::rootPath()];
 
@@ -55,3 +55,6 @@ spl_autoload_register(function ($class) {
 });
 
 require_once ROOT . "Lucent" . DIRECTORY_SEPARATOR . "Database" . DIRECTORY_SEPARATOR . "constants.php";
+
+class_alias('Lucent\Model\Model', 'Lucent\Model');
+class_alias('Lucent\Model\Collection', 'Lucent\ModelCollection');
