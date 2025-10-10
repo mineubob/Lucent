@@ -41,7 +41,7 @@ class Column implements SqlSerializable
         $this->castType = $castType;
     }
 
-    public function default(string $default): self
+    public function default(mixed $default): self
     {
         $this->default = $default;
         return $this;
