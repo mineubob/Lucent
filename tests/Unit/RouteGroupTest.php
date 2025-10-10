@@ -2,15 +2,12 @@
 
 namespace Unit;
 
-use App\Models\TestUser;
 use Lucent\Application;
-use Lucent\Database\Dataset;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
-
 
 // Manually require the DatabaseDriverSetup file
 $driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
@@ -238,11 +235,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
 
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "john@doe.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -279,11 +272,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->perform_model_migration($driver, $config);
 
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "john@doe.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -310,40 +299,40 @@ class RouteGroupTest extends DatabaseDriverSetup
     public static function generateTestRestController(): void
     {
         $controllerContent = <<<'PHP'
-        <?php
-        namespace App\Controllers;
-        
-        use Lucent\Http\JsonResponse;
+<?php
+namespace App\Controllers;
 
-        class RouteGroupTestingController
-        {
-           
-            public function one($input) : JsonResponse
-            {
-            
-                 $response = new JsonResponse();
-                 
-                 if($input === "ping"){
-                     $response->setMessage("pong");
-                 }else{
-                     $response->setOutcome(false);
-                     $response->setStatusCode(400);
-                     $response->setMessage("Message not passed as url parameter.");
-                 }                 
-                 return $response;
-            }
-        
-          
-            public function two() : JsonResponse
-            {
+use Lucent\Http\JsonResponse;
+
+class RouteGroupTestingController
+{
+    
+    public function one($input) : JsonResponse
+    {
+    
             $response = new JsonResponse();
-                 
-                 $response->setMessage("Hello from test 2");
-                 
-                 return $response;
-            }
-        }
-        PHP;
+            
+            if($input === "ping"){
+                $response->setMessage("pong");
+            }else{
+                $response->setOutcome(false);
+                $response->setStatusCode(400);
+                $response->setMessage("Message not passed as url parameter.");
+            }                 
+            return $response;
+    }
+
+    
+    public function two() : JsonResponse
+    {
+    $response = new JsonResponse();
+            
+            $response->setMessage("Hello from test 2");
+            
+            return $response;
+    }
+}
+PHP;
 
 
         $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/App';
@@ -362,23 +351,23 @@ class RouteGroupTest extends DatabaseDriverSetup
     public static function generateSecondRestController(): void
     {
         $controllerContent = <<<'PHP'
-        <?php
-        namespace App\Controllers;
-        
-        use Lucent\Http\JsonResponse;
+<?php
+namespace App\Controllers;
 
-        class SecondRestController
-        {
-            public function test() : JsonResponse
-            {
-                $response = new JsonResponse();
-                 
-                 $response->setMessage("Hello from five");
-                 
-                 return $response;
-            }
-        }
-        PHP;
+use Lucent\Http\JsonResponse;
+
+class SecondRestController
+{
+    public function test() : JsonResponse
+    {
+        $response = new JsonResponse();
+            
+            $response->setMessage("Hello from five");
+            
+            return $response;
+    }
+}
+PHP;
 
         $appPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/App';
         $controllerPath = $appPath . '/Controllers';
@@ -396,39 +385,39 @@ class RouteGroupTest extends DatabaseDriverSetup
     public static function generateTestRpcController(): void
     {
         $controllerContent = <<<'PHP'
-        <?php
-        namespace App\Controllers;
-        
-        use Lucent\Http\JsonResponse;
+<?php
+namespace App\Controllers;
 
-        class RouteGroupRpcTestingController
-        {
-           
-            public function one($input) : JsonResponse
-            {
-                 $response = new JsonResponse();
-                 
-                 if($input === "ping"){
-                     $response->setMessage("pong");
-                 }else{
-                     $response->setOutcome(false);
-                     $response->setStatusCode(400);
-                     $response->setMessage("Message not passed as url parameter.");
-                 }                 
-                 return $response;
-            }
-        
-          
-            public function two() : JsonResponse
-            {
+use Lucent\Http\JsonResponse;
+
+class RouteGroupRpcTestingController
+{
+    
+    public function one($input) : JsonResponse
+    {
             $response = new JsonResponse();
-                 
-                 $response->setMessage("Hello from test 2");
-                 
-                 return $response;
-            }
-        }
-        PHP;
+            
+            if($input === "ping"){
+                $response->setMessage("pong");
+            }else{
+                $response->setOutcome(false);
+                $response->setStatusCode(400);
+                $response->setMessage("Message not passed as url parameter.");
+            }                 
+            return $response;
+    }
+
+    
+    public function two() : JsonResponse
+    {
+    $response = new JsonResponse();
+            
+            $response->setMessage("Hello from test 2");
+            
+            return $response;
+    }
+}
+PHP;
 
 
         $appPath = TEMP_ROOT . "app";
@@ -447,33 +436,33 @@ class RouteGroupTest extends DatabaseDriverSetup
     private static function generate_test_user_controller(): void
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Controllers;
-        
-        use Lucent\Http\JsonResponse;
-        use App\Models\TestUser;
-        
-        class UserController
-        {
-            public function getById($id) : JsonResponse
-            {
-                $response = new JsonResponse();
-                $response->addContent("id",$id);
-                
-                return $response;
-            }
-            
-            public function getModelById(TestUser $user) : JsonResponse
-            {
-                $response = new JsonResponse();
-                $response->addContent("full_name",$user->getFullName());
-                
-                return $response;
-            }
+<?php
 
-        }
-        PHP;
+namespace App\Controllers;
+
+use Lucent\Http\JsonResponse;
+use App\Models\TestUser;
+
+class UserController
+{
+    public function getById($id) : JsonResponse
+    {
+        $response = new JsonResponse();
+        $response->addContent("id",$id);
+        
+        return $response;
+    }
+    
+    public function getModelById(TestUser $user) : JsonResponse
+    {
+        $response = new JsonResponse();
+        $response->addContent("full_name",$user->getFullName());
+        
+        return $response;
+    }
+
+}
+PHP;
 
 
         $appPath = FileSystem::rootPath() . "/App";
@@ -493,28 +482,28 @@ class RouteGroupTest extends DatabaseDriverSetup
     private static function generate_test_middleware(): void
     {
         $middlewareContent = <<<'PHP'
-        <?php
-        
-        namespace App\Middleware;
-        
-        use Lucent\Http\JsonResponse;
-        use App\Models\TestUser;
-        use Lucent\Middleware;
-        use Lucent\Http\Request;
-        
-        class AuthMiddleware extends Middleware
-        {
-             public function handle(Request $request): Request
-            {
-                if($request->getUrlVariable("user") === "1"){
-                    $request->context["user"] = TestUser::where("id",1)->getFirst();
-                }
-        
-                return $request;
-            }
+<?php
 
+namespace App\Middleware;
+
+use Lucent\Http\JsonResponse;
+use App\Models\TestUser;
+use Lucent\Middleware;
+use Lucent\Http\Request;
+
+class AuthMiddleware extends Middleware
+{
+        public function handle(Request $request): Request
+    {
+        if($request->getUrlVariable("user") === "1"){
+            $request->context["user"] = TestUser::where("id",1)->getFirst();
         }
-        PHP;
+
+        return $request;
+    }
+
+}
+PHP;
 
 
         $appPath = FileSystem::rootPath() . "/App";
@@ -535,37 +524,36 @@ class RouteGroupTest extends DatabaseDriverSetup
     {
 
         $routesContent = <<<'PHP'
-        <?php
-            use App\Controllers\RouteGroupTestingController;
-            use App\Controllers\SecondRestController;
-            use App\Controllers\UserController;
-            use App\Middleware\AuthMiddleware;
+<?php
+    use App\Controllers\RouteGroupTestingController;
+    use App\Controllers\SecondRestController;
+    use App\Controllers\UserController;
+    use App\Middleware\AuthMiddleware;
 
-            use Lucent\Facades\Route;
+    use Lucent\Facades\Route;
+
+    Route::rest()->group("rest_test")
+        ->prefix("/test")
+        ->defaultController(RouteGroupTestingController::class)
+        ->get(path: "/one/{input}",method:"one")
+        ->post(path:"/two",method: "two")
+        ->get(path: "/three",method:"three")
+        ->get(path: "/four",method:"test",controller: TestControllerAbc::class)
+        ->get(path: "/five",method:"test",controller: SecondRestController::class);
         
-            Route::rest()->group("rest_test")
-                ->prefix("/test")
-                ->defaultController(RouteGroupTestingController::class)
-                ->get(path: "/one/{input}",method:"one")
-                ->post(path:"/two",method: "two")
-                ->get(path: "/three",method:"three")
-                ->get(path: "/four",method:"test",controller: TestControllerAbc::class)
-                ->get(path: "/five",method:"test",controller: SecondRestController::class);
-                
 
-            Route::rest()->group("user")
-                ->prefix("/user")
-                ->defaultController(UserController::class)
-                ->get(path: "/{id}",method:"getById")
-                ->get(path: "/object/{user}",method:"getModelById");
-                
-            Route::rest()->group("user2")
-                ->prefix("/user2")
-                ->defaultController(UserController::class)
-                ->middleware([AuthMiddleware::class])
-                ->get(path: "/object/{user}",method:"getModelById");
-
-        PHP;
+    Route::rest()->group("user")
+        ->prefix("/user")
+        ->defaultController(UserController::class)
+        ->get(path: "/{id}",method:"getById")
+        ->get(path: "/object/{user}",method:"getModelById");
+        
+    Route::rest()->group("user2")
+        ->prefix("/user2")
+        ->defaultController(UserController::class)
+        ->middleware([AuthMiddleware::class])
+        ->get(path: "/object/{user}",method:"getModelById");
+PHP;
 
         $routesPath = rtrim(TEMP_ROOT, DIRECTORY_SEPARATOR) . '/routes';
 
