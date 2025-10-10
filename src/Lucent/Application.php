@@ -2,9 +2,11 @@
 
 namespace Lucent;
 
+use InvalidArgumentException;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DocumentationController;
 use Lucent\Commandline\MigrationController;
+use Lucent\Commandline\DevServerController;
 use Lucent\Commandline\UpdateController;
 use Lucent\Database\Drivers\PDODriver;
 use Lucent\Facades\CommandLine;
@@ -19,6 +21,7 @@ use Lucent\Logging\Channels\NullChannel;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
+use ReflectionNamedType;
 
 /**
  * Main Application class responsible for handling HTTP requests, console commands,
@@ -188,7 +191,7 @@ class Application
         }
 
         //Load the env file
-        $this->LoadEnv();
+        $this->loadEnv();
 
         $this->loggers["blank"] = new NullChannel();
     }
@@ -297,12 +300,6 @@ class Application
 
         // Check if route was found - if not, use fallback or 404
         if (!$response["outcome"]) {
-            // If we have a fallback response and no route was found, use it
-            if (isset($this->fallbackResponse)) {
-                http_response_code(200);
-                return $this->fallbackResponse->render();
-            }
-            // Otherwise, return 404 error
             return $this->responseWithError(404);
         }
 
@@ -371,40 +368,55 @@ class Application
         // Apply model binding for route parameters
         foreach ($method->getParameters() as $parameter) {
 
-            if($parameter->getType() === null){
+            $type = $parameter->getType()?->getName();
+            $name = $parameter->getName();
+
+            if($type === null){
                 continue;
             }
-            if(is_subclass_of($parameter->getType()->getName(), Model::class)){
-                $class = $parameter->getType()->getName();
-                $reflection = new ReflectionClass($class);
 
-                $pkValue = $response["variables"][$parameter->getName()];
-                $pkKey = $class::getDatabasePrimaryKey($reflection)["NAME"];
-
-                if(array_key_exists($parameter->getName(),$request->context)
-                    && $request->context[$parameter->getName()] instanceof $class
-                    && property_exists($request->context[$parameter->getName()],$pkKey)
-                    && $request->context[$parameter->getName()]->$pkKey == $pkValue
-                    ){
-
-                    $instance = $request->context[$parameter->getName()];
-                }else{
-
-                    $instance = $class::where($pkKey,$pkValue)->getFirst();
-                }
-
-                if($instance === null){
-                    return $this->responseWithError(404);
-                }
-
-                $response["variables"][$parameter->getName()] = $instance;
-
-            }else{
-                //Else perform dependency injection
-                if(array_key_exists($parameter->getType()->getName(), $this->services)){
-                    $response["variables"][$parameter->getName()] = $this->services[$parameter->getType()->getName()];
-                }
+            if (!($parameter->getType() instanceof ReflectionNamedType)) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        "Parameter '%s' in method '%s::%s()' must have a named type hint. Union types, intersection types, and untyped parameters are not supported for automatic injection.",
+                        $parameter->getName(),
+                        $method->getDeclaringClass()->getName(),
+                        $method->getName()
+                    )
+                );
             }
+
+            //Service Injection
+            if(array_key_exists($type, $this->services)){
+                $response["variables"][$name] = $this->services[$type];
+                continue;
+            }
+
+            //Skip non model types
+            if(!is_subclass_of($parameter->getType()->getName(), Model::class)){
+                continue;
+            }
+
+            $reflection = new ReflectionClass($type);
+
+            $pkValue = $response["variables"][$name];
+            $pkKey = $type::getDatabasePrimaryKey($reflection)["NAME"];
+
+            if(array_key_exists($name,$request->context)
+                && $request->context[$name] instanceof $type
+                && property_exists($request->context[$name],$pkKey)
+                && $request->context[$name]->$pkKey == $pkValue
+            ){
+                $instance = $request->context[$name];
+            }else{
+                $instance = $type::where($pkKey,$pkValue)->getFirst();
+            }
+
+            if($instance === null){
+                return $this->responseWithError(404);
+            }
+
+            $response["variables"][$name] = $instance;
         }
 
         $result = $method->invokeArgs($controller, $response["variables"]);
@@ -445,7 +457,7 @@ class Application
      *
      * @return void
      */
-    public function LoadEnv(): void
+    public function loadEnv(): void
     {
 
         $file = fopen(FileSystem::rootPath().DIRECTORY_SEPARATOR.".env", "r");
@@ -502,6 +514,8 @@ class Application
         CommandLine::register("update rollback", "rollback", UpdateController::class);
 
         CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
+
+        CommandLine::register("serve","start",DevServerController::class);
 
         if($args === []){
             $args = array_slice($_SERVER["argv"],1);
@@ -688,6 +702,15 @@ class Application
 
     private function responseWithError(int $code, ?string $message = null): string
     {
+        if($code === 404) {
+            $fallback = $this->fallbackResponse ?? null;
+
+            if ($fallback) {
+                http_response_code($fallback->statusCode);
+                return $fallback->render();
+            }
+        }
+
         if ($message === null) {
             $message = match ($code) {
                 404 => "The page you're looking for cannot be found. It may have been moved, deleted, or never existed.",
