@@ -25,7 +25,7 @@ class SqlHighlighter implements Highlighter
         '/\bDELETE\b\s+\bFROM\b\s+\S+(?:\s+\bWHERE\b\s+.+)?/is',
 
         // CREATE TABLE [IF NOT EXISTS] table (...)
-        '/\bCREATE\b\s+\bTABLE\b\s+(?:\bIF\b\s+\bNOT\b\s+\bEXISTS\b\s+)?\S+\s*\(.*?\)/is',
+        '/\bCREATE\b\s+\bTABLE\b\s+(?:\bIF\b\s+\bNOT\b\s+\bEXISTS\b\s+)?\S+\s*\((?:[^()]*|\([^()]*\))*\)/is',
 
         // ALTER TABLE table ...
         '/\bALTER\b\s+\bTABLE\b\s+\S+.+/is',
