@@ -36,7 +36,7 @@ class DatabaseDriverSetup extends TestCase
         }
 
         $app = Application::getInstance();
-        $app->LoadEnv();
+        $app->loadEnv();
 
         $phpunitLog = new Channel("phpunit", new TeeDriver(new CliDriver(), new FileDriver("phpunit.log")), false);
         $app->addLoggingChannel("phpunit", $phpunitLog);
