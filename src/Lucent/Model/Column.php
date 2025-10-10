@@ -69,10 +69,11 @@ class Column
             throw new \InvalidArgumentException("Invalid type provided");
         }
 
+        $type_name = $this->type->name;
         switch ($this->type) {
             case ColumnType::VARCHAR:
                 if ($this->length === null) {
-                    throw new \InvalidArgumentException("VARCHAR must have a length.");
+                    throw new \InvalidArgumentException("$type_name must have a length.");
                 }
                 break;
         }
