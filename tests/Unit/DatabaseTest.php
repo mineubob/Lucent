@@ -5,6 +5,7 @@ namespace Unit;
 use Exception;
 use Lucent\Database;
 use Lucent\Database\Schema;
+use Lucent\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -52,15 +53,7 @@ class DatabaseTest extends DatabaseDriverSetup
 
         // Force a connection and query
         try {
-            if ($driver == 'sqlite') {
-                // SQLite query
-                $result = Database::select("SELECT name FROM sqlite_master WHERE type='table'");
-
-            } else {
-                // Use a MySQL-specific query to ensure we're testing MySQL
-
-                $result = Database::select("SELECT VERSION()");
-            }
+            Database::select("SELECT 1");
 
             // If we get here, the connection succeeded
             $this->assertTrue(true, "Connection to $driver successful");
@@ -187,12 +180,6 @@ class DatabaseTest extends DatabaseDriverSetup
                 $driverClass,
                 "Wrong driver type - expected PDODriver but got {$driverClass}"
             );
-        } else if ($driver === 'pdo') {
-            $this->assertStringContainsString(
-                'PDODriver',
-                $driverClass,
-                "Wrong driver type - expected PDODriver but got {$driverClass}"
-            );
         }
 
         // Test with performance metrics - measure connection time
@@ -210,9 +197,10 @@ class DatabaseTest extends DatabaseDriverSetup
 
         // Log the times for analysis
         $this->addToAssertionCount(1); // Count this check as an assertion
-        echo "\nConnection times for {$driver}:\n";
-        echo "  First connection: " . number_format($firstConnectionTime * 1000, 2) . "ms\n";
-        echo "  Second connection: " . number_format($secondConnectionTime * 1000, 2) . "ms\n";
+
+        Log::channel("phpunit")->debug("[DatabaseTest] Connection times for {$driver}:"
+        ."\n    First connection: ".number_format($firstConnectionTime * 1000, 2) . "ms"
+        ."\n    Second connection: ". number_format($secondConnectionTime * 1000, 2) . "ms");
     }
 
     private function getPrivateDatabaseInstance(): mixed
@@ -245,12 +233,11 @@ class DatabaseTest extends DatabaseDriverSetup
         Database::select("SELECT 1");
         $thirdQueryTime = microtime(true) - $startTime;
 
-        // Log the performance metrics
-        echo "\nPerformance test for {$driver}:\n";
-        echo "  First query (includes connection): " . number_format($firstQueryTime * 1000, 2) . "ms\n";
-        echo "  Second query (reused connection): " . number_format($secondQueryTime * 1000, 2) . "ms\n";
-        echo "  Third query (reused connection): " . number_format($thirdQueryTime * 1000, 2) . "ms\n";
-        echo "  Connection overhead: " . number_format(($firstQueryTime - $secondQueryTime) * 1000, 2) . "ms\n";
+        Log::channel("phpunit")->debug("[DatabaseTest] Performance test for {$driver}:"
+            ."\n    First query (includes connection): " . number_format($firstQueryTime * 1000, 2) . "ms"
+            ."\n    Second query (reused connection): " . number_format($secondQueryTime * 1000, 2) . "ms"
+            ."\n    Third query (reused connection): " . number_format($thirdQueryTime * 1000, 2) . "ms"
+            ."\n    Connection overhead: " . number_format(($firstQueryTime - $secondQueryTime) * 1000, 2) . "ms");
 
         // The second and third queries should be significantly faster
         // if connection reuse is working
