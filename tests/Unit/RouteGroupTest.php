@@ -94,18 +94,13 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/three";
 
         try {
-            Log::channel('phpunit')->info("Starting test with URI: /test/three");
-
             $response = App::execute();
-            Log::channel('phpunit')->info("Raw response: " . $response);
 
             $decodedResponse = json_decode($response, true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
-
-            Log::channel('phpunit')->info("Decoded response: " . json_encode($decodedResponse));
 
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
@@ -123,18 +118,13 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/four";
 
         try {
-            Log::channel('phpunit')->info("Starting test with URI: /test/three");
-
             $response = App::execute();
-            Log::channel('phpunit')->info("Raw response: " . $response);
 
             $decodedResponse = json_decode($response, true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
             }
-
-            Log::channel('phpunit')->info("Decoded response: " . json_encode($decodedResponse));
 
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
