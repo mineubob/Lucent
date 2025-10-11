@@ -3,13 +3,8 @@
 namespace Unit;
 
 use App\Commands\TestCommand;
-use Lucent\Application;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
-use Lucent\Logging\Channel;
-use Lucent\Logging\Drivers\CliDriver;
-use Lucent\Logging\Drivers\FileDriver;
-use Lucent\Logging\Drivers\TeeDriver;
 use PHPUnit\Framework\TestCase;
 
 class ConsoleCommandTest extends TestCase
@@ -22,16 +17,6 @@ class ConsoleCommandTest extends TestCase
         self::generateTestConsoleCommand();
         self::generateTestCliFile();
 
-        $app = Application::getInstance();
-
-        $phpunitLog = new Channel("phpunit", new TeeDriver(new CliDriver(), new FileDriver("phpunit.log")), false);
-        $app->addLoggingChannel("phpunit", $phpunitLog);
-
-        $dbLog = new Channel("db", new TeeDriver(new CliDriver(), new FileDriver("db.log")));
-        $app->addLoggingChannel("db", $dbLog);
-
-        $fsLog = new Channel("fs", new TeeDriver(new CliDriver(), new FileDriver("fs.log")));
-        $app->addLoggingChannel("fs", $fsLog);
     }
 
 
@@ -47,7 +32,7 @@ class ConsoleCommandTest extends TestCase
 
     public function test_variable_console_command(): void
     {
-        CommandLine::register("test var {var}", "var", TestCommand::class);
+        CommandLine::register("test var {var}", "var", \App\Commands\TestCommand::class);
 
         $result = CommandLine::execute("test var ABC");
 
