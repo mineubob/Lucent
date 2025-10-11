@@ -50,11 +50,14 @@ if (file_exists($originalPharFile)) {
     $phpunitLog = new Channel("phpunit", new TeeDriver(new CliDriver(), new FileDriver("phpunit.log")), false);
     $app->addLoggingChannel("phpunit", $phpunitLog);
 
-    $dbLog = new Channel("db", new TeeDriver(new CliDriver(), new FileDriver("db.log")));
-    $app->addLoggingChannel("db", $dbLog);
+    $newDbLog= new Channel("lucent.db", new TeeDriver(new CliDriver(), new FileDriver("db.log")));
+    $app->addLoggingChannel("lucent.db", $newDbLog);
 
-    $fsLog = new Channel("fs", new TeeDriver(new CliDriver(), new FileDriver("fs.log")));
-    $app->addLoggingChannel("fs", $fsLog);
+    $routing = new Channel("lucent.routing", new TeeDriver(new CliDriver(), new FileDriver("routing.log")));
+    $app->addLoggingChannel("lucent.routing", $routing);
+
+    $fileSystem = new Channel("lucent.filesystem", new TeeDriver(new CliDriver(), new FileDriver("filesystem.log")));
+    $app->addLoggingChannel("lucent.filesystem", $fileSystem);
 
     createFiles();
 

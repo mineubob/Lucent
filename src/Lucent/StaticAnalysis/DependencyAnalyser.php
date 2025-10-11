@@ -136,7 +136,7 @@ class DependencyAnalyser
             // 1. Detect variable usage for tracked instantiations
             $analyser->onToken(T_VARIABLE, function ($i, $token, $tokens) use (&$file, &$dependencies, &$knownInstantiations) {
                 // Only process variables we've tracked from instantiations
-                if (array_key_exists($token[1], $knownInstantiations) && $knownInstantiations[$token[1]]["line"] != $token[2]) {
+                if (array_key_exists($token[1], $knownInstantiations) && $knownInstantiations[$token[1]]["line"] !== $token[2]) {
                     // Check if this is an instantiation line (token is part of an assignment with 'new')
                     // This prevents recording both "use" and "instantiation" for the same line
                     $isInstantiation = false;
@@ -200,7 +200,7 @@ class DependencyAnalyser
                         ];
 
                         // Add any method-specific issues
-                        if ($methodDetails["issues"] != []) {
+                        if ($methodDetails["issues"] !== []) {
                             $issues = array_merge($issues, $methodDetails["issues"]);
                         }
 
@@ -302,7 +302,7 @@ class DependencyAnalyser
                             ];
 
                             // Add any method-specific issues
-                            if ($methodDetails["issues"] != []) {
+                            if ($methodDetails["issues"] !== []) {
                                 $issues = array_merge($issues, $methodDetails["issues"]);
                             }
                             // Record the static method call

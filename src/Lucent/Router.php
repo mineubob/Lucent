@@ -115,8 +115,6 @@ abstract class Router
         // Decode URL to handle special characters
         $url = urldecode($url);
 
-        Log::channel('phpunit')->info("Processing raw URL: " . $url);
-
         // Remove query string if present
         if ($pos = strpos($url, "?")) {
             $url = substr($url, 0, $pos);
@@ -128,16 +126,10 @@ abstract class Router
         // Normalize slashes and trim
         $url = trim($url, '/');
 
-        Log::channel('phpunit')->info("Normalized CLI URL: " . $url);
-
         // Split and filter empty segments
-        $segments = array_values(array_filter(explode($separator, $url), function($segment) {
+        return array_values(array_filter(explode($separator, $url), function($segment) {
             return $segment !== '';
         }));
-
-        Log::channel('phpunit')->info("CLI URL segments: " . implode(', ', $segments));
-
-        return $segments;
     }
     /**
      * Find and analyze a matching route for the current request
@@ -147,32 +139,22 @@ abstract class Router
         $uri = $route;
         $requestMethod = $_SERVER["REQUEST_METHOD"] ?? 'GET';
 
-        Log::channel('phpunit')->info("Analyzing route for method: " . $requestMethod);
-        Log::channel('phpunit')->info("Looking for URI path: " . implode('/', $uri));
-
         if (!isset($this->routes[$requestMethod])) {
-            Log::channel('phpunit')->warning("No routes registered for method: " . $requestMethod);
             return [
                 "route" => null,
                 "outcome" => false
             ];
         }
 
-        Log::channel('phpunit')->info("Available routes for " . $requestMethod . ":");
-        foreach ($this->routes[$requestMethod] as $path => $details) {
-            Log::channel('phpunit')->info("  - " . $path . " => " . $details["controller"] . "@" . $details["method"]);
-        }
-
         foreach ($this->routes[$requestMethod] as $key => $route) {
-            Log::channel('phpunit')->info("Checking route: " . $key);
 
             if ($match = $this->matchRoute($key, $uri, '/', $route)) {
-                Log::channel('phpunit')->info("Route matched: " . $key);
                 return $match;
             }
         }
 
-        Log::channel('phpunit')->warning("No matching route found");
+        Log::channel('lucent.routing')->warning("[Router] No routing match found for: \n    Http Method:" . $requestMethod."\n    Http URI:" .$_SERVER["REQUEST_URI"]);
+
         return [
             "route" => null,
             "outcome" => false
@@ -188,17 +170,7 @@ abstract class Router
         $routePath = trim($routePath, '/');
         $routeSegments = $this->getUriAsArray($routePath, $separator);
 
-        // Get URI as string for comparison
-        $uriString = implode('/', $uri);
-
-        Log::channel('phpunit')->info("Comparing route:");
-        Log::channel('phpunit')->info("  Route pattern: " . $routePath);
-        Log::channel('phpunit')->info("  URI to match: " . $uriString);
-        Log::channel('phpunit')->info("  Route segments: " . implode('/', $routeSegments));
-        Log::channel('phpunit')->info("  URI segments: " . implode('/', $uri));
-
         if (count($routeSegments) !== count($uri)) {
-            Log::channel('phpunit')->info("  Segment count mismatch - Route: " . count($routeSegments) . ", URI: " . count($uri));
             return null;
         }
 
@@ -210,13 +182,11 @@ abstract class Router
 
             if (!$isParameter) {
                 if ($routeSegments[$i] !== $uri[$i]) {
-                    Log::channel('phpunit')->info("  Segment mismatch at position {$i}: Expected '{$routeSegments[$i]}', got '{$uri[$i]}'");
                     $matches = false;
                     break;
                 }
             } else {
                 $variables[$paramName] = $uri[$i];
-                Log::channel('phpunit')->info("  Parameter extracted: {$paramName} = {$uri[$i]}");
             }
         }
 
@@ -224,7 +194,7 @@ abstract class Router
             return null;
         }
 
-        Log::channel('phpunit')->info("Route matched successfully with variables: " . json_encode($variables));
+        Log::channel('lucent.routing')->info("[Router] Found route : " . $routePath."\n    Http Method:".$_SERVER['REQUEST_METHOD']."\n    Http Controller: {$route["controller"]}@{$route["method"]}");
 
         return [
             "route" => $routePath,

@@ -10,7 +10,7 @@ class ProgressBarTest extends TestCase
     /**
      * @var ProgressBar
      */
-    private $progressBar;
+    private ProgressBar $progressBar;
 
     protected function setUp(): void
     {
@@ -60,7 +60,6 @@ class ProgressBarTest extends TestCase
         // Create reflection to access private method
         $reflection = new \ReflectionClass($this->progressBar);
         $formatTimeMethod = $reflection->getMethod('formatTime');
-        $formatTimeMethod->setAccessible(true);
 
         // Test seconds formatting
         $secondsOutput = $formatTimeMethod->invoke($this->progressBar, 45.5);
@@ -85,16 +84,13 @@ class ProgressBarTest extends TestCase
 
         // Set start time to a fixed value for testing
         $startTimeProperty = $reflection->getProperty('startTime');
-        $startTimeProperty->setAccessible(true);
         $startTimeProperty->setValue($this->progressBar, microtime(true) - 10); // Pretend we started 10 seconds ago
 
         // Access the getEstimatedTimeRemaining method
         $estimateMethod = $reflection->getMethod('getEstimatedTimeRemaining');
-        $estimateMethod->setAccessible(true);
 
         // Access the getElapsedTime method
         $elapsedMethod = $reflection->getMethod('getElapsedTime');
-        $elapsedMethod->setAccessible(true);
         $elapsedTime = $elapsedMethod->invoke($this->progressBar);
 
         // Test with 25% progress
@@ -119,7 +115,6 @@ class ProgressBarTest extends TestCase
         // Check internal state with reflection
         $reflection = new \ReflectionClass($this->progressBar);
         $currentProperty = $reflection->getProperty('current');
-        $currentProperty->setAccessible(true);
 
         $this->assertEquals(100, $currentProperty->getValue($this->progressBar));
     }
@@ -135,7 +130,6 @@ class ProgressBarTest extends TestCase
         // Use reflection to get the lastUpdateTime
         $reflection = new \ReflectionClass($this->progressBar);
         $lastUpdateProperty = $reflection->getProperty('lastUpdateTime');
-        $lastUpdateProperty->setAccessible(true);
 
         // We expect output only from the first update
         $this->expectOutputRegex('/25%/');
@@ -166,7 +160,6 @@ class ProgressBarTest extends TestCase
         // Use reflection to check the current value
         $reflection = new \ReflectionClass($this->progressBar);
         $currentProperty = $reflection->getProperty('current');
-        $currentProperty->setAccessible(true);
 
         // Should be set to 0
         $this->assertEquals(0, $currentProperty->getValue($this->progressBar));
@@ -186,7 +179,6 @@ class ProgressBarTest extends TestCase
         // Use reflection to check the current value
         $reflection = new \ReflectionClass($this->progressBar);
         $currentProperty = $reflection->getProperty('current');
-        $currentProperty->setAccessible(true);
 
         // Should be capped at total (100)
         $this->assertEquals(100, $currentProperty->getValue($this->progressBar));
@@ -200,7 +192,6 @@ class ProgressBarTest extends TestCase
         // Create reflection to access protected method
         $reflection = new \ReflectionClass($this->progressBar);
         $getProgressBarMethod = $reflection->getMethod('getProgressBar');
-        $getProgressBarMethod->setAccessible(true);
 
         // Test with normal percentage
         $normalBar = $getProgressBarMethod->invoke($this->progressBar, 0.5);

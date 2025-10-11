@@ -94,6 +94,9 @@ class Database
 
     public static function reset(): void
     {
-        self::$instance = null;
+        if (self::$instance !== null) {
+            self::$instance->closeDriver();
+            self::$instance = null;
+        }
     }
 }

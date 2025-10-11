@@ -52,10 +52,8 @@ class File extends FileSystemObject
             }
 
             if ($params !== null) {
-                Log::channel("fs")->debug("Using write");
                 return $this->write($params);
             } else {
-                Log::channel("fs")->debug("Using touch");
                 return touch($this->path);
             }
 
@@ -104,19 +102,19 @@ class File extends FileSystemObject
 
         // Check source file
         if (!file_exists($this->path)) {
-            error_log("COPY ERROR: Source file does not exist: {$this->path}");
+            Log::channel("lucent.filesystem")->error("[File] Copy error, source file does not exist:\n  Path: {$this->path}");
             return null;
         }
 
         // Check destination folder
         if (!is_dir($folder->path)) {
-            error_log("COPY ERROR: Destination folder does not exist: {$folder->path}");
+            Log::channel("lucent.filesystem")->error("[File] Copy error, destination folder does not exist:\n  Path: {$folder->path}");
             return null;
         }
 
         // Check write permissions
         if (!is_writable($folder->path)) {
-            error_log("COPY ERROR: Destination folder is not writable: {$folder->path}");
+            Log::channel("lucent.filesystem")->error("[File] Write error, destination folder is not writeable:\n  Path: {$folder->path}");
             return null;
         }
 
@@ -128,16 +126,8 @@ class File extends FileSystemObject
 
         // Check for PHP errors during copy
         if (!$success) {
-            $error = error_get_last();
-            error_log("COPY ERROR: PHP error during copy: " . ($error ? $error['message'] : 'Unknown error'));
-            error_log("  From: {$this->path}");
-            error_log("  To: {$copy->path}");
-            return null;
-        }
-
-        // Double-check that file now exists
-        if (!$copy->exists()) {
-            error_log("COPY ERROR: File copied but doesn't exist at destination: {$copy->path}");
+            $error = error_get_last()['message'] ?? 'Unknown error';
+            Log::channel("lucent.filesystem")->critical("[File] PHP Error during copy: {$error}\n  From: {$this->path}\n  To: {$copy->path}");
             return null;
         }
 

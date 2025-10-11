@@ -4,7 +4,6 @@ namespace Unit;
 
 use App\Models\TestUser;
 use Lucent\Application;
-use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Facades\FileSystem;
@@ -261,7 +260,6 @@ class RuleTest extends DatabaseDriverSetup
         // Should pass because last_name isn't in the keys array and won't be validated
         $this->assertFalse($request->validate($rule));
         $this->assertCount(1, $request->getValidationErrors());
-
     }
 
     public function test_custom_rule_passing(): void
@@ -274,7 +272,6 @@ class RuleTest extends DatabaseDriverSetup
 
         $this->assertTrue($request->validate(CustomRule::class));
         $this->assertEmpty($request->getValidationErrors());
-
     }
 
     public function test_custom_rule_failing(): void
@@ -447,12 +444,12 @@ class RuleTest extends DatabaseDriverSetup
     public function test_request_errors(): void
     {
         $request = Faker::request();
+
         $request->setInput("email", "testemail.com");
         $request->setInput("password", "pass");
         $request->reInitializeRequestData();
 
         $this->assertFalse($request->validate(["email" => ["regex:email"], "password" => ["regex:password", "min:4"]]));
-
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -460,7 +457,6 @@ class RuleTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config);
         $this->test_model_migration($driver, $config);
-
 
         $request = Faker::request();
         $request->setInput("email", "unique-test@email.com");
@@ -478,14 +474,9 @@ class RuleTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->test_model_migration($driver, $config);
 
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "unique-test@email.com",
-            "password_hash" => "password",
-        ]));
+        $user = new TestUser("unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
-
 
         $request = Faker::request();
         $request->setInput("email", "unique-test@email.com");
@@ -503,12 +494,7 @@ class RuleTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->test_model_migration($driver, $config);
 
-
-        $user = new TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "not-unique-test@email.com",
-            "password_hash" => "password",
-        ]));
+        $user = new TestUser("not-unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -581,6 +567,7 @@ class RuleTest extends DatabaseDriverSetup
     public function test_message_translator(): void
     {
         $request = Faker::request();
+
         $request->setInput("min_test", "John");
         $request->setInput("max_test", "123456789123456789");
         $request->setInput("min_num_test", 1);
@@ -599,12 +586,9 @@ class RuleTest extends DatabaseDriverSetup
 
         $this->assertEquals("min_test must be at least 8 characters", $request->getValidationErrors()["min_test"]);
         $this->assertEquals("max_test may not be greater than 16 characters", $request->getValidationErrors()["max_test"]);
-
         $this->assertEquals("min_num_test must be greater than 2", $request->getValidationErrors()["min_num_test"]);
         $this->assertEquals("max_num_test may not be less than 5", $request->getValidationErrors()["max_num_test"]);
-
         $this->assertEquals("same_test and min_test must match", $request->getValidationErrors()["same_test"]);
-
     }
 
     public function test_error_message_overriding_local(): void
@@ -615,7 +599,6 @@ class RuleTest extends DatabaseDriverSetup
         $request->reInitializeRequestData();
 
         $this->assertFalse($request->validate(OverrideMessageRule::class));
-
 
         $this->assertEquals("Message Override!", $request->getValidationErrors()["first_name"]);
     }
@@ -647,8 +630,6 @@ class RuleTest extends DatabaseDriverSetup
             "first_name" => ["min:10", "max:255", "nullable"],
         ]));
 
-
-
         $this->assertEquals("first_name must be at least 10 characters", $request->getValidationErrors()["first_name"]);
 
     }
@@ -664,7 +645,6 @@ class RuleTest extends DatabaseDriverSetup
             "first_name" => ["min:10", "max:255", "nullable"],
         ]));
 
-        var_dump($request->getValidationErrors());
     }
 
     public function test_nullable_with_null(): void
@@ -680,68 +660,62 @@ class RuleTest extends DatabaseDriverSetup
     private static function generate_test_model(): void
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        class TestUser extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public private(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $email;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $password_hash;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false,
-                "LENGTH"=>100
-            ])]
-            protected string $full_name;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-            }
-        
-            public function getFullName() : string{
-                return $this->full_name;
-            }
-            
-            public function setFullName(string $full_name){
-                $this->full_name = $full_name;
-            }
-            
-            public function getId() : int
-            {
-                return $this->id;
-            }
-        
-        
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TestUser extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $email;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $password_hash;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false,
+        "LENGTH" => 100
+    ])]
+    protected string $full_name;
+
+    public function __construct(string $email, string $password_hash, string $full_name)
+    {
+        $this->email = $email;
+        $this->password_hash = $password_hash;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+}
+PHP;
 
 
         $appPath = FileSystem::rootPath() . "/App";

@@ -2,12 +2,6 @@
 
 namespace Unit;
 
-use App\Models\Admin;
-use App\Models\TestUser;
-use App\Models\TestUserTwo;
-use App\Models\TransactionModel;
-use Lucent\Database;
-use Lucent\Database\Dataset;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Filesystem\File;
@@ -76,11 +70,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_model_migration($driver, $config);
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "john@doe.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         self::assertTrue($user->create());
 
@@ -94,11 +84,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_model_migration($driver, $config);
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "john@doe.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         self::assertTrue($user->create());
 
@@ -129,10 +115,6 @@ class ModelTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config);
 
-        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
-            Database::statement("DROP TABLE IF EXISTS TestUser");
-        });
-        
         $output = CommandLine::execute("Migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration", $output);
     }
@@ -144,18 +126,11 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_extended_model_migration($driver, $config);
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "John Doe",
-            "email" => "john@doe.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => true,
-            "can_reset_passwords" => false,
-            "notes" => "Just a test!"
-        ]));
+        $adminUser = new \App\Models\Admin("john@doe.com", "password", "John Doe", false, true);
 
         $this->assertTrue($adminUser->create());
 
-        $lookup = Admin::where("email", "john@doe.com")->where("can_lock_accounts", true)->getFirst();
+        $lookup = \App\Models\Admin::where("email", "john@doe.com")->where("can_lock_accounts", true)->getFirst();
         $this->assertEquals("John Doe", $lookup->getFullName());
         $this->assertTrue($lookup->can_lock_accounts);
         $this->assertFalse($lookup->can_reset_passwords);
@@ -168,29 +143,15 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_extended_model_migration($driver, $config);
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "Joshamee Gibbs",
-            "email" => "gibbs@blackpearl.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => false,
-            "can_reset_passwords" => false,
-            "notes" => "Just a crew member"
-        ]));
+        $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
         $this->assertTrue($adminUser->create());
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "Captain Jack",
-            "email" => "jack@blackpearls.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => true,
-            "can_reset_passwords" => true,
-            "notes" => "Hes the captain"
-        ]));
+        $adminUser = new \App\Models\Admin("jack@blackpearl.com", "password", "Captain Jack", true, true, "He's the captain");
 
         $this->assertTrue($adminUser->create());
 
-        $count = Admin::where("can_lock_accounts", true)->count();
+        $count = \App\Models\Admin::where("can_lock_accounts", true)->count();
 
         $this->assertEquals(1, $count);
     }
@@ -202,20 +163,13 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_extended_model_migration($driver, $config);
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "Joshamee Gibbs",
-            "email" => "gibbs@blackpearl.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => false,
-            "can_reset_passwords" => false,
-            "notes" => "Just a crew member"
-        ]));
+        $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
         $this->assertTrue($adminUser->create());
 
         $this->assertTrue($adminUser->delete());
 
-        $lookUp = Admin::where("email", "gibbs@blackpearl.com")->getFirst();
+        $lookUp = \App\Models\Admin::where("email", "gibbs@blackpearl.com")->getFirst();
 
         $this->assertNull($lookUp);
     }
@@ -227,14 +181,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_extended_model_migration($driver, $config);
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "Joshamee Gibbs",
-            "email" => "gibbs@blackpearl.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => false,
-            "can_reset_passwords" => false,
-            "notes" => "Just a crew member"
-        ]));
+        $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
         $this->assertTrue($adminUser->create());
 
@@ -259,14 +206,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_extended_model_migration($driver, $config);
 
-        $adminUser = new \App\Models\Admin(new Dataset([
-            "full_name" => "Davey Jones",
-            "email" => "Davey@Jones.com",
-            "password_hash" => "password",
-            "can_lock_accounts" => false,
-            "can_reset_passwords" => false,
-            "notes" => "Captain of the flying dutchman."
-        ]));
+        $adminUser = new \App\Models\Admin("davey@jones.com", "password", "Davey Jones", false, false, "Captain of the flying dutchman");
 
         $this->assertTrue($adminUser->create());
 
@@ -282,11 +222,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_model_migration($driver, $config);
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "AI Test",
-            "email" => "ai@test.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("ai@test.com", "password", "AI Test");
 
         $this->assertTrue($user->create());
 
@@ -304,17 +240,13 @@ class ModelTest extends DatabaseDriverSetup
         $count = 10;
         $i = 0;
         while ($i < $count) {
-            $user = new \App\Models\TestUser(new Dataset([
-                "full_name" => "user-" . $i,
-                "email" => "user-" . $i . "@test.com",
-                "password_hash" => "password",
-            ]));
+            $user = new \App\Models\TestUser("user-$i@test.com", "password", "user-$i");
 
             $this->assertTrue($user->create());
             $i++;
         }
 
-        $this->assertEquals($count, TestUser::limit(100)->count());
+        $this->assertEquals($count, \App\Models\TestUser::limit(100)->count());
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -324,37 +256,25 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->test_model_migration($driver, $config);
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "John Smith",
-            "email" => "john.smith@test.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("john.smith@test.com", "password", "John Smith");
 
         $this->assertTrue($user->create());
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "James Smith",
-            "email" => "james.smith@gmail.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("james.smith@gmail.com", "password", "James Smith");
 
         $this->assertTrue($user->create());
 
-        $user = new \App\Models\TestUser(new Dataset([
-            "full_name" => "Bill Clinton",
-            "email" => "bill@gmail.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUser("bill@gmail.com", "password", "Bill Clinton");
 
         $this->assertTrue($user->create());
 
-        $gmailUsers = TestUser::limit(100)->like("email", "gmail.com")->get();
+        $gmailUsers = \App\Models\TestUser::limit(100)->like("email", "gmail.com")->get();
 
         $this->assertCount(2, $gmailUsers);
 
-        $gmailAndBill = TestUser::limit(100)->like("email", "gmail.com")->orLike("full_name", "Bill")->get();
+        $gmailAndJohn = \App\Models\TestUser::limit(100)->like("email", "gmail.com")->orLike("full_name", "John")->get();
 
-        $this->assertCount(2, $gmailAndBill);
+        $this->assertCount(3, $gmailAndJohn);
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -386,11 +306,7 @@ class ModelTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config);
         $this->test_model_migration_with_trait($driver, $config);
 
-        $user = new \App\Models\TestUserTwo(new Dataset([
-            "full_name" => "John Smith",
-            "email" => "john.smith@test.com",
-            "password_hash" => "password",
-        ]));
+        $user = new \App\Models\TestUserTwo("john.smith@test.com", "password", "John Smith");
 
         $this->assertTrue($user->create());
 
@@ -407,11 +323,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->test_model_migration_with_trait($driver, $config);
 
         // Create and save a model
-        $user = new \App\Models\TestUserTwo(new Dataset([
-            'email' => 'john.smith@test.com',
-            'password_hash' => 'password',
-            'full_name' => 'John Smith'
-        ]));
+        $user = new \App\Models\TestUserTwo("john.smith@test.com", "password", "John Smith");
         $this->assertTrue($user->create());
 
         // Soft delete the model
@@ -443,32 +355,19 @@ class ModelTest extends DatabaseDriverSetup
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
         $this->assertEquals("Successfully performed database migration", $output);
 
-
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 25.5,
-        ]));
+        $transaction = new \App\Models\TransactionModel(25.5, 0);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 1,
-            "amount" => -50,
-        ]));
+        $transaction = new \App\Models\TransactionModel(-50, 1);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 120,
-        ]));
+        $transaction = new \App\Models\TransactionModel(120, 0);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 4.5,
-        ]));
+        $transaction = new \App\Models\TransactionModel(4.5, 0);
 
         $this->assertTrue($transaction->create());
 
@@ -488,32 +387,19 @@ class ModelTest extends DatabaseDriverSetup
         $output = CommandLine::execute("Migration make App/Models/TransactionModel");
         $this->assertEquals("Successfully performed database migration", $output);
 
-
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 25.5,
-        ]));
+        $transaction = new \App\Models\TransactionModel(25.5, 0);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => -50,
-        ]));
+        $transaction = new \App\Models\TransactionModel(-50, 0);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 120,
-        ]));
+        $transaction = new \App\Models\TransactionModel(120, 0);
 
         $this->assertTrue($transaction->create());
 
-        $transaction = new \App\Models\TransactionModel(new Dataset([
-            "type" => 0,
-            "amount" => 4.5,
-        ]));
+        $transaction = new \App\Models\TransactionModel(4.5, 0);
 
         $this->assertTrue($transaction->create());
 
@@ -534,11 +420,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $i = 0;
         while ($i < 10) {
-
-            $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => 0,
-                "amount" => rand(10, 200),
-            ]));
+            $transaction = new \App\Models\TransactionModel(rand(10, 200), rand(0, 1));
 
             $this->assertTrue($transaction->create());
 
@@ -546,7 +428,7 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         $last = -1;
-        foreach (TransactionModel::where("type", 0)->orderBy('amount')->get() as $transaction) {
+        foreach (\App\Models\TransactionModel::where("type", 0)->orderBy('amount')->get() as $transaction) {
             $this->assertTrue($last <= $transaction->amount);
             $last = $transaction->amount;
         }
@@ -564,11 +446,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $i = 0;
         while ($i < 10) {
-
-            $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => 0,
-                "amount" => rand(10, 200),
-            ]));
+            $transaction = new \App\Models\TransactionModel(rand(10, 200), rand(0, 1));
 
             $this->assertTrue($transaction->create());
 
@@ -576,7 +454,7 @@ class ModelTest extends DatabaseDriverSetup
         }
 
         $last = 200;
-        foreach (TransactionModel::where("type", 0)->orderBy('amount', "DESC")->get() as $transaction) {
+        foreach (\App\Models\TransactionModel::where("type", 0)->orderBy('amount', "DESC")->get() as $transaction) {
             $this->assertTrue($last >= $transaction->amount);
             $last = $transaction->amount;
         }
@@ -595,12 +473,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $i = 0;
         while ($i < 10) {
-
-            $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0, 1),
-                "amount" => rand(10, 200),
-                "description" => Faker::randomString(rand(0, 50))
-            ]));
+            $transaction = new \App\Models\TransactionModel(rand(10, 200), rand(0, 1), Faker::randomString(rand(0, 50)));
 
             $this->assertTrue($transaction->create());
 
@@ -613,10 +486,10 @@ class ModelTest extends DatabaseDriverSetup
         $manualAmount = 0;
         //Manually check the sum with n+1 query.
         foreach ($ids as $id) {
-            $manualAmount += TransactionModel::where("id", $id)->sum("amount");
+            $manualAmount += \App\Models\TransactionModel::where("id", $id)->sum("amount");
         }
 
-        $inAmount = TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->sum("amount");
+        $inAmount = \App\Models\TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->sum("amount");
 
         $this->assertEquals($manualAmount, $inAmount);
     }
@@ -633,12 +506,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $i = 0;
         while ($i < 10) {
-
-            $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0, 1),
-                "amount" => rand(10, 200),
-                "description" => Faker::randomString(rand(0, 50))
-            ]));
+            $transaction = new \App\Models\TransactionModel(rand(10, 200), rand(0, 1), Faker::randomString(rand(0, 20)));
 
             $this->assertTrue($transaction->create());
 
@@ -651,10 +519,10 @@ class ModelTest extends DatabaseDriverSetup
         $manualAmount = 0;
         //Manually check the sum with n+1 query.
         foreach ($ids as $id) {
-            $manualAmount += TransactionModel::where("id", $id)->where("type", 0)->sum("amount");
+            $manualAmount += \App\Models\TransactionModel::where("id", $id)->where("type", 0)->sum("amount");
         }
 
-        $inAmount = TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->where("type", 0)->sum("amount");
+        $inAmount = \App\Models\TransactionModel::in("id", $ids)->orderBy('amount', "DESC")->where("type", 0)->sum("amount");
 
         $this->assertEquals($manualAmount, $inAmount);
     }
@@ -670,19 +538,13 @@ class ModelTest extends DatabaseDriverSetup
 
         $i = 0;
         while ($i < 10) {
-
-            $transaction = new \App\Models\TransactionModel(new Dataset([
-                "type" => rand(0, 1),
-                "amount" => rand(10, 200),
-                "description" => Faker::randomString(rand(0, 50)),
-                "date" => time() - (86400 * $i)
-            ]));
+            $transaction = new \App\Models\TransactionModel(rand(10, 200), rand(0, 1), Faker::randomString(rand(0, 50)), time() - 86400 * $i);
 
             $this->assertTrue($transaction->create());
             $i++;
         }
 
-        $transactions = TransactionModel::compare("date", "<=", time() - (86400 * 5))->get();
+        $transactions = \App\Models\TransactionModel::compare("date", "<=", time() - (86400 * 5))->get();
 
         $this->assertCount(5, $transactions);
 
@@ -711,78 +573,64 @@ class ModelTest extends DatabaseDriverSetup
     public static function generate_test_model(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        class TestUser extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public protected(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            public protected(set) string $email;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            public protected(set) string $password_hash;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false,
-                "LENGTH"=>100
-            ])]
-            public protected(set) string $full_name;
-            
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_BOOLEAN,
-                "ALLOW_NULL"=>true,
-                "DEFAULT"=>false
-            ])]
-            public protected(set) ?bool $mfa_set;
-            
-            public function __construct(Dataset $dataset) {
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-            }
-        
-            public function getFullName() : string{
-                return $this->full_name;
-            }
-            
-            public function setFullName(string $full_name){
-                $this->full_name = $full_name;
-            }
-            
-            public function getId() : int
-            {
-                return $this->id;
-            }
-        
-        }
-        PHP;
+<?php
 
+namespace App\Models;
+
+use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TestUser extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $email;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false
+    ])]
+    protected string $password_hash;
+
+    #[DatabaseColumn([
+        "TYPE" => LUCENT_DB_VARCHAR,
+        "ALLOW_NULL" => false,
+        "LENGTH" => 100
+    ])]
+    protected string $full_name;
+
+    public function __construct(string $email, string $password_hash, string $full_name)
+    {
+        $this->email = $email;
+        $this->password_hash = $password_hash;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+}
+PHP;
 
         return new File("/App/Models/TestUser.php", $modelContent);
-
     }
 
     public static function generate_test_extended_model(): File
@@ -792,41 +640,37 @@ class ModelTest extends DatabaseDriverSetup
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
-use Lucent\Database\Dataset;
 use App\Models\TestUser;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 
 class Admin extends TestUser
 {
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "ALLOW_NULL" => false,
-        "DEFAULT" => false
-    ])]
+    #[Column(ColumnType::BOOLEAN, default: false)]
     public private(set) bool $can_reset_passwords;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "ALLOW_NULL" => false,
-        "DEFAULT" => false,
-    ])]
+    #[Column(ColumnType::BOOLEAN, default: false)]
     public private(set) bool $can_lock_accounts;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => true,
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
     public private(set) ?string $notes;
 
 
-    public function __construct(Dataset $dataset){
-        parent::__construct($dataset);
-        
-        $this->can_reset_passwords = $dataset->get("can_reset_passwords");
-        $this->can_lock_accounts = $dataset->get("can_lock_accounts");
-        $this->notes = $dataset->get("notes");
+    public function __construct(
+        string $email,
+        string $password_hash,
+        string $full_name,
+        bool $can_reset_passwords,
+        bool $can_lock_accounts,
+        ?string $notes = null
+    ) {
+        parent::__construct($email, $password_hash, $full_name);
+
+        $this->can_reset_passwords = $can_reset_passwords;
+        $this->can_lock_accounts = $can_lock_accounts;
+        $this->notes = $notes;
     }
-    
+
     public function setNotes(string $notes): void
     {
         $this->notes = $notes;
@@ -840,324 +684,239 @@ PHP;
     public static function generate_test_model_long_text(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        class LongTextModel extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public private(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_LONGTEXT,
-            ])]
-            protected string $email;
-            
-                  #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_TEXT,
-            ])]
-            protected string $text;
-            
-                    #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_MEDIUMTEXT,
-            ])]
-            protected string $mText;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_LONGTEXT,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $password_hash;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false,
-                "LENGTH"=>100
-            ])]
-            protected string $full_name;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-            }
-        
-            public function getFullName() : string{
-                return $this->full_name;
-            }
-            
-            public function setFullName(string $full_name){
-                $this->full_name = $full_name;
-            }
-            
-            public function getId() : int
-            {
-                return $this->id;
-            }
-        
-        
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class LongTextModel extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[Column(ColumnType::LONGTEXT)]
+    protected string $email;
+
+    #[Column(ColumnType::TEXT)]
+    protected string $text;
+
+    #[Column(ColumnType::MEDIUMTEXT)]
+    protected string $mText;
+
+    #[Column(ColumnType::VARCHAR, length: 100)]
+    protected string $full_name;
+
+    public function __construct(string $email, string $text, string $mText, string $full_name)
+    {
+        $this->email = $email;
+        $this->text = $text;
+        $this->mText = $mText;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+}
+PHP;
 
 
         return new File("/App/Models/LongTextModel.php", $modelContent);
-
     }
 
     public static function generate_soft_delete_trait(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        trait SoftDelete
-        {
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>true
-            ])]
-            public private(set) ?int $deleted_at = null;
-        
-            /**
-             * Override the base delete method with a soft delete implementation
-             *
-             * @param mixed $propertyName The primary key property name
-             * @return bool Success
-             */
-            public function delete($propertyName = "id"): bool
-            {
-                return $this->softDelete($propertyName);
-            }
-        
-            /**
-             * Delete the model by setting the deleted_at timestamp
-             *
-             * @param string $propertyName The primary key property name
-             * @return bool Success
-             */
-            public function softDelete(string $propertyName = "id"): bool
-            {
-                $this->deleted_at = time();
-                return $this->save($propertyName);
-            }
-        
-            /**
-             * Restore a soft deleted model
-             *
-             * @return bool Success
-             */
-            public function restore(): bool
-            {
-                $this->deleted_at = null;
-                return $this->save();
-            }
-        
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+trait SoftDelete
+{
+    #[Column(ColumnType::INT, nullable: true)]
+    public private(set) ?int $deleted_at = null;
+
+    /**
+     * Override the base delete method with a soft delete implementation
+     *
+     * @param mixed $propertyName The primary key property name
+     * @return bool Success
+     */
+    public function delete($propertyName = "id"): bool
+    {
+        return $this->softDelete($propertyName);
+    }
+
+    /**
+     * Delete the model by setting the deleted_at timestamp
+     *
+     * @param string $propertyName The primary key property name
+     * @return bool Success
+     */
+    public function softDelete(string $propertyName = "id"): bool
+    {
+        $this->deleted_at = time();
+        return $this->save($propertyName);
+    }
+
+    /**
+     * Restore a soft deleted model
+     *
+     * @return bool Success
+     */
+    public function restore(): bool
+    {
+        $this->deleted_at = null;
+        return $this->save();
+    }
+}
+PHP;
 
 
         return new File("/App/Models/SoftDelete.php", $modelContent);
-
     }
 
     public static function generate_soft_delete_trait_model(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        use App\Models\SoftDelete;
-        
-        class TestUserTwo extends Model
-        {
-         use SoftDelete;
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public private(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $email;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            protected string $password_hash;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false,
-                "LENGTH"=>100
-            ])]
-            protected string $full_name;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->email = $dataset->get("email");
-                $this->password_hash = $dataset->get("password_hash");
-                $this->full_name = $dataset->get("full_name");
-                $this->deleted_at = $dataset->get("deleted_at");
-            }
-        
-            public function getFullName() : string{
-                return $this->full_name;
-            }
-            
-            public function setFullName(string $full_name){
-                $this->full_name = $full_name;
-            }
-            
-            public function getId() : int
-            {
-                return $this->id;
-            }
-        
-        
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Model;
+use App\Models\SoftDelete;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TestUserTwo extends Model
+{
+    use SoftDelete;
+
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    protected string $email;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    protected string $password_hash;
+
+    #[Column(ColumnType::VARCHAR, length: 100)]
+    protected string $full_name;
+
+    public function __construct(string $email, string $password_hash, string $full_name)
+    {
+        $this->email = $email;
+        $this->password_hash = $password_hash;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+
+    public function getId(): int
+    {
+        return $this->id;
+    }
+}
+PHP;
 
 
         return new File("/App/Models/TestUserTwo.php", $modelContent);
-
     }
 
     public static function generate_transaction_model(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        use App\Models\SoftDelete;
-        
-        class TransactionModel extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public private(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>true
-            ])]
-            protected ?string $description;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_DECIMAL,
-                "ALLOW_NULL"=>false
-            ])]
-            public protected(set) float $amount;
-            
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false
-            ])]
-            protected int $type;
-            
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false
-            ])]
-            public protected(set) int $date;
-        
-            public function __construct(Dataset $dataset){
-                $this->id = $dataset->get("id",-1);
-                $this->description = $dataset->get("description");
-                $this->amount = $dataset->get("amount");
-                $this->type = $dataset->get("type");
-                $this->date = $dataset->get("date", time());
-            }   
-        }
-        PHP;
+<?php
+
+namespace App\Models;
+
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TransactionModel extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
+    protected ?string $description;
+
+    #[Column(ColumnType::DECIMAL)]
+    public protected(set) float $amount;
+
+    #[Column(ColumnType::INT)]
+    protected int $type;
+
+    #[Column(ColumnType::INT)]
+    public protected(set) int $date;
+
+    public function __construct(float $amount, int $type, ?string $description = null, ?int $date = null)
+    {
+        $this->amount = $amount;
+        $this->description = $description;
+        $this->type = $type;
+        $this->date = $date ?? time();
+    }
+}
+PHP;
 
 
         return new File("/App/Models/TransactionModel.php", $modelContent);
-
     }
 
     public static function generate_test_model_numeric_string_bug(): File
     {
         $modelContent = <<<'PHP'
-        <?php
-        
-        namespace App\Models;
-        
-        use Lucent\Database\Attributes\DatabaseColumn;
-        use Lucent\Database\Dataset;
-        use Lucent\Model;
-        
-        class TestCustomer extends Model
-        {
-        
-            #[DatabaseColumn([
-                "PRIMARY_KEY"=>true,
-                "TYPE"=>LUCENT_DB_INT,
-                "ALLOW_NULL"=>false,
-                "AUTO_INCREMENT"=>true,
-                "LENGTH"=>255
-            ])]
-            public protected(set) ?int $id;
-        
-            #[DatabaseColumn([
-                "TYPE"=>LUCENT_DB_VARCHAR,
-                "ALLOW_NULL"=>false
-            ])]
-            public protected(set) string $mobile;
-            
-            public function __construct(string $mobile) {
-                $this->mobile = $mobile;
-            }
+<?php
 
-        }
-        PHP;
+namespace App\Models;
 
+use Lucent\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class TestCustomer extends Model
+{
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    public protected(set) ?int $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    public protected(set) string $mobile;
+
+    public function __construct(string $mobile)
+    {
+        $this->mobile = $mobile;
+    }
+}
+PHP;
 
         return new File("/App/Models/TestCustomer.php", $modelContent);
-
     }
-
-
-
-
-
 }
