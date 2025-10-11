@@ -56,6 +56,9 @@ if (file_exists($originalPharFile)) {
     $routing = new Channel("lucent.routing", new TeeDriver(new CliDriver(), new FileDriver("routing.log")));
     $app->addLoggingChannel("lucent.routing", $routing);
 
+    $fileSystem = new Channel("lucent.filesystem", new TeeDriver(new CliDriver(), new FileDriver("filesystem.log")));
+    $app->addLoggingChannel("lucent.filesystem", $fileSystem);
+
     createFiles();
 
     foreach ($files as $path) {
