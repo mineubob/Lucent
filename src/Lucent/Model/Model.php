@@ -52,7 +52,6 @@ class Model
             $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
             if (!Database::delete($query, [$value])) {
-                Log::channel("db")->info("Failed to deleted model with query " . $query);
                 return false;
             }
 
@@ -65,12 +64,10 @@ class Model
             $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
 
             if (!Database::delete($query, [$value])) {
-                Log::channel("db")->info("Failed to deleted model with query " . $query);
                 return false;
             }
 
             if (!Database::delete($parentQuery, [$value])) {
-                Log::channel("db")->info("Failed to deleted model with query " . $parentQuery);
                 return false;
             }
 
@@ -96,11 +93,9 @@ class Model
                 $parentTable = $parent->getShortName();
                 $parentQuery = "INSERT INTO {$parentTable}" . $this->buildInsertQueryString($parentProperties, $values);
 
-                Log::channel("db")->info("Parent query: " . $parentQuery);
                 $result = Database::insert($parentQuery, $values);
 
                 if (!$result) {
-                    Log::channel("db")->error("Failed to create parent model: " . $parentQuery);
                     // The transaction will be rolled back automatically
                     return false;
                 }
@@ -125,11 +120,9 @@ class Model
                 $tableName = $reflection->getShortName();
                 $childQuery = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($childProps, $values);
 
-                Log::channel("db")->info("Child query: " . $childQuery);
                 $result = Database::insert($childQuery, $values);
 
                 if (!$result) {
-                    Log::channel("db")->error("Failed to create child model: " . $childQuery);
                     // The transaction will be rolled back automatically
                     return false;
                 }
@@ -147,12 +140,9 @@ class Model
             $values = [];
             $query = "INSERT INTO {$tableName}" . $this->buildInsertQueryString($properties, $values);
 
-            Log::channel("db")->info("Query: " . $query);
-
             $result = Database::insert($query, $values);
 
             if (!$result) {
-                Log::channel("db")->error("Failed to create model: " . $query);
                 return false;
             }
 
@@ -207,6 +197,7 @@ class Model
      * Summary of getProperties
      * @param array<\ReflectionProperty> $properties
      * @param string $class
+     * @param bool $skipAutoIncrement
      * @return array<string, mixed>
      */
     public function getProperties(array $properties, string $class, bool $skipAutoIncrement): array
@@ -272,7 +263,6 @@ class Model
             if (empty($childUpdates)) {
                 // If no child updates, just update parent
                 if (!Database::update($parentQuery, $parentBindValues)) {
-                    Log::channel("db")->error("Failed to update parent: " . $parentQuery);
                     return false;
                 }
                 return true;
@@ -283,11 +273,9 @@ class Model
 
             return Database::transaction(function () use ($childQuery, $parentQuery, $childBindValues, $parentBindValues) {
                 if (!Database::update($parentQuery, $parentBindValues)) {
-                    Log::channel("db")->error("Failed to update parent in transaction");
                     return false;
                 }
                 if (!Database::update($childQuery, $childBindValues)) {
-                    Log::channel("db")->error("Failed to update child in transaction");
                     return false;
                 }
                 return true;
@@ -315,12 +303,10 @@ class Model
 
         try {
             if (!Database::update($query, $bindValues)) {
-                Log::channel("db")->error("Failed to save model: " . $query);
                 return false;
             }
             return true;
         } catch (Exception $e) {
-            Log::channel("db")->error("Failed to save model: " . $e->getMessage());
             return false;
         }
     }
@@ -362,6 +348,7 @@ class Model
             }
         }
 
+        Log::channel("lucent.db")->error("[Model] No primary key found for class {$reflection->getName()}");
         throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 
