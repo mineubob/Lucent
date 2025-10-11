@@ -86,8 +86,6 @@ class PDODriver extends DatabaseInterface
 
     public function __construct()
     {
-        parent::__construct();
-
         // Check if database name is set
         if (empty(App::env("DB_DRIVER"))) {
             Log::channel("lucent.db")->critical("[PDODriver] DB_DRIVER environment variable is not set or empty");

@@ -4,18 +4,7 @@ namespace Lucent\Database;
 
 abstract class DatabaseInterface
 {
-    public protected(set) array $allowed_statement_prefix;
-    public protected(set) array $allowed_delete_prefix;
-    public protected(set) array $allowed_insert_prefix;
-    public protected(set) array $allowed_update_prefix;
-    public protected(set) array $allowed_select_prefix;
 
-    protected DatabaseValidator $validator;
-
-    public function __construct()
-    {
-        $this->validator = new DatabaseValidator($this);
-    }
 
     #[\Deprecated("Prefer use of the Schema::table function directly.")]
     abstract public function createTable(string $name, array $columns): string;
