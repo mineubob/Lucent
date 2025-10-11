@@ -90,11 +90,12 @@ class PDODriver extends DatabaseInterface
 
         // Check if database name is set
         if (empty(App::env("DB_DRIVER"))) {
-            throw new \Exception("DB_DRIVER environment variable is not set or empty");
+            Log::channel("lucent.db")->critical("[PDODriver] DB_DRIVER environment variable is not set or empty");
+            throw new \Exception("[PDODriver] DB_DRIVER environment variable is not set or empty");
         }
 
-
         $driver_name = App::env("DB_DRIVER");
+
         switch ($driver_name) {
             case "sqlite":
                 $file = new File(App::env('DB_DATABASE'));
@@ -106,7 +107,8 @@ class PDODriver extends DatabaseInterface
 
                 // Verify file is writable
                 if (!is_writable($file->path)) {
-                    throw new \RuntimeException("SQLite database file is not writable: $file->path");
+                    Log::channel("lucent.db")->critical("[PDODriver] SQLite database file is not writable: $file->path");
+                    throw new \RuntimeException("[PDODriver] SQLite database file is not writable: $file->path");
                 }
 
                 $this->connection = new PDO("sqlite:$file->path");
@@ -122,10 +124,10 @@ class PDODriver extends DatabaseInterface
                 $this->connection = new PDO($dsn, $username, $password);
                 break;
             default:
-                throw new \RuntimeException("Unknown driver type: $driver_name");
+                Log::channel("lucent.db")->critical("[PDODriver] Unknown driver type provided: $driver_name");
+                throw new \RuntimeException("[PDODriver] Unknown driver type provided: $driver_name");
         }
 
-        Log::channel("db")->debug("PDO created for " . App::env("DB_DRIVER"));
     }
 
     public function getDriverName(): string
@@ -176,43 +178,40 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
-        Log::channel("db")->debug("Statement: {$query}");
+        Log::channel("lucent.db")->info("[PDODriver] Executing statement: $query");
 
         try {
             if (count($params) > 0) {
                 $stmt = $this->connection->prepare($query);
 
                 if (!$stmt) {
-                    Log::channel("db")->error("Failed to prepare statement: " . $query);
-                    Log::channel("db")->error("PDO Error: " . json_encode($this->connection->errorInfo()));
+                    Log::channel("lucent.db")->critical("[PDODriver] Failed to prepare statement: $query");
                     return false;
                 }
 
                 $result = $stmt->execute($params);
 
                 if (!$result) {
-                    Log::channel("db")->error("Failed to execute statement: " . $query);
-                    Log::channel("db")->error("Params: " . json_encode($params));
-                    Log::channel("db")->error("Error: " . json_encode($stmt->errorInfo()));
+                    Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nError:".print_r($stmt->errorInfo(),true)."\nParams:".print_r($params,true));
                     return false;
                 }
 
                 // For INSERT/UPDATE/DELETE, we want to know if it succeeded
-                // rowCount() can be 0 for successful INSERTs in some cases
+                // rowCount() can be 0 for successful insert in some cases
                 return true;
             }
 
             $result = $this->connection->exec($query);
+
+
             if ($result === false) {
-                Log::channel("db")->error("Failed to exec query: " . $query);
-                Log::channel("db")->error("Error: " . json_encode($this->connection->errorInfo()));
+                Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nParams:".print_r($params,true));
             }
 
             return $result !== false;
         } catch (\PDOException $e) {
-            Log::channel("db")->error("PDO Exception: " . $e->getMessage());
-            Log::channel("db")->error("Query: " . $query);
-            Log::channel("db")->error("Params: " . json_encode($params));
+
+            Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nError:".print_r($e->getMessage(),true)."\nParams:".print_r($params,true));
             return false;
         }
     }
@@ -234,7 +233,7 @@ class PDODriver extends DatabaseInterface
 
     public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
-        Log::channel("db")->debug("Select: {$query}");
+        Log::channel("lucent.db")->info("[PDODriver] Executing select: $query");
 
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
@@ -267,6 +266,7 @@ class PDODriver extends DatabaseInterface
             }
         } catch (\Exception $e) {
             $this->connection->rollBack();
+            Log::channel("lucent.db")->error("[PDODriver] Failed to execute transaction: $query\n"."Error:".print_r($e->getMessage(),true));
             throw $e;
         }
         $result = $this->connection->commit();
@@ -288,9 +288,7 @@ class PDODriver extends DatabaseInterface
 
         // Use array_intersect_key to get the original key-value pairs from the source map
         // for only the keys that were not found in the exclude array
-        $resultMap = array_intersect_key($sourceMap, $diffKeys);
-
-        return $resultMap;
+        return array_intersect_key($sourceMap, $diffKeys);
     }
 
     public function closeDriver(): bool
