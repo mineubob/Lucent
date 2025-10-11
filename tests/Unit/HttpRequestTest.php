@@ -6,7 +6,7 @@ use Lucent\Http\Request;
 use Lucent\Http\RouteInfo;
 use PHPUnit\Framework\TestCase;
 
-class RequestTest extends TestCase
+class HttpRequestTest extends TestCase
 {
     private Request $request;
 
