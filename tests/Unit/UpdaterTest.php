@@ -5,6 +5,7 @@ namespace Unit;
 use Exception;
 use Lucent\Commandline\UpdateController;
 use Lucent\Facades\FileSystem;
+use Lucent\Facades\Log;
 use Phar;
 use PHPUnit\Framework\TestCase;
 
@@ -17,7 +18,7 @@ class UpdaterTest extends TestCase
         $buildDir = FileSystem::rootPath()."/packages/";
         $pharPath = $buildDir.'lucent.phar';
 
-        echo $updater->install();
+        Log::channel("phpunit")->info("[UpdaterTest] Running update install:\n    ".$updater->install());
 
         try {
             $phar = new Phar($pharPath);
@@ -54,7 +55,7 @@ class UpdaterTest extends TestCase
         $updater = new UpdateController();
         $buildDir = FileSystem::rootPath()."/packages/";
 
-        echo $updater->rollback();
+        Log::channel("phpunit")->info("[UpdaterTest] Running update rollback:\n    ".$updater->rollback());
 
         $new_version = new Phar($buildDir.'lucent.phar');
         $new_version = $new_version->getMetadata()["version"];
