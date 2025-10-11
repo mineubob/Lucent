@@ -12,7 +12,7 @@ use PDO;
 class PDODriver extends DatabaseInterface
 {
 
-    private PDO $connection;
+    private ?PDO $connection;
 
     public static array $map = [
         "mysql" => [
@@ -203,7 +203,6 @@ class PDODriver extends DatabaseInterface
             }
 
             $result = $this->connection->exec($query);
-
             if ($result === false) {
                 Log::channel("db")->error("Failed to exec query: " . $query);
                 Log::channel("db")->error("Error: " . json_encode($this->connection->errorInfo()));
@@ -292,5 +291,11 @@ class PDODriver extends DatabaseInterface
         $resultMap = array_intersect_key($sourceMap, $diffKeys);
 
         return $resultMap;
+    }
+
+    public function closeDriver(): bool
+    {
+        $this->connection = null;
+        return true;
     }
 }

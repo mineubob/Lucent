@@ -17,7 +17,6 @@ class MigrationController
 
     public function make(string $class): string
     {
-
         if(!file_exists(FileSystem::rootPath().DIRECTORY_SEPARATOR.$class.".php")){
 
             return "Invalid model class name provided, ".FileSystem::rootPath().DIRECTORY_SEPARATOR.$class.".php"." was not found";

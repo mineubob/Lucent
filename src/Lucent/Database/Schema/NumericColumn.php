@@ -7,21 +7,22 @@ class NumericColumn extends Column
     private bool $autoIncrement;
     private bool $unsigned;
 
-    public function __construct($name,$typer,$driver,$table,$castType = null){
-        parent::__construct($name,$typer,$driver,$table,$castType);
+    public function __construct($name, $typer, $driver, $table, $castType = null)
+    {
+        parent::__construct($name, $typer, $driver, $table, $castType);
         $this->autoIncrement = false;
         $this->unsigned = false;
     }
 
-    public function autoIncrement(bool $bool =  true) : NumericColumn
+    public function autoIncrement(): NumericColumn
     {
-        $this->autoIncrement = $bool;
+        $this->autoIncrement = true;
         return $this;
     }
 
-    public function unsigned(bool $bool = true) : NumericColumn
+    public function unsigned(): NumericColumn
     {
-        $this->unsigned = $bool;
+        $this->unsigned = true;
         return $this;
     }
 
@@ -48,9 +49,9 @@ class NumericColumn extends Column
         }
 
         if ($this->autoIncrement) {
-            if($this->driver === "mysql"){
+            if ($this->driver === "mysql") {
                 $ai = ' AUTO_INCREMENT';
-            } else if($this->driver === "sqlite"){
+            } else if ($this->driver === "sqlite") {
                 $ai = ' AUTOINCREMENT';
             }
         }
@@ -60,5 +61,6 @@ class NumericColumn extends Column
             $this->type,
             $this->type . $precision . $unsigned,
             $base
-        ).$ai;
-    }}
+        ) . $ai;
+    }
+}
