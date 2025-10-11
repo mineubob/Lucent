@@ -602,7 +602,12 @@ class Application
      */
     public static function reset(): void
     {
+        $loggers = self::$instance?->loggers ?? [];
         Application::$instance = new Application();
+
+        if (!empty($loggers)) {
+            Application::$instance->loggers = $loggers;
+        }
     }
 
     public function addRegex(string $key, string $pattern, ?string $message = null): void
