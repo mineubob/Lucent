@@ -180,6 +180,10 @@ class Table implements SqlSerializable
 
     public function toSql(bool $ifNotExists = true): string
     {
+        if (count($this->columns) == 0) {
+            throw new \Exception("Cannot create table without columns");
+        }
+
         $columnsSql = implode(', ', array_map(
             fn(SqlSerializable $col) => $col->toSql(),
             $this->columns
