@@ -250,4 +250,8 @@ abstract class Router
         $this->namespace = null;
         $this->defaultController = null;
     }
+
+    public function getRoutes() : array{
+        return $this->routes;
+    }
 }
