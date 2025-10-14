@@ -519,10 +519,29 @@ class Application
 
         CommandLine::register("serve", "start", DevServerController::class);
 
+
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);
         }
+
+        // Explode any arguments that contain colons
+        $expandedArgs = [];
+        foreach ($args as $arg) {
+            if (str_contains($arg, ':')) {
+                // Split on colon and add each part as separate arguments
+                $parts = explode(':', $arg);
+                foreach ($parts as $part) {
+                    if ($part !== '') {
+                        $expandedArgs[] = $part;
+                    }
+                }
+            } else {
+                $expandedArgs[] = $arg;
+            }
+        }
+        $args = $expandedArgs;
+
 
         $processedArgs = $this->processArguments($args);
 

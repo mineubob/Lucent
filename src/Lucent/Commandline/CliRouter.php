@@ -12,6 +12,7 @@ class CliRouter extends Router
      */
     public function registerRoute(string $uri, string $type, string $method, ?string $controller = null, array $middleware = []): void
     {
+        $uri = str_replace(":"," ",$uri);
         $this->routes[$type][$uri] = [
             "controller" => $controller,
             "method" => $method,
