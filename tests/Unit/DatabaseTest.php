@@ -49,7 +49,7 @@ class DatabaseTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_database_connection_explicit($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         // Force a connection and query
         try {
@@ -66,7 +66,7 @@ class DatabaseTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_statement_create_table_success($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         $result = Schema::table("test_users", function ($table) {
             $table->int('id')->autoIncrement()->primaryKey();
@@ -79,7 +79,7 @@ class DatabaseTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_statement_failed_select_all($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         $this->test_statement_create_table_success($driver, $config);
         $query = 'SELECT * FROM test_users';
@@ -104,7 +104,7 @@ class DatabaseTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_singleton_connection_pattern_working($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         // Get the first connection instance
         $instance1 = $this->getPrivateDatabaseInstance();
@@ -199,8 +199,8 @@ class DatabaseTest extends DatabaseDriverSetup
         $this->addToAssertionCount(1); // Count this check as an assertion
 
         Log::channel("phpunit")->debug("[DatabaseTest] Connection times for {$driver}:"
-        ."\n    First connection: ".number_format($firstConnectionTime * 1000, 2) . "ms"
-        ."\n    Second connection: ". number_format($secondConnectionTime * 1000, 2) . "ms");
+            . "\n    First connection: " . number_format($firstConnectionTime * 1000, 2) . "ms"
+            . "\n    Second connection: " . number_format($secondConnectionTime * 1000, 2) . "ms");
     }
 
     private function getPrivateDatabaseInstance(): mixed
@@ -213,11 +213,11 @@ class DatabaseTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_connection_performance($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         Database::reset();
 
-        if($driver === "mysql") {
+        if ($driver === "mysql") {
             $startTime = microtime(true);
             Database::select("SELECT 1");
             $firstQueryTime = microtime(true) - $startTime;

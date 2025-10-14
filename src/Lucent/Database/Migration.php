@@ -50,6 +50,10 @@ class Migration
                         $tableColumn->default($column->default);
                     }
 
+                    if ($column->values !== null && count($column->values) > 0) {
+                        $tableColumn->values($column->values);
+                    }
+
                     if ($column->references !== null) {
                         $tableColumn->references($column->references);
                     }
@@ -130,7 +134,7 @@ class Migration
             }
 
             $pk->autoIncrement = false;
-            $pk->references = $parent->getShortName() . "(" . $pk->name . ")";
+            $pk->references = new \Lucent\Database\Schema\Reference($parent->getShortName(), $pk->name);
 
             // Add primary key to front of columns.
             $columns = array_merge([

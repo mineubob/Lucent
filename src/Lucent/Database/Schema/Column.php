@@ -5,7 +5,6 @@ namespace Lucent\Database\Schema;
 use Lucent\Database;
 use Lucent\Database\Drivers\PDODriver;
 use Lucent\Database\SqlSerializable;
-use Lucent\Facades\Log;
 
 class Column implements SqlSerializable
 {
@@ -17,7 +16,7 @@ class Column implements SqlSerializable
     protected int $length;
     protected bool $primaryKey;
     protected bool $unique;
-    protected ?array $references;
+    protected ?Reference $references;
     protected array $values;
     protected string $driver;
     protected Table $table;
@@ -71,11 +70,9 @@ class Column implements SqlSerializable
         return $this;
     }
 
-    public function references(string $data): self
+    public function references(Reference $references): self
     {
-        $data = explode('(', $data);
-        $this->references = ["table" => $data[0], "column" => substr($data[1], 0, -1)];
-
+        $this->references = $references;
         return $this;
     }
 
@@ -101,7 +98,7 @@ class Column implements SqlSerializable
     //"UNIQUE_KEY_TO" => null,
     public function toSql(): string
     {
-        $length = "";
+        $typePrefix = "";
         $default = "";
         $primaryKey = "";
         $nullable = "";
@@ -113,7 +110,12 @@ class Column implements SqlSerializable
         $normalizedType = strtolower($this->type);
 
         if ($this->driver !== "sqlite" && $this->length > 0 && !in_array($normalizedType, $typesWithoutLength)) {
-            $length = "({$this->length})";
+            $typePrefix = "({$this->length})";
+        }
+
+        if ($this->type === "enum" && count($this->values) > 0) {
+            $enum_variants = implode("', '", $this->values);
+            $typePrefix = "('$enum_variants')";
         }
 
         if ($this->default !== null) {
@@ -145,11 +147,9 @@ class Column implements SqlSerializable
         }
 
         if ($this->references !== null) {
-            $table = $this->references['table'];
-            $column = $this->references['column'];
-            $references = " REFERENCES {$table}({$column})";
+            $references = " REFERENCES {$this->references->table}({$this->references->column})";
         }
 
-        return "`{$this->name}` {$this->type}{$length}{$default}{$primaryKey}{$nullable}{$unique}{$references}";
+        return "`{$this->name}` {$this->type}{$typePrefix}{$default}{$primaryKey}{$nullable}{$unique}{$references}";
     }
 }

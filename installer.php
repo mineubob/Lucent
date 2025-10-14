@@ -174,4 +174,4 @@ if (!downloadLatestLucent()) {
 }
 
 echo "\n✨ Lucent installation completed successfully!\n";
-echo "🌟 To get started, run: cd public; php -S localhost:8080 index.php\n";
+echo "🌟 To get started, run: php cli serve";

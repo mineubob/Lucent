@@ -67,7 +67,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_404(): void
     {
-
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
@@ -88,7 +87,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_500_invalid_controller_method(): void
     {
-
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/three";
@@ -112,7 +110,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_500_invalid_controller(): void
     {
-
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/four";
@@ -136,7 +133,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_route_group(): void
     {
-
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/one/ping";
@@ -204,8 +200,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_model_id_raw($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/99";
@@ -221,9 +217,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id($driver, $config): void
     {
-
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -243,8 +238,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/100";
@@ -259,8 +254,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_with_middleware($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -274,16 +269,6 @@ class RouteGroupTest extends DatabaseDriverSetup
         $decodedResponse = json_decode($response, true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function perform_model_migration($driver, $config): void
-    {
-        self::setupDatabase($driver, $config);
-        ModelTest::generate_test_model();
-
-        $output = CommandLine::execute("Migration make App/Models/TestUser");
-        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     public static function generateTestRestController(): void
@@ -466,7 +451,6 @@ PHP;
             $modelPath . DIRECTORY_SEPARATOR . 'UserController.php',
             $modelContent
         );
-
     }
 
     private static function generate_test_middleware(): void
@@ -507,12 +491,10 @@ PHP;
             $middlewarePath . DIRECTORY_SEPARATOR . 'AuthMiddleware.php',
             $middlewareContent
         );
-
     }
 
     private static function generateRoutesFile(): void
     {
-
         $routesContent = <<<'PHP'
 <?php
     use App\Controllers\RouteGroupTestingController;
@@ -552,6 +534,5 @@ PHP;
         }
 
         file_put_contents($routesPath . '/web.php', $routesContent);
-
     }
 }
