@@ -17,7 +17,7 @@ const LUCENT_DB_DEFAULT_CURRENT_TIMESTAMP = 'CURRENT_TIMESTAMP';
 const LUCENT_DB_FLOAT = "float";
 const LUCENT_DB_DOUBLE = "double";
 const LUCENT_DB_BOOLEAN = "boolean";
-const LUCENT_DB_CHAR = "bar";
+const LUCENT_DB_CHAR = "char";
 const LUCENT_DB_LONGTEXT = "longtext";
 const LUCENT_DB_MEDIUMTEXT = "mediumtext";
 
