@@ -100,6 +100,21 @@ class ConsoleCommandTest extends TestCase
 
     }
 
+    public function test_command_help_page() : void
+    {
+        ob_start();
+        CommandLine::execute("");
+        $result = ob_get_clean();
+
+        $this->assertStringContainsString("Available commands:", $result);
+        $this->assertStringContainsString("Migration make {class}", $result);
+        $this->assertStringContainsString("update check", $result);
+        $this->assertStringContainsString("update rollback", $result);
+        $this->assertStringContainsString("update install", $result);
+        $this->assertStringContainsString("generate api-docs", $result);
+        $this->assertStringContainsString("serve", $result);
+    }
+
     public static function generateTestConsoleCommand(): void
     {
         $commandContent = <<<'PHP'
