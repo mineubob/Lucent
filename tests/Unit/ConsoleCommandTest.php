@@ -90,6 +90,29 @@ class ConsoleCommandTest extends TestCase
         $this->assertEquals("No backup versions found to roll back to.", $output);
     }
 
+    public function test_command_call_with_semi_column() : void
+    {
+        CommandLine::register("test:run", "run", TestCommand::class);
+
+        $result = CommandLine::execute("test:run");
+
+        $this->assertEquals("Test command successfully run", $result);
+
+    }
+
+    public function test_command_help_page() : void
+    {
+        $result = CommandLine::execute("");
+
+        $this->assertStringContainsString("Available commands:", $result);
+        $this->assertStringContainsString("Migration make {class}", $result);
+        $this->assertStringContainsString("update check", $result);
+        $this->assertStringContainsString("update rollback", $result);
+        $this->assertStringContainsString("update install", $result);
+        $this->assertStringContainsString("generate api-docs", $result);
+        $this->assertStringContainsString("serve", $result);
+    }
+
     public static function generateTestConsoleCommand(): void
     {
         $commandContent = <<<'PHP'

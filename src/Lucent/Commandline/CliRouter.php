@@ -10,12 +10,14 @@ class CliRouter extends Router
     /**
      * Register a new route with optional controller and middleware
      */
-    public function registerRoute(string $uri, string $type, string $method, ?string $controller = null, array $middleware = []): void
+    public function registerRoute(string $uri, string $type, string $method, ?string $controller = null, array $middleware = [], ?string $description = null): void
     {
+        $uri = str_replace(":"," ",$uri);
         $this->routes[$type][$uri] = [
             "controller" => $controller,
             "method" => $method,
-            "middleware" => array_merge($this->middleware, $middleware)
+            "middleware" => array_merge($this->middleware, $middleware),
+            "description" => $description
         ];
     }
 

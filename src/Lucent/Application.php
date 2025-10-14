@@ -509,20 +509,66 @@ class Application
 
         $this->boot();
 
-        CommandLine::register("Migration make {class}", "make", MigrationController::class);
+        CommandLine::register("Migration make {class}", "make", MigrationController::class,"Generates a database table from the model class.");
 
-        CommandLine::register("update check", "check", UpdateController::class);
-        CommandLine::register("update install", "install", UpdateController::class);
-        CommandLine::register("update rollback", "rollback", UpdateController::class);
+        CommandLine::register("update check", "check", UpdateController::class,"Checks for a lucent update");
+        CommandLine::register("update install", "install", UpdateController::class,"Updated the app to the latest lucent version");
+        CommandLine::register("update rollback", "rollback", UpdateController::class,"Performs a rollback to the previous lucent version");
 
-        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
+        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class,"Generates API documentation based on your controller attributes");
 
-        CommandLine::register("serve", "start", DevServerController::class);
+        CommandLine::register("serve", "start", DevServerController::class,"Start the built-in PHP development server");
+
 
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);
         }
+
+        // Explode any arguments that contain colons
+        $expandedArgs = [];
+        foreach ($args as $arg) {
+            if (str_contains($arg, ':')) {
+                // Split on colon and add each part as separate arguments
+                $parts = explode(':', $arg);
+                foreach ($parts as $part) {
+                    if ($part !== '') {
+                        $expandedArgs[] = $part;
+                    }
+                }
+            } else {
+                $expandedArgs[] = $arg;
+            }
+        }
+        $args = $expandedArgs;
+
+
+        if(count($args) === 1 && $args[0] === "") {
+            $commands = $this->consoleRouter->getRoutes()["CLI"];
+            $output =  "\nAvailable commands:\n\n";
+
+            // Calculate max command length for alignment
+            $maxLength = 0;
+            foreach ($commands as $route => $command) {
+                $maxLength = max($maxLength, strlen($route));
+            }
+
+            foreach ($commands as $route => $command) {
+                $description = $command["description"] ?? '';
+
+                $output .= "  \033[1m" . str_pad($route, $maxLength + 4) . "\033[0m";
+
+                if ($description) {
+                    $output .= $description;
+                }
+
+                $output .=  "\n";
+            }
+
+            $output .=  "\n";
+            return $output;
+        }
+
 
         $processedArgs = $this->processArguments($args);
 

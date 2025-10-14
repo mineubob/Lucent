@@ -14,10 +14,10 @@ use Lucent\Router;
 class CommandLine
 {
 
-    public static function register(string $command, string $method, $class): void
+    public static function register(string $command, string $method, $class, ?string $description = null): void
     {
 
-        Application::getInstance()->consoleRouter->registerRoute($command,CliRouter::$ROUTE_CLI,$method,$class);
+        Application::getInstance()->consoleRouter->registerRoute($command,CliRouter::$ROUTE_CLI,$method,$class, [],$description);
 
     }
 
