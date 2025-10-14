@@ -101,7 +101,7 @@ class Column implements SqlSerializable
     //"UNIQUE_KEY_TO" => null,
     public function toSql(): string
     {
-        $length = "";
+        $typePrefix = "";
         $default = "";
         $primaryKey = "";
         $nullable = "";
@@ -113,7 +113,12 @@ class Column implements SqlSerializable
         $normalizedType = strtolower($this->type);
 
         if ($this->driver !== "sqlite" && $this->length > 0 && !in_array($normalizedType, $typesWithoutLength)) {
-            $length = "({$this->length})";
+            $typePrefix = "({$this->length})";
+        }
+
+        if ($this->type === "enum" && count($this->values) > 0) {
+            $enum_variants = implode("', '", $this->values);
+            $typePrefix = "('$enum_variants')";
         }
 
         if ($this->default !== null) {
@@ -150,6 +155,6 @@ class Column implements SqlSerializable
             $references = " REFERENCES {$table}({$column})";
         }
 
-        return "`{$this->name}` {$this->type}{$length}{$default}{$primaryKey}{$nullable}{$unique}{$references}";
+        return "`{$this->name}` {$this->type}{$typePrefix}{$default}{$primaryKey}{$nullable}{$unique}{$references}";
     }
 }
