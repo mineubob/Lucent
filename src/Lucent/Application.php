@@ -509,15 +509,15 @@ class Application
 
         $this->boot();
 
-        CommandLine::register("Migration make {class}", "make", MigrationController::class);
+        CommandLine::register("Migration make {class}", "make", MigrationController::class,"Generates a database table from the model class.");
 
-        CommandLine::register("update check", "check", UpdateController::class);
-        CommandLine::register("update install", "install", UpdateController::class);
-        CommandLine::register("update rollback", "rollback", UpdateController::class);
+        CommandLine::register("update check", "check", UpdateController::class,"Checks for a lucent update");
+        CommandLine::register("update install", "install", UpdateController::class,"Updated the app to the latest lucent version");
+        CommandLine::register("update rollback", "rollback", UpdateController::class,"Performs a rollback to the previous lucent version");
 
-        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class);
+        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class,"Generates API documentation based on your controller attributes");
 
-        CommandLine::register("serve", "start", DevServerController::class);
+        CommandLine::register("serve", "start", DevServerController::class,"Start the built-in PHP development server");
 
 
         if ($args === []) {
@@ -541,6 +541,34 @@ class Application
             }
         }
         $args = $expandedArgs;
+
+
+        if(count($args) === 1 && $args[0] === "") {
+            $commands = $this->consoleRouter->getRoutes()["CLI"];
+
+            echo "\nAvailable commands:\n\n";
+
+            // Calculate max command length for alignment
+            $maxLength = 0;
+            foreach ($commands as $route => $command) {
+                $maxLength = max($maxLength, strlen($route));
+            }
+
+            foreach ($commands as $route => $command) {
+                $description = $command["description"] ?? '';
+
+                echo "  \033[1m" . str_pad($route, $maxLength + 4) . "\033[0m";
+
+                if ($description) {
+                    echo $description;
+                }
+
+                echo "\n";
+            }
+
+            echo "\n";
+            return "";
+        }
 
 
         $processedArgs = $this->processArguments($args);
