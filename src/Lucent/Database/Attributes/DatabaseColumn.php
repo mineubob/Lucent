@@ -12,7 +12,7 @@ class DatabaseColumn
 
     public function __construct(array $properties)
     {
-        @trigger_error(
+        trigger_error(
             sprintf('%s is deprecated. Use %s instead.', self::class, \Lucent\Model\Column::class),
             E_USER_DEPRECATED
         );
