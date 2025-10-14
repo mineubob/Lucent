@@ -134,7 +134,7 @@ class Migration
             }
 
             $pk->autoIncrement = false;
-            $pk->references = $parent->getShortName() . "(" . $pk->name . ")";
+            $pk->references = new \Lucent\Database\Schema\Reference($parent->getShortName(), $pk->name);
 
             // Add primary key to front of columns.
             $columns = array_merge([
