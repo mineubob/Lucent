@@ -12,7 +12,7 @@ class Reference
 
     /**
      * Converts a string to Reference.
-     * @param class-string|string $potentialReference
+     * @param class-string<\Lucent\Model\Model>|string $potentialReference
      * @return Reference
      */
     public static function fromString(string $potentialReference): self
@@ -26,7 +26,7 @@ class Reference
         }
 
         $refClass = new ReflectionClass($potentialReference);
-        if (!$refClass->implementsInterface(\Lucent\Model\Model::class)) {
+        if (!$refClass->isSubclassOf(\Lucent\Model\Model::class)) {
             throw new \InvalidArgumentException("$potentialReference is not a model");
         }
 
