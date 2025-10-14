@@ -31,6 +31,6 @@ class Reference
         }
 
         $pk = \Lucent\Model\Model::getDatabasePrimaryKey($refClass);
-        return new self($refClass->getName(), $pk->name);
+        return new self($refClass->getShortName(), $pk->name);
     }
 }

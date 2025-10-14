@@ -9,7 +9,7 @@ use ReflectionProperty;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 class Column
 {
-    public private(set) ?Reference $references;
+    public ?Reference $references;
 
     public private(set) ?string $classPropertyName;
 
