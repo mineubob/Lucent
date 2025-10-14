@@ -3,6 +3,7 @@
 namespace Unit;
 
 use Lucent\Database;
+use Lucent\Database\Migration;
 use Lucent\Facades\Log;
 use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
@@ -15,10 +16,11 @@ class DatabaseDriverSetup extends TestCase
      * Setup the database for tests.
      * @param string $driver
      * @param array $config
+     * @param array<class-string<\Lucent\Model\Model>> $models
      * @throws \Exception
      * @return void
      */
-    protected static function setupDatabase(string $driver, array $config): void
+    protected static function setupDatabase(string $driver, array $config, array $models): void
     {
         $storage = new Folder("/storage");
 
@@ -59,5 +61,24 @@ class DatabaseDriverSetup extends TestCase
         });
 
         Log::channel("phpunit")->info("[DatabaseDriverSetup] Switched driver to " . $driver);
+
+        $model_num = count($models);
+        if ($model_num < 1) {
+            return;
+        }
+
+        $migrator = new Migration();
+
+        foreach ($models as $model) {
+            if (!class_exists($model)) {
+                throw new \Exception("Model {$model} does not exist.");
+            }
+
+            if (!$migrator->make($model)) {
+                throw new \Exception("Failed to migrate model {$model}");
+            }
+        }
+
+        Log::channel("phpunit")->info("[DatabaseDriverSetup] Migrated {$model_num} models");
     }
 }
