@@ -11,6 +11,13 @@ use Lucent\Application;
 
 class DatabaseDriverSetup extends TestCase
 {
+    /**
+     * Setup the database for tests.
+     * @param string $driver
+     * @param array $config
+     * @throws \Exception
+     * @return void
+     */
     protected static function setupDatabase(string $driver, array $config): void
     {
         $storage = new Folder("/storage");
