@@ -102,9 +102,7 @@ class ConsoleCommandTest extends TestCase
 
     public function test_command_help_page() : void
     {
-        ob_start();
-        CommandLine::execute("");
-        $result = ob_get_clean();
+        $result = CommandLine::execute("");
 
         $this->assertStringContainsString("Available commands:", $result);
         $this->assertStringContainsString("Migration make {class}", $result);

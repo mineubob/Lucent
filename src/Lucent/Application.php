@@ -545,8 +545,7 @@ class Application
 
         if(count($args) === 1 && $args[0] === "") {
             $commands = $this->consoleRouter->getRoutes()["CLI"];
-
-            echo "\nAvailable commands:\n\n";
+            $output =  "\nAvailable commands:\n\n";
 
             // Calculate max command length for alignment
             $maxLength = 0;
@@ -557,17 +556,17 @@ class Application
             foreach ($commands as $route => $command) {
                 $description = $command["description"] ?? '';
 
-                echo "  \033[1m" . str_pad($route, $maxLength + 4) . "\033[0m";
+                $output .= "  \033[1m" . str_pad($route, $maxLength + 4) . "\033[0m";
 
                 if ($description) {
-                    echo $description;
+                    $output .= $description;
                 }
 
-                echo "\n";
+                $output .=  "\n";
             }
 
-            echo "\n";
-            return "";
+            $output .=  "\n";
+            return $output;
         }
 
 
