@@ -12,7 +12,7 @@ class Reference
 
     /**
      * Converts a string to Reference.
-     * @param class-string|string $potentialReference
+     * @param class-string<\Lucent\Model\Model>|string $potentialReference
      * @return Reference
      */
     public static function fromString(string $potentialReference): self
