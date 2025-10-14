@@ -64,6 +64,7 @@ class DatabaseDriverSetup extends TestCase
 
         $model_num = count($models);
         if ($model_num < 1) {
+            Log::channel("phpunit")->info("[DatabaseDriverSetup] No models provided for migration.");
             return;
         }
 
