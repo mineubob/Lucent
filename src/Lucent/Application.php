@@ -542,8 +542,7 @@ class Application
         }
         $args = $expandedArgs;
 
-
-        if(count($args) === 1 && $args[0] === "") {
+        if((count($args) === 1 && $args[0] === "") || count($args) === 0) {
             $commands = $this->consoleRouter->getRoutes()["CLI"];
             $output =  "\nAvailable commands:\n\n";
 
