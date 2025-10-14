@@ -13,7 +13,7 @@ class DatabaseColumn
     public function __construct(array $properties)
     {
         @trigger_error(
-            sprintf('%s is deprecated. Use Lucent\\ModelColumn instead.', __CLASS__),
+            sprintf('%s is deprecated. Use %s instead.', self::class, \Lucent\Model\Column::class),
             E_USER_DEPRECATED
         );
 
@@ -81,11 +81,6 @@ class DatabaseColumn
             return null;
         }
 
-        $instance = $attributes[0]->newInstance();
-        if ($instance->name == null) {
-            $instance->name = $property->getName();
-        }
-
-        return $instance;
+        return $attributes[0]->newInstance();
     }
 }
