@@ -17,7 +17,7 @@ enum ColumnType: string
     case FLOAT = "float";
     case DOUBLE = "double";
     case BOOLEAN = "boolean";
-    case CHAR = "bar";
+    case CHAR = "char";
     case LONGTEXT = "longtext";
     case MEDIUMTEXT = "mediumtext";
     case BIGINT = "bigint";
