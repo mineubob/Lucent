@@ -26,7 +26,7 @@ class Reference
         }
 
         $refClass = new ReflectionClass($potentialReference);
-        if (!$refClass->implementsInterface(\Lucent\Model\Model::class)) {
+        if (!$refClass->isSubclassOf(\Lucent\Model\Model::class)) {
             throw new \InvalidArgumentException("$potentialReference is not a model");
         }
 
