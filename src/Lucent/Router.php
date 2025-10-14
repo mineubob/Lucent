@@ -153,7 +153,10 @@ abstract class Router
             }
         }
 
-        Log::channel('lucent.routing')->warning("[Router] No routing match found for: \n    Http Method:" . $requestMethod."\n    Http URI:" .$_SERVER["REQUEST_URI"]);
+        Log::channel('lucent.routing')->warning(
+            "[Router] No routing match found for: \n    Http Method:" .
+            $requestMethod . "\n    Http URI:" . ($_SERVER["REQUEST_URI"] ?? 'CLI: ' . implode(' ', $route))
+        );
 
         return [
             "route" => null,
