@@ -165,7 +165,8 @@ class SqlHighlighter implements Highlighter
         'BOOLEAN',
         'BOOL',
         'JSON',
-        'UUID'
+        'UUID',
+        'ENUM'
     ];
 
     /**
