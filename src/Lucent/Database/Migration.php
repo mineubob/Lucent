@@ -50,6 +50,10 @@ class Migration
                         $tableColumn->default($column->default);
                     }
 
+                    if ($column->values !== null && count($column->values) > 0) {
+                        $tableColumn->values($column->values);
+                    }
+
                     if ($column->references !== null) {
                         $tableColumn->references($column->references);
                     }

@@ -38,28 +38,28 @@ class Column
         public ?bool $autoIncrement = null,
         public ?bool $unsigned = null
     ) {
-        $validationError = $this->validateColumn();
-        if ($validationError !== null) {
-            throw $validationError;
-        }
+        $this->validateColumn();
     }
 
-    private function validateColumn(): ?\Exception
+    private function validateColumn(): void
     {
         if ($this->type == null || !($this->type instanceof ColumnType)) {
-            return new \InvalidArgumentException("Invalid type provided");
+            throw new \InvalidArgumentException("Invalid type provided");
         }
 
         $type_name = $this->type->name;
         switch ($this->type) {
             case ColumnType::VARCHAR:
                 if ($this->length === null) {
-                    return new \InvalidArgumentException("$type_name must have a length.");
+                    throw new \InvalidArgumentException("$type_name must have a length.");
+                }
+                break;
+            case ColumnType::ENUM:
+                if ($this->values === null || count($this->values) < 1) {
+                    throw new \InvalidArgumentException("$type_name must have at least one value.");
                 }
                 break;
         }
-
-        return null;
     }
 
     public static function fromProperty(ReflectionProperty $property): ?self

@@ -153,7 +153,10 @@ class SqlHighlighter implements Highlighter
         'DOUBLE',
         'CHAR',
         'VARCHAR',
+        'BINARY',
         'TEXT',
+        'MEDIUMTEXT',
+        'LONGTEXT',
         'BLOB',
         'DATE',
         'TIME',
@@ -162,7 +165,8 @@ class SqlHighlighter implements Highlighter
         'BOOLEAN',
         'BOOL',
         'JSON',
-        'UUID'
+        'UUID',
+        'ENUM'
     ];
 
     /**
