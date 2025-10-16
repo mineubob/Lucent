@@ -2,11 +2,12 @@
 
 namespace Unit;
 
+use Exception;
 use Lucent\Application;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
-use Lucent\Facades\Log;
+use Lucent\Filesystem\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -78,7 +79,7 @@ class RouteGroupTest extends DatabaseDriverSetup
                 $this->fail("Response is null or undefined.");
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail($e->getMessage());
         }
 
@@ -105,7 +106,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -129,7 +130,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -153,7 +154,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("pong", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
 
@@ -172,7 +173,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from test 2", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -196,7 +197,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from five", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -204,8 +205,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_model_id_raw($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/99";
@@ -221,9 +222,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id($driver, $config): void
     {
-
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -243,8 +243,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/100";
@@ -259,8 +259,8 @@ class RouteGroupTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_with_middleware($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->perform_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -553,5 +553,56 @@ PHP;
 
         file_put_contents($routesPath . '/web.php', $routesContent);
 
+    }
+
+
+    public static function generate_stream_routes() : file
+    {
+
+        $routesContent = <<<'PHP'
+<?php
+    use Lucent\Facades\Route;
+    use App\Controllers\StreamTestController;
+    
+    Route::stream()
+        ->group("test")
+        ->event("/stream/10seconds",StreamTestController::class);
+
+PHP;
+
+        return new File("/routes/stream.php", $routesContent);
+    }
+
+
+    public static function generate_event_stream_controller() : File
+    {
+        $controllerContent = <<<'PHP'
+<?php
+
+namespace App\Controllers;
+
+use Lucent\Http\StreamController;
+use Lucent\Http\EventStream\Event;
+use Generator;
+
+class StreamTestController extends StreamController {
+
+    protected function stream() : Generator{
+        
+     for ($i = 1; $i <= 10; $i++) {
+            yield Event::data('number', ['value' => $i]);
+            
+            sleep(1);
+        }
+        
+        // Send completion
+        yield Event::complete(['total' => 10]);
+    }   
+
+}
+    
+PHP;
+
+        return new File("/App/Controllers/StreamTestController.php", $controllerContent);
     }
 }

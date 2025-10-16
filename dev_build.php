@@ -43,7 +43,12 @@ if (file_exists($originalPharFile)) {
 
     checkAndLoadEnviromentTestingVariables(__DIR__ . "/mysql-config.php");
 
-    require_once $newPharFile;
+
+    if (getenv('XDEBUG_MODE') === 'coverage') {
+        require_once $newPharFile;
+    }else{
+        require_once __DIR__.DIRECTORY_SEPARATOR."src".DIRECTORY_SEPARATOR."boostrap.php";
+    }
 
     $app = Application::getInstance();
 

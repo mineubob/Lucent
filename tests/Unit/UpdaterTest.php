@@ -52,15 +52,25 @@ class UpdaterTest extends TestCase
 
     public function test_update_rollback(): void
     {
+        $pharPath = RUNNING_LOCATION . 'packages' . DIRECTORY_SEPARATOR . 'lucent.phar';
+
+        // Get original file hash
+        $originalHash = md5_file($pharPath);
+
         $updater = new UpdateController();
-        $buildDir = FileSystem::rootPath()."/packages/";
 
-        Log::channel("phpunit")->info("[UpdaterTest] Running update rollback:\n    ".$updater->rollback());
+        // Install update
+        $output = $updater->install();
+        $this->assertStringContainsString('Successfully updated', $output);
 
-        $new_version = new Phar($buildDir.'lucent.phar');
-        $new_version = $new_version->getMetadata()["version"];
+        // Rollback
+        $output = $updater->rollback();
+        $this->assertStringContainsString('Rolled back successfully', $output);
 
-        self::assertTrue(str_contains($new_version, 'local'));
+        // Verify file was restored
+        clearstatcache(true);
+        $rolledBackHash = md5_file($pharPath);
+        $this->assertEquals($originalHash, $rolledBackHash, "File should be restored after rollback");
     }
 
     public function test_update_check() : void

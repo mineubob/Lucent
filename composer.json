@@ -5,6 +5,7 @@
   "require": {
     "ext-curl": "*",
     "ext-mysqli": "*",
-    "ext-pdo": "*"
+    "ext-pdo": "*",
+    "ext-fileinfo": "*"
   }
 }

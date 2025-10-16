@@ -2,59 +2,69 @@
 
 use Lucent\Facades\FileSystem;
 
-define("ROOT", Phar::running() . "/");
-
 $pharPath = Phar::running(false);
-$runningLocation = dirname($pharPath, 2);
+$pharActive = !empty($pharPath);
 
-define("RUNNING_LOCATION", $runningLocation . DIRECTORY_SEPARATOR);
-const LUCENT = ROOT . "Lucent" . DIRECTORY_SEPARATOR;
+// Load framework from .phar (PRODUCTION) or source (DEVELOPMENT/TESTS)
+if ($pharActive) {
+    define("ROOT", Phar::running() . DIRECTORY_SEPARATOR);
+    $runningLocation = dirname($pharPath, 2) . DIRECTORY_SEPARATOR;
+    $phar = new Phar($pharPath);
+    $metadata = $phar->getMetadata();
+    define("VERSION", $metadata['version'] ?? 'unknown');
+} else {
+    define("ROOT", __DIR__ . DIRECTORY_SEPARATOR);
+    $runningLocation = dirname(__DIR__) . DIRECTORY_SEPARATOR . "temp_install" . DIRECTORY_SEPARATOR;
+    define("VERSION", 'v0.' . date('ymd') . '.local');
+}
 
+// Define constants
+define("RUNNING_LOCATION", $runningLocation);
+define("LUCENT", ROOT . "Lucent" . DIRECTORY_SEPARATOR);
+
+// Set file system root
 require_once LUCENT . "Facades" . DIRECTORY_SEPARATOR . "FileSystem.php";
-
 FileSystem::overrideRootPath(RUNNING_LOCATION);
 
-define("PACKAGES_ROOT", FileSystem::rootPath() . 'packages' . DIRECTORY_SEPARATOR);
+define("PACKAGES_ROOT", FileSystem::rootPath() . "packages" . DIRECTORY_SEPARATOR);
+define("APP", FileSystem::rootPath() . "App" . DIRECTORY_SEPARATOR);
 
-// Check for Composer's autoloader in packages directory
+// Include Composer autoloader if available
 $composerAutoloader = PACKAGES_ROOT . 'vendor' . DIRECTORY_SEPARATOR . 'autoload.php';
-
 if (file_exists($composerAutoloader)) {
     require_once $composerAutoloader;
 }
 
-define("APP", FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'App' . DIRECTORY_SEPARATOR);
-define("CONTROLLERS", FileSystem::rootPath() . DIRECTORY_SEPARATOR . "App" . DIRECTORY_SEPARATOR . 'Controllers' . DIRECTORY_SEPARATOR);
+// Import database constants
+require_once LUCENT . "Database" . DIRECTORY_SEPARATOR . "constants.php";
 
-$modules = [LUCENT, FileSystem::rootPath()];
-
-set_include_path(get_include_path() . PATH_SEPARATOR . implode(PATH_SEPARATOR, $modules));
-
-spl_autoload_register(function ($class) {
-    // Convert namespace to path
-    $file = str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
-
-    $pharPath = Phar::running(false);
-
-    if (str_starts_with($file, 'Lucent')) {
-        $basePath = $pharPath ? "phar://$pharPath" : __DIR__;
+// Register PSR-0 autoloader
+spl_autoload_register(function ($class) use ($pharActive, $pharPath) {
+    // Determine base path based on namespace
+    if (str_starts_with($class, 'Lucent\\')) {
+        $basePath = $pharActive ? "phar://$pharPath" : __DIR__;
     } else {
         $basePath = FileSystem::rootPath();
     }
 
-    // Full path to target file
+    // Convert namespace to file path
+    $file = str_replace('\\', DIRECTORY_SEPARATOR, $class) . '.php';
     $fullPath = rtrim($basePath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
 
+    // Attempt to load the file
     if (file_exists($fullPath)) {
         require_once $fullPath;
         return true;
     }
 
-    error_log("File not found at: " . $fullPath);
+    // Log error in development only
+    if (!$pharActive) {
+        error_log("Autoloader: File not found at: " . $fullPath);
+    }
+
     return false;
 });
 
-require_once ROOT . "Lucent" . DIRECTORY_SEPARATOR . "Database" . DIRECTORY_SEPARATOR . "constants.php";
-
+// Class aliases for backwards compatibility
 class_alias('Lucent\Model\Model', 'Lucent\Model');
 class_alias('Lucent\Model\Collection', 'Lucent\ModelCollection');

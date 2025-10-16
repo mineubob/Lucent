@@ -55,9 +55,9 @@ jobs:
           mkdir -p temp_install/storage/documentation
           chmod -R 755 temp_install
 
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
-          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml --no-progress
+          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml --no-progress --coverage-html coverage-report --coverage-clover coverage.xml
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
           DB_DRIVER: mysql
@@ -66,6 +66,13 @@ jobs:
           DB_NAME: test_database
           DB_USER: root
           DB_PASSWORD: testpassword
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report/
+          retention-days: 30
 
   build-and-release:
     needs: test  # This ensures tests must pass before building
@@ -104,3 +111,31 @@ jobs:
         with:
           files: lucent.phar
           tag_name: ${{ steps.version.outputs.version }}
+
+  deploy-coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'coverage-report'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

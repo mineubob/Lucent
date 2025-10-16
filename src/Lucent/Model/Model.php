@@ -342,6 +342,9 @@ class Model
     public static function getDatabasePrimaryKey(ReflectionClass $reflection): Column
     {
         foreach ($reflection->getProperties() as $property) {
+            if ($property->getDeclaringClass()->getName() !== $reflection->getName())
+                continue;
+
             $dbColumn = Column::fromProperty($property);
             if ($dbColumn !== null && $dbColumn->primaryKey === true) {
                 return $dbColumn;

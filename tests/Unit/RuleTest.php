@@ -2,11 +2,8 @@
 
 namespace Unit;
 
-use App\Models\TestUser;
 use Lucent\Application;
-use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
-use Lucent\Facades\FileSystem;
 use Lucent\Facades\Regex;
 use Lucent\Validation\Rule;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -455,8 +452,8 @@ class RuleTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_unique_passing($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $request = Faker::request();
         $request->setInput("email", "unique-test@email.com");
@@ -471,10 +468,10 @@ class RuleTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_unique_failing($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $user = new TestUser("unique-test@email.com", "password", "John Doe");
+        $user = new \App\Models\TestUser("unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -491,10 +488,10 @@ class RuleTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_not_unique_passing($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $user = new TestUser("not-unique-test@email.com", "password", "John Doe");
+        $user = new \App\Models\TestUser("not-unique-test@email.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
 
@@ -511,8 +508,8 @@ class RuleTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_not_unique_failing($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration($driver, $config);
+        $this->assertTrue(ModelTest::generate_test_model()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $request = Faker::request();
         $request->setInput("email", "not-unique-test@email.com");
@@ -522,16 +519,6 @@ class RuleTest extends DatabaseDriverSetup
         $this->assertFalse($request->validate([
             "email" => ["!unique:TestUser"]
         ]));
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_model_migration($driver, $config): void
-    {
-        self::setupDatabase($driver, $config);
-        self::generate_test_model();
-
-        $output = CommandLine::execute("Migration make App/Models/TestUser");
-        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     public function test_nullable_passing(): void
@@ -656,81 +643,4 @@ class RuleTest extends DatabaseDriverSetup
             "first_name" => ["min:10", "max:255", "nullable"],
         ]));
     }
-
-    private static function generate_test_model(): void
-    {
-        $modelContent = <<<'PHP'
-<?php
-
-namespace App\Models;
-
-use Lucent\Database\Attributes\DatabaseColumn;
-use Lucent\Model;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-
-class TestUser extends Model
-{
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
-    public private(set) ?int $id;
-
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
-    protected string $email;
-
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
-    protected string $password_hash;
-
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false,
-        "LENGTH" => 100
-    ])]
-    protected string $full_name;
-
-    public function __construct(string $email, string $password_hash, string $full_name)
-    {
-        $this->email = $email;
-        $this->password_hash = $password_hash;
-        $this->full_name = $full_name;
-    }
-
-    public function getFullName(): string
-    {
-        return $this->full_name;
-    }
-
-    public function setFullName(string $full_name)
-    {
-        $this->full_name = $full_name;
-    }
-
-    public function getId(): int
-    {
-        return $this->id;
-    }
-}
-PHP;
-
-
-        $appPath = FileSystem::rootPath() . "/App";
-        $modelPath = $appPath . DIRECTORY_SEPARATOR . "Models";
-
-        if (!is_dir($modelPath)) {
-            mkdir($modelPath, 0755, true);
-        }
-
-        file_put_contents(
-            $modelPath . DIRECTORY_SEPARATOR . 'TestUser.php',
-            $modelContent
-        );
-
-    }
-
-
 }
