@@ -30,7 +30,7 @@ You can install Lucent using our installer script:
 
 1. Download the installer:
    ```bash
-   wget https://github.com/jackharrispeninsulainteractive/Lucent/raw/main/installer.php
+   wget https://github.com/blueprintau/Lucent/raw/main/installer.php
    ```
 
 2. Run the installer:
