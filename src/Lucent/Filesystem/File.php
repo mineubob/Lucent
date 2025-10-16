@@ -154,4 +154,29 @@ class File extends FileSystemObject
     {
         return file_get_contents($this->path);
     }
+
+    /**
+     * Gets the file extension
+     *
+     * @return string The file extension
+     */
+    public function getExtension(): string
+    {
+        $extension = pathinfo($this->path, PATHINFO_EXTENSION);
+        return $extension ? '.' . $extension : '';
+    }
+
+    /**
+     * Gets the file mime-type
+     *
+     * @return string The file mime-type
+     */
+    public function getMimeType(): string
+    {
+        if (!file_exists($this->path)) {
+            return 'application/octet-stream';
+        }
+
+        return mime_content_type($this->path) ?: 'application/octet-stream';
+    }
 }

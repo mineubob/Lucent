@@ -7,11 +7,9 @@ use Lucent\Router;
 abstract class RouteGroup
 {
     protected string $name;
-    protected ?string $prefix = null;
     protected array $middleware = [];
     protected Router $router;
 
-    protected string $defaultControllerClass;
 
     public function __construct(string $name, Router $router)
     {
@@ -19,22 +17,9 @@ abstract class RouteGroup
         $this->router = $router;
     }
 
-    public function prefix(string $prefix): self
-    {
-        $this->prefix = $prefix;
-        return $this;
-    }
-
     public function middleware(array $middleware): self
     {
         $this->middleware = $middleware;
-        return $this;
-    }
-
-
-    public function defaultController(string $class): self
-    {
-        $this->defaultControllerClass = $class;
         return $this;
     }
 
@@ -45,9 +30,6 @@ abstract class RouteGroup
         return $this;
     }
 
-    protected function buildPath(string $path): string
-    {
-        return $this->prefix ? $this->prefix . '/' . ltrim($path, '/') : $path;
-    }
+    abstract protected function buildPath(string $path): string;
 
 }
