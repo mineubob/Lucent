@@ -165,4 +165,18 @@ class File extends FileSystemObject
         $extension = pathinfo($this->path, PATHINFO_EXTENSION);
         return $extension ? '.' . $extension : '';
     }
+
+    /**
+     * Gets the file mime-type
+     *
+     * @return string The file mime-type
+     */
+    public function getMimeType(): string
+    {
+        if (!file_exists($this->path)) {
+            return 'application/octet-stream';
+        }
+
+        return mime_content_type($this->path) ?: 'application/octet-stream';
+    }
 }
