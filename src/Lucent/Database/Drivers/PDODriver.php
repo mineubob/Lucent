@@ -264,7 +264,7 @@ class PDODriver extends DatabaseInterface
             }
         } catch (\Exception $e) {
             $this->connection->rollBack();
-            Log::channel("lucent.db")->error("[PDODriver] Failed to execute transaction: $query\n"."Error:".print_r($e->getMessage(),true));
+            Log::channel("lucent.db")->error("[PDODriver] Failed to execute transaction\n"."Error:".print_r($e->getMessage(),true));
             throw $e;
         }
         $result = $this->connection->commit();

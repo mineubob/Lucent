@@ -40,9 +40,9 @@ You can install Lucent using our installer script:
 
 3. Start the development server:
    ```bash
-   cd public
-   php -S localhost:8080 index.php
+   php cli serve
    ```
+You can pass an optional port to use by adding --port=9000 to the end.
 
 ### Updating Lucent
 

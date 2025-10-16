@@ -57,7 +57,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_migration($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         $output = CommandLine::execute("Migration make App/Models/TestUser");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -66,9 +66,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_creation($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -80,9 +78,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_updating($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -113,7 +109,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_migration($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         $output = CommandLine::execute("Migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -122,9 +118,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_creation($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_extended_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\Admin::class]);
 
         $adminUser = new \App\Models\Admin("john@doe.com", "password", "John Doe", false, true);
 
@@ -139,9 +133,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_counts($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_extended_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\Admin::class]);
 
         $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
@@ -159,9 +151,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_delete($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_extended_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\Admin::class]);
 
         $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
@@ -177,9 +167,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_update($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_extended_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\Admin::class]);
 
         $adminUser = new \App\Models\Admin("gibbs@blackpearl.com", "password", "Joshamee Gibbs", false, false, "Just a crew member");
 
@@ -202,9 +190,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_extended_model_getFirst($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_extended_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\Admin::class]);
 
         $adminUser = new \App\Models\Admin("davey@jones.com", "password", "Davey Jones", false, false, "Captain of the flying dutchman");
 
@@ -218,9 +204,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_pk_auto_increment($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("ai@test.com", "password", "AI Test");
 
@@ -233,9 +217,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_count($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $count = 10;
         $i = 0;
@@ -252,9 +234,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_like_or($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
-        $this->test_model_migration($driver, $config);
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john.smith@test.com", "password", "John Smith");
 
@@ -280,9 +260,9 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_migration_long_text($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
-        $this->generate_test_model_long_text();
+        $this->assertTrue($this->generate_test_model_long_text()->exists());
 
         $output = CommandLine::execute("Migration make App/Models/LongTextModel");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -291,7 +271,7 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_migration_with_trait($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
+        self::setupDatabase($driver, $config, []);
 
         $this->assertTrue($this->generate_soft_delete_trait()->exists());
         $this->assertTrue($this->generate_soft_delete_trait_model()->exists());
@@ -303,8 +283,10 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_trait_use($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration_with_trait($driver, $config);
+        $this->assertTrue($this->generate_soft_delete_trait()->exists());
+        $this->assertTrue($this->generate_soft_delete_trait_model()->exists());
+
+        self::setupDatabase($driver, $config, [\App\Models\TestUserTwo::class]);
 
         $user = new \App\Models\TestUserTwo("john.smith@test.com", "password", "John Smith");
 
@@ -319,8 +301,10 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_trait_model_collection_hook($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-        $this->test_model_migration_with_trait($driver, $config);
+        $this->assertTrue($this->generate_soft_delete_trait()->exists());
+        $this->assertTrue($this->generate_soft_delete_trait_model()->exists());
+
+        self::setupDatabase($driver, $config, [\App\Models\TestUserTwo::class]);
 
         // Create and save a model
         $user = new \App\Models\TestUserTwo("john.smith@test.com", "password", "John Smith");
@@ -348,12 +332,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_sum_of_column($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $transaction = new \App\Models\TransactionModel(25.5, 0);
 
@@ -380,12 +360,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_sum_of_column_with_subtraction($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $transaction = new \App\Models\TransactionModel(25.5, 0);
 
@@ -412,11 +388,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_sorting_asc($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
         while ($i < 10) {
@@ -438,11 +411,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_sorting_dsc($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
         while ($i < 10) {
@@ -464,12 +434,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_in($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
         while ($i < 10) {
@@ -497,12 +463,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_in_with_where($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
-
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
         while ($i < 10) {
@@ -530,11 +492,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_where_greater_then($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_transaction_model()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TransactionModel");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
         while ($i < 10) {
@@ -553,11 +512,8 @@ class ModelTest extends DatabaseDriverSetup
     #[DataProvider('databaseDriverProvider')]
     public function test_numeric_string_bug($driver, $config): void
     {
-        self::setupDatabase($driver, $config);
         $this->assertTrue($this->generate_test_model_numeric_string_bug()->exists());
-
-        $output = CommandLine::execute("Migration make App/Models/TestCustomer");
-        $this->assertEquals("Successfully performed database migration", $output);
+        self::setupDatabase($driver, $config, [\App\Models\TestCustomer::class]);
 
         $mobile = "0423235427";
 
@@ -567,6 +523,18 @@ class ModelTest extends DatabaseDriverSetup
 
         $lookup = \App\Models\TestCustomer::where("mobile", $mobile)->getFirst();
         $this->assertNotNull($lookup);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_all_column_types_migration($driver, $config): void
+    {
+        $this->assertTrue($this->generate_test_model_all_types()->exists());
+        self::setupDatabase($driver, $config, []);
+
+        \App\Models\AllTypes::missingTypeCheck();
+
+        $output = CommandLine::execute("Migration make App/Models/AllTypes");
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
 
@@ -688,7 +656,7 @@ PHP;
 
 namespace App\Models;
 
-use Lucent\Model;
+use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
@@ -800,7 +768,7 @@ PHP;
 
 namespace App\Models;
 
-use Lucent\Model;
+use Lucent\Model\Model;
 use App\Models\SoftDelete;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
@@ -856,7 +824,7 @@ PHP;
 
 namespace App\Models;
 
-use Lucent\Model;
+use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
@@ -898,7 +866,7 @@ PHP;
 
 namespace App\Models;
 
-use Lucent\Model;
+use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
@@ -918,5 +886,160 @@ class TestCustomer extends Model
 PHP;
 
         return new File("/App/Models/TestCustomer.php", $modelContent);
+    }
+
+    public static function generate_test_model_all_types(): File
+    {
+        $modelContent = <<<'PHP'
+<?php
+namespace App\Models;
+
+use Lucent\Model\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+
+class AllTypes extends Model
+{
+    #[Column(ColumnType::BINARY)]
+    public string $binary;
+
+    #[Column(ColumnType::BINARY, nullable: true)]
+    public ?string $binary_nullable;
+
+    #[Column(ColumnType::TINYINT)]
+    public int $tinyint;
+
+    #[Column(ColumnType::TINYINT, nullable: true)]
+    public ?int $tinyint_nullable;
+
+    #[Column(ColumnType::DECIMAL)]
+    public float $decimal;
+
+    #[Column(ColumnType::DECIMAL, nullable: true)]
+    public ?float $decimal_nullable;
+
+    #[Column(ColumnType::INT)]
+    public int $int;
+
+    #[Column(ColumnType::INT, nullable: true)]
+    public ?int $int_nullable;
+
+    #[Column(ColumnType::INT, name: "int_special", primaryKey: true, autoIncrement: true)]
+    public int $int_special;
+
+    #[Column(ColumnType::JSON)]
+    public string $json;
+
+    #[Column(ColumnType::JSON, nullable: true)]
+    public ?string $json_nullable;
+
+    #[Column(ColumnType::TIMESTAMP)]
+    public int $timestamp;
+
+    #[Column(ColumnType::TIMESTAMP, nullable: true)]
+    public ?int $timestamp_nullable;
+
+    #[Column(ColumnType::ENUM , values: ["foo", "bar"])]
+    public string $enum;
+
+    #[Column(ColumnType::ENUM , values: ["foo", "bar"], nullable: true)]
+    public ?string $enum_nullable;
+
+    #[Column(ColumnType::DATE)]
+    public string $date;
+
+    #[Column(ColumnType::DATE, nullable: true)]
+    public ?string $date_nullable;
+
+    #[Column(ColumnType::TEXT)]
+    public string $text;
+
+    #[Column(ColumnType::TEXT, nullable: true)]
+    public ?string $text_nullable;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    public string $varchar;
+
+    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
+    public ?string $varchar_nullable;
+
+    #[Column(ColumnType::FLOAT)]
+    public float $float;
+
+    #[Column(ColumnType::FLOAT, nullable: true)]
+    public ?float $float_nullable;
+
+    #[Column(ColumnType::DOUBLE)]
+    public float $double;
+
+    #[Column(ColumnType::DOUBLE, nullable: true)]
+    public ?float $double_nullable;
+
+    #[Column(ColumnType::BOOLEAN)]
+    public bool $boolean;
+
+    #[Column(ColumnType::BOOLEAN, nullable: true)]
+    public ?bool $boolean_nullable;
+
+    #[Column(ColumnType::CHAR)]
+    public string $char;
+
+    #[Column(ColumnType::CHAR, nullable: true)]
+    public ?string $char_nullable;
+
+    #[Column(ColumnType::LONGTEXT)]
+    public string $longtext;
+
+    #[Column(ColumnType::LONGTEXT, nullable: true)]
+    public ?string $longtext_nullable;
+
+    #[Column(ColumnType::MEDIUMTEXT)]
+    public string $mediumtext;
+
+    #[Column(ColumnType::MEDIUMTEXT, nullable: true)]
+    public ?string $mediumtext_nullable;
+
+    #[Column(ColumnType::BIGINT)]
+    public int $bigint;
+
+    #[Column(ColumnType::BIGINT, nullable: true)]
+    public ?int $bigint_nullable;
+
+    public static function missingTypeCheck(): void
+    {
+        /**
+         * @var array<Column>
+         */
+        $providedColumnTypes = [];
+
+        $refClass = new \ReflectionClass(self::class);
+        foreach ($refClass->getProperties() as $property) {
+            if (!($property instanceof \ReflectionProperty))
+                throw new \RuntimeException("Can't get property");
+
+            if ($property->getDeclaringClass()->getName() !== self::class)
+                continue;
+
+            $dbColumn = Column::fromProperty($property);
+            if ($dbColumn === null)
+                throw new \RuntimeException("Can't create column from property {$property->getName()}");
+
+            $type = $dbColumn->type->name;
+            if (in_array($type, $providedColumnTypes, true))
+                continue;
+
+            $providedColumnTypes[] = $type;
+        }
+
+        $allTypes = array_map(fn($type) => $type->name, ColumnType::cases());
+        $missingColumnTypes = array_diff($allTypes, $providedColumnTypes);
+        if (count($missingColumnTypes) > 0) {
+            throw new \RuntimeException("Missing column types: " . implode(", ", $missingColumnTypes));
+        }
+    }
+}
+PHP;
+
+        return new File("/App/Models/AllTypes.php", $modelContent);
     }
 }
