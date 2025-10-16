@@ -1,13 +1,14 @@
 <?php
 
-namespace Lucent\Routing;
+namespace Lucent\Routing\Rest;
 
 use Lucent\Application;
+use Lucent\Routing\RouteBuilder;
 
 class RestRouteBuilder extends RouteBuilder
 {
 
-    function group($name): RestRouteGroup
+    public function group($name): RestRouteGroup
     {
        return new RestRouteGroup($name,Application::getInstance()->httpRouter);
     }

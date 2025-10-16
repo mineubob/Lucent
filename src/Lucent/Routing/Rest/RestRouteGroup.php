@@ -1,9 +1,15 @@
 <?php
 
-namespace Lucent\Routing;
+namespace Lucent\Routing\Rest;
+
+use Lucent\Routing\RouteGroup;
 
 class RestRouteGroup extends RouteGroup
 {
+
+    protected string $defaultControllerClass;
+    protected ?string $prefix = null;
+
     public function get(string $path,  string $method ,?string $controller = null): self
     {
         if($controller === null){
@@ -35,4 +41,22 @@ class RestRouteGroup extends RouteGroup
         }
         return $this->registerRoute($path, 'DELETE', [$controller, $method]);
     }
+
+    public function defaultController(string $class): self
+    {
+        $this->defaultControllerClass = $class;
+        return $this;
+    }
+
+    public function prefix(string $prefix): self
+    {
+        $this->prefix = $prefix;
+        return $this;
+    }
+
+    protected function buildPath(string $path) : string
+    {
+        return $this->prefix ? $this->prefix . '/' . ltrim($path, '/') : $path;
+    }
+
 }
