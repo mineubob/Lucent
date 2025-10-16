@@ -2,11 +2,12 @@
 
 namespace Unit;
 
+use Exception;
 use Lucent\Application;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
-use Lucent\Facades\Log;
+use Lucent\Filesystem\File;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -67,6 +68,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_404(): void
     {
+
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
@@ -77,7 +79,7 @@ class RouteGroupTest extends DatabaseDriverSetup
                 $this->fail("Response is null or undefined.");
             }
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail($e->getMessage());
         }
 
@@ -87,6 +89,7 @@ class RouteGroupTest extends DatabaseDriverSetup
 
     public function test_500_invalid_controller_method(): void
     {
+
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/three";
@@ -103,13 +106,14 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
 
     public function test_500_invalid_controller(): void
     {
+
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/four";
@@ -126,13 +130,14 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
 
     public function test_route_group(): void
     {
+
         // Set up server environment for testing
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/one/ping";
@@ -149,7 +154,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("pong", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
 
@@ -168,7 +173,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from test 2", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -192,7 +197,7 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from five", $decodedResponse["message"]);
 
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
     }
@@ -269,6 +274,16 @@ class RouteGroupTest extends DatabaseDriverSetup
         $decodedResponse = json_decode($response, true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function perform_model_migration($driver, $config): void
+    {
+        self::setupDatabase($driver, $config);
+        ModelTest::generate_test_model();
+
+        $output = CommandLine::execute("Migration make App/Models/TestUser");
+        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     public static function generateTestRestController(): void
@@ -451,6 +466,7 @@ PHP;
             $modelPath . DIRECTORY_SEPARATOR . 'UserController.php',
             $modelContent
         );
+
     }
 
     private static function generate_test_middleware(): void
@@ -491,10 +507,12 @@ PHP;
             $middlewarePath . DIRECTORY_SEPARATOR . 'AuthMiddleware.php',
             $middlewareContent
         );
+
     }
 
     private static function generateRoutesFile(): void
     {
+
         $routesContent = <<<'PHP'
 <?php
     use App\Controllers\RouteGroupTestingController;
@@ -534,5 +552,57 @@ PHP;
         }
 
         file_put_contents($routesPath . '/web.php', $routesContent);
+
+    }
+
+
+    public static function generate_stream_routes() : file
+    {
+
+        $routesContent = <<<'PHP'
+<?php
+    use Lucent\Facades\Route;
+    use App\Controllers\StreamTestController;
+    
+    Route::stream()
+        ->group("test")
+        ->event("/stream/10seconds",StreamTestController::class);
+
+PHP;
+
+        return new File("/routes/stream.php", $routesContent);
+    }
+
+
+    public static function generate_event_stream_controller() : File
+    {
+        $controllerContent = <<<'PHP'
+<?php
+
+namespace App\Controllers;
+
+use Lucent\Http\StreamController;
+use Lucent\Http\EventStream\Event;
+use Generator;
+
+class StreamTestController extends StreamController {
+
+    protected function stream() : Generator{
+        
+     for ($i = 1; $i <= 10; $i++) {
+            yield Event::data('number', ['value' => $i]);
+            
+            sleep(1);
+        }
+        
+        // Send completion
+        yield Event::complete(['total' => 10]);
+    }   
+
+}
+    
+PHP;
+
+        return new File("/App/Controllers/StreamTestController.php", $controllerContent);
     }
 }
