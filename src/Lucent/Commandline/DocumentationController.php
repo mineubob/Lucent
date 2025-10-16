@@ -6,6 +6,8 @@ use Lucent\Facades\App;
 use Lucent\Facades\Faker;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
+use Lucent\Filesystem\File;
+use Lucent\Filesystem\Folder;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\Attributes\ApiResponse;
 use Lucent\Http\JsonResponse;
@@ -49,103 +51,84 @@ class DocumentationController
     {
         $documentation = [];
 
-        // Verify CONTROLLERS constant
-        if (!defined('CONTROLLERS')) {
-            Log::channel("phpunit")->error("CONTROLLERS constant is not defined");
+        $app = new Folder("/App");
+
+        if (!$app->exists()) {
+            Log::channel("phpunit")->error("Fatal error app folder doesnt exist...");
             return [];
         }
 
-        if (!is_dir(CONTROLLERS)) {
-            Log::channel("phpunit")->error("Controllers directory does not exist: " . CONTROLLERS);
-            return [];
+        foreach ($app->getFiles(true) as $file) {
+
+            if($file->getExtension() == ".php") {
+                $this->scanPhpFile($file, $documentation);
+            }
+
         }
-
-        Log::channel("phpunit")->info("Starting scan in directory: " . CONTROLLERS);
-
-        // Recursive function to scan directories
-        $scanDirectory = function(string $dir, string $namespace) use (&$scanDirectory, &$documentation) {
-            Log::channel("phpunit")->info("Scanning directory: " . $dir);
-            Log::channel("phpunit")->info("Using namespace: " . $namespace);
-
-            if (!is_dir($dir)) {
-                Log::channel("phpunit")->error("Directory does not exist: " . $dir);
-                return;
-            }
-
-            $files = scandir($dir);
-            Log::channel("phpunit")->info("Found files: " . implode(", ", $files));
-
-            foreach ($files as $file) {
-                if ($file === '.' || $file === '..') {
-                    continue;
-                }
-
-                $path = $dir . DIRECTORY_SEPARATOR . $file;
-                Log::channel("phpunit")->info("Processing path: " . $path);
-
-                if (is_dir($path)) {
-                    Log::channel("phpunit")->info("Found subdirectory: " . $file);
-                    $subNamespace = $namespace . '\\' . $file;
-                    $scanDirectory($path, $subNamespace);
-                }
-                elseif (str_ends_with($file, '.php')) {
-                    Log::channel("phpunit")->info("Found PHP file: " . $file);
-                    try {
-                        $className = $namespace . '\\' . basename($file, '.php');
-                        Log::channel("phpunit")->info("Attempting to reflect class: " . $className);
-
-                        if (!class_exists($className)) {
-                            Log::channel("phpunit")->info("Class not found, requiring file: " . $path);
-                            require_once $path;
-                        }
-
-                        $reflection = new ReflectionClass($className);
-                        Log::channel("phpunit")->info("Successfully reflected class: " . $className);
-
-                        foreach ($reflection->getMethods() as $method) {
-                            Log::channel("phpunit")->info("Checking method: " . $method->getName());
-
-                            // Check if method has ApiEndpoint attribute
-                            $endpointAttributes = $method->getAttributes(ApiEndpoint::class);
-                            if (empty($endpointAttributes)) {
-                                Log::channel("phpunit")->info("Method " . $method->getName() . " has no API endpoint attribute, skipping");
-                                continue;
-                            }
-
-                            Log::channel("phpunit")->info("Found " . count($endpointAttributes) . " API endpoint attributes");
-
-                            // Get the endpoint and responses
-                            $endpoint = $endpointAttributes[0]->newInstance();
-                            $responses = [];
-
-                            $responseAttributes = $method->getAttributes(ApiResponse::class);
-                            Log::channel("phpunit")->info("Found: " . count($responseAttributes) . " API response attributes");
-
-                            foreach ($responseAttributes as $attribute) {
-                                Log::channel("phpunit")->info("Processing response attribute for method: " . $method->getName());
-                                $responses[] = $attribute->newInstance();
-                            }
-
-                            if ($endpoint !== null) {
-                                $documentation[] = $this->processEndpoint($endpoint, $responses);
-                            }
-                        }
-
-                    } catch (\ReflectionException $e) {
-                        Log::channel("phpunit")->error("ReflectionException for {$className}: " . $e->getMessage());
-                    } catch (\Exception $e) {
-                        Log::channel("phpunit")->error("General Exception while processing {$className}: " . $e->getMessage());
-                    }
-                }
-            }
-        };
-
-        // Start scanning from the controllers directory with base namespace
-        $scanDirectory(CONTROLLERS, 'App\\Controllers');
 
         Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
+
+    private function scanPhpFile(File $file, &$documentation): void
+    {
+        try {
+            $className = $this->toNamespace($file->path);
+
+            if (!class_exists($className)) {
+                Log::channel("phpunit")->debug("Class not found, requiring file: " . $file->path);
+                require_once $file->path;
+            }
+
+            $reflection = new ReflectionClass($className);
+
+            foreach ($reflection->getMethods() as $method) {
+
+                $endpointAttributes = $method->getAttributes(ApiEndpoint::class);
+
+                //skip the endpoint if it has no data
+                if (empty($endpointAttributes)) {
+                    continue;
+                }
+
+                //get the endpoint and responses
+                $endpoint = $endpointAttributes[0]->newInstance();
+                $responses = [];
+
+                $responseAttributes = $method->getAttributes(ApiResponse::class);
+
+                foreach ($responseAttributes as $attribute) {
+                    $responses[] = $attribute->newInstance();
+                }
+
+                $documentation[] = $this->processEndpoint($endpoint, $responses);
+            }
+
+        } catch (\ReflectionException $e) {
+            Log::channel("phpunit")->critical("ReflectionException " . $e->getMessage());
+        }
+    }
+
+    private function toNamespace(string $filePath): string
+    {
+        $rootPath = FileSystem::rootPath();
+
+        // remove FileSystem::rootPath() if present
+        if (str_starts_with($filePath, $rootPath)) {
+            $filePath = substr($filePath, strlen($rootPath));
+        }
+
+        // remove leading directory separator
+        $filePath = ltrim($filePath, DIRECTORY_SEPARATOR);
+
+        // remove .php extension and convert directory separators to namespace separators
+        return str_replace(
+            [DIRECTORY_SEPARATOR, '.php'],
+            ['\\', ''],
+            $filePath
+        );
+    }
+
     private function processEndpoint(ApiEndpoint $endpoint, array $responses): array
     {
         $examples = [];
