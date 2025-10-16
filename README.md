@@ -2,6 +2,7 @@
 
 [![PHP Tests](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml/badge.svg?branch=development)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml)
 [![Build and Release](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/main.yml/badge.svg)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/main.yml)
+[![Code Coverage](https://img.shields.io/badge/Coverage-Report-brightgreen)](https://blueprintau.github.io/Lucent/)
 <a href="https://downgit.github.io/#/home?url=https://github.com/jackharrispeninsulainteractive/Lucent/raw/main/installer.php" target="_blank">
 <img src="https://img.shields.io/badge/Download-Installer-blue" alt="Download Installer">
 </a>
@@ -30,7 +31,7 @@ You can install Lucent using our installer script:
 
 1. Download the installer:
    ```bash
-   wget https://github.com/jackharrispeninsulainteractive/Lucent/raw/main/installer.php
+   wget https://github.com/blueprintau/Lucent/raw/main/installer.php
    ```
 
 2. Run the installer:
