@@ -38,11 +38,7 @@ class App
 
     public static function getLucentVersion() : ?string
     {
-        $currentPharPath = Phar::running(false);
-        $phar = new Phar($currentPharPath);
-        $metadata = $phar->getMetadata();
-
-        return $metadata['version'] ?? null;
+        return VERSION;
     }
 
 
