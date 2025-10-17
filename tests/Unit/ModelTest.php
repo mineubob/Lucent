@@ -898,6 +898,11 @@ use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
+enum AllTypesEnum {
+    case Foo;
+    case Bar;
+}
+
 class AllTypes extends Model
 {
     #[Column(ColumnType::BINARY)]
@@ -939,7 +944,7 @@ class AllTypes extends Model
     #[Column(ColumnType::TIMESTAMP, nullable: true)]
     public ?int $timestamp_nullable;
 
-    #[Column(ColumnType::ENUM , values: ["foo", "bar"])]
+    #[Column(ColumnType::ENUM , values: AllTypesEnum::class)]
     public string $enum;
 
     #[Column(ColumnType::ENUM , values: ["foo", "bar"], nullable: true)]

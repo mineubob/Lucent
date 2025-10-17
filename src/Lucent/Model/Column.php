@@ -9,6 +9,8 @@ use ReflectionProperty;
 #[Attribute(Attribute::TARGET_PROPERTY)]
 class Column
 {
+    public ?array $values;
+
     public ?Reference $references;
 
     public private(set) ?string $classPropertyName;
@@ -21,7 +23,7 @@ class Column
      * @param bool|null                                                         $autoIncrement  Whether the column auto-increments.
      * @param bool|null                                                         $primaryKey     Whether this column is a primary key.
      * @param mixed                                                             $default        The default value for the column.
-     * @param array<string>|null                                                $values         Allowed enum values if type is LUCENT_DB_ENUM.
+     * @param class-string<\UnitEnum>|array<string>|null                        $values         Allowed enum values if type is LUCENT_DB_ENUM.
      * @param Reference|class-string<\Lucent\Model\Model>|string|null           $references     Foreign key reference target.
      * @param bool|null                                                         $unique         Whether the column should be unique.
      * @param bool|null                                                         $unsigned       Whether the column is unsigned (for numeric types).
@@ -35,28 +37,57 @@ class Column
         public ?int $length = null,
         public ?bool $primaryKey = null,
         public mixed $default = null,
-        public ?array $values = null,
+        string|array|null $values = null,
         ?string $references = null,
         public ?bool $unique = null,
         public ?bool $autoIncrement = null,
         public ?bool $unsigned = null
     ) {
+        $this->values = self::parseValues($values);
         $this->references = self::parseReferences($references);
 
         $this->validateColumn();
     }
 
-    private static function parseReferences(?string $referencesStr): ?Reference
+    private static function parseValues(string|array|null $values)
     {
-        if ($referencesStr === null) {
+        if ($values === null) {
             return null;
         }
 
-        if ($referencesStr instanceof Reference) {
-            return $referencesStr;
+        if (is_array($values)) {
+            return $values;
         }
 
-        return Reference::fromString($referencesStr);
+        try {
+            $enum = new \ReflectionEnum($values);
+        } catch (\ReflectionException $_) {
+            throw new \InvalidArgumentException("Class is not an enum: $values");
+        }
+        $values = [];
+
+        foreach ($enum->getCases() as $case) {
+            if ($case instanceof \ReflectionEnumUnitCase) {
+                $values[] = $case->getName();
+            } else if ($case instanceof \ReflectionEnumBackedCase) {
+                $values[] = (string) $case->getBackingValue();
+            }
+        }
+
+        return $values;
+    }
+
+    private static function parseReferences(?string $references): ?Reference
+    {
+        if ($references === null) {
+            return null;
+        }
+
+        if ($references instanceof Reference) {
+            return $references;
+        }
+
+        return Reference::fromString($references);
     }
 
     private function validateColumn(): void
@@ -68,15 +99,25 @@ class Column
         $type_name = $this->type->name;
         switch ($this->type) {
             case ColumnType::VARCHAR:
-                if ($this->length === null) {
-                    throw new \InvalidArgumentException("$type_name must have a length.");
-                }
+                $this->validateVarcharColumn($type_name);
                 break;
             case ColumnType::ENUM:
-                if ($this->values === null || count($this->values) < 1) {
-                    throw new \InvalidArgumentException("$type_name must have at least one value.");
-                }
+                $this->validateEnumColumn($type_name);
                 break;
+        }
+    }
+
+    private function validateVarcharColumn(string $typeName): void
+    {
+        if ($this->length === null || $this->length < 1) {
+            throw new \InvalidArgumentException("$typeName must have a length.");
+        }
+    }
+
+    private function validateEnumColumn(string $typeName): void
+    {
+        if ($this->values === null || count($this->values) < 1) {
+            throw new \InvalidArgumentException("$typeName must have at least one value.");
         }
     }
 
