@@ -294,6 +294,17 @@ class Application
      */
     public function executeHttpRequest(): string
     {
+        $response = $this->handleHttpRequest();
+
+        http_response_code($response->status());
+        $this->setHeaders($response->headers());
+
+        return $response->render();
+    }
+
+
+    public function handleHttpRequest(): HttpResponse
+    {
         $this->boot();
 
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
@@ -421,12 +432,7 @@ class Application
             $response["variables"][$name] = $instance;
         }
 
-        $result = $method->invokeArgs($controller, $response["variables"]);
-
-        http_response_code($result->status());
-        $this->setHeaders($result->headers);
-
-        return $result->render();
+        return $method->invokeArgs($controller, $response["variables"]);
     }
 
     /**
@@ -753,14 +759,14 @@ class Application
         return $service;
     }
 
-    private function responseWithError(int $code, ?string $message = null): string
+    private function responseWithError(int $code, ?string $message = null): HttpResponse
     {
+
         if ($code === 404) {
             $fallback = $this->fallbackResponse ?? null;
 
             if ($fallback) {
-                http_response_code($fallback->statusCode);
-                return $fallback->render();
+                return $fallback;
             }
         }
 
@@ -779,9 +785,7 @@ class Application
             ->setOutcome(false)
             ->setMessage($message);
 
-        http_response_code($code);
-
-        return $response->render();
+        return $response;
     }
 
     public function registerErrorTemplate(int $code, HttpResponse $response): void
