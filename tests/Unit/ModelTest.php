@@ -981,10 +981,10 @@ enum AllTypesEnum
 
 class AllTypes extends Model
 {
-    #[Column(ColumnType::BINARY)]
+    #[Column(ColumnType::BINARY, length: 255)]
     public string $binary;
 
-    #[Column(ColumnType::BINARY, nullable: true)]
+    #[Column(ColumnType::BINARY, length: 255, nullable: true)]
     public ?string $binary_nullable;
 
     #[Column(ColumnType::TINYINT)]
