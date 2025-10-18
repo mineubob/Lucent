@@ -11,7 +11,6 @@ use ReflectionClass;
 
 class Model
 {
-
     public protected(set) Dataset $dataset;
 
     public function hydrate(Dataset $dataset): void
@@ -221,8 +220,13 @@ class Model
         return $output;
     }
 
-    public function save(string $identifier = "id"): bool
+    public function save(?string $identifier = null): bool
     {
+        if ($identifier === null) {
+            $pk = Model::getDatabasePrimaryKey(new ReflectionClass(static::class));
+            $identifier = $pk->name;
+        }
+
         $reflection = new ReflectionClass($this);
         $idProperty = $reflection->getProperty($identifier);
         $idValue = $idProperty->getValue($this);
