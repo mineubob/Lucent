@@ -58,8 +58,8 @@ class NumericColumn extends Column
 
         // Insert modifiers: type + precision + unsigned + auto_increment
         return str_replace(
-            $this->type,
-            $this->type . $precision . $unsigned,
+            " $this->type ",
+            " $this->type $precision $unsigned",
             $base
         ) . $ai;
     }
