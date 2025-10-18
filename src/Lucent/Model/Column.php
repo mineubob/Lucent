@@ -98,6 +98,7 @@ class Column
 
         $type_name = $this->type->name;
         switch ($this->type) {
+            case ColumnType::CHAR;
             case ColumnType::VARCHAR:
                 $this->validateVarcharColumn($type_name);
                 break;
