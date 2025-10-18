@@ -96,19 +96,22 @@ class Column
             throw new \InvalidArgumentException("Invalid type provided");
         }
 
-        $type_name = $this->type->name;
+        $typeName = $this->type->name;
         switch ($this->type) {
+            case ColumnType::BINARY:
+                $this->validateLengthNonNull($typeName);
+                break;
             case ColumnType::CHAR;
             case ColumnType::VARCHAR:
-                $this->validateVarcharColumn($type_name);
+                $this->validateLengthNonNull($typeName);
                 break;
             case ColumnType::ENUM:
-                $this->validateEnumColumn($type_name);
+                $this->validateEnumColumn($typeName);
                 break;
         }
     }
 
-    private function validateVarcharColumn(string $typeName): void
+    private function validateLengthNonNull(string $typeName): void
     {
         if ($this->length === null || $this->length < 1) {
             throw new \InvalidArgumentException("$typeName must have a length.");
