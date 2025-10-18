@@ -37,36 +37,52 @@ class Model
         }
     }
 
-    public function delete($propertyName = "id"): bool
+    public function delete(?string $identifier = null): bool
     {
         $reflection = new ReflectionClass($this);
         $parent = $reflection->getParentClass();
 
-        $property = $reflection->getProperty($propertyName);
-        $value = $property->getValue($this);
-        $column = Column::fromProperty($property);
-
         //Delete normal model
         if ($parent->getName() === Model::class) {
+            if ($identifier === null) {
+                $pk = Model::getDatabasePrimaryKey($reflection);
+                $identifier = $pk->name;
+            }
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->getValue($this);
+
+            $column = Column::fromProperty($idProperty);
+            if ($column === null) throw new \RuntimeException("Failed to get column!");
+
             $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
-            if (!Database::delete($query, [$value])) {
+            if (!Database::delete($query, [$idValue])) {
                 return false;
             }
 
             return true;
         }
 
+        if ($identifier === null) {
+            $pk = Model::getDatabasePrimaryKey($parent);
+            $identifier = $pk->name;
+        }
+        $idProperty = $reflection->getProperty($identifier);
+        $idValue = $idProperty->getValue($this);
+
+        $column = Column::fromProperty($idProperty);
+        if ($column === null) throw new \RuntimeException("Failed to get column!");
+
         //Delete extended model
-        return Database::transaction(function () use ($value, $column, $parent, $reflection) {
+        return Database::transaction(function () use ($idValue, $column, $parent, $reflection) {
             $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
             $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
 
-            if (!Database::delete($query, [$value])) {
+            if (!Database::delete($query, [$idValue])) {
                 return false;
             }
 
-            if (!Database::delete($parentQuery, [$value])) {
+            if (!Database::delete($parentQuery, [$idValue])) {
                 return false;
             }
 
@@ -222,15 +238,7 @@ class Model
 
     public function save(?string $identifier = null): bool
     {
-        if ($identifier === null) {
-            $pk = Model::getDatabasePrimaryKey(new ReflectionClass(static::class));
-            $identifier = $pk->name;
-        }
-
         $reflection = new ReflectionClass($this);
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
-
         $parent = $reflection->getParentClass();
 
         if ($parent->getName() !== Model::class) {
@@ -247,6 +255,13 @@ class Model
                     $parentBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
                 }
             }
+
+            if ($identifier === null) {
+                $pk = Model::getDatabasePrimaryKey($parent);
+                $identifier = $pk->name;
+            }
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->getValue($this);
 
             $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$identifier} = ?";
             $parentBindValues[] = $idValue;
@@ -285,6 +300,13 @@ class Model
                 return true;
             });
         }
+        
+        if ($identifier === null) {
+            $pk = Model::getDatabasePrimaryKey($reflection);
+            $identifier = $pk->name;
+        }
+        $idProperty = $reflection->getProperty($identifier);
+        $idValue = $idProperty->getValue($this);
 
         // Non-extended model handling
         $updates = [];
