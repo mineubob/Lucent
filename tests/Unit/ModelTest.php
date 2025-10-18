@@ -537,6 +537,81 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_all_column_types_create($driver, $config): void
+    {
+        $this->assertTrue($this->generate_test_model_all_types()->exists());
+        self::setupDatabase($driver, $config, [\App\Models\AllTypes::class]);
+
+        \App\Models\AllTypes::missingTypeCheck();
+
+        $instance = new \App\Models\AllTypes();
+
+        $this->assertTrue($instance->create());
+
+        $found = \App\Models\AllTypes::where('int_special', $instance->int_special)->getFirst();
+
+        self::assertEqualsIgnoringFieldsRecursive($instance, $found, ['dataset']);
+    }
+
+    /**
+     * Recursively compares two values, ignoring specific fields
+     * (works on nested objects, arrays, and private/protected properties).
+     *
+     * @param mixed $expected
+     * @param mixed $actual
+     * @param string[] $ignoreFields
+     */
+    public static function assertEqualsIgnoringFieldsRecursive($expected, $actual, array $ignoreFields): void
+    {
+        $normalize = function ($value) use (&$normalize, $ignoreFields) {
+            // Handle arrays
+            if (is_array($value)) {
+                $result = [];
+                foreach ($value as $k => $v) {
+                    $result[$k] = $normalize($v);
+                }
+                return $result;
+            }
+
+            // Handle objects
+            if (is_object($value)) {
+                $data = (array) $value;
+                $ref = new \ReflectionClass($value);
+
+                // Remove ignored fields (including inherited privates)
+                do {
+                    foreach ($ignoreFields as $fieldName) {
+                        $key = "\0" . $ref->getName() . "\0" . $fieldName;
+                        unset($data[$key]);
+                    }
+                } while ($ref = $ref->getParentClass());
+
+                // Build a clean comparable structure
+                $result = new \stdClass();
+                foreach ($data as $k => $v) {
+                    // Strip internal \0... field name prefixes
+                    if (str_starts_with($k, "\0")) {
+                        $parts = explode("\0", $k);
+                        $k = end($parts); // get actual property name
+                    }
+
+                    if (!in_array($k, $ignoreFields, true)) {
+                        $result->$k = $normalize($v);
+                    }
+                }
+                return $result;
+            }
+
+            // Scalar or null
+            return $value;
+        };
+
+        \PHPUnit\Framework\Assert::assertEquals(
+            $normalize($expected),
+            $normalize($actual)
+        );
+    }
 
     public static function generate_test_model(): File
     {
@@ -898,7 +973,8 @@ use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
-enum AllTypesEnum {
+enum AllTypesEnum
+{
     case Foo;
     case Bar;
 }
@@ -986,10 +1062,10 @@ class AllTypes extends Model
     #[Column(ColumnType::BOOLEAN, nullable: true)]
     public ?bool $boolean_nullable;
 
-    #[Column(ColumnType::CHAR)]
+    #[Column(ColumnType::CHAR, length: 255)]
     public string $char;
 
-    #[Column(ColumnType::CHAR, nullable: true)]
+    #[Column(ColumnType::CHAR, length: 255, nullable: true)]
     public ?string $char_nullable;
 
     #[Column(ColumnType::LONGTEXT)]
@@ -1010,6 +1086,11 @@ class AllTypes extends Model
     #[Column(ColumnType::BIGINT, nullable: true)]
     public ?int $bigint_nullable;
 
+    /**
+     * Check that all column types are set.
+     * @throws \RuntimeException
+     * @return void
+     */
     public static function missingTypeCheck(): void
     {
         /**
@@ -1041,6 +1122,134 @@ class AllTypes extends Model
         if (count($missingColumnTypes) > 0) {
             throw new \RuntimeException("Missing column types: " . implode(", ", $missingColumnTypes));
         }
+    }
+    public function __construct()
+    {
+        $ref = new \ReflectionClass($this);
+
+        foreach ($ref->getProperties() as $property) {
+            if (!($property instanceof \ReflectionProperty))
+                throw new \RuntimeException("Can't get property");
+
+            if ($property->getDeclaringClass()->getName() !== self::class)
+                continue;
+
+            $column = Column::fromProperty($property);
+            if ($column === null)
+                throw new \RuntimeException("Can't create column from property {$property->getName()}");
+
+            $isNullable = $column->nullable && $property->getType()->allowsNull();
+
+            $value = self::generateValueForColumn($column, $isNullable);
+
+            $this->{$property->getName()} = $value;
+        }
+    }
+
+    private static function generateValueForColumn(Column $column, bool $nullable): mixed
+    {
+        if ($nullable && mt_rand(0, 1) === 0) {
+            return null;
+        }
+
+        return match ($column->type) {
+            ColumnType::BINARY => random_bytes(8),
+            ColumnType::TINYINT => random_int(0, 127),
+            ColumnType::INT => random_int(0, 10000),
+            ColumnType::BIGINT => random_int(0, 1000000),
+            ColumnType::DECIMAL,
+            ColumnType::FLOAT,
+            ColumnType::DOUBLE => round(mt_rand() / mt_getrandmax() * 1000, 2),
+            ColumnType::BOOLEAN => (bool) random_int(0, 1),
+            ColumnType::CHAR,
+            ColumnType::VARCHAR => match (true) {
+                    $column->length !== null => self::generateRandomString($column->length),
+                    default => throw new \RuntimeException('Invalid CHAR/VARCHAR definition')
+                },
+            ColumnType::TEXT => self::generateRandomString(mt_rand(20, $column->length ?? 255)),
+            ColumnType::MEDIUMTEXT => self::generateRandomString(mt_rand(100, $column->length ?? 1024)),
+            ColumnType::LONGTEXT => self::generateRandomString(mt_rand(500, $column->length ?? 4096)),
+            ColumnType::DATE => date('Y-m-d', strtotime('-' . random_int(0, 365) . ' days')),
+            ColumnType::TIMESTAMP => time() - random_int(0, 365 * 24 * 60 * 60),
+            ColumnType::JSON => json_encode((random_int(0, 1) === 0) ? self::generateRandomJsonObject(0, 5) : self::generateRandomJsonArray(0, 5)),
+            ColumnType::ENUM => match (true) {
+                    is_array($column->values) => $column->values[array_rand($column->values)],
+                    default => throw new \RuntimeException('Invalid ENUM definition'),
+                },
+            default => throw new \RuntimeException("Unsupported column type: {$column->type->name}"),
+        };
+    }
+
+    /**
+     * Generate a random string of a defined length.
+     * @param int $length Length of the string.
+     * @return string
+     */
+    private static function generateRandomString(int $length): string
+    {
+        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+        $maxIndex = strlen($characters) - 1;
+        $bytes = random_bytes($length);
+
+        $str = '';
+        for ($i = 0; $i < $length; $i++) {
+            $str .= $characters[ord($bytes[$i]) % ($maxIndex + 1)];
+        }
+
+        return $str;
+    }
+
+    /**
+     * Generate a random json object.
+     * @param int $depth
+     * @param int $maxDepth
+     * @return array
+     */
+    private static function generateRandomJsonObject(int $depth, int $maxDepth): mixed
+    {
+        $numKeys = random_int(1, 10);
+        $obj = [];
+
+        for ($i = 0; $i < $numKeys; $i++) {
+            $key = self::generateRandomString(random_int(5, 10));
+            $obj[$key] = self::generateRandomJson($depth + 1, $maxDepth);
+        }
+
+        return $obj;
+    }
+
+    private static function generateRandomJsonArray(int $depth, int $maxDepth): mixed
+    {
+        $numItems = random_int(1, 10);
+        $arr = [];
+
+        for ($i = 0; $i < $numItems; $i++) {
+            $arr[] = self::generateRandomJson($depth + 1, $maxDepth);
+        }
+
+        return $arr;
+    }
+
+    /**
+     * Generate JSON primative or object/array (primitives independent of depth)
+     * @param int $depth
+     * @param int $maxDepth
+     * @return mixed
+     */
+    private static function generateRandomJson(int $depth, int $maxDepth): mixed
+    {
+        $maxValueType = ($depth >= $maxDepth) ? 4 : 6; // Only primitives at maxDepth
+        $valueType = random_int(1, $maxValueType);
+
+        return match ($valueType) {
+            1 => self::generateRandomString(random_int(3, 12)),
+            2 => random_int(0, 1000),
+            3 => round(mt_rand() / mt_getrandmax() * 1000, 2),
+            4 => (bool) random_int(0, 1),
+            5 => self::generateRandomJsonObject($depth, $maxDepth),
+            6 => self::generateRandomJsonArray($depth, $maxDepth),
+            default => throw new \RuntimeException("Unknown value type!"),
+        };
     }
 }
 PHP;
