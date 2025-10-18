@@ -294,6 +294,17 @@ class Application
      */
     public function executeHttpRequest(): string
     {
+        $response = $this->handleHttpRequest();
+
+        http_response_code($response->status());
+        $this->setHeaders($response->headers());
+
+        return $response->render();
+    }
+
+
+    public function handleHttpRequest(): HttpResponse
+    {
         $this->boot();
 
         $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
@@ -421,12 +432,7 @@ class Application
             $response["variables"][$name] = $instance;
         }
 
-        $result = $method->invokeArgs($controller, $response["variables"]);
-
-        http_response_code($result->status());
-        $this->setHeaders($result->headers);
-
-        return $result->render();
+        return $method->invokeArgs($controller, $response["variables"]);
     }
 
     /**
@@ -576,8 +582,58 @@ class Application
 
         $response = $this->consoleRouter->AnalyseRouteAndLookup($commandArgs);
 
+
         if (!$response["outcome"]) {
-            return "Unrecognized command. Type 'help' to see available commands.\nDid you mean something similar?";
+
+            $commands = $this->consoleRouter->getRoutes()["CLI"];
+            $output = "Unrecognized command. Type '\033[1mphp cli\033[0m' to see available commands.\n";
+
+            $suggestions = [];
+
+            // Join all args to get the full command input
+            $fullInput = strtolower(implode(' ', $args));
+
+            foreach ($commands as $route => $command) {
+                // Remove parameter placeholders and trim/normalize whitespace
+                $routeBase = preg_replace('/\s+/', ' ', trim(preg_replace('/\{[^}]+\}/', '', $route)));
+                $routeBase = strtolower($routeBase);
+
+                // Check if route starts with the input (partial match) - best match
+                if (str_starts_with($routeBase, $fullInput)) {
+                    $suggestions[$route] = 0;
+                }
+                // Check if any word in the route starts with input
+                else if (preg_match('/\b' . preg_quote($fullInput) . '/i', $routeBase)) {
+                    $suggestions[$route] = 1;
+                }
+                // Use Levenshtein only for very close matches
+                else {
+                    $distance = levenshtein($fullInput, $routeBase);
+
+                    // Only suggest if distance is reasonable relative to input length
+                    $maxDistance = max(2, strlen($fullInput) / 2);
+
+                    if ($distance <= $maxDistance) {
+                        $suggestions[$route] = $distance + 10;
+                    }
+                }
+            }
+
+            // Sort by match quality
+            asort($suggestions);
+            $suggestions = array_slice(array_keys($suggestions), 0, 3);
+
+            if (!empty($suggestions)) {
+                $output .= "Did you mean something similar?\n\n";
+
+                foreach ($suggestions as $suggestion) {
+                    $output .= "  \033[1m" . $suggestion . "\033[0m\n";
+                }
+
+                $output .= "\n";
+            }
+
+            return $output;
         }
 
         if (!class_exists($response["controller"])) {
@@ -753,14 +809,14 @@ class Application
         return $service;
     }
 
-    private function responseWithError(int $code, ?string $message = null): string
+    private function responseWithError(int $code, ?string $message = null): HttpResponse
     {
+
         if ($code === 404) {
             $fallback = $this->fallbackResponse ?? null;
 
             if ($fallback) {
-                http_response_code($fallback->statusCode);
-                return $fallback->render();
+                return $fallback;
             }
         }
 
@@ -779,9 +835,7 @@ class Application
             ->setOutcome(false)
             ->setMessage($message);
 
-        http_response_code($code);
-
-        return $response->render();
+        return $response;
     }
 
     public function registerErrorTemplate(int $code, HttpResponse $response): void
