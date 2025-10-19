@@ -62,19 +62,21 @@ class UpdateController
                 // Ensure the packages directory exists
                 $packageFolder = new Folder("/packages");
 
-                $downloaded->copy($downloaded->getName(), $packageFolder);
+                if (!$downloaded->copy($downloaded->getName(), $packageFolder)) {
+                    return "Failed to copy downloaded package.\n";
+                }
 
                 if (!$downloaded->delete()) {
                     return "Failed to delete temp download.\n";
                 }
+
                 $output = [];
                 exec("cd " . FileSystem::rootPath() . "/packages && php " . $downloaded->getName() . " update check --file=" . $downloaded->getName(), $output);
                 $lines = "";
+
                 foreach ($output as $line) {
                     $lines .= $line . PHP_EOL;
                 }
-
-                $downloaded->delete();
 
                 return "Running update dependency check: \n" . $lines . "\n";
             } catch (Exception $e) {
