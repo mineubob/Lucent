@@ -278,7 +278,7 @@ class FileSystemCollection
     {
         // Check regex patterns
         if (isset($patternSets[self::PATTERN_REGEX])) {
-            if (array_any($patternSets[self::PATTERN_REGEX], fn($pattern) => @preg_match($pattern, $filename))) {
+            if (array_any($patternSets[self::PATTERN_REGEX], fn($pattern) => preg_match($pattern, $filename))) {
                 return true;
             }
         }
