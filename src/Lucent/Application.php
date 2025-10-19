@@ -299,7 +299,7 @@ class Application
         http_response_code($response->status());
         $this->setHeaders($response->headers());
 
-        return $response->render();
+        return $response->body();
     }
 
 
