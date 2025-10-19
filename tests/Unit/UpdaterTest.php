@@ -15,10 +15,12 @@ class UpdaterTest extends TestCase
     public function test_update_install(): void
     {
         $updater = new UpdateController();
-        $buildDir = FileSystem::rootPath()."/packages/";
-        $pharPath = $buildDir.'lucent.phar';
+        $buildDir = FileSystem::rootPath() . "/packages/";
+        $pharPath = $buildDir . 'lucent.phar';
 
-        Log::channel("phpunit")->info("[UpdaterTest] Running update install:\n    ".$updater->install());
+        // Install update
+        $output = $updater->install();
+        $this->assertStringContainsString('Successfully updated', $output);
 
         try {
             $phar = new Phar($pharPath);
@@ -73,12 +75,12 @@ class UpdaterTest extends TestCase
         $this->assertEquals($originalHash, $rolledBackHash, "File should be restored after rollback");
     }
 
-    public function test_update_check() : void
+    public function test_update_check(): void
     {
         $updater = new UpdateController();
 
         $output = $updater->check();
-        $this->assertStringStartsWith("Running update dependency check:",$output);
+        $this->assertStringStartsWith("Running update dependency check:", $output);
         echo $output;
     }
 

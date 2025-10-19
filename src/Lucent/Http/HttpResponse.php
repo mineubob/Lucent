@@ -6,12 +6,13 @@ class HttpResponse
 {
 
     public function __construct(
-        public protected(set) string|bool|null|array $body,
+        private string|null $body,
         public protected(set) int $statusCode,
         public protected(set) array $headers = [],
         public protected(set) ?string $error = null,
         public protected(set) int $errorCode = 0
-    ) {}
+    ) {
+    }
 
     public function successful(): bool
     {
@@ -31,9 +32,9 @@ class HttpResponse
         return json_decode($this->body, true);
     }
 
-    public function body(): string
+    public function body(): string|null
     {
-        return $this->body ?: '';
+        return $this->body;
     }
 
     public function status(): int
@@ -54,10 +55,5 @@ class HttpResponse
     public function errorCode(): int
     {
         return $this->errorCode;
-    }
-
-    public function render(): string
-    {
-        return $this->body;
     }
 }

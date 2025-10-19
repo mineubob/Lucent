@@ -11,19 +11,15 @@ use ReflectionClass;
 
 class Model
 {
-    public protected(set) Dataset $dataset;
-
     public function hydrate(Dataset $dataset): void
     {
-        $this->dataset = $dataset;
-
         $reflection = new ReflectionClass($this);
 
         foreach (Model::getDatabaseProperties($reflection) as $column) {
             $property = $reflection->getProperty($column->classPropertyName);
             $value = $dataset->get($column->name);
 
-            TypedProperty::set($this, $property, $value);
+            TypedProperty::set($this, $property, $column->postProcess($value));
         }
 
         $parentClass = $reflection->getParentClass();
@@ -32,41 +28,63 @@ class Model
                 $property = $parentClass->getProperty($column->classPropertyName);
                 $value = $dataset->get($column->name);
 
-                TypedProperty::set($this, $property, $value);
+                TypedProperty::set($this, $property, $column->postProcess($value));
             }
         }
     }
 
-    public function delete($propertyName = "id"): bool
+    public function delete(?string $identifier = null): bool
     {
         $reflection = new ReflectionClass($this);
         $parent = $reflection->getParentClass();
 
-        $property = $reflection->getProperty($propertyName);
-        $value = $property->getValue($this);
-        $column = Column::fromProperty($property);
-
         //Delete normal model
         if ($parent->getName() === Model::class) {
+            if ($identifier === null) {
+                $pk = Model::getDatabasePrimaryKey($reflection);
+                $identifier = $pk->name;
+            }
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->getValue($this);
+
+            $column = Column::fromProperty($idProperty);
+            if ($column === null)
+                throw new \RuntimeException("Failed to get column!");
+
+            $idValue = $column->preProcess($idValue);
+
             $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
-            if (!Database::delete($query, [$value])) {
+            if (!Database::delete($query, [$idValue])) {
                 return false;
             }
 
             return true;
         }
 
+        if ($identifier === null) {
+            $pk = Model::getDatabasePrimaryKey($parent);
+            $identifier = $pk->name;
+        }
+        $idProperty = $reflection->getProperty($identifier);
+        $idValue = $idProperty->getValue($this);
+
+        $column = Column::fromProperty($idProperty);
+        if ($column === null)
+            throw new \RuntimeException("Failed to get column!");
+
+        $idValue = $column->preProcess($idValue);
+
         //Delete extended model
-        return Database::transaction(function () use ($value, $column, $parent, $reflection) {
+        return Database::transaction(function () use ($idValue, $column, $parent, $reflection) {
             $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
             $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
 
-            if (!Database::delete($query, [$value])) {
+            if (!Database::delete($query, [$idValue])) {
                 return false;
             }
 
-            if (!Database::delete($parentQuery, [$value])) {
+            if (!Database::delete($parentQuery, [$idValue])) {
                 return false;
             }
 
@@ -107,13 +125,18 @@ class Model
                     TypedProperty::set($this, $parent->getProperty($parentPK->classPropertyName), $lastId);
                 } else {
                     $lastId = $reflection->getProperty($parentPK->classPropertyName)->getValue($this);
+
+                    $lastId = $parentPK->preProcess($lastId);
                 }
 
                 // Get properties for the child model
                 $childProps = $this->getProperties($reflection->getProperties(), $reflection->getName(), true);
 
                 // Add the parent's primary key to the child properties
-                $childProps[$parentPK->name] = $lastId;
+                $childProps[$parentPK->name] = [
+                    'column' => $parentPK,
+                    'value' => $lastId
+                ];
                 $values = [];
                 // Insert into the current model's table
                 $tableName = $reflection->getShortName();
@@ -147,11 +170,13 @@ class Model
 
             $pk = Model::getDatabasePrimaryKey($reflection);
 
-            // Get the last inserted ID
-            $lastId = Database::getDriver()->lastInsertId();
+            if ($pk->autoIncrement === true) {
+                // Get the last inserted ID
+                $lastId = Database::getDriver()->lastInsertId();
 
-            // Set the ID
-            TypedProperty::set($this, $reflection->getProperty($pk->classPropertyName), $lastId);
+                // Set the ID
+                TypedProperty::set($this, $reflection->getProperty($pk->classPropertyName), $lastId);
+            }
 
             return true;
         }
@@ -159,7 +184,10 @@ class Model
 
     /**
      * Summary of buildInsertQueryString
-     * @param array<string, mixed> $properties
+     * @param array<string, array{
+     *      column: \Lucent\Model\Column,
+     *      value: mixed
+     *  }> $properties
      * @param array $bindValues
      * @return string
      */
@@ -174,22 +202,15 @@ class Model
         $bindValues = [];
 
         foreach ($properties as $key => $value) {
-
-            $columns .= "`" . $key . "`, ";
+            $columns .= "`$key`, ";
             $placeholders .= "?, ";
-
-            // Convert booleans to integers for MySQL PDO compatibility
-            if (is_bool($value)) {
-                $bindValues[] = $value ? 1 : 0;
-            } else {
-                $bindValues[] = $value;
-            }
+            $bindValues[] = $value['column']->preProcess($value['value']);
         }
 
         $columns = rtrim($columns, ", ") . ")";
         $placeholders = rtrim($placeholders, ", ") . ")";
 
-        return $columns . $placeholders;
+        return "$columns$placeholders";
     }
 
     /**
@@ -197,10 +218,14 @@ class Model
      * @param array<\ReflectionProperty> $properties
      * @param string $class
      * @param bool $skipAutoIncrement
-     * @return array<string, mixed>
+     * @return array<string, array{
+     *      column: \Lucent\Model\Column,
+     *      value: mixed
+     *  }>
      */
     public function getProperties(array $properties, string $class, bool $skipAutoIncrement): array
     {
+        /** @var array<string, array{column: \Lucent\Model\Column, value: mixed}> */
         $output = [];
         foreach ($properties as $property) {
             $declaringClass = $property->getDeclaringClass();
@@ -213,7 +238,10 @@ class Model
                 continue;
 
             if ($property->isInitialized($this)) {
-                $output[$dbColumn->name] = $property->getValue($this);
+                $output[$dbColumn->name] = [
+                    "column" => $dbColumn,
+                    "value" => $property->getValue($this)
+                ];
             }
         }
 
@@ -222,15 +250,7 @@ class Model
 
     public function save(?string $identifier = null): bool
     {
-        if ($identifier === null) {
-            $pk = Model::getDatabasePrimaryKey(new ReflectionClass(static::class));
-            $identifier = $pk->name;
-        }
-
         $reflection = new ReflectionClass($this);
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
-
         $parent = $reflection->getParentClass();
 
         if ($parent->getName() !== Model::class) {
@@ -244,9 +264,18 @@ class Model
                     $value = $parentProperty->isInitialized($this) ? $parentProperty->getValue($this) : null;
 
                     $parentUpdates[] = "$column->name = ?";
-                    $parentBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
+                    $parentBindValues[] = $column->preProcess($value);
                 }
             }
+
+            if ($identifier === null) {
+                $pk = Model::getDatabasePrimaryKey($parent);
+                $identifier = $pk->name;
+            } else {
+                $pk = Model::getDatabasePrimaryKey($parent);
+            }
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $pk->preProcess($idProperty->getValue($this));
 
             $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$identifier} = ?";
             $parentBindValues[] = $idValue;
@@ -260,7 +289,7 @@ class Model
                     $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
                     $childUpdates[] = "$column->name = ?";
-                    $childBindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
+                    $childBindValues[] = $column->preProcess($value);
                 }
             }
 
@@ -285,6 +314,13 @@ class Model
                 return true;
             });
         }
+
+        if ($identifier === null) {
+            $pk = Model::getDatabasePrimaryKey($reflection);
+            $identifier = $pk->name;
+        }
+        $idProperty = $reflection->getProperty($identifier);
+        $idValue = $idProperty->getValue($this);
 
         // Non-extended model handling
         $updates = [];

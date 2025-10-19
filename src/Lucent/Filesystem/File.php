@@ -84,6 +84,9 @@ class File extends FileSystemObject
      */
     public function delete(): bool
     {
+        if (!$this->exists())
+            return false;
+
         return unlink($this->path);
     }
 
@@ -122,7 +125,7 @@ class File extends FileSystemObject
         $copy = new File($destinationPath, "", true);
 
         // Perform copy operation
-        $success = @copy($this->path, $copy->path);
+        $success = copy($this->path, $copy->path);
 
         // Check for PHP errors during copy
         if (!$success) {

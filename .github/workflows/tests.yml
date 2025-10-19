@@ -49,7 +49,7 @@ jobs:
 
       - name: Run tests
         run: |
-          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml --no-progress --display-deprecations --display-warnings
+          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml --no-progress --display-deprecations --display-warnings --no-coverage
         env:
           TEMP_ROOT: ${{ github.workspace }}/temp_install/
           DB_DRIVER: mysql
