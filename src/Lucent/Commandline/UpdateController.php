@@ -35,17 +35,19 @@ class UpdateController
             // Directly get version from PHAR metadata
             $currentVersion = App::getLucentVersion();
 
-            if (!$currentVersion) {
-                return "Unable to determine current version.";
-            }
-
             try {
                 $client = new HttpClient('https://api.github.com');
                 $response = $client->get('/repos/blueprintau/Lucent/releases/latest');
 
                 if (!$response->successful()) {
-                    return "Unable to lookup the latest version.";
+                    $errorResponse = $response->json();
+                    if ($errorResponse !== null && isset($errorResponse['message'])) {
+                        return "Unable to lookup the latest version. Check your internet connection." . PHP_EOL . "Error: {$errorResponse['message']}";
+                    }
+
+                    return "Unable to lookup the latest version. Check your internet connection.";
                 }
+
                 $latestRelease = $response->json();
                 $latestVersion = $latestRelease['tag_name'];
 
@@ -71,14 +73,11 @@ class UpdateController
                 }
 
                 $output = [];
-                exec("cd " . FileSystem::rootPath() . "/packages && php " . $downloaded->getName() . " update check --file=" . $downloaded->getName(), $output);
-                $lines = "";
-
-                foreach ($output as $line) {
-                    $lines .= $line . PHP_EOL;
+                if (exec("cd " . FileSystem::rootPath() . "/packages && php " . $downloaded->getName() . " update check --file=" . $downloaded->getName(), $output) === false) {
+                    return "Failed to run update command: \n" . implode(PHP_EOL, $output) . "\n";
                 }
 
-                return "Running update dependency check: \n" . $lines . "\n";
+                return "Running update dependency check:\n" . implode(PHP_EOL, $output) . "\n";
             } catch (Exception $e) {
                 return "Unable to check for updates: {$e->getMessage()}\n";
             }
@@ -104,79 +103,83 @@ class UpdateController
             $app->create();
         }
 
-        if (!$currentVersion) {
-            return "Unable to determine current version.";
-        }
-
         try {
             $client = new HttpClient();
             $response = $client->get('https://api.github.com/repos/blueprintau/Lucent/releases/latest');
 
-            if ($response->successful()) {
-                $latestRelease = $response->json();
-                $latestVersion = $latestRelease['tag_name'];
-
-                if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
-                    // Prepare paths
-                    $targetPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$latestVersion}.phar";
-                    $backupPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$currentVersion}.phar.old";
-
-                    $phar = new File("/packages/lucent.phar");
-
-                    if (!$phar->exists()) {
-                        return "Failed to locate lucent.phar.";
-                    }
-
-                    $packagesFolder = new Folder("/packages");
-
-                    $backup = $phar->copy("lucent-{$currentVersion}.phar.old", $packagesFolder);
-
-                    if (!$backup->exists()) {
-                        return "Failed to backup current version of lucent.";
-                    }
-
-                    $downloaded = $this->downloadLatest();
-
-                    $copy = $downloaded->copy($downloaded->getName(), $packagesFolder);
-
-                    if (!$copy->exists()) {
-                        return "Failed to move download into packages folder...\n";
-                    }
-
-                    if (!$phar->delete()) {
-                        return "Failed to replace lucent.phar package...\n";
-                    }
-
-                    if (!$copy->rename("lucent.phar")) {
-                        return "Failed to replace lucent.phar package...\n";
-                    }
-
-                    if (!$downloaded->delete()) {
-                        return "Failed to delete temp download...\n";
-                    }
-
-                    $output = [];
-                    exec("cd " . FileSystem::rootPath() . "/packages && php lucent.phar update check --file=" . $downloaded->path, $output);
-                    // Join the output array into a string with line breaks
-                    $outputString = implode(PHP_EOL, $output);
-
-                    return sprintf(
-                        "Successfully updated Lucent! 🎉" . PHP_EOL .
-                        "Old version: %s\n" .
-                        "New version: %s\n\n" .
-                        "Backup of old version saved at: %s\n\n" .
-                        "Compatibility Check:\n%s",
-                        $currentVersion,
-                        $latestVersion,
-                        $backupPharPath,
-                        $outputString
-                    );
-                } else {
-                    return "You're running the latest version of Lucent ({$currentVersion}). 👍" . PHP_EOL;
+            if (!$response->successful()) {
+                $errorResponse = $response->json();
+                if ($errorResponse !== null && isset($errorResponse['message'])) {
+                    return "Unable to check for updates. Please check your internet connection." . PHP_EOL . "Error: {$errorResponse['message']}";
                 }
+
+                return "Unable to check for updates. Please check your internet connection.";
             }
 
-            return "Unable to check for updates. Please check your internet connection.";
+            $latestRelease = $response->json();
+            $latestVersion = $latestRelease['tag_name'];
+
+            if (!(version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local"))) {
+                return "You're running the latest version of Lucent ({$currentVersion}). 👍" . PHP_EOL;
+            }
+
+            // Prepare paths
+            $targetPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$latestVersion}.phar";
+            $backupPharPath = dirname($currentPharPath) . DIRECTORY_SEPARATOR . "lucent-{$currentVersion}.phar.old";
+
+            $phar = new File("/packages/lucent.phar");
+
+            if (!$phar->exists()) {
+                return "Failed to locate lucent.phar.";
+            }
+
+            $packagesFolder = new Folder("/packages");
+
+            $backup = $phar->copy("lucent-{$currentVersion}.phar.old", $packagesFolder);
+
+            if ($backup === null || !$backup->exists()) {
+                return "Failed to backup current version of lucent.";
+            }
+
+            $downloaded = $this->downloadLatest();
+
+            $copy = $downloaded->copy($downloaded->getName(), $packagesFolder);
+
+            if ($copy === null || !$copy->exists()) {
+                return "Failed to move download into packages folder...\n";
+            }
+
+            if (!$phar->delete()) {
+                return "Failed to replace lucent.phar package...\n";
+            }
+
+            if (!$copy->rename("lucent.phar")) {
+                return "Failed to replace lucent.phar package...\n";
+            }
+
+            if (!$downloaded->delete()) {
+                return "Failed to delete temp download...\n";
+            }
+
+            $output = [];
+            if (exec("cd " . FileSystem::rootPath() . "/packages && php lucent.phar update check --file=" . $downloaded->path, $output) === false) {
+                return "Failed to run update check...\n";
+            }
+
+            // Join the output array into a string with line breaks
+            $outputString = implode(PHP_EOL, $output);
+
+            return sprintf(
+                "Successfully updated Lucent! 🎉" . PHP_EOL .
+                "Old version: %s" . PHP_EOL .
+                "New version: %s" . PHP_EOL . PHP_EOL .
+                "Backup of old version saved at: %s" . PHP_EOL . PHP_EOL .
+                "Compatibility Check:" . PHP_EOL . "%s",
+                $currentVersion,
+                $latestVersion,
+                $backupPharPath,
+                $outputString
+            );
         } catch (Exception $e) {
             // Clean up temporary files if they exist
             if (isset($downloadedFilePath) && file_exists($downloadedFilePath)) {
@@ -212,7 +215,7 @@ class UpdateController
         $backupVersion = $matches[1] ?? 'unknown';
 
 
-        $currentPharPath = $install_location . "lucent.phar";
+        $currentPharPath = "{$install_location}lucent.phar";
 
         // Create a safety backup of the current version
         $safetyBackupPath = $install_location . "lucent-" . App::getLucentVersion() . ".phar.rollback.old";
@@ -240,10 +243,10 @@ class UpdateController
         }
 
         return sprintf(
-            "Rolled back successfully! 🔙\n" .
-            "Reverted to version: %s\n\n" .
-            "Current version backed up at: %s\n" .
-            "Used backup: %s\n\n" .
+            "Rolled back successfully! 🔙" . PHP_EOL .
+            "Reverted to version: %s" . PHP_EOL . PHP_EOL .
+            "Current version backed up at: %s" . PHP_EOL .
+            "Used backup: %s" . PHP_EOL . PHP_EOL .
             "NOTE: Restart your application to load the rolled back version.",
             $backupVersion,
             $safetyBackupPath,
@@ -260,50 +263,47 @@ class UpdateController
 
         $response = $client->get('https://api.github.com/repos/blueprintau/Lucent/releases/latest');
 
-        if ($response->successful()) {
-            $latestRelease = $response->json();
-            $latestVersion = $latestRelease['tag_name'];
+        if (!$response->successful())
+            return null;
 
-            if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
-                // Prepare paths
-                $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
-                $tempFileName = "lucent-{$latestVersion}.phar";
+        $latestRelease = $response->json();
+        $latestVersion = $latestRelease['tag_name'];
 
-                echo "Downloading Lucent {$latestVersion}..." . PHP_EOL;
+        if (version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local")) {
+            // Prepare paths
+            $downloadUrl = $latestRelease['assets'][0]['browser_download_url'];
+            $tempFileName = "lucent-{$latestVersion}.phar";
 
-                // Initialize progress bar with an estimated size
-                // We'll let the download method handle getting the actual size
-                $estimatedSize = 5 * 1024 * 1024; // 5MB estimate
-                $progress = new ProgressBar($estimatedSize);
-                $progress->setFormat('[{bar}] {percent}% - {eta} remaining');
-                $progress->setBarCharacters(['█', '░']);
-                $progress->setUpdateInterval(0.1);
+            echo "Downloading Lucent {$latestVersion}..." . PHP_EOL;
 
-                // Create progress callback that updates the progress and adjusts total if needed
-                $progressCallback = function ($downloadedBytes, $totalBytes) use ($progress) {
-                    $progress->update($downloadedBytes);
-                };
+            // Initialize progress bar with an estimated size
+            // We'll let the download method handle getting the actual size
+            $estimatedSize = 5 * 1024 * 1024; // 5MB estimate
+            $progress = new ProgressBar($estimatedSize);
+            $progress->setFormat('[{bar}] {percent}% - {eta} remaining');
+            $progress->setBarCharacters(['█', '░']);
+            $progress->setUpdateInterval(0.1);
 
-                // Download new PHAR using progress callback
-                $downloadResponse = $client->download(
-                    $downloadUrl,
-                    $tempFileName,
-                    $progressCallback
-                );
+            // Create progress callback that updates the progress and adjusts total if needed
+            $progressCallback = function ($downloadedBytes, $totalBytes) use ($progress) {
+                $progress->update($downloadedBytes);
+            };
 
-                // Complete the progress bar
-                $progress->finish();
+            // Download new PHAR using progress callback
+            $downloadResponse = $client->download(
+                $downloadUrl,
+                $tempFileName,
+                $progressCallback
+            );
 
-                $downloadedFilePath = $tempFileName;
+            // Complete the progress bar
+            $progress->finish();
 
-                if (file_exists($this->downloadPath . $downloadedFilePath) || $downloadResponse->successful()) {
-                    return new File($this->downloadPath . $downloadedFilePath);
-                }
+            $downloadedFilePath = $tempFileName;
+
+            if (file_exists($this->downloadPath . $downloadedFilePath) || $downloadResponse->successful()) {
+                return new File($this->downloadPath . $downloadedFilePath);
             }
         }
-
-        return null;
     }
-
-
 }
