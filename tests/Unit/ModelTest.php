@@ -1239,7 +1239,7 @@ class AllTypes extends Model
      */
     private static function generateRandomString(int $length): string
     {
-        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ';
+        $characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         $maxIndex = strlen($characters) - 1;
         $bytes = random_bytes($length);
 
