@@ -62,6 +62,10 @@ class App
         Application::getInstance()->registerGlobalMiddleware($middleware);
     }
 
+    public static function handleHttpRequest(): \Lucent\Http\HttpResponse {
+        return Application::getInstance()->handleHttpRequest();
+    }
+
     public static function execute() : string
     {
         return Application::getInstance()->executeHttpRequest();
