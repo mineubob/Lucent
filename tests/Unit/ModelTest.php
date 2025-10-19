@@ -551,59 +551,71 @@ class ModelTest extends DatabaseDriverSetup
 
         $found = \App\Models\AllTypes::where('int_special', $instance->int_special)->getFirst();
 
-        self::assertEqualsIgnoringFieldsRecursive($instance, $found, ['dataset']);
+        self::assertEquals($instance, $found);
     }
 
     /**
-     * Recursively compares two values, ignoring specific fields
-     * (works on nested objects, arrays, and private/protected properties).
+     * Assert that two structures are equal, ignoring specific paths.
      *
      * @param mixed $expected
      * @param mixed $actual
-     * @param string[] $ignoreFields
+     * @param string[] $ignorePaths JSONPath-like paths to ignore
      */
-    public static function assertEqualsIgnoringFieldsRecursive($expected, $actual, array $ignoreFields): void
+    public static function assertEqualsIgnoringPaths($expected, $actual, array $ignorePaths): void
     {
-        $normalize = function ($value) use (&$normalize, $ignoreFields) {
-            // Handle arrays
+        // Prebuild regexes from ignore paths
+        $ignoreRegexes = array_map(fn($p) => self::buildPathRegex($p), $ignorePaths);
+
+        $matchesIgnore = function (string $path) use ($ignoreRegexes): bool {
+            foreach ($ignoreRegexes as $regex) {
+                if (preg_match($regex, $path)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Recursively normalize structure, skipping ignored paths
+        $normalize = function ($value, string $path = '') use (&$normalize, $matchesIgnore) {
             if (is_array($value)) {
                 $result = [];
                 foreach ($value as $k => $v) {
-                    $result[$k] = $normalize($v);
+                    $keyStr = is_int($k) ? "[$k]" : $k;
+                    $subPath = $path === '' ? $keyStr : "$path.$keyStr";
+                    if ($matchesIgnore($subPath))
+                        continue;
+                    $result[$k] = $normalize($v, $subPath);
                 }
                 return $result;
             }
 
-            // Handle objects
             if (is_object($value)) {
-                $data = (array) $value;
+                $result = new \stdClass();
                 $ref = new \ReflectionClass($value);
 
-                // Remove ignored fields (including inherited privates)
                 do {
-                    foreach ($ignoreFields as $fieldName) {
-                        $key = "\0" . $ref->getName() . "\0" . $fieldName;
-                        unset($data[$key]);
+                    foreach ($ref->getProperties() as $prop) {
+                        /** @var \ReflectionProperty $prop */
+                        $prop->setAccessible(true);
+                        $name = $prop->getName();
+                        $subPath = $path === '' ? $name : "$path.$name";
+
+                        if ($matchesIgnore($subPath))
+                            continue;
+
+                        try {
+                            $propValue = $prop->getValue($value);
+                        } catch (\Throwable) {
+                            continue;
+                        }
+
+                        $result->$name = $normalize($propValue, $subPath);
                     }
                 } while ($ref = $ref->getParentClass());
 
-                // Build a clean comparable structure
-                $result = new \stdClass();
-                foreach ($data as $k => $v) {
-                    // Strip internal \0... field name prefixes
-                    if (str_starts_with($k, "\0")) {
-                        $parts = explode("\0", $k);
-                        $k = end($parts); // get actual property name
-                    }
-
-                    if (!in_array($k, $ignoreFields, true)) {
-                        $result->$k = $normalize($v);
-                    }
-                }
                 return $result;
             }
 
-            // Scalar or null
             return $value;
         };
 
@@ -612,6 +624,43 @@ class ModelTest extends DatabaseDriverSetup
             $normalize($actual)
         );
     }
+
+    /**
+     * Build a regex from a JSONPath-like wildcard path.
+     *
+     * Supports:
+     * - *   → exactly one segment
+     * - **  → zero or more segments
+     * - [*] → any array index
+     * - [n] → specific array index
+     */
+    private static function buildPathRegex(string $pattern): string
+    {
+        $pattern = ltrim($pattern, '$.');
+        $segments = explode('.', $pattern);
+        $regex = '';
+
+        foreach ($segments as $i => $seg) {
+            if ($seg === '**') {
+                // zero or more segments including dots
+                $regex .= '(?:[^.\[\]]+(?:\.[^.\[\]]+)*)?';
+            } elseif ($seg === '*') {
+                $regex .= '[^.\[\]]+'; // single segment
+            } elseif ($seg === '[*]') {
+                $regex .= '\[[0-9]+\]'; // any array index
+            } else {
+                $regex .= preg_quote($seg, '/');
+            }
+
+            // Append a literal dot if next segment exists and current segment is not '**'
+            if ($i < count($segments) - 1 && $seg !== '**') {
+                $regex .= '\.';
+            }
+        }
+
+        return '/^' . $regex . '$/';
+    }
+
 
     public static function generate_test_model(): File
     {
@@ -1009,16 +1058,16 @@ class AllTypes extends Model
     public int $int_special;
 
     #[Column(ColumnType::JSON)]
-    public string $json;
+    public array $json;
 
     #[Column(ColumnType::JSON, nullable: true)]
-    public ?string $json_nullable;
+    public ?array $json_nullable;
 
     #[Column(ColumnType::TIMESTAMP)]
-    public int $timestamp;
+    public string $timestamp;
 
     #[Column(ColumnType::TIMESTAMP, nullable: true)]
-    public ?int $timestamp_nullable;
+    public ?string $timestamp_nullable;
 
     #[Column(ColumnType::ENUM , values: AllTypesEnum::class)]
     public string $enum;
@@ -1153,7 +1202,10 @@ class AllTypes extends Model
         }
 
         return match ($column->type) {
-            ColumnType::BINARY => random_bytes(8),
+            ColumnType::BINARY => match (true) {
+                    $column->length !== null => random_bytes($column->length),
+                    default => throw new \RuntimeException('Invalid CHAR/VARCHAR definition')
+                },
             ColumnType::TINYINT => random_int(0, 127),
             ColumnType::INT => random_int(0, 10000),
             ColumnType::BIGINT => random_int(0, 1000000),
@@ -1170,8 +1222,8 @@ class AllTypes extends Model
             ColumnType::MEDIUMTEXT => self::generateRandomString(mt_rand(100, $column->length ?? 1024)),
             ColumnType::LONGTEXT => self::generateRandomString(mt_rand(500, $column->length ?? 4096)),
             ColumnType::DATE => date('Y-m-d', strtotime('-' . random_int(0, 365) . ' days')),
-            ColumnType::TIMESTAMP => time() - random_int(0, 365 * 24 * 60 * 60),
-            ColumnType::JSON => json_encode((random_int(0, 1) === 0) ? self::generateRandomJsonObject(0, 5) : self::generateRandomJsonArray(0, 5)),
+            ColumnType::TIMESTAMP => date('Y-m-d H:i:s', time() - random_int(0, 365 * 24 * 60 * 60)),
+            ColumnType::JSON => (random_int(0, 1) === 0) ? self::generateRandomJsonObject(0, 2) : self::generateRandomJsonArray(0, 2),
             ColumnType::ENUM => match (true) {
                     is_array($column->values) => $column->values[array_rand($column->values)],
                     default => throw new \RuntimeException('Invalid ENUM definition'),
