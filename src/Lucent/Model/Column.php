@@ -154,4 +154,46 @@ class Column
 
         return $instance;
     }
+
+    /**
+     * Preprocess a value for PDO binding.
+     * @param mixed $value
+     * @return mixed
+     * @throws \InvalidArgumentException
+     */
+    public function preProcess(mixed $value): mixed
+    {
+        if ($value === null && $this->nullable === true) {
+            return null;
+        }
+
+        return match ($this->type) {
+            ColumnType::BOOLEAN => is_bool($value) ? ($value === true ? 1 : 0) : throw new \InvalidArgumentException("Invalid boolean value"),
+            ColumnType::JSON => json_encode($value),
+            default => $value
+        };
+    }
+
+    /**
+     * Postprocess a value fetched from PDO.
+     * @param mixed $value
+     * @return mixed
+     * @throws \UnexpectedValueException
+     */
+    public function postProcess(mixed $value): mixed
+    {
+        if ($value === null && $this->nullable === true) {
+            return null;
+        }
+
+        return match ($this->type) {
+            ColumnType::BOOLEAN => match (true) {
+                    is_bool($value) => $value,
+                    is_int($value) => $value === 1,
+                    default => throw new \UnexpectedValueException("Invalid boolean value"),
+                },
+            ColumnType::JSON => is_string($value) ? json_decode($value, true) : throw new \UnexpectedValueException("Invalid JSON value"),
+            default => $value
+        };
+    }
 }
