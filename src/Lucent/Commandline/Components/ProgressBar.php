@@ -236,7 +236,7 @@ class ProgressBar
         if ($this->enableFlush) {
             flush();
             if (function_exists('ob_flush')) {
-                @ob_flush();
+                ob_flush();
             }
         }
     }
