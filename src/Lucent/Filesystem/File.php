@@ -84,6 +84,9 @@ class File extends FileSystemObject
      */
     public function delete(): bool
     {
+        if (!$this->exists())
+            return false;
+
         return unlink($this->path);
     }
 
