@@ -36,7 +36,7 @@ class App
         return Application::getInstance()->httpRouter->getUriAsArray($_SERVER['REQUEST_URI']);
     }
 
-    public static function getLucentVersion() : ?string
+    public static function getLucentVersion() : string
     {
         return VERSION;
     }
