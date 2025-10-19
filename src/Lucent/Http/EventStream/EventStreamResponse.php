@@ -21,7 +21,7 @@ class EventStreamResponse extends HttpResponse
         $this->callback = $callback;
     }
 
-    public function render(): string
+    public function body(): string|null
     {
         if ($this->callback) {
             call_user_func($this->callback);
