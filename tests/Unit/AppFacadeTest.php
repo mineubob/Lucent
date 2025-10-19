@@ -15,7 +15,7 @@ class AppFacadeTest extends TestCase
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/test/four";
 
-        $output =  App::execute();
+        App::handleHttpRequest();
         $url = App::currentRoute();
 
         $this->assertEquals(["test","four"], $url);
