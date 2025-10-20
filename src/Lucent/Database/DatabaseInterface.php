@@ -4,8 +4,6 @@ namespace Lucent\Database;
 
 abstract class DatabaseInterface
 {
-
-
     #[\Deprecated("Prefer use of the Schema::table function directly.")]
     abstract public function createTable(string $name, array $columns): string;
     abstract public function lastInsertId(): string|int;

@@ -36,7 +36,7 @@ class App
         return Application::getInstance()->httpRouter->getUriAsArray($_SERVER['REQUEST_URI']);
     }
 
-    public static function getLucentVersion() : ?string
+    public static function getLucentVersion() : string
     {
         return VERSION;
     }
@@ -60,6 +60,10 @@ class App
     public static function registerGlobalMiddlewares(Middleware|string $middleware): void
     {
         Application::getInstance()->registerGlobalMiddleware($middleware);
+    }
+
+    public static function handleHttpRequest(): \Lucent\Http\HttpResponse {
+        return Application::getInstance()->handleHttpRequest();
     }
 
     public static function execute() : string

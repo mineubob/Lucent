@@ -35,11 +35,12 @@ class CustomErrorPageTest extends TestCase
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/";
 
-        $response = App::execute();
+        $response = App::handleHttpRequest();
 
-        $this->assertTrue(str_contains($response,"<button>Back</button>"));
-        $this->assertTrue(str_contains($response,"<button>Home</button>"));
-        $this->assertTrue(str_contains($response,"<h1>Ops! it looks like the page cannot be found!</h1>"));
+        $this->assertEquals($response->statusCode, 200);
+        $this->assertTrue(str_contains($response->body(),"<button>Back</button>"));
+        $this->assertTrue(str_contains($response->body(),"<button>Home</button>"));
+        $this->assertTrue(str_contains($response->body(),"<h1>Ops! it looks like the page cannot be found!</h1>"));
     }
 
     private static function generateRoutesFile(): void
@@ -90,17 +91,16 @@ class CustomErrorPageTest extends TestCase
                 $this->path = $path;
             }
         
-            public function render(): string
+            public function body(): string|null
             {
-                $output = "";
-        
                 if(!file_exists(VIEWS.$this->path)){
                     $this->statusCode = 500;
                     return "500 FILE NOT FOUND";
                 }
         
                 return file_get_contents(VIEWS.$this->path);
-            } 
+            }
+
             public function set_response_header(): void
             {
         

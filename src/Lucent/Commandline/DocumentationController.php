@@ -136,7 +136,7 @@ class DocumentationController
 
         // Process validation rules if they exist
         if ($endpoint->rule) {
-            $ruleInstance = new ($endpoint->rule);
+            $ruleInstance = new $endpoint->rule;
             $validationRules = $ruleInstance->setup();
 
             // Generate validation example using faker
@@ -245,7 +245,7 @@ class DocumentationController
 
             foreach ($endpoint['examples'] as $status => $response) {
                 $responseType = $this->getResponseType($status);
-                $responseData = json_decode($response->render(),true);
+                $responseData = $response->body;
 
                 // Format the response data
                 $formattedResponse = $this->formatResponseData($responseData);

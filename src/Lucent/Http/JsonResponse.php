@@ -4,9 +4,11 @@ namespace Lucent\Http;
 
 class JsonResponse extends HttpResponse
 {
+    public protected(set) array $body;
 
-    public function __construct($content = '', $status = 200){
-        parent::__construct($content, $status);
+    public function __construct($_ = '', $status = 200)
+    {
+        parent::__construct("", $status);
 
         $this->body = [];
         $this->body["message"] = "Request successfully executed.";
@@ -17,29 +19,32 @@ class JsonResponse extends HttpResponse
         $this->headers["Content-Type"] = "application/json; charset=utf-8";
     }
 
-    public function setOutcome(bool $outcome) : JsonResponse
+    public function setOutcome(bool $outcome): JsonResponse
     {
         $this->body["outcome"] = $outcome;
         return $this;
     }
 
-    public function getOutcome(){
+    public function getOutcome()
+    {
         return $this->body["outcome"];
     }
 
-    public function setMessage(string $message) : JsonResponse
+    public function setMessage(string $message): JsonResponse
     {
         $this->body["message"] = $message;
         return $this;
     }
 
-    public function setStatusCode(int $statusCode) : JsonResponse
+    public function setStatusCode(int $statusCode): JsonResponse
     {
         $this->statusCode = $statusCode;
+        $this->body["status"] = $statusCode;
         return $this;
     }
 
-    public function getStatusCode(): int{
+    public function getStatusCode(): int
+    {
         return $this->statusCode;
     }
 
@@ -55,7 +60,7 @@ class JsonResponse extends HttpResponse
         return $this;
     }
 
-    public function addError(string $key, $error) : JsonResponse
+    public function addError(string $key, $error): JsonResponse
     {
         $this->body["outcome"] = false;
         $this->statusCode = 400;
@@ -63,23 +68,22 @@ class JsonResponse extends HttpResponse
         return $this;
     }
 
-    public function render(): string
-    {
-        $this->body["status"] = $this->statusCode;
-        return json_encode($this->body, JSON_UNESCAPED_UNICODE);
-    }
-
-    public function addErrors(array $errors ,$message = ""): JsonResponse
+    public function addErrors(array $errors, $message = ""): JsonResponse
     {
         $this->body["outcome"] = false;
         $this->statusCode = 400;
-        foreach ($errors as $error){
+        foreach ($errors as $error) {
             $this->body[$error] = $message;
 
         }
         return $this;
     }
 
+    public function body(): string|null
+    {
+        if ($this->statusCode !== $this->body["status"])
+            $this->body["status"] = $this->statusCode;
 
-
+        return json_encode($this->body);
+    }
 }

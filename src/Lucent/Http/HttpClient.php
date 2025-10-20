@@ -120,7 +120,7 @@ class HttpClient
         $progressCallback = $progressCallback ?? function($downloaded, $total) {};
 
         // Open file for writing
-        $fp = @fopen($filePath, 'w+');
+        $fp = fopen($filePath, 'w+');
         if (!$fp) {
             $errorMsg = "Failed to open file for writing: {$filePath}";
             Log::channel("phpunit")->error($errorMsg);
@@ -203,7 +203,7 @@ class HttpClient
             Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
             curl_close($ch);
             // Try to remove the incomplete file
-            @unlink($filePath);
+            unlink($filePath);
             return new HttpResponse(
                 body: null,
                 statusCode: $info['http_code'],
@@ -221,7 +221,7 @@ class HttpClient
             if ($contentLength > 0 && $downloadedSize < $contentLength) {
                 $errorMsg = "Incomplete download: Expected {$contentLength} bytes but got {$downloadedSize} bytes";
                 Log::channel("phpunit")->error($errorMsg);
-                @unlink($filePath);
+                unlink($filePath);
                 return new HttpResponse(
                     body: null,
                     statusCode: $info['http_code'],
@@ -237,7 +237,7 @@ class HttpClient
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
             Log::channel("phpunit")->error($errorMsg);
             // Try to remove the incomplete file
-            @unlink($filePath);
+            unlink($filePath);
             return new HttpResponse(
                 body: null,
                 statusCode: $info['http_code'],

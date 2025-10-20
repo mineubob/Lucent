@@ -25,7 +25,7 @@ class FileDriver extends Driver
         $logPath = $logDir . DIRECTORY_SEPARATOR . $this->path;
 
         // Try to open file and handle any errors
-        $file = @fopen($logPath, "a");
+        $file = fopen($logPath, "a");
         if ($file === false) {
             error_log("Failed to open log file: " . $logPath);
             return;

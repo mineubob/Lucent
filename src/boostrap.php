@@ -11,7 +11,7 @@ if ($pharActive) {
     $runningLocation = dirname($pharPath, 2) . DIRECTORY_SEPARATOR;
     $phar = new Phar($pharPath);
     $metadata = $phar->getMetadata();
-    define("VERSION", $metadata['version'] ?? 'unknown');
+    define("VERSION", is_string($metadata['version']) ? $metadata['version'] : 'unknown');
 } else {
     define("ROOT", __DIR__ . DIRECTORY_SEPARATOR);
     $runningLocation = dirname(__DIR__) . DIRECTORY_SEPARATOR . "temp_install" . DIRECTORY_SEPARATOR;
