@@ -73,7 +73,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
         try {
-            $response = (array) json_decode(App::execute());
+            $response = (array) json_decode(App::handleHttpRequest()->body());
 
             if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
@@ -95,9 +95,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/three";
 
         try {
-            $response = App::execute();
+            $response = App::handleHttpRequest();
 
-            $decodedResponse = json_decode($response, true);
+            $this->assertEquals($response->statusCode, 500);
+            $decodedResponse = json_decode($response->body(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -119,9 +120,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/four";
 
         try {
-            $response = App::execute();
+            $response = App::handleHttpRequest();
 
-            $decodedResponse = json_decode($response, true);
+            $this->assertEquals($response->statusCode, 500);
+            $decodedResponse = json_decode($response->body(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -143,8 +145,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/one/ping";
 
         try {
-            $response = App::execute();
-            $decodedResponse = json_decode($response, true);
+            $response = App::handleHttpRequest();
+
+            $this->assertEquals($response->statusCode, 200);
+            $decodedResponse = json_decode($response->body(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -162,8 +166,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/two";
 
         try {
-            $response = App::execute();
-            $decodedResponse = json_decode($response, true);
+            $response = App::handleHttpRequest();
+
+            $this->assertEquals($response->statusCode, 200);
+            $decodedResponse = json_decode($response->body(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -185,9 +191,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/test/five";
 
         try {
-            $response = App::execute();
+            $response = App::handleHttpRequest();
 
-            $decodedResponse = json_decode($response, true);
+            $this->assertEquals($response->statusCode, 200);
+            $decodedResponse = json_decode($response->body(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -211,9 +218,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/99";
 
-        $response = App::execute();
+        $response = App::handleHttpRequest();
 
-        $decodedResponse = json_decode($response, true);
+        $this->assertEquals($response->statusCode, 200);
+        $decodedResponse = json_decode($response->body(), true);
 
         $this->assertEquals(200, $decodedResponse["status"]);
         $this->assertEquals(99, $decodedResponse["content"]["id"]);
@@ -232,9 +240,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/1";
 
-        $response = App::execute();
+        $response = App::handleHttpRequest();
 
-        $decodedResponse = json_decode($response, true);
+        $this->assertEquals($response->statusCode, 200);
+        $decodedResponse = json_decode($response->body(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
 
@@ -249,9 +258,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user/object/100";
 
-        $response = App::execute();
+        $response = App::handleHttpRequest();
 
-        $decodedResponse = json_decode($response, true);
+        $this->assertEquals($response->statusCode, 404);
+        $decodedResponse = json_decode($response->body(), true);
 
         $this->assertEquals(404, $decodedResponse["status"]);
     }
@@ -269,21 +279,12 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_METHOD"] = "GET";
         $_SERVER["REQUEST_URI"] = "/user2/object/1";
 
-        $response = App::execute();
+        $response = App::handleHttpRequest();
 
-        $decodedResponse = json_decode($response, true);
+        $this->assertEquals($response->statusCode, 200);
+        $decodedResponse = json_decode($response->body(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function perform_model_migration($driver, $config): void
-    {
-        self::setupDatabase($driver, $config);
-        ModelTest::generate_test_model();
-
-        $output = CommandLine::execute("Migration make App/Models/TestUser");
-        $this->assertEquals("Successfully performed database migration", $output);
     }
 
     public static function generateTestRestController(): void
