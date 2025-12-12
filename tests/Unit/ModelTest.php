@@ -554,6 +554,32 @@ class ModelTest extends DatabaseDriverSetup
         self::assertEquals($instance, $found);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_pk_creation_bug($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        $this->assertTrue($this->generate_test_model_pk_creation_bug()->exists());
+
+        $output = CommandLine::execute("Migration make App/Models/TestUserPkBug");
+        $this->assertEquals("Successfully performed database migration", $output);
+
+        $test_user = new \App\Models\TestUserPkBug("test@bug.com","Pa55w0rd","Test Account");
+
+        $id = $test_user->id;
+
+        $this->assertNotEquals(0, $test_user->id);
+
+        $this->assertTrue($test_user->create());
+
+        $this->assertNotEquals(0, $test_user->id);
+
+        $this->assertTrue(strlen($test_user->id) == 36);
+
+        $new_id = $test_user->id;
+
+        $this->assertEquals($id,$new_id);
+    }
+
     /**
      * Assert that two structures are equal, ignoring specific paths.
      *
@@ -939,6 +965,57 @@ PHP;
 
 
         return new File("/App/Models/TestUserTwo.php", $modelContent);
+    }
+
+    public static function generate_test_model_pk_creation_bug(): File
+    {
+        $modelContent = <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use Lucent\Model\Model;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+use Lucent\Facades\UUID;
+
+class TestUserPkBug extends Model
+{
+
+    #[Column(ColumnType::VARCHAR, primaryKey: true, length: 36)]
+    public private(set) string $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    protected string $email;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    protected string $password_hash;
+
+    #[Column(ColumnType::VARCHAR, length: 100)]
+    protected string $full_name;
+
+    public function __construct(string $email, string $password_hash, string $full_name)
+    {
+        $this->id = UUID::generate();
+        $this->email = $email;
+        $this->password_hash = $password_hash;
+        $this->full_name = $full_name;
+    }
+
+    public function getFullName(): string
+    {
+        return $this->full_name;
+    }
+
+    public function setFullName(string $full_name)
+    {
+        $this->full_name = $full_name;
+    }
+}
+PHP;
+
+
+        return new File("/App/Models/TestUserPkBug.php", $modelContent);
     }
 
     public static function generate_transaction_model(): File
