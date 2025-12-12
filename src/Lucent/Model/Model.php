@@ -331,7 +331,7 @@ class Model
             $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
             $updates[] = "$column->name = ?";
-            $bindValues[] = is_bool($value) ? ($value ? 1 : 0) : $value;
+            $bindValues[] = $column->preProcess($value);
         }
 
         if (empty($updates)) {
