@@ -515,6 +515,13 @@ class Application
 
         $this->boot();
 
+        if (!CommandLine::isCaptured()) {
+            ob_implicit_flush(true);
+            if (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+        }
+
         CommandLine::register("Migration make {class}", "make", MigrationController::class,"Generates a database table from the model class.");
 
         CommandLine::register("update check", "check", UpdateController::class,"Checks for a lucent update");
@@ -524,7 +531,6 @@ class Application
         CommandLine::register("generate api-docs", "generateApi", DocumentationController::class,"Generates API documentation based on your controller attributes");
 
         CommandLine::register("serve", "start", DevServerController::class,"Start the built-in PHP development server");
-
 
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
@@ -546,9 +552,10 @@ class Application
                 $expandedArgs[] = $arg;
             }
         }
+
         $args = $expandedArgs;
 
-        if((count($args) === 1 && $args[0] === "") || count($args) === 0) {
+        if ((count($args) === 1 && $args[0] === "") || count($args) === 0 || (count($args) === 1 && $args[0] === "help")) {
             $commands = $this->consoleRouter->getRoutes()["CLI"];
             $output =  "\nAvailable commands:\n\n";
 
@@ -573,7 +580,6 @@ class Application
             $output .=  "\n";
             return $output;
         }
-
 
         $processedArgs = $this->processArguments($args);
 
@@ -681,8 +687,25 @@ class Application
         }
 
 
-        // Use the filtered variables instead of all variables
-        return $method->invokeArgs($controller, $filteredVariables);
+        if (CommandLine::isCaptured()) {
+            ob_start();
+            $result = $method->invokeArgs($controller, $filteredVariables);
+            $output = ob_get_clean();
+
+            if (is_string($result) && $result !== '') {
+                $output .= $result;
+            }
+
+            return $output;
+        }
+
+        $result = $method->invokeArgs($controller, $filteredVariables);
+
+        if (is_string($result) && $result !== '') {
+            echo $result;
+        }
+
+        return '';
     }
 
     /**
