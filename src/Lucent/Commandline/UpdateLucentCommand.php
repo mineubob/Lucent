@@ -6,16 +6,18 @@ use Exception;
 use Lucent\Commandline\Components\ProgressBar;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
-use Lucent\Facades\Log;
 use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
 use Lucent\Http\HttpClient;
 use Lucent\StaticAnalysis\DependencyAnalyser;
 use Phar;
 
-class UpdateController
+class UpdateLucentCommand
 {
     private string $downloadPath;
+    public static string $command_install = "update install";
+    public static string $command_check = "update check";
+    public static string $command_rollback = "update rollback";
 
     public function __construct()
     {

@@ -13,8 +13,11 @@ use Lucent\Http\Attributes\ApiResponse;
 use Lucent\Http\JsonResponse;
 use ReflectionClass;
 
-class DocumentationController
+class GenerateDocumentationCommand
 {
+
+    public static string $command = "generate api-docs";
+
     public function generateApi(): string
     {
         $documentation = $this->scanControllers();

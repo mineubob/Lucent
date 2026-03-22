@@ -4,10 +4,10 @@ namespace Lucent;
 
 use InvalidArgumentException;
 use Lucent\Commandline\CliRouter;
-use Lucent\Commandline\DocumentationController;
-use Lucent\Commandline\MigrationController;
-use Lucent\Commandline\DevServerController;
-use Lucent\Commandline\UpdateController;
+use Lucent\Commandline\GenerateDocumentationCommand;
+use Lucent\Commandline\PerformMigrationCommand;
+use Lucent\Commandline\StartDevServerCommand;
+use Lucent\Commandline\UpdateLucentCommand;
 use Lucent\Database\Drivers\PDODriver;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -522,15 +522,15 @@ class Application
             }
         }
 
-        CommandLine::register("Migration make {class}", "make", MigrationController::class,"Generates a database table from the model class.");
+        CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class,"Generates a database table from the model class.");
 
-        CommandLine::register("update check", "check", UpdateController::class,"Checks for a lucent update");
-        CommandLine::register("update install", "install", UpdateController::class,"Updated the app to the latest lucent version");
-        CommandLine::register("update rollback", "rollback", UpdateController::class,"Performs a rollback to the previous lucent version");
+        CommandLine::register(UpdateLucentCommand::$command_check, "check", UpdateLucentCommand::class,"Checks for a lucent update");
+        CommandLine::register(UpdateLucentCommand::$command_install, "install", UpdateLucentCommand::class,"Updated the app to the latest lucent version");
+        CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class,"Performs a rollback to the previous lucent version");
 
-        CommandLine::register("generate api-docs", "generateApi", DocumentationController::class,"Generates API documentation based on your controller attributes");
+        CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class,"Generates API documentation based on your controller attributes");
 
-        CommandLine::register("serve", "start", DevServerController::class,"Start the built-in PHP development server");
+        CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class,"Start the built-in PHP development server");
 
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
