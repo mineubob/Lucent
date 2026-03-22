@@ -22,6 +22,7 @@ abstract class Router
     protected ?string $prefix = null;
     protected ?string $namespace = null;
     protected ?string $defaultController = null;
+    protected array $disabled = ["*"=>false];
 
     /**
      * Register a new route with the router
@@ -91,6 +92,29 @@ abstract class Router
     }
 
     /**
+     * Allows for all routes '*' or specific routes to be disabled.
+     * Returns void
+     */
+    public function disable(string|array $route): void
+    {
+        if (is_array($route)) {
+            foreach ($route as $r) {
+                $this->disabled[$r] = true;
+            }
+        } else {
+            $this->disabled[$route] = true;
+        }
+    }
+
+    /**
+     * Checks if a specific route is disabled, returns true or false.
+     */
+    protected function isDisabled(string $uri): bool
+    {
+        return ($this->disabled["*"] ?? false) || ($this->disabled[$uri] ?? false);
+    }
+
+    /**
      * Convert a URI to an array of segments, removing empty segments
      */
     /**
@@ -139,6 +163,7 @@ abstract class Router
         $uri = $route;
         $requestMethod = $_SERVER["REQUEST_METHOD"] ?? 'GET';
 
+
         if (!isset($this->routes[$requestMethod])) {
             return [
                 "route" => null,
@@ -147,8 +172,14 @@ abstract class Router
         }
 
         foreach ($this->routes[$requestMethod] as $key => $route) {
-
             if ($match = $this->matchRoute($key, $uri, '/', $route)) {
+                if ($this->isDisabled($key)) {
+                    return [
+                        "route" => $key,
+                        "outcome" => false,
+                        "disabled" => true
+                    ];
+                }
                 return $match;
             }
         }
@@ -252,9 +283,23 @@ abstract class Router
         $this->prefix = null;
         $this->namespace = null;
         $this->defaultController = null;
+        $this->disabled = ["*" => false];
     }
 
-    public function getRoutes() : array{
+    public function getRoutes(bool $activeOnly = true): array
+    {
+        if ($activeOnly) {
+            $active = [];
+            foreach ($this->routes as $method => $routes) {
+                foreach ($routes as $uri => $route) {
+                    if (!$this->isDisabled($uri)) {
+                        $active[$method][$uri] = $route;
+                    }
+                }
+            }
+            return $active;
+        }
+
         return $this->routes;
     }
 }
