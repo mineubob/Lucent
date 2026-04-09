@@ -17,7 +17,6 @@ class ProgressBarTest extends TestCase
         parent::setUp();
         // Create a new progress bar for each test with a standard total of 100
         $this->progressBar = new ProgressBar(100);
-        $this->progressBar->enableOutputFlush(false); // Disable output buffer flushing for tests
     }
 
 
