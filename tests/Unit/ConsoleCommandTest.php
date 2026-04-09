@@ -112,7 +112,7 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("");
 
         $this->assertStringContainsString("Available commands:", $result);
-        $this->assertStringContainsString("Migration make {class}", $result);
+        $this->assertStringContainsString("migration make {class}", $result);
         $this->assertStringContainsString("update check", $result);
         $this->assertStringContainsString("update rollback", $result);
         $this->assertStringContainsString("update install", $result);
@@ -148,7 +148,7 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("help");
 
         $this->assertStringContainsString("Available commands:", $result);
-        $this->assertStringContainsString("Migration make {class}", $result);
+        $this->assertStringContainsString("migration make {class}", $result);
         $this->assertStringNotContainsString("update check", $result);
         $this->assertStringNotContainsString("update rollback", $result);
         $this->assertStringNotContainsString("update install", $result);
