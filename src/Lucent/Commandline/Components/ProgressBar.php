@@ -78,12 +78,6 @@ class ProgressBar
      */
     private float $updateInterval = 0.1;
 
-    /**
-     * Whether to flush output buffer after each update
-     *
-     * @var bool
-     */
-    private bool $enableFlush = true;
 
     /**
      * Initialize the progress bar
@@ -145,18 +139,6 @@ class ProgressBar
     }
 
     /**
-     * Enable or disable output buffer flushing
-     *
-     * @param bool $enable Whether to enable output flushing
-     * @return self
-     */
-    public function enableOutputFlush(bool $enable = true): self
-    {
-        $this->enableFlush = $enable;
-        return $this;
-    }
-
-    /**
      * Advance the progress bar by a specific step
      *
      * @param int $step Number of steps to advance
@@ -207,16 +189,12 @@ class ProgressBar
      */
     protected function display(): void
     {
-        // Get terminal width or use a reasonable default
         $termWidth = 80;
         if (function_exists('exec') && false !== @exec('tput cols 2>/dev/null', $output) && !empty($output[0])) {
             $termWidth = (int)$output[0];
         }
 
-        // Create a string to clear the entire line
         $clearLine = "\r" . str_repeat(' ', $termWidth) . "\r";
-
-        // Clear the line before writing new content
         echo $clearLine;
 
         $percent = $this->current / $this->total;
@@ -231,16 +209,7 @@ class ProgressBar
         );
 
         echo $output;
-
-        // Flush the output buffer to ensure real-time updates (if enabled)
-        if ($this->enableFlush) {
-            flush();
-            if (function_exists('ob_flush')) {
-                ob_flush();
-            }
-        }
     }
-
     /**
      * Generate the actual progress bar string
      *

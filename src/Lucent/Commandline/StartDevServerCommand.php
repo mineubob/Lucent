@@ -5,8 +5,11 @@ namespace Lucent\Commandline;
 use Lucent\Facades\FileSystem;
 use Lucent\Logging\ConsoleColors;
 
-class DevServerController
+class StartDevServerCommand
 {
+
+    public static string $command = "serve";
+
     public function start(array $options = []): string
     {
         $port = $options['port'] ?? 8080;

@@ -2,7 +2,7 @@
 
 namespace Unit;
 
-use Lucent\Commandline\DocumentationController;
+use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
 use PHPUnit\Framework\TestCase;
@@ -12,7 +12,7 @@ class ApiGenerationTest extends TestCase
 
     public function test_api_html_generation(): void
     {
-        $docsController = new DocumentationController();
+        $docsController = new GenerateDocumentationCommand();
 
         $this->generateTestRule();
         $this->generateTestController();
@@ -27,7 +27,7 @@ class ApiGenerationTest extends TestCase
         $this->generateTestRule();
         $this->generateTestController();
 
-        $docsController = new DocumentationController();
+        $docsController = new GenerateDocumentationCommand();
         $result = $docsController->scanControllers();
 
         $this->assertCount(2, $result);

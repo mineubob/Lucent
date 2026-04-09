@@ -3,6 +3,7 @@
 namespace Unit;
 
 use App\Commands\TestCommand;
+use Lucent\Application;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use PHPUnit\Framework\TestCase;
@@ -19,11 +20,17 @@ class ConsoleCommandTest extends TestCase
 
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Application::getInstance()->consoleRouter->reset();
+        CommandLine::captureOutput();
+    }
+
 
     public function test_basic_console_command(): void
     {
         CommandLine::register("test run", "run", TestCommand::class);
-
 
         $result = CommandLine::execute("test run");
 
@@ -105,10 +112,46 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("");
 
         $this->assertStringContainsString("Available commands:", $result);
-        $this->assertStringContainsString("Migration make {class}", $result);
+        $this->assertStringContainsString("migration make {class}", $result);
         $this->assertStringContainsString("update check", $result);
         $this->assertStringContainsString("update rollback", $result);
         $this->assertStringContainsString("update install", $result);
+        $this->assertStringContainsString("generate api-docs", $result);
+        $this->assertStringContainsString("serve", $result);
+    }
+
+    public function test_command_disabled_all() : void
+    {
+        CommandLine::register("test run", "run", TestCommand::class);
+        CommandLine::disableCommand("*");
+        $result = CommandLine::execute("test run");
+
+        $this->assertStringStartsWith("Unrecognized command.", $result);
+
+    }
+
+    public function test_command_disabled_single() : void
+    {
+        CommandLine::register("test run", "run", TestCommand::class);
+        CommandLine::disableCommand("test run");
+
+        $result = CommandLine::execute("test run");
+
+        $this->assertStringStartsWith("Unrecognized command.", $result);
+
+    }
+
+    public function test_command_disabled_multiple() : void
+    {
+        CommandLine::disableCommand(["update check", "update rollback","update install"]);
+
+        $result = CommandLine::execute("help");
+
+        $this->assertStringContainsString("Available commands:", $result);
+        $this->assertStringContainsString("migration make {class}", $result);
+        $this->assertStringNotContainsString("update check", $result);
+        $this->assertStringNotContainsString("update rollback", $result);
+        $this->assertStringNotContainsString("update install", $result);
         $this->assertStringContainsString("generate api-docs", $result);
         $this->assertStringContainsString("serve", $result);
     }
@@ -170,6 +213,7 @@ class ConsoleCommandTest extends TestCase
         
         $app = Application::getInstance();
         
+        CommandLine::captureOutput();
         CommandLine::register("test run", "run", TestCommand::class);
         
         echo $app->executeConsoleCommand();

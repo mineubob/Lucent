@@ -193,11 +193,11 @@ abstract class Rule
                 $rules = $new;
             }
 
-            //If the key is not set then set it to a blanks string.
+            //If the key is not set, then set it to a blanks string.
             if (!isset($data[$key])) {
                 $data[$key] = "";
-            }else{
-                $data[$key] = trim($data[$key]);
+            } else {
+                $data[$key] = is_string($data[$key]) ? trim($data[$key]) : $data[$key];
             }
 
             // Extract special flags like nullable
@@ -354,7 +354,7 @@ abstract class Rule
     private function processVariable(mixed $value, array $data): mixed
     {
 
-        if(str_starts_with($value, "@")) {
+        if(is_string($value) && str_starts_with($value, "@")) {
 
             $fieldName = substr($value, 1);
 

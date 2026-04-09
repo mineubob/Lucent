@@ -6,10 +6,11 @@ namespace Lucent\Commandline;
 use Lucent\Database\Migration;
 use Lucent\Facades\FileSystem;
 
-class MigrationController
+class PerformMigrationCommand
 {
 
     private Migration $migration;
+    public static string $command = "migration make {class}";
 
     public function __construct(){
         $this->migration = new Migration();

@@ -16,6 +16,11 @@ use Lucent\Routing\Stream\StreamRouteBuilder;
 class Route
 {
 
+    public static function disable(string $route) : void
+    {
+        Application::getInstance()->httpRouter->disable($route);
+    }
+
     public static function rest() : RestRouteBuilder
     {
         return new RestRouteBuilder(Application::getInstance()->httpRouter);

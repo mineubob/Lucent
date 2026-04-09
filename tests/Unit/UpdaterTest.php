@@ -3,7 +3,7 @@
 namespace Unit;
 
 use Exception;
-use Lucent\Commandline\UpdateController;
+use Lucent\Commandline\UpdateLucentCommand;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Phar;
@@ -14,7 +14,7 @@ class UpdaterTest extends TestCase
 
     public function test_update_install(): void
     {
-        $updater = new UpdateController();
+        $updater = new UpdateLucentCommand();
         $buildDir = FileSystem::rootPath() . "/packages/";
         $pharPath = $buildDir . 'lucent.phar';
 
@@ -59,7 +59,7 @@ class UpdaterTest extends TestCase
         // Get original file hash
         $originalHash = md5_file($pharPath);
 
-        $updater = new UpdateController();
+        $updater = new UpdateLucentCommand();
 
         // Install update
         $output = $updater->install();
@@ -77,7 +77,7 @@ class UpdaterTest extends TestCase
 
     public function test_update_check(): void
     {
-        $updater = new UpdateController();
+        $updater = new UpdateLucentCommand();
 
         $output = $updater->check();
         $this->assertStringStartsWith("Running update dependency check:", $output);

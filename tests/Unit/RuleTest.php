@@ -83,6 +83,24 @@ class DynamicRule extends Rule
     }
 }
 
+class ArrayRule extends Rule
+{
+
+    private array $keys = ["first_name", "last_name", "address"];
+
+    public function setup(): array
+    {
+        return [
+            'values' => "allowed_values"
+        ];
+    }
+
+    protected function allowed_values(array $value): bool
+    {
+        return empty(array_diff(array_keys($value), $this->keys));
+    }
+}
+
 class CustomRule extends Rule
 {
 
@@ -643,4 +661,33 @@ class RuleTest extends DatabaseDriverSetup
             "first_name" => ["min:10", "max:255", "nullable"],
         ]));
     }
+
+    public function test_array_with_invalid_dataset(): void
+    {
+        $request = Faker::request();
+
+        $request->setInput("values", ["f1rstname"=>"John","l2stname"=>"Smith"]);
+
+        $this->assertFalse($request->validate(ArrayRule::class));
+    }
+
+
+    public function test_array_with_valid_dataset(): void
+    {
+        $request = Faker::request();
+
+        $request->setInput("values", ["first_name"=>"John","last_name"=>"Smith"]);
+
+        $this->assertTrue($request->validate(ArrayRule::class));
+    }
+
+    public function test_array_with_mixed_dataset(): void
+    {
+        $request = Faker::request();
+
+        $request->setInput("values", ["first_name"=>"John","last_name"=>"Smith","username"=>"John Smith"]);
+
+        $this->assertFalse($request->validate(ArrayRule::class));
+    }
+
 }

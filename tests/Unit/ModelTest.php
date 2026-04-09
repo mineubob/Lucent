@@ -59,7 +59,7 @@ class ModelTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config, []);
 
-        $output = CommandLine::execute("Migration make App/Models/TestUser");
+        $output = CommandLine::execute("migration make App/Models/TestUser");
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
@@ -111,7 +111,7 @@ class ModelTest extends DatabaseDriverSetup
     {
         self::setupDatabase($driver, $config, []);
 
-        $output = CommandLine::execute("Migration make App/Models/Admin");
+        $output = CommandLine::execute("migration make App/Models/Admin");
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
@@ -264,7 +264,7 @@ class ModelTest extends DatabaseDriverSetup
 
         $this->assertTrue($this->generate_test_model_long_text()->exists());
 
-        $output = CommandLine::execute("Migration make App/Models/LongTextModel");
+        $output = CommandLine::execute("migration make App/Models/LongTextModel");
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
@@ -276,7 +276,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertTrue($this->generate_soft_delete_trait()->exists());
         $this->assertTrue($this->generate_soft_delete_trait_model()->exists());
 
-        $output = CommandLine::execute("Migration make App/Models/TestUserTwo");
+        $output = CommandLine::execute("migration make App/Models/TestUserTwo");
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
@@ -533,7 +533,7 @@ class ModelTest extends DatabaseDriverSetup
 
         \App\Models\AllTypes::missingTypeCheck();
 
-        $output = CommandLine::execute("Migration make App/Models/AllTypes");
+        $output = CommandLine::execute("migration make App/Models/AllTypes");
         $this->assertEquals("Successfully performed database migration", $output);
     }
 
@@ -560,7 +560,7 @@ class ModelTest extends DatabaseDriverSetup
         self::setupDatabase($driver, $config, []);
         $this->assertTrue($this->generate_test_model_pk_creation_bug()->exists());
 
-        $output = CommandLine::execute("Migration make App/Models/TestUserPkBug");
+        $output = CommandLine::execute("migration make App/Models/TestUserPkBug");
         $this->assertEquals("Successfully performed database migration", $output);
 
         $test_user = new \App\Models\TestUserPkBug("test@bug.com","Pa55w0rd","Test Account");
