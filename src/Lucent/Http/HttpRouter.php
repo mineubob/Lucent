@@ -2,8 +2,9 @@
 
 namespace Lucent\Http;
 
-use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
+use Lucent\Filesystem\Exceptions\FileNotFound;
+use Lucent\Filesystem\File;
 use Lucent\Router;
 
 class HttpRouter extends Router
@@ -29,19 +30,25 @@ class HttpRouter extends Router
     }
 
 
-
     /**
      * Load routes from a file
+     * @throws FileNotFound
      */
     public function loadRoutes(string $file, ?string $prefix = null): void
     {
+        $file = new File($file);
+
+        if(!$file->exists()){
+            throw new FileNotFound($file->path);
+        }
+
         if ($prefix !== null) {
             Log::channel('phpunit')->info("Setting prefix before loading routes: " . $prefix);
             $previousPrefix = $this->prefix;
             $this->prefix = $prefix;
         }
 
-        require_once FileSystem::rootPath().DIRECTORY_SEPARATOR.$file;
+        require_once $file->path;
 
         if ($prefix !== null) {
             Log::channel('phpunit')->info("Restoring previous prefix: " . ($previousPrefix ?? 'none'));
