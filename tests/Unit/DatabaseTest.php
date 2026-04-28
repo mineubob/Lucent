@@ -206,8 +206,8 @@ class DatabaseTest extends DatabaseDriverSetup
     private function getPrivateDatabaseInstance(): mixed
     {
         $reflection = new \ReflectionClass(Database::class);
-        $property = $reflection->getProperty('instance');
-        return $property->getValue($reflection);
+        $property = $reflection->getProperty('connections');
+        return $property->getValue($reflection)['default'];
     }
 
     #[DataProvider('databaseDriverProvider')]
