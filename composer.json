@@ -6,7 +6,6 @@
     "ext-curl": "*",
     "ext-mysqli": "*",
     "ext-pdo": "*",
-    "ext-fileinfo": "*",
-    "ext-http": "*"
+    "ext-fileinfo": "*"
   }
 }
