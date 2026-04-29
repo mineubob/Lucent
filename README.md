@@ -12,7 +12,7 @@ Lucent is a lightweight PHP framework designed for building APIs with minimal ov
 Lucent provides a streamlined approach to building PHP APIs with:
 
 - Simple routing with REST
-- Database abstraction with support for MySQL and SQLite
+- [Database abstraction with support for MySQL and SQLite](./docs/database.md)
 - [Model-based ORM with relationships](./docs/orm.md)
 - [Route Model Binding](./docs/route-model-binding.md)
 - [Rules & Validation](./docs/rules-and-validation.md)
@@ -21,6 +21,7 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - [CLI tools for development and maintenance](./docs/commandline.md)
 - [File System](./docs/filesystem/file.md)
 - [UUID's](./docs/facades/uuid.md)
+- [Exception & Error handling](./docs/error-handling.md)
 
 
 ## Installing and Updating
