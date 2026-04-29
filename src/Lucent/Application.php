@@ -9,10 +9,14 @@ use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
 use Lucent\Commandline\UpdateLucentCommand;
 use Lucent\Database\Drivers\PDODriver;
+use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
+use Lucent\Facades\Log;
+use Lucent\Http\Exceptions\HttpException;
 use Lucent\Http\HttpResponse;
 use Lucent\Http\HttpRouter;
+use Lucent\Http\HttpStatus;
 use Lucent\Http\JsonResponse;
 use Lucent\Http\Request;
 use Lucent\Http\RouteInfo;
@@ -22,6 +26,7 @@ use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
 use ReflectionNamedType;
+use Throwable;
 
 /**
  * Main Application class responsible for handling HTTP requests, console commands,
@@ -289,8 +294,7 @@ class Application
      * 5. Performing route model binding
      * 6. Executing the controller method
      *
-     * @return string JSON response
-     * @throws ReflectionException
+     * @return string html body
      */
     public function executeHttpRequest(): string
     {
@@ -305,134 +309,129 @@ class Application
 
     public function handleHttpRequest(): HttpResponse
     {
-        $this->boot();
+        try {
+            $this->boot();
 
-        $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
-        $request = new Request();
+            $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
+            $request = new Request();
 
-        // Check if route was found - if not, use fallback or 404
-        if (!$response["outcome"]) {
-            return $this->responseWithError(404);
-        }
+            $controllerReflection = new ReflectionClass($response["controller"]);
+            $controllerConstructor = $controllerReflection->getConstructor();
+            $parameters = [];
 
-        // Verify controller exists before trying to instantiate it
-        if (!class_exists($response["controller"])) {
-            return $this->responseWithError(500);
-        }
+            if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
 
-        $controllerReflection = new ReflectionClass($response["controller"]);
-        $controllerConstructor = $controllerReflection->getConstructor();
-        $parameters = [];
+                foreach ($controllerReflection->getConstructor()->getParameters() as $parameter) {
+                    if (array_key_exists($parameter->getType()->getName(), $this->services)) {
+                        $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
+                    }
+                }
 
-        if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
+            }
 
-            foreach ($controllerReflection->getConstructor()->getParameters() as $parameter) {
-                if (array_key_exists($parameter->getType()->getName(), $this->services)) {
-                    $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
+            $request->setRouteInfo(new RouteInfo(
+                $response["controller"],
+                $response["method"],
+                $response["route"],
+                $_SERVER["REQUEST_METHOD"],
+                $response["variables"]
+            ));
+
+            //Next we check if we have any variables to pass, if not we run the method.
+            //Next this as we have not returned we have variables to pass
+            $method = $controllerReflection->getMethod($response["method"]);
+
+            //Pass our URL variables to the request object.
+            $request->setUrlVars($response["variables"]);
+
+            //Run all our middleware
+            foreach (array_merge($this->globalMiddlewares, $response["middleware"]) as $middleware) {
+                if ($middleware instanceof Middleware) {
+                    $request = $middleware->handle($request);
+                } else {
+                    $object = new $middleware();
+                    $request = $object->handle($request);
                 }
             }
 
-        }
-
-        //Check if we have a valid method, if not throw a 500 error.
-        if (!$controllerReflection->hasMethod($response["method"])) {
-            return $this->responseWithError(500);
-        }
-
-        $request->setRouteInfo(new RouteInfo(
-            $response["controller"],
-            $response["method"],
-            $response["route"],
-            $_SERVER["REQUEST_METHOD"],
-            $response["variables"]
-        ));
-
-        //Next we check if we have any variables to pass, if not we run the method.
-        //Next this as we have not returned we have variables to pass
-        $method = $controllerReflection->getMethod($response["method"]);
-
-        //Pass our URL variables to the request object.
-        $request->setUrlVars($response["variables"]);
-
-        //Run all our middleware
-        foreach (array_merge($this->globalMiddlewares, $response["middleware"]) as $middleware) {
-            if ($middleware instanceof Middleware) {
-                $request = $middleware->handle($request);
+            if ($parameters !== []) {
+                $controller = $controllerReflection->newInstanceArgs($parameters);
             } else {
-                $object = new $middleware();
-                $request = $object->handle($request);
+                $controller = $controllerReflection->newInstance();
             }
+
+            //Check if we require our request object.
+            $requestInjection = $this->requiresHttpRequest($method);
+
+            if ($requestInjection !== null) {
+                $response["variables"][$requestInjection] = $request;
+            }
+
+            // Apply model binding for route parameters
+            foreach ($method->getParameters() as $parameter) {
+
+                $type = $parameter->getType()?->getName();
+                $name = $parameter->getName();
+
+                if ($type === null) {
+                    continue;
+                }
+
+                if (!($parameter->getType() instanceof ReflectionNamedType)) {
+                    throw new InvalidArgumentException(
+                        sprintf(
+                            "Parameter '%s' in method '%s::%s()' must have a named type hint. Union types, intersection types, and untyped parameters are not supported for automatic injection.",
+                            $parameter->getName(),
+                            $method->getDeclaringClass()->getName(),
+                            $method->getName()
+                        )
+                    );
+                }
+
+                //Service Injection
+                if (array_key_exists($type, $this->services)) {
+                    $response["variables"][$name] = $this->services[$type];
+                    continue;
+                }
+
+                //Skip non model types
+                if (!is_subclass_of($parameter->getType()->getName(), Model::class)) {
+                    continue;
+                }
+
+                $reflection = new ReflectionClass($type);
+
+                $pkValue = $response["variables"][$name];
+                $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
+
+                if (
+                    array_key_exists($name, $request->context)
+                    && $request->context[$name] instanceof $type
+                    && property_exists($request->context[$name], $pkKey)
+                    && $request->context[$name]->$pkKey == $pkValue
+                ) {
+                    $instance = $request->context[$name];
+                } else {
+                    $instance = $type::where($pkKey, $pkValue)->getFirst();
+                }
+
+                if ($instance === null) {
+                    throw new HttpException(HttpStatus::NOT_FOUND);
+                }
+
+                $response["variables"][$name] = $instance;
+            }
+
+            return $method->invokeArgs($controller, $response["variables"]);
+
+        } catch (HttpException $e) {
+            Log::channel('lucent.routing')->warning($e->getMessage());
+            return $this->responseWithError($e->getStatus(), $e);
         }
-
-        if ($parameters !== []) {
-            $controller = $controllerReflection->newInstanceArgs($parameters);
-        } else {
-            $controller = $controllerReflection->newInstance();
+        catch (Throwable $throwable){
+            Log::channel('lucent.routing')->warning($throwable->getMessage());
+            return $this->responseWithError(HttpStatus::SERVER_ERROR,$throwable);
         }
-
-        //Check if we require our request object.
-        $requestInjection = $this->requiresHttpRequest($method);
-
-        if ($requestInjection !== null) {
-            $response["variables"][$requestInjection] = $request;
-        }
-
-        // Apply model binding for route parameters
-        foreach ($method->getParameters() as $parameter) {
-
-            $type = $parameter->getType()?->getName();
-            $name = $parameter->getName();
-
-            if ($type === null) {
-                continue;
-            }
-
-            if (!($parameter->getType() instanceof ReflectionNamedType)) {
-                throw new InvalidArgumentException(
-                    sprintf(
-                        "Parameter '%s' in method '%s::%s()' must have a named type hint. Union types, intersection types, and untyped parameters are not supported for automatic injection.",
-                        $parameter->getName(),
-                        $method->getDeclaringClass()->getName(),
-                        $method->getName()
-                    )
-                );
-            }
-
-            //Service Injection
-            if (array_key_exists($type, $this->services)) {
-                $response["variables"][$name] = $this->services[$type];
-                continue;
-            }
-
-            //Skip non model types
-            if (!is_subclass_of($parameter->getType()->getName(), Model::class)) {
-                continue;
-            }
-
-            $reflection = new ReflectionClass($type);
-
-            $pkValue = $response["variables"][$name];
-            $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
-
-            if (
-                array_key_exists($name, $request->context)
-                && $request->context[$name] instanceof $type
-                && property_exists($request->context[$name], $pkKey)
-                && $request->context[$name]->$pkKey == $pkValue
-            ) {
-                $instance = $request->context[$name];
-            } else {
-                $instance = $type::where($pkKey, $pkValue)->getFirst();
-            }
-
-            if ($instance === null) {
-                return $this->responseWithError(404);
-            }
-
-            $response["variables"][$name] = $instance;
-        }
-
-        return $method->invokeArgs($controller, $response["variables"]);
     }
 
     /**
@@ -500,6 +499,13 @@ class Application
         $this->env = $output;
     }
 
+    /** @dev-start */
+    public function setEnv(string $key, mixed $value): void
+    {
+        $this->env[strtoupper($key)] = (string) $value;
+    }
+    /** @dev-end */
+
     /**
      * Execute a console command
      *
@@ -512,7 +518,6 @@ class Application
      */
     public function executeConsoleCommand(array $args = []): string
     {
-
         $this->boot();
 
         if (!CommandLine::isCaptured()) {
@@ -522,15 +527,12 @@ class Application
             }
         }
 
-        CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class,"Generates a database table from the model class.");
-
-        CommandLine::register(UpdateLucentCommand::$command_check, "check", UpdateLucentCommand::class,"Checks for a lucent update");
-        CommandLine::register(UpdateLucentCommand::$command_install, "install", UpdateLucentCommand::class,"Updated the app to the latest lucent version");
-        CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class,"Performs a rollback to the previous lucent version");
-
-        CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class,"Generates API documentation based on your controller attributes");
-
-        CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class,"Start the built-in PHP development server");
+        CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class, "Generates a database table from the model class.");
+        CommandLine::register(UpdateLucentCommand::$command_check, "check", UpdateLucentCommand::class, "Checks for a lucent update");
+        CommandLine::register(UpdateLucentCommand::$command_install, "install", UpdateLucentCommand::class, "Updated the app to the latest lucent version");
+        CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class, "Performs a rollback to the previous lucent version");
+        CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
+        CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
 
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
@@ -541,7 +543,6 @@ class Application
         $expandedArgs = [];
         foreach ($args as $arg) {
             if (str_contains($arg, ':')) {
-                // Split on colon and add each part as separate arguments
                 $parts = explode(':', $arg);
                 foreach ($parts as $part) {
                     if ($part !== '') {
@@ -557,9 +558,8 @@ class Application
 
         if ((count($args) === 1 && $args[0] === "") || count($args) === 0 || (count($args) === 1 && $args[0] === "help")) {
             $commands = $this->consoleRouter->getRoutes()["CLI"];
-            $output =  "\nAvailable commands:\n\n";
+            $output = "\nAvailable commands:\n\n";
 
-            // Calculate max command length for alignment
             $maxLength = 0;
             foreach ($commands as $route => $command) {
                 $maxLength = max($maxLength, strlen($route));
@@ -567,147 +567,115 @@ class Application
 
             foreach ($commands as $route => $command) {
                 $description = $command["description"] ?? '';
-
                 $output .= "  \033[1m" . str_pad($route, $maxLength + 4) . "\033[0m";
-
                 if ($description) {
                     $output .= $description;
                 }
-
-                $output .=  "\n";
+                $output .= "\n";
             }
 
-            $output .=  "\n";
+            $output .= "\n";
             return $output;
         }
 
         $processedArgs = $this->processArguments($args);
-
         $commandArgs = $processedArgs['args'];
         $options = $processedArgs['options'];
 
-        $response = $this->consoleRouter->AnalyseRouteAndLookup($commandArgs);
+        try {
+            $response = $this->consoleRouter->analyseRouteAndLookup($commandArgs);
 
+            $reflect = new ReflectionClass($response["controller"]);
+            $method = $reflect->getMethod($response["method"]);
+            $controller = $reflect->newInstance();
 
-        if (!$response["outcome"]) {
+            $varCount = count($response["variables"]);
+            $filteredVariables = [];
+            $variables = "";
 
+            foreach ($method->getParameters() as $param) {
+                if ($param->getName() == "options") {
+                    $filteredVariables["options"] = $options;
+                    continue;
+                }
+
+                $variables .= " [" . $param->getName() . "]";
+
+                if (array_key_exists($param->getName(), $response["variables"])) {
+                    $filteredVariables[$param->getName()] = $response["variables"][$param->getName()];
+                    continue;
+                }
+
+                if (!$param->isDefaultValueAvailable()) {
+                    return "Argument missing: The '" . $param->getName() . "' argument is required for this command.\nExpected format: [command] [argument_name]\nExample usage: " . $response["route"] . $variables;
+                }
+            }
+
+            if ($varCount < $method->getNumberOfRequiredParameters() || count($method->getParameters()) < $varCount) {
+                return "Insufficient arguments! The command requires at least " . $varCount . " parameters.\nUsage: " . $response["route"] . " " . $variables;
+            }
+
+            if (CommandLine::isCaptured()) {
+                ob_start();
+                $result = $method->invokeArgs($controller, $filteredVariables);
+                $output = ob_get_clean();
+
+                if (is_string($result) && $result !== '') {
+                    $output .= $result;
+                }
+
+                return $output;
+            }
+
+            $result = $method->invokeArgs($controller, $filteredVariables);
+
+            if (is_string($result) && $result !== '') {
+                echo $result;
+            }
+
+            return '';
+
+        } catch (HttpException $e) {
             $commands = $this->consoleRouter->getRoutes()["CLI"];
             $output = "Unrecognized command. Type '\033[1mphp cli\033[0m' to see available commands.\n";
 
             $suggestions = [];
-
-            // Join all args to get the full command input
             $fullInput = strtolower(implode(' ', $args));
 
             foreach ($commands as $route => $command) {
-                // Remove parameter placeholders and trim/normalize whitespace
                 $routeBase = preg_replace('/\s+/', ' ', trim(preg_replace('/\{[^}]+\}/', '', $route)));
                 $routeBase = strtolower($routeBase);
 
-                // Check if route starts with the input (partial match) - best match
                 if (str_starts_with($routeBase, $fullInput)) {
                     $suggestions[$route] = 0;
-                }
-                // Check if any word in the route starts with input
-                else if (preg_match('/\b' . preg_quote($fullInput) . '/i', $routeBase)) {
+                } else if (preg_match('/\b' . preg_quote($fullInput) . '/i', $routeBase)) {
                     $suggestions[$route] = 1;
-                }
-                // Use Levenshtein only for very close matches
-                else {
+                } else {
                     $distance = levenshtein($fullInput, $routeBase);
-
-                    // Only suggest if distance is reasonable relative to input length
                     $maxDistance = max(2, strlen($fullInput) / 2);
-
                     if ($distance <= $maxDistance) {
                         $suggestions[$route] = $distance + 10;
                     }
                 }
             }
 
-            // Sort by match quality
             asort($suggestions);
             $suggestions = array_slice(array_keys($suggestions), 0, 3);
 
             if (!empty($suggestions)) {
                 $output .= "Did you mean something similar?\n\n";
-
                 foreach ($suggestions as $suggestion) {
                     $output .= "  \033[1m" . $suggestion . "\033[0m\n";
                 }
-
                 $output .= "\n";
             }
 
             return $output;
+
+        } catch (\Throwable $e) {
+            return $e->getMessage();
         }
-
-        if (!class_exists($response["controller"])) {
-            return "Command registration error: The controller class '" . $response["controller"] . "' could not be found.\nPlease check your command registration and ensure the class exists.";
-        }
-
-        $controller = new $response["controller"]();
-
-        if (!method_exists($controller, $response["method"])) {
-            return "Invalid command: The method '" . $response["method"] . "' is not defined in the '" . $controller::class . "' class.\nPlease verify the command registration and the controller's method.";
-        }
-
-        //Next this as we have not returned we have variables to pass
-        $reflect = new ReflectionClass($response["controller"]);
-        $method = $reflect->getMethod($response["method"]);
-
-        $varCount = count($response["variables"]);
-
-        $filteredVariables = [];
-
-        $variables = "";
-
-        foreach ($method->getParameters() as $param) {
-
-            if ($param->getName() == "options") {
-                $filteredVariables["options"] = $options;
-                continue;
-            }
-
-            $variables .= " [" . $param->getName() . "]";
-
-            if (array_key_exists($param->getName(), $response["variables"])) {
-                $filteredVariables[$param->getName()] = $response["variables"][$param->getName()];
-                continue;
-            }
-
-            if (!$param->isDefaultValueAvailable()) {
-                return "Argument missing: The '" . $param->getName() . "' argument is required for this command.\nExpected format: [command] [argument_name]\nExample usage: " . $response["route"] . $variables;
-            }
-
-        }
-
-        if ($varCount < $method->getNumberOfRequiredParameters() || count($method->getParameters()) < $varCount) {
-            return "Insufficient arguments! The command requires at least " . $varCount . " parameters.\nUsage: " . $response["route"] . " " . $variables;
-        }
-
-
-        if (CommandLine::isCaptured()) {
-            ob_start();
-            $result = $method->invokeArgs($controller, $filteredVariables);
-            $output = ob_get_clean();
-
-            if (is_string($result) && $result !== '') {
-                $output .= $result;
-            }
-
-            return $output;
-        }
-
-        $result = $method->invokeArgs($controller, $filteredVariables);
-
-        if (is_string($result) && $result !== '') {
-            echo $result;
-        }
-
-        return '';
     }
-
     /**
      * Register a command file
      *
@@ -832,31 +800,44 @@ class Application
         return $service;
     }
 
-    private function responseWithError(int $code, ?string $message = null): HttpResponse
+    private function responseWithError(HttpStatus $status, ?\Throwable $throwable = null): HttpResponse
     {
+        // Check for registered error pages first
+        if (isset($this->errorPageResponses[$status->value])) {
+            return $this->errorPageResponses[$status->value];
+        }
 
-        if ($code === 404) {
+        if ($status === HttpStatus::NOT_FOUND) {
             $fallback = $this->fallbackResponse ?? null;
-
             if ($fallback) {
                 return $fallback;
             }
         }
 
-        if ($message === null) {
-            $message = match ($code) {
-                404 => "The page you're looking for cannot be found. It may have been moved, deleted, or never existed.",
-                500 => "We're experiencing technical difficulties. Our team has been notified and is working to resolve the issue.",
-                401 => "Authentication required. Please log in to access this resource.",
-                403 => "You don't have permission to access this resource.",
-                default => "An error occurred while processing your request."
-            };
+        $response = new JsonResponse();
+        $response->setStatusCode($status->value);
+        $response->setOutcome(false);
+        $response->setMessage($status->message());
+
+        $is_debug = App::env("DEBUG", false);
+
+        if (!$is_debug) {
+            return $response;
         }
 
-        $response = $this->errorPageResponses[$code] ?? new JsonResponse()
-            ->setStatusCode($code)
-            ->setOutcome(false)
-            ->setMessage($message);
+        $cause = $throwable instanceof HttpException ? $throwable->getPrevious() : $throwable;
+
+        if ($cause !== null) {
+            $response->addError("exception", [
+                "message" => $cause->getMessage(),
+                "code"    => $cause->getCode(),
+                "file"    => $cause->getFile(),
+                "line"    => $cause->getLine(),
+                "trace"   => $cause->getTrace(),
+            ]);
+        }
+
+        $response->setStatusCode($status->value);
 
         return $response;
     }
