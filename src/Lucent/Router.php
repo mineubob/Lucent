@@ -3,6 +3,8 @@
 namespace Lucent;
 
 use Lucent\Facades\Log;
+use Lucent\Http\Exceptions\HttpException;
+use Lucent\Http\HttpStatus;
 
 abstract class Router
 {
@@ -165,37 +167,20 @@ abstract class Router
 
 
         if (!isset($this->routes[$requestMethod])) {
-            return [
-                "route" => null,
-                "outcome" => false
-            ];
+            throw new HttpException(HttpStatus::NOT_FOUND);
         }
 
         foreach ($this->routes[$requestMethod] as $key => $route) {
             if ($match = $this->matchRoute($key, $uri, '/', $route)) {
                 if ($this->isDisabled($key)) {
-                    return [
-                        "route" => $key,
-                        "outcome" => false,
-                        "disabled" => true
-                    ];
+                    throw new HttpException(HttpStatus::FORBIDDEN);
                 }
                 return $match;
             }
         }
 
-        Log::channel('lucent.routing')->warning(
-            sprintf(
-                "[Router] No routing match found for:\n    Http Method: %s\n    Http URI: %s",
-                $requestMethod,
-                $_SERVER['REQUEST_URI'] ?? "N/A"
-            )
-        );
 
-        return [
-            "route" => null,
-            "outcome" => false
-        ];
+        throw new HttpException(HttpStatus::NOT_FOUND);
     }
 
     /**

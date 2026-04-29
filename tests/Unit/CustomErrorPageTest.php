@@ -37,7 +37,7 @@ class CustomErrorPageTest extends TestCase
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
+        $this->assertEquals(404, $response->status());
         $this->assertTrue(str_contains($response->body(),"<button>Back</button>"));
         $this->assertTrue(str_contains($response->body(),"<button>Home</button>"));
         $this->assertTrue(str_contains($response->body(),"<h1>Ops! it looks like the page cannot be found!</h1>"));
@@ -51,7 +51,7 @@ class CustomErrorPageTest extends TestCase
         use App\Extensions\Http\ViewResponse;
         use Lucent\Facades\Route;
             
-        Route::error(404,new ViewResponse('/404.html'));
+        Route::error(404,new ViewResponse('/404.html',404));
 
         PHP;
 
@@ -85,8 +85,8 @@ class CustomErrorPageTest extends TestCase
         
             private string $path;        
         
-            public function __construct(string $path){
-                parent::__construct("",200);
+            public function __construct(string $path, int $status = 200){
+                parent::__construct("",$status);
         
                 $this->path = $path;
             }
