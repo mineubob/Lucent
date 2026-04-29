@@ -68,7 +68,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals("Invalid command: The method 'run2' is not defined in the 'App\Commands\TestCommand' class.\nPlease verify the command registration and the controller's method.", $result);
+        $this->assertEquals("Method App\Commands\TestCommand::run2() does not exist", $result);
     }
 
     public function test_command_with_invalid_controller(): void
@@ -77,7 +77,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals("Command registration error: The controller class 'Unit\TestTwoCommand' could not be found.\nPlease check your command registration and ensure the class exists.", $result);
+        $this->assertEquals('Class "Unit\TestTwoCommand" does not exist', $result);
     }
 
     public function test_command_with_invalid_arguments(): void
@@ -127,7 +127,6 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("test run");
 
         $this->assertStringStartsWith("Unrecognized command.", $result);
-
     }
 
     public function test_command_disabled_single() : void

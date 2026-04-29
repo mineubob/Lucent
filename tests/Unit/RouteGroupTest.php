@@ -7,6 +7,7 @@ use Lucent\Application;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
+use Lucent\Http\HttpStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -292,7 +293,23 @@ class RouteGroupTest extends DatabaseDriverSetup
         $res = App::handleHttpRequest();
 
         $this->assertEquals(500, $res->status());
-        $this->assertStringContainsString("<h1>Internal Server Error</h1>",$res->body());
+
+        $body = json_decode($res->body(), true);
+        $this->assertArrayNotHasKey('errors', $body);
+        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(),$res->body());
+    }
+
+    public function test_invalid_route_file_debug() : void
+    {
+        Application::getInstance()->setEnv("debug", true);
+        App::registerRoutes("/test/123.php");
+        $res = App::handleHttpRequest();
+
+        $this->assertEquals(500, $res->status());
+        $body = json_decode($res->body(), true);
+
+        $this->assertArrayHasKey('errors', $body);
+        $this->assertArrayHasKey('exception', $body['errors']);
     }
 
     public static function generateTestRestController(): void
