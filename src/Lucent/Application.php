@@ -8,6 +8,7 @@ use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
 use Lucent\Commandline\UpdateLucentCommand;
+use Lucent\Database\DatabaseLogger;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -235,6 +236,13 @@ class Application
         foreach ($this->commands as $command) {
             require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
         }
+
+        Database::setLogger(new class implements DatabaseLogger {
+            public function info(string $message): void     { Log::channel("lucent.db")->info($message); }
+            public function warning(string $message): void  { Log::channel("lucent.db")->warning($message); }
+            public function error(string $message): void    { Log::channel("lucent.db")->error($message); }
+            public function critical(string $message): void { Log::channel("lucent.db")->critical($message); }
+        });
     }
 
     /**
