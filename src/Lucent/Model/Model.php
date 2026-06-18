@@ -5,7 +5,6 @@ namespace Lucent\Model;
 use Exception;
 use Lucent\Database;
 use Lucent\Database\Dataset;
-use Lucent\Facades\Log;
 use Lucent\Helpers\Reflection\TypedProperty;
 use ReflectionClass;
 
@@ -391,7 +390,7 @@ class Model
             }
         }
 
-        Log::channel("lucent.db")->error("[Model] No primary key found for class {$reflection->getName()}");
+        Database::log("error","[Model] No primary key found for class {$reflection->getName()}");
         throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 
