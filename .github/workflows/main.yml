@@ -6,6 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'build.php'
+      - 'build-orm.php'
   workflow_dispatch:
 
 permissions:
@@ -98,17 +99,22 @@ jobs:
           echo "Generated version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Modify Build Script to Include Version Metadata
+      - name: Modify Build Scripts to Include Version Metadata
         env:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           sed -i "s/\$phar->setStub(\$stub);/\$phar->setMetadata(['version' => '$VERSION']);\n    \$phar->setStub(\$stub);/" build.php
+          sed -i "s/\$phar->setStub(\$stub);/\$phar->setMetadata(['version' => '$VERSION']);\n    \$phar->setStub(\$stub);/" build-orm.php
 
-      - name: Build PHAR
-        run: php build.php
+      - name: Build PHARs
+        run: |
+          php build.php
+          php build-orm.php
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: lucent.phar
+          files: |
+            lucent.phar
+            lucent-orm.phar
           tag_name: ${{ steps.version.outputs.version }}

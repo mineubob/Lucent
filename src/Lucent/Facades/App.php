@@ -9,10 +9,9 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
-use Lucent\Database\DatabaseInterface;
+use Lucent\Database;
 use Lucent\Middleware;
 use Lucent\Service;
-use Phar;
 
 class App
 {
@@ -54,7 +53,7 @@ class App
 
     public static function registerDatabaseDriver(string $key, string $driverClass) : void
     {
-        Application::getInstance()->registerDatabaseDriver($key, $driverClass);
+        Database::registerDatabaseDriver($key, $driverClass);
     }
 
     public static function registerGlobalMiddlewares(Middleware|string $middleware): void

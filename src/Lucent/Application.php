@@ -8,7 +8,7 @@ use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
 use Lucent\Commandline\UpdateLucentCommand;
-use Lucent\Database\Drivers\PDODriver;
+use Lucent\Database\DatabaseLogger;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -168,11 +168,6 @@ class Application
     private array $globalMiddlewares = [];
 
     /**
-     * An array of globally applicable middleware thats ran for all requests.
-     */
-    public private(set) array $databaseDrivers = [];
-
-    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
@@ -180,11 +175,6 @@ class Application
      */
     public function __construct()
     {
-
-        //Default database drivers
-        $this->databaseDrivers["mysql"] = PDODriver::class;
-        $this->databaseDrivers["sqlite"] = PDODriver::class;
-
         //Create our router instance
         $this->httpRouter = new HttpRouter();
         $this->consoleRouter = new CliRouter();
@@ -246,6 +236,13 @@ class Application
         foreach ($this->commands as $command) {
             require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
         }
+
+        Database::setLogger(new class implements DatabaseLogger {
+            public function info(string $message): void     { Log::channel("lucent.db")->info($message); }
+            public function warning(string $message): void  { Log::channel("lucent.db")->warning($message); }
+            public function error(string $message): void    { Log::channel("lucent.db")->error($message); }
+            public function critical(string $message): void { Log::channel("lucent.db")->critical($message); }
+        });
     }
 
     /**
@@ -497,6 +494,7 @@ class Application
         fclose($file);
 
         $this->env = $output;
+        Database::configure($this->env);
     }
 
     /** @dev-start */
@@ -850,11 +848,6 @@ class Application
     public function registerGlobalMiddleware(Middleware|string $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
-    }
-
-    public function registerDatabaseDriver(string $key, string $driverClass): void
-    {
-        $this->databaseDrivers[$key] = $driverClass;
     }
 
 
