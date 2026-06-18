@@ -5,7 +5,6 @@ namespace Lucent;
 use Exception;
 use Lucent\Database\DatabaseInterface;
 use Lucent\Database\Drivers\PDODriver;
-use Lucent\Facades\App;
 use Lucent\Facades\Log;
 
 class Database
@@ -31,6 +30,40 @@ class Database
      * @var string
      */
     private static string $activeConnection = 'default';
+
+    /**
+     * Our array of database drivers we can load.
+     */
+    private static array $databaseDrivers = [
+        'mysql'  => PDODriver::class,
+        'sqlite' => PDODriver::class,
+    ];
+
+    /**
+     * Environment variables used to boot the default connection.
+     * Populated either by Application::loadEnv() or a standalone configure() call.
+     */
+    private static array $env = [];
+
+    /**
+     * Configure the database layer with environment variables.
+     *
+     * Called either by Application after loading .env, or directly by a
+     * standalone bootstrap (e.g. WordPress) without booting the full app.
+     *
+     * @param array $env Key-value pairs — expects at minimum DB_DRIVER, plus
+     *                   driver-specific keys (DB_HOST, DB_DATABASE, etc.)
+     */
+    public static function configure(array $env): void
+    {
+        self::$env = $env;
+    }
+
+    public static function env(string $key, mixed $default = null): mixed
+    {
+        return isset(self::$env[$key]) ? trim(self::$env[$key]) : $default;
+    }
+
 
     /**
      * Get the currently active connection instance.
@@ -67,13 +100,14 @@ class Database
      */
     private static function bootFromEnv(): DatabaseInterface
     {
-        $driver = Application::getInstance()->databaseDrivers[App::env("DB_DRIVER")] ?? null;
+        $driverKey = self::env('DB_DRIVER');
+        $driverClass = self::$databaseDrivers[$driverKey] ?? null;
 
-        if (!$driver) {
-            throw new Exception("Unknown database driver provided");
+        if (!$driverClass) {
+            throw new Exception("Unknown database driver provided: '$driverKey'");
         }
 
-        return new $driver();
+        return new $driverClass();
     }
 
     /**
@@ -108,7 +142,7 @@ class Database
      */
     public static function addConnection(string $name, array $config): void
     {
-        $driverClass = Application::getInstance()->databaseDrivers[$config['driver']] ?? null;
+        $driverClass = self::$databaseDrivers[$config['driver']] ?? null;
 
         if (!$driverClass) {
             throw new Exception("[Database] Unknown database driver: {$config['driver']}");
@@ -423,5 +457,10 @@ class Database
 
         self::$connections = [];
         self::$activeConnection = 'default';
+    }
+
+    public static function registerDatabaseDriver(string $key, string $driverClass): void
+    {
+        self::$databaseDrivers[$key] = $driverClass;
     }
 }
