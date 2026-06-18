@@ -96,6 +96,13 @@ class PDODriver extends DatabaseInterface
         switch ($driver_name) {
             case "sqlite":
                 $path = Database::env('DB_DATABASE');
+
+                if(str_starts_with($path, DIRECTORY_SEPARATOR)) {
+                    $path = ltrim($path, DIRECTORY_SEPARATOR);
+                }
+
+                $path = RUNNING_LOCATION.$path;
+
                 if (!file_exists($path)) {
                     touch($path);
                     chmod($path, 0666);
