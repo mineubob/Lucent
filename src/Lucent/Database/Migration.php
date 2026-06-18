@@ -8,7 +8,6 @@
 namespace Lucent\Database;
 
 use Lucent\Database;
-use Lucent\Facades\Log;
 use Lucent\Model\Model;
 use ReflectionClass;
 
@@ -82,14 +81,14 @@ class Migration
 
                 // Drop the existing table
                 if (!$table->drop()) {
-                    Log::channel("lucent.db")->error("[Migration] Failed to drop table {$table->name}");
+                    Database::log("error","[Migration] Failed to drop table {$table->name}");
                     return false;
                 }
             }
 
 
             if (!$table->create(false)) {
-                Log::channel("lucent.db")->error("[Migration] Failed to create table {$table->name}");
+                Database::log("error","[Migration] Failed to create table {$table->name}");
                 return false;
             }
 
@@ -129,7 +128,7 @@ class Migration
         if ($parent->getName() !== Model::class) {
             $pk = Model::getDatabasePrimaryKey($parent);
             if (array_key_exists($pk->name, $columns)) {
-                Log::channel("lucent.db")->error("[Migration] Parent primary key already exists in {$reflection->getName()}");
+                Database::log("error","[Migration] Parent primary key already exists in {$reflection->getName()}");
                 throw new \RuntimeException("Parent primary key already exists in {$reflection->getName()}");
             }
 
@@ -143,7 +142,7 @@ class Migration
 
             if (!Schema::table($parent->getShortName())->exists()) {
                 if (!$this->make($parent->getName())) {
-                    Log::channel("lucent.db")->error("[Migration] Could not create parent table {$parent->getName()}");
+                    Database::log("error","[Migration] Could not create table {$parent->getName()}");
                 }
             }
         }

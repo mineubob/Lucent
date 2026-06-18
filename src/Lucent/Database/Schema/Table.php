@@ -5,7 +5,6 @@ namespace Lucent\Database\Schema;
 use Lucent\Database;
 use Lucent\Database\Drivers\PDODriver;
 use Lucent\Database\SqlSerializable;
-use Lucent\Facades\Log;
 
 class Table implements SqlSerializable
 {
@@ -19,7 +18,7 @@ class Table implements SqlSerializable
     {
         // Validate table name against allowed characters
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
-            Log::channel("db")->error("Attempted to create table class with invalid name: {$name}");
+            Database::log("error","Attempted to create table class with invalid name: {$name}");
             throw new \InvalidArgumentException(
                 "Invalid table name '{$name}'. Table names must contain only alphanumeric characters and underscores."
             );

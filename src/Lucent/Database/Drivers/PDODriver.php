@@ -2,10 +2,9 @@
 
 namespace Lucent\Database\Drivers;
 
+use Lucent\Database;
 use Lucent\Database\DatabaseInterface;
 use Lucent\Database\Schema;
-use Lucent\Facades\App;
-use Lucent\Facades\Log;
 use Lucent\Filesystem\File;
 use PDO;
 
@@ -87,42 +86,41 @@ class PDODriver extends DatabaseInterface
     public function __construct()
     {
         // Check if database name is set
-        if (empty(App::env("DB_DRIVER"))) {
-            Log::channel("lucent.db")->critical("[PDODriver] DB_DRIVER environment variable is not set or empty");
+        if (empty(Database::env("DB_DRIVER"))) {
+            Database::log("critical","[PDODriver] DB_DRIVER environment variable is not set or empty");
             throw new \Exception("[PDODriver] DB_DRIVER environment variable is not set or empty");
         }
 
-        $driver_name = App::env("DB_DRIVER");
+        $driver_name = Database::env("DB_DRIVER");
 
         switch ($driver_name) {
             case "sqlite":
-                $file = new File(App::env('DB_DATABASE'));
-
-                if (!$file->exists()) {
-                    $file->create();
-                    $file->setPermissions(0666);
+                $path = Database::env('DB_DATABASE');
+                if (!file_exists($path)) {
+                    touch($path);
+                    chmod($path, 0666);
                 }
 
                 // Verify file is writable
-                if (!is_writable($file->path)) {
-                    Log::channel("lucent.db")->critical("[PDODriver] SQLite database file is not writable: $file->path");
-                    throw new \RuntimeException("[PDODriver] SQLite database file is not writable: $file->path");
+                if (!is_writable($path)) {
+                    Database::log("critical","[PDODriver] SQLite database file is not writable: $path");
+                    throw new \RuntimeException("[PDODriver] SQLite database file is not writable: $path");
                 }
 
-                $this->connection = new PDO("sqlite:$file->path");
+                $this->connection = new PDO("sqlite:$path");
                 break;
             case "mysql":
-                $host = App::env("DB_HOST");
-                $database = App::env("DB_DATABASE");
-                $username = App::env("DB_USERNAME");
-                $password = App::env("DB_PASSWORD");
-                $port = App::env("DB_PORT") ?: "3306";
+                $host = Database::env("DB_HOST");
+                $database = Database::env("DB_DATABASE");
+                $username = Database::env("DB_USERNAME");
+                $password = Database::env("DB_PASSWORD");
+                $port = Database::env("DB_PORT") ?: "3306";
 
                 $dsn = "mysql:host={$host};port={$port};dbname={$database}";
                 $this->connection = new PDO($dsn, $username, $password);
                 break;
             default:
-                Log::channel("lucent.db")->critical("[PDODriver] Unknown driver type provided: $driver_name");
+                Database::log("critical","[PDODriver] Unknown driver type provided: $driver_name");
                 throw new \RuntimeException("[PDODriver] Unknown driver type provided: $driver_name");
         }
 
@@ -176,21 +174,21 @@ class PDODriver extends DatabaseInterface
 
     public function statement(string $query, array $params = []): bool
     {
-        Log::channel("lucent.db")->info("[PDODriver] Executing statement: $query");
+        Database::log("info","[PDODriver] Executing statement: $query");
 
         try {
             if (count($params) > 0) {
                 $stmt = $this->connection->prepare($query);
 
                 if (!$stmt) {
-                    Log::channel("lucent.db")->critical("[PDODriver] Failed to prepare statement: $query");
+                    Database::log("critical","[PDODriver] Failed to prepare statement: $query");
                     return false;
                 }
 
                 $result = $stmt->execute($params);
 
                 if (!$result) {
-                    Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nError:".print_r($stmt->errorInfo(),true)."\nParams:".print_r($params,true));
+                    Database::log("critical","[PDODriver] Failed to execute statement: \n$query\nError:".print_r($stmt->errorInfo(),true)."\nParams:".print_r($params,true));
                     return false;
                 }
 
@@ -203,13 +201,13 @@ class PDODriver extends DatabaseInterface
 
 
             if ($result === false) {
-                Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nParams:".print_r($params,true));
+                Database::log("info","[PDODriver] Failed to execute statement: \n$query\nParams:".print_r($params,true));
             }
 
             return $result !== false;
         } catch (\PDOException $e) {
 
-            Log::channel("lucent.db")->info("[PDODriver] Failed to execute statement: \n$query\nError:".print_r($e->getMessage(),true)."\nParams:".print_r($params,true));
+            Database::log("info","[PDODriver] Failed to execute statement: \n$query\nError:".print_r($e->getMessage(),true)."\nParams:".print_r($params,true));
             return false;
         }
     }
@@ -231,7 +229,7 @@ class PDODriver extends DatabaseInterface
 
     public function select(string $query, bool $fetchAll = true, array $params = []): ?array
     {
-        Log::channel("lucent.db")->info("[PDODriver] Executing select: $query");
+        Database::log("info","[PDODriver] Executing select: $query");
 
         if (count($params) > 0) {
             $stmt = $this->connection->prepare($query);
@@ -264,7 +262,7 @@ class PDODriver extends DatabaseInterface
             }
         } catch (\Exception $e) {
             $this->connection->rollBack();
-            Log::channel("lucent.db")->error("[PDODriver] Failed to execute transaction\n"."Error:".print_r($e->getMessage(),true));
+            Database::log("error","[PDODriver] Failed to execute transaction\n"."Error:".print_r($e->getMessage(),true));
             throw $e;
         }
         $result = $this->connection->commit();

@@ -4,8 +4,8 @@ namespace Lucent;
 
 use Exception;
 use Lucent\Database\DatabaseInterface;
+use Lucent\Database\DatabaseLogger;
 use Lucent\Database\Drivers\PDODriver;
-use Lucent\Facades\Log;
 
 class Database
 {
@@ -44,6 +44,10 @@ class Database
      * Populated either by Application::loadEnv() or a standalone configure() call.
      */
     private static array $env = [];
+
+
+    private static ?DatabaseLogger $logger = null;
+
 
     /**
      * Configure the database layer with environment variables.
@@ -390,7 +394,7 @@ class Database
 
         // If feature not supported for this driver, just run callback
         if ($disableFeatureSql === null || $enableFeatureSql === null) {
-            Log::channel("db")->warning("Feature '{$feature}' not supported for driver '{$driver}'");
+            Database::log("warning","Feature '{$feature}' not supported for driver '{$driver}'");
             return $callback();
         }
 
@@ -462,5 +466,19 @@ class Database
     public static function registerDatabaseDriver(string $key, string $driverClass): void
     {
         self::$databaseDrivers[$key] = $driverClass;
+    }
+
+    public static function setLogger(DatabaseLogger $logger): void
+    {
+        self::$logger = $logger;
+    }
+
+    public static function log(string $level, string $message): void
+    {
+        if (self::$logger !== null) {
+            self::$logger->$level($message);
+        } else {
+            error_log("[Lucent.$level] $message");
+        }
     }
 }
