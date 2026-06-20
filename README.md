@@ -54,30 +54,6 @@ To update Lucent to the latest version:
 php cli update install
 ```
 
-During installation, Lucent's compatibility checker will scan your codebase and produce a detailed report showing:
-
-- File paths with compatibility issues
-- Line numbers where problems occur
-- Specific issues found (removed or deprecated components)
-- Recommended replacements for deprecated components
-- Summary of total issues found
-
-Example output:
-```
-UPDATE COMPATIBILITY
-============================
-DependencyAnalysisController.php
-  Line   38: Lucent\Filesystem\File->getAsCSV()
-    ⚠ REMOVED method: Method getAsCSV could not be found in class Lucent\Filesystem\File
-
-StaticAnalysisController.php
-  Line   15: Lucent\AttributeTesting
-    ⚠ DEPRECATED class (since v1.5.0): Use NewClass instead
-
-============================
-SUMMARY: 6 removed, 19 deprecated components found in 4 files
-```
-
 If you need to rollback to a previous version:
 
 ```bash
