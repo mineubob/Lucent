@@ -80,7 +80,7 @@ class UpdaterTest extends TestCase
         $updater = new UpdateLucentCommand();
 
         $output = $updater->check();
-        $this->assertStringStartsWith("Running update dependency check:", $output);
+        $this->assertStringStartsWith("You're running the latest version of Lucent", $output);
         echo $output;
     }
 
