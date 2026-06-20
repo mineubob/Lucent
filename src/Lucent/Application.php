@@ -4,6 +4,7 @@ namespace Lucent;
 
 use InvalidArgumentException;
 use Lucent\Commandline\CliRouter;
+use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
@@ -531,7 +532,8 @@ class Application
         CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class, "Performs a rollback to the previous lucent version");
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
-
+        CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
+        CommandLine::register(DeploymentController::$command_rollback, "rollback", DeploymentController::class, "Rolls back to the most recent backup");
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);
