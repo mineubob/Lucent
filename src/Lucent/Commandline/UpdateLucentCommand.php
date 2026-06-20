@@ -9,7 +9,6 @@ use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
 use Lucent\Http\HttpClient;
-use Lucent\StaticAnalysis\DependencyAnalyser;
 use Phar;
 
 class UpdateLucentCommand
@@ -24,74 +23,23 @@ class UpdateLucentCommand
         $this->downloadPath = DIRECTORY_SEPARATOR . "storage" . DIRECTORY_SEPARATOR . "downloads" . DIRECTORY_SEPARATOR;
     }
 
-    public function check(array $options = []): string
+    public function check(): string
     {
+        $currentVersion = App::getLucentVersion();
+        $client = new HttpClient('https://api.github.com');
+        $response = $client->get('/repos/blueprintau/Lucent/releases/latest');
 
-        $app = new Folder("/App");
-
-        if (!$app->exists()) {
-            $app->create();
+        if (!$response->successful()) {
+            return "Unable to lookup the latest version. Check your internet connection.";
         }
 
-        if (!isset($options["file"])) {
-            // Directly get version from PHAR metadata
-            $currentVersion = App::getLucentVersion();
+        $latestVersion = $response->json()['tag_name'];
 
-            try {
-                $client = new HttpClient('https://api.github.com');
-                $response = $client->get('/repos/blueprintau/Lucent/releases/latest');
-
-                if (!$response->successful()) {
-                    $errorResponse = $response->json();
-                    if ($errorResponse !== null && isset($errorResponse['message'])) {
-                        return "Unable to lookup the latest version. Check your internet connection." . PHP_EOL . "Error: {$errorResponse['message']}";
-                    }
-
-                    return "Unable to lookup the latest version. Check your internet connection.";
-                }
-
-                $latestRelease = $response->json();
-                $latestVersion = $latestRelease['tag_name'];
-
-                if (!(version_compare($currentVersion, $latestVersion, '<') || str_contains($currentVersion, "local"))) {
-                    return "You're running the latest version of Lucent ({$currentVersion}). 👍" . PHP_EOL;
-                }
-
-                $downloaded = $this->downloadLatest();
-
-                if ($downloaded === null) {
-                    return "Failed to download latest version.\n";
-                }
-
-                // Ensure the packages directory exists
-                $packageFolder = new Folder("/packages");
-
-                if (!$downloaded->copy($downloaded->getName(), $packageFolder)) {
-                    return "Failed to copy downloaded package.\n";
-                }
-
-                if (!$downloaded->delete()) {
-                    return "Failed to delete temp download.\n";
-                }
-
-                $output = [];
-                if (exec("cd " . FileSystem::rootPath() . "/packages && php " . $downloaded->getName() . " update check --file=" . $downloaded->getName(), $output) === false) {
-                    return "Failed to run update command: \n" . implode(PHP_EOL, $output) . "\n";
-                }
-
-                return "Running update dependency check:\n" . implode(PHP_EOL, $output) . "\n";
-            } catch (Exception $e) {
-                return "Unable to check for updates: {$e->getMessage()}\n";
-            }
+        if (version_compare($currentVersion, $latestVersion, '<')) {
+            return "Update available: {$latestVersion} (current: {$currentVersion}). Run 'update install' to update." . PHP_EOL;
         }
 
-        $analyser = new DependencyAnalyser();
-
-        $analyser->parseFiles($app->search()->onlyFiles()->extension("php")->recursive()->collect());
-
-        $analyser->printCompatibilityCheck();
-
-        return "Compatibility check completed.\n";
+        return "You're running the latest version of Lucent ({$currentVersion}). 👍" . PHP_EOL;
     }
 
     public function install(): string
@@ -307,5 +255,7 @@ class UpdateLucentCommand
                 return new File($this->downloadPath . $downloadedFilePath);
             }
         }
+
+        return null;
     }
 }
