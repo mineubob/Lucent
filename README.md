@@ -54,35 +54,61 @@ To update Lucent to the latest version:
 php cli update install
 ```
 
-During installation, Lucent's compatibility checker will scan your codebase and produce a detailed report showing:
-
-- File paths with compatibility issues
-- Line numbers where problems occur
-- Specific issues found (removed or deprecated components)
-- Recommended replacements for deprecated components
-- Summary of total issues found
-
-Example output:
-```
-UPDATE COMPATIBILITY
-============================
-DependencyAnalysisController.php
-  Line   38: Lucent\Filesystem\File->getAsCSV()
-    ⚠ REMOVED method: Method getAsCSV could not be found in class Lucent\Filesystem\File
-
-StaticAnalysisController.php
-  Line   15: Lucent\AttributeTesting
-    ⚠ DEPRECATED class (since v1.5.0): Use NewClass instead
-
-============================
-SUMMARY: 6 removed, 19 deprecated components found in 4 files
-```
-
 If you need to rollback to a previous version:
 
 ```bash
 php cli update rollback
 ```
+
+## Deploying Your Project
+
+Lucent includes a built-in deployment system that allows you to deploy and rollback your project directly from the CLI. It works with any zip-based source — GitHub, Gitea, S3, or any URL that returns a zip file.
+
+### Configuration
+
+Add the following to your `.env` file:
+
+```env
+DEPLOY_URL=https://api.github.com/repos/your-org/your-repo/zipball/master
+DEPLOY_TOKEN=your_personal_access_token
+```
+
+For GitHub private repositories, generate a Access Token with `repo` scope at https://github.com/settings/tokens, then use the API URL format above with the following headers automatically applied by Lucent:
+
+```
+Authorization: Bearer {token}
+
+Accept: application/vnd.github+json
+
+X-GitHub-Api-Version: 2022-11-28
+````
+
+### Deploying the Latest Version
+
+```bash
+php cli deploy latest
+```
+
+This will:
+1. Download the zip from `DEPLOY_URL`
+2. Back up your current project to `storage/backups/{timestamp}.zip`
+3. Extract the new version over your project
+
+The following paths are never touched during a deploy:
+- `.env` — your environment config
+- `packages/lucent.phar` — your framework
+- `storage/` — your logs, uploads, and temp files
+
+### Rolling Back
+
+```bash
+php cli deploy rollback
+```
+
+This will:
+1. Clean the current project (preserving `.env`, `packages/lucent.phar`, `storage/backups`, `storage/temp`, and `logs`)
+2. Restore the most recent backup zip
+3. Remove the used backup
 
 ## PHP Composer Support
 

@@ -51,6 +51,12 @@ class HttpClient
         return $this;
     }
 
+    public function withCurlOption(int $option, mixed $value): self
+    {
+        $this->options[$option] = $value;
+        return $this;
+    }
+
     public function get(string $url, array $params = []): HttpResponse
     {
         if (!empty($params)) {
@@ -144,6 +150,11 @@ class HttpClient
             CURLOPT_TIMEOUT => 30
         ]);
 
+        // Merge custom options into head request
+        if (!empty($this->options)) {
+            curl_setopt_array($headCh, $this->options);
+        }
+
         curl_exec($headCh);
         $contentLength = curl_getinfo($headCh, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
         curl_close($headCh);
@@ -155,7 +166,7 @@ class HttpClient
             CURLOPT_RETURNTRANSFER => false,
             CURLOPT_HEADER => false,
             CURLOPT_FILE => $fp,
-            CURLOPT_TIMEOUT => max(120, $this->timeout), // Ensure adequate timeout
+            CURLOPT_TIMEOUT => max(120, $this->timeout),
             CURLOPT_CONNECTTIMEOUT => 60,
             CURLOPT_USERAGENT => $this->userAgent,
             CURLOPT_SSL_VERIFYPEER => $this->verifySSL,
@@ -163,16 +174,20 @@ class HttpClient
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_NOPROGRESS => false,
-            CURLOPT_BUFFERSIZE => 256 * 1024, // Larger buffer (256KB)
+            CURLOPT_BUFFERSIZE => 256 * 1024,
             CURLOPT_TCP_KEEPALIVE => 1,
-            CURLOPT_LOW_SPEED_LIMIT => 1024, // 1KB/sec minimum transfer speed
-            CURLOPT_LOW_SPEED_TIME => 30,    // 30 seconds below minimum is a timeout
+            CURLOPT_LOW_SPEED_LIMIT => 1024,
+            CURLOPT_LOW_SPEED_TIME => 30,
             CURLOPT_PROGRESSFUNCTION => function($resource, $downloadSize, $downloaded, $uploadSize, $uploaded) use ($progressCallback, $contentLength) {
-                // Use either the reported size or the one from HEAD request
                 $total = ($downloadSize > 0) ? $downloadSize : $contentLength;
                 call_user_func($progressCallback, $downloaded, $total);
             }
         ]);
+
+        // Merge custom options
+        if (!empty($this->options)) {
+            curl_setopt_array($ch, $this->options);
+        }
 
         // Add headers if any
         $headerArray = [];
@@ -202,7 +217,6 @@ class HttpClient
         if (!$success || $errno) {
             Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
             curl_close($ch);
-            // Try to remove the incomplete file
             unlink($filePath);
             return new HttpResponse(
                 body: null,
@@ -236,7 +250,6 @@ class HttpClient
         if ($info['http_code'] !== 200) {
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
             Log::channel("phpunit")->error($errorMsg);
-            // Try to remove the incomplete file
             unlink($filePath);
             return new HttpResponse(
                 body: null,
@@ -255,7 +268,6 @@ class HttpClient
             errorCode: 0
         );
     }
-
     private function request(string $method, string $url, array|string|null $data = null): HttpResponse
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
