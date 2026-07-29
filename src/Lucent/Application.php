@@ -22,6 +22,7 @@ use Lucent\Http\Request;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
+use Lucent\Model\Model;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -186,14 +187,9 @@ class Application
         $this->httpRouter = new HttpRouter();
         $this->consoleRouter = new CliRouter();
 
-        //Check if we have a .env file present, if not
-        //then we create the file.
-        if (!file_exists(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env")) {
-            $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "w");
-            fclose($file);
-        }
-
-        //Load the env file
+        //Load the env file if it exists. The .env file is expected to be
+        //created by the project (e.g. via create-project template), not by
+        //the framework itself.
         $this->loadEnv();
 
         $this->loggers["blank"] = new NullChannel();
@@ -508,34 +504,37 @@ class Application
     public function loadEnv(): void
     {
 
-        $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "r");
+        $envPath = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env";
         $output = [];
 
-        if ($file) {
-            while (($line = fgets($file)) !== false) {
-                // Skip comments and empty lines
-                $line = trim($line);
-                if (empty($line) || str_starts_with($line, '#')) {
-                    continue;
-                }
+        if (file_exists($envPath)) {
+            $file = fopen($envPath, "r");
 
-                // Find position of first equals sign
-                $pos = strpos($line, '=');
-                if ($pos !== false) {
-                    $key = trim(substr($line, 0, $pos));
-                    $value = trim(substr($line, $pos + 1));
+            if ($file) {
+                while (($line = fgets($file)) !== false) {
+                    // Skip comments and empty lines
+                    $line = trim($line);
+                    if (empty($line) || str_starts_with($line, '#')) {
+                        continue;
+                    }
 
-                    // Remove quotes if present
-                    $value = trim($value, '"\'');
+                    // Find position of first equals sign
+                    $pos = strpos($line, '=');
+                    if ($pos !== false) {
+                        $key = trim(substr($line, 0, $pos));
+                        $value = trim(substr($line, $pos + 1));
 
-                    if (!empty($key)) {
-                        $output[$key] = $value;
+                        // Remove quotes if present
+                        $value = trim($value, '"\'');
+
+                        if (!empty($key)) {
+                            $output[$key] = $value;
+                        }
                     }
                 }
+                fclose($file);
             }
         }
-
-        fclose($file);
 
         $this->env = $output;
         Database::configure($this->env);

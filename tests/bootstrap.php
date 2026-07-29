@@ -16,7 +16,12 @@
  * autoloader and the FileSystem override.
  */
 
+use Lucent\Application;
 use Lucent\Facades\FileSystem;
+use Lucent\Logging\Channel;
+use Lucent\Logging\Drivers\CliDriver;
+use Lucent\Logging\Drivers\FileDriver;
+use Lucent\Logging\Drivers\TeeDriver;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -30,7 +35,9 @@ if (!defined('TEMP_ROOT')) {
 // Only run cleanup + directory creation once (the main PHPUnit process).
 // Spawned child processes inherit this env var and skip straight to the
 // FileSystem override below.
-if (!getenv('LUCENT_TEST_BOOTSTRAPPED')) {
+$isMainProcess = !getenv('LUCENT_TEST_BOOTSTRAPPED');
+
+if ($isMainProcess) {
     putenv('LUCENT_TEST_BOOTSTRAPPED=1');
 
     // Clean up any leftover files from a previous test run so each run starts
@@ -65,7 +72,6 @@ if (!getenv('LUCENT_TEST_BOOTSTRAPPED')) {
         'storage/backups',
         'storage/temp',
         'logs',
-        'packages',
     ];
 
     foreach ($dirs as $dir) {
@@ -74,10 +80,30 @@ if (!getenv('LUCENT_TEST_BOOTSTRAPPED')) {
             @mkdir($path, 0755, true);
         }
     }
+
+    // Ensure an empty .env exists so Application::loadEnv() doesn't fail.
+    // The constructor no longer creates .env automatically (that's the
+    // project's responsibility, not the framework's).
+    $envFile = TEMP_ROOT . '.env';
+    if (!file_exists($envFile)) {
+        @touch($envFile);
+    }
 }
 
 // Override the FileSystem root so the framework operates inside temp_install/.
 FileSystem::overrideRootPath(TEMP_ROOT);
+
+// Configure logging channels (mirrors the old dev_build.php setup).
+// Only on the main PHPUnit process — spawned child processes would mix log
+// output into the command output they're testing.
+if ($isMainProcess) {
+    $app = Application::getInstance();
+
+    $app->addLoggingChannel('phpunit', new Channel('phpunit', new TeeDriver(new CliDriver(), new FileDriver('phpunit.log')), false));
+    $app->addLoggingChannel('lucent.db', new Channel('lucent.db', new TeeDriver(new CliDriver(), new FileDriver('db.log'))));
+    $app->addLoggingChannel('lucent.routing', new Channel('lucent.routing', new TeeDriver(new CliDriver(), new FileDriver('routing.log'))));
+    $app->addLoggingChannel('lucent.filesystem', new Channel('lucent.filesystem', new TeeDriver(new CliDriver(), new FileDriver('filesystem.log'))));
+}
 
 // Register a PSR-4 autoloader for the user's App\ namespace pointing at the
 // temp_install/ directory. In a real project this mapping lives in the

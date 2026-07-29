@@ -3,4 +3,6 @@
 /.phpunit.result.cache
 /tests/Unit/tmp/
 /temp_install/
-/mysql-config.php
+.env
+.env.*
+!.env.example
