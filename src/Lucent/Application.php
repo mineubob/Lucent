@@ -8,7 +8,6 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Commandline\UpdateLucentCommand;
 use Lucent\Database\DatabaseLogger;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
@@ -65,6 +64,13 @@ class Application
      * @var array
      */
     private array $commands = [];
+
+    /**
+     * Whether the application has been booted.
+     *
+     * @var bool
+     */
+    private bool $booted = false;
 
     /**
      * Singleton instance of the Application
@@ -222,18 +228,55 @@ class Application
     }
 
     /**
-     * Boot the application
+     * Boot the application.
      *
-     * Loads all registered routes and commands
+     * Loads all registered routes and commands, then sets up the database
+     * logger. When $autoLoadRoutes / $autoLoadCommands are true (the
+     * default), the framework auto-discovers files in the project's
+     * `routes/` and `commands/` directories (top-level, non-recursive).
      *
+     * Pass false to either param to opt out of auto-discovery and manage
+     * loading explicitly via loadRoutes() / CommandLine::register().
+     *
+     * Idempotent: a second call is a no-op (see $booted guard).
+     *
+     * @param bool $autoLoadRoutes   Auto-scan RUNNING_LOCATION/routes/*.php
+     * @param bool $autoLoadCommands Auto-scan RUNNING_LOCATION/commands/*.php
      * @return void
      */
-    public function boot(): void
+    public function boot(bool $autoLoadRoutes = true, bool $autoLoadCommands = true): void
     {
+        if ($this->booted) {
+            return;
+        }
+        $this->booted = true;
+
+        // Auto-discover route files from the project's routes/ directory.
+        if ($autoLoadRoutes) {
+            $routesDir = FileSystem::rootPath() . 'routes' . DIRECTORY_SEPARATOR;
+            if (is_dir($routesDir)) {
+                foreach (glob($routesDir . '*.php') as $routeFile) {
+                    $this->httpRouter->loadRoutes($routeFile);
+                }
+            }
+        }
+
+        // Load explicitly registered route files.
         foreach ($this->routes as $route) {
             $this->httpRouter->loadRoutes($route["file"]);
         }
 
+        // Auto-discover command files from the project's commands/ directory.
+        if ($autoLoadCommands) {
+            $commandsDir = FileSystem::rootPath() . 'commands' . DIRECTORY_SEPARATOR;
+            if (is_dir($commandsDir)) {
+                foreach (glob($commandsDir . '*.php') as $commandFile) {
+                    require_once $commandFile;
+                }
+            }
+        }
+
+        // Load explicitly registered command files.
         foreach ($this->commands as $command) {
             require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
         }
@@ -308,7 +351,7 @@ class Application
     public function handleHttpRequest(): HttpResponse
     {
         try {
-            $this->boot();
+            $this->boot(true, true);
 
             $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
             $request = new Request();
@@ -517,7 +560,7 @@ class Application
      */
     public function executeConsoleCommand(array $args = []): string
     {
-        $this->boot();
+        $this->boot(true, true);
 
         if (!CommandLine::isCaptured()) {
             ob_implicit_flush(true);
@@ -527,9 +570,6 @@ class Application
         }
 
         CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class, "Generates a database table from the model class.");
-        CommandLine::register(UpdateLucentCommand::$command_check, "check", UpdateLucentCommand::class, "Checks for a lucent update");
-        CommandLine::register(UpdateLucentCommand::$command_install, "install", UpdateLucentCommand::class, "Updated the app to the latest lucent version");
-        CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class, "Performs a rollback to the previous lucent version");
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
@@ -636,7 +676,7 @@ class Application
             return '';
 
         } catch (HttpException $e) {
-            $commands = $this->consoleRouter->getRoutes()["CLI"];
+            $commands = $this->consoleRouter->getRoutes()["CLI"] ?? [];
             $output = "Unrecognized command. Type '\033[1mphp cli\033[0m' to see available commands.\n";
 
             $suggestions = [];
@@ -688,7 +728,11 @@ class Application
     }
 
     /**
-     * Resets all the routes currently registered in the application
+     * Resets the application instance.
+     *
+     * Replaces the singleton with a fresh Application, which naturally
+     * resets $booted (and all other state) to its default. Used by tests
+     * to obtain a clean application between cases.
      *
      * @return void
      */

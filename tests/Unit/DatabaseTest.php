@@ -207,7 +207,8 @@ class DatabaseTest extends DatabaseDriverSetup
     {
         $reflection = new \ReflectionClass(Database::class);
         $property = $reflection->getProperty('connections');
-        return $property->getValue($reflection)['default'];
+        $connections = $property->getValue($reflection);
+        return $connections['default'] ?? null;
     }
 
     #[DataProvider('databaseDriverProvider')]

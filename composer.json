@@ -1,12 +1,41 @@
 {
-    "require-dev": {
-        "phpunit/phpunit": "^12.0"
+  "name": "blueprintau/lucent",
+  "type": "library",
+  "description": "Lucent PHP web framework",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Jack Harris"
     },
+    {
+      "name": "Mineubob"
+    }
+  ],
   "require": {
+    "php": ">=8.4",
     "ext-curl": "*",
     "ext-mysqli": "*",
     "ext-pdo": "*",
     "ext-fileinfo": "*",
     "ext-zip": "*"
-  }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Lucent\\": "src/Lucent/"
+    },
+    "files": [
+      "src/bootstrap.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Lucent\\Tests\\": "tests/"
+    }
+  },
+  "bin": [
+    "bin/lucent"
+  ]
 }

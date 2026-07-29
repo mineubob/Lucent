@@ -1,11 +1,8 @@
 # Lucent PHP Framework
 
-[![PHP Tests](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml/badge.svg?branch=development)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/tests.yml)
-[![Build and Release](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/main.yml/badge.svg)](https://github.com/jackharrispeninsulainteractive/Lucent/actions/workflows/main.yml)
+[![PHP Tests](https://github.com/blueprintau/Lucent/actions/workflows/tests.yml/badge.svg?branch=development)](https://github.com/blueprintau/Lucent/actions/workflows/tests.yml)
 [![Code Coverage](https://img.shields.io/badge/Coverage-Report-brightgreen)](https://blueprintau.github.io/Lucent/)
-<a href="https://downgit.github.io/#/home?url=https://github.com/jackharrispeninsulainteractive/Lucent/raw/main/installer.php" target="_blank">
-<img src="https://img.shields.io/badge/Download-Installer-blue" alt="Download Installer">
-</a>
+[![Packagist](https://img.shields.io/packagist/v/blueprintau/lucent.svg)](https://packagist.org/packages/blueprintau/lucent)
 
 Lucent is a lightweight PHP framework designed for building APIs with minimal overhead. It offers an elegant, intuitive syntax that will feel familiar to developers with experience in Laravel or Spring Boot.
 
@@ -28,36 +25,33 @@ Lucent provides a streamlined approach to building PHP APIs with:
 
 ### Installation
 
-You can install Lucent using our installer script:
+Create a new Lucent project using Composer:
 
-1. Download the installer:
-   ```bash
-   wget https://github.com/blueprintau/Lucent/raw/main/installer.php
-   ```
+```bash
+composer create-project blueprintau/lucent myapp
+```
 
-2. Run the installer:
-   ```bash
-   php installer.php
-   ```
+Then start the development server:
 
-3. Start the development server:
-   ```bash
-   php cli serve
-   ```
-You can pass an optional port to use by adding --port=9000 to the end.
+```bash
+cd myapp
+vendor/bin/lucent serve
+```
+
+You can pass an optional port to use by adding `--port=9000` to the end.
+
+Alternatively, add Lucent to an existing project:
+
+```bash
+composer require blueprintau/lucent
+```
 
 ### Updating Lucent
 
 To update Lucent to the latest version:
 
 ```bash
-php cli update install
-```
-
-If you need to rollback to a previous version:
-
-```bash
-php cli update rollback
+composer update blueprintau/lucent
 ```
 
 ## Deploying Your Project
@@ -86,7 +80,7 @@ X-GitHub-Api-Version: 2022-11-28
 ### Deploying the Latest Version
 
 ```bash
-php cli deploy latest
+vendor/bin/lucent deploy latest
 ```
 
 This will:
@@ -96,45 +90,19 @@ This will:
 
 The following paths are never touched during a deploy:
 - `.env` — your environment config
-- `packages/lucent.phar` — your framework
+- `vendor/` — your Composer dependencies
 - `storage/` — your logs, uploads, and temp files
 
 ### Rolling Back
 
 ```bash
-php cli deploy rollback
+vendor/bin/lucent deploy rollback
 ```
 
 This will:
-1. Clean the current project (preserving `.env`, `packages/lucent.phar`, `storage/backups`, `storage/temp`, and `logs`)
+1. Clean the current project (preserving `.env`, `vendor/`, `storage/backups`, `storage/temp`, and `logs`)
 2. Restore the most recent backup zip
 3. Remove the used backup
-
-## PHP Composer Support
-
-Lucent provides seamless integration with Composer, PHP's dependency manager. While Lucent itself is packaged as a PHAR archive for simplicity and performance, your project can utilize any Composer packages alongside it.
-
-To use Composer in your Lucent project:
-
-1. Navigate to the packages directory:
-   ```bash
-   cd packages
-   ```
-
-2. Initialize Composer in this directory:
-   ```bash
-   composer init
-   ```
-
-3. Install any dependencies you need:
-   ```bash
-   composer require package/name
-   ```
-
-4. Lucent will automatically detect and use Composer's autoloader if it exists in the `packages/vendor/autoload.php` path.
-
-This setup allows you to leverage the entire PHP ecosystem while maintaining Lucent's lightweight architecture.
-
 
 ## Project Structure
 
@@ -147,16 +115,17 @@ myapp/
 │   ├── Controllers/
 │   ├── Models/
 │   └── Rules/
-├── packages/
-│   └── lucent.phar
+├── commands/              # CLI command files (auto-loaded)
+├── routes/                # Route files (auto-loaded)
 ├── public/
 │   └── index.php
-├── routes/
-│   └── api.php
 ├── storage/
 ├── logs/
+├── vendor/
+│   └── blueprintau/
+│       └── lucent/        # The framework
 ├── .env
-└── cli
+└── composer.json
 ```
 
 ### Configuration

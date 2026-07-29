@@ -89,12 +89,12 @@ class ConsoleCommandTest extends TestCase
         $this->assertEquals("Insufficient arguments! The command requires at least 1 parameters.\nUsage: test var {var} ", $result);
     }
 
-    public function test_command_call_on_phar_directly(): void
+    public function test_command_call_on_binary_directly(): void
     {
-        $this->assertTrue(file_exists(FileSystem::rootPath() . DIRECTORY_SEPARATOR . "packages" . DIRECTORY_SEPARATOR . "lucent.phar"));
-        $output = exec("cd " . FileSystem::rootPath() . DIRECTORY_SEPARATOR . "packages" . " && php lucent.phar update rollback");
-
-        $this->assertEquals("No backup versions found to roll back to.", $output);
+        // The self-update commands were removed in the Composer migration.
+        // This test asserts the CLI binary is dispatchable and shows help.
+        $output = shell_exec("cd " . escapeshellarg(dirname(__DIR__, 2)) . " && php bin/lucent help");
+        $this->assertStringContainsString("Available commands:", (string) $output);
     }
 
     public function test_command_call_with_semi_column() : void
@@ -113,9 +113,6 @@ class ConsoleCommandTest extends TestCase
 
         $this->assertStringContainsString("Available commands:", $result);
         $this->assertStringContainsString("migration make {class}", $result);
-        $this->assertStringContainsString("update check", $result);
-        $this->assertStringContainsString("update rollback", $result);
-        $this->assertStringContainsString("update install", $result);
         $this->assertStringContainsString("generate api-docs", $result);
         $this->assertStringContainsString("serve", $result);
     }
@@ -142,15 +139,14 @@ class ConsoleCommandTest extends TestCase
 
     public function test_command_disabled_multiple() : void
     {
-        CommandLine::disableCommand(["update check", "update rollback","update install"]);
+        CommandLine::disableCommand(["deploy latest", "deploy rollback"]);
 
         $result = CommandLine::execute("help");
 
         $this->assertStringContainsString("Available commands:", $result);
         $this->assertStringContainsString("migration make {class}", $result);
-        $this->assertStringNotContainsString("update check", $result);
-        $this->assertStringNotContainsString("update rollback", $result);
-        $this->assertStringNotContainsString("update install", $result);
+        $this->assertStringNotContainsString("deploy latest", $result);
+        $this->assertStringNotContainsString("deploy rollback", $result);
         $this->assertStringContainsString("generate api-docs", $result);
         $this->assertStringContainsString("serve", $result);
     }
@@ -199,24 +195,29 @@ class ConsoleCommandTest extends TestCase
 
     public static function generateTestCliFile(): void
     {
+        $repoRoot = dirname(__DIR__, 2);
         $commandContent = <<<'PHP'
         #!/usr/bin/env php
         <?php
         use Lucent\Application;
         use Lucent\Facades\CommandLine;
         use App\Commands\TestCommand;
-        
+
         $_SERVER["REQUEST_METHOD"] = "CLI";
-        
-        require_once 'packages/lucent.phar';
-        
+
+        // Load the test bootstrap so RUNNING_LOCATION/FileSystem/App autoloader
+        // are configured the same way as the parent test process.
+        require_once 'REPO_ROOT/tests/bootstrap.php';
+
         $app = Application::getInstance();
-        
+
         CommandLine::captureOutput();
         CommandLine::register("test run", "run", TestCommand::class);
-        
+
         echo $app->executeConsoleCommand();
         PHP;
+
+        $commandContent = str_replace('REPO_ROOT', $repoRoot, $commandContent);
 
         file_put_contents(
             TEMP_ROOT . DIRECTORY_SEPARATOR . 'cli',

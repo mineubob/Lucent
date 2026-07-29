@@ -16,19 +16,19 @@ class DeploymentController
 
     private array $excludeFromBackup = [
         '.env',
-        'packages/lucent.phar',
+        'vendor',
         'storage/backups',
     ];
 
     private array $excludeFromExtract = [
         '.env',
-        'packages/lucent.phar',
+        'vendor',
         'storage',
     ];
 
     private array $excludeFromDelete = [
         '.env',
-        'packages/lucent.phar',
+        'vendor',
         'storage/backups',
         'storage/temp',
         'logs',
