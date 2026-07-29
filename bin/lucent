@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Lucent CLI binary.
+ *
+ * In a consumer project, Composer creates a proxy at vendor/bin/lucent
+ * that loads the project autoloader before requiring this file — so the
+ * autoloader is already available. In development (running this file
+ * directly from the repo), we load it ourselves.
+ *
+ * User CLI commands are auto-discovered from the project's commands/
+ * directory during Application::boot().
+ */
+
+$_SERVER["REQUEST_METHOD"] = "CLI";
+
+// If the Composer autoloader isn't loaded yet (dev mode), load it.
+// In a consumer project, Composer's bin proxy already loaded it.
+if (!class_exists(\Composer\Autoload\ClassLoader::class, false)) {
+    require_once dirname(__DIR__) . '/vendor/autoload.php';
+}
+
+$app = Lucent\Application::getInstance();
+echo $app->executeConsoleCommand();

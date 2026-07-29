@@ -5,6 +5,7 @@ namespace Lucent\Database\Drivers;
 use Lucent\Database;
 use Lucent\Database\DatabaseInterface;
 use Lucent\Database\Schema;
+use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
 use PDO;
 
@@ -101,7 +102,7 @@ class PDODriver extends DatabaseInterface
                     $path = ltrim($path, DIRECTORY_SEPARATOR);
                 }
 
-                $path = RUNNING_LOCATION.$path;
+                $path = rtrim(FileSystem::rootPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path;
 
                 if (!file_exists($path)) {
                     touch($path);

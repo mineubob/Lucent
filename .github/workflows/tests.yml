@@ -9,7 +9,7 @@ jobs:
     
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:lts
         env:
           MYSQL_ROOT_PASSWORD: testpassword
           MYSQL_DATABASE: test_database
@@ -19,39 +19,25 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: phar, mysqli, pdo_mysql
+          extensions: mysqli, pdo_mysql
           tools: composer:v2
           coverage: xdebug
-          ini-values: phar.readonly=0
 
-      - name: Install PHPUnit
+      - name: Install dependencies
         run: |
-          composer require --dev phpunit/phpunit
+          composer install --no-interaction --prefer-dist
           composer dump-autoload
-
-      - name: Create temp directories
-        run: |
-          mkdir -p temp_install/packages
-          mkdir -p temp_install/App/Commands
-          mkdir -p temp_install/App/Controllers
-          mkdir -p temp_install/App/Rules
-          mkdir -p temp_install/App/Models
-          mkdir -p temp_install/routes
-          mkdir -p temp_install/storage/downloads
-          mkdir -p temp_install/storage/documentation
-          chmod -R 755 temp_install
 
       - name: Run tests
         run: |
-          php vendor/bin/phpunit --bootstrap dev_build.php --configuration phpunit.xml --no-progress --display-deprecations --display-warnings --no-coverage
+          php vendor/bin/phpunit --configuration phpunit.xml --no-progress --display-deprecations --display-warnings --no-coverage
         env:
-          TEMP_ROOT: ${{ github.workspace }}/temp_install/
           DB_DRIVER: mysql
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
@@ -61,9 +47,7 @@ jobs:
 
       - name: Upload test logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: test-logs
-          path: |
-            phpunit.log
-            temp_install/
+          name: test-data
+          path: temp_install/

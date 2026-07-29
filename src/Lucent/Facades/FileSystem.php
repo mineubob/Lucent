@@ -8,6 +8,7 @@ use Lucent\Filesystem\Folder;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Lucent\Filesystem\File;
+
 /**
  * FileSystem facade for file system operations
  *
@@ -28,7 +29,8 @@ class FileSystem
      *
      * @return string The current root path
      */
-    public static function rootPath() : string {
+    public static function rootPath(): string
+    {
         return self::$root_path;
     }
 
@@ -38,9 +40,9 @@ class FileSystem
      * @param string $path The new root path
      * @return void
      */
-    public static function overrideRootPath(string $path) : void
+    public static function overrideRootPath(string $path): void
     {
-        self::$root_path = rtrim($path, '/\\');
+        self::$root_path = rtrim($path, DIRECTORY_SEPARATOR);
     }
 
     /**
@@ -52,13 +54,13 @@ class FileSystem
      * @return array Array of File objects representing files in the directory
      * @throws Exception
      */
-    public static function getFiles(?string $directory = null, string|array|null $extensions = null, bool $recursive = true) : array
+    public static function getFiles(?string $directory = null, string|array|null $extensions = null, bool $recursive = true): array
     {
         // Determine the directory path
-        if($directory == null) {
+        if ($directory == null) {
             $directoryPath = self::rootPath();
         } else {
-            $cleanDir = ltrim($directory, '/\\');
+            $cleanDir = ltrim($directory, DIRECTORY_SEPARATOR);
             $directoryPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanDir;
         }
 
@@ -81,7 +83,7 @@ class FileSystem
         }
 
         foreach ($iterator as $fileInfo) {
-            if($fileInfo->isFile()) {
+            if ($fileInfo->isFile()) {
                 // If extension filter is provided, check if file matches
                 if ($extensions !== null) {
                     $extension = strtolower(pathinfo($fileInfo->getFilename(), PATHINFO_EXTENSION));
@@ -108,7 +110,7 @@ class FileSystem
     {
         try {
             // Clean the path
-            $cleanPath = ltrim($path, '/\\');
+            $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
             $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
 
             return new File($fullPath, true);
@@ -130,7 +132,7 @@ class FileSystem
     public static function create(string $path, string $content = ''): ?File
     {
         // Clean the path
-        $cleanPath = ltrim($path, '/\\');
+        $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
         $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
 
         // Create directory if it doesn't exist
@@ -173,8 +175,8 @@ class FileSystem
         return round($bytes, 2) . ' ' . $units[$pow];
     }
 
-    public static function root() : Folder
+    public static function root(): Folder
     {
-        return new Folder(self::$root_path,true);
+        return new Folder(self::$root_path, true);
     }
 }
