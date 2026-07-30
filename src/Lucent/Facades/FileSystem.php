@@ -46,6 +46,31 @@ class FileSystem
     }
 
     /**
+     * Determine whether a path is absolute.
+     *
+     * Recognises Unix-style paths (leading "/") and Windows-style paths
+     * (leading drive letter such as "C:\" or "C:/").
+     *
+     * @param string $path The path to test
+     * @return bool True if the path is absolute, false otherwise
+     */
+    public static function isAbsolute(string $path): bool
+    {
+        if ($path === '') {
+            return false;
+        }
+
+        // Unix-style absolute path.
+        if (str_starts_with($path, '/')) {
+            return true;
+        }
+
+        // Windows-style absolute path (e.g. C:\ or C:/).
+        return DIRECTORY_SEPARATOR === '\\'
+            && preg_match('/^[A-Z]:[\\\\\/]/i', $path) === 1;
+    }
+
+    /**
      * Get all files in a directory recursively with optional extension filtering
      *
      * @param string|null $directory The directory to scan (relative to root path), or null for root path

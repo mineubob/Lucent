@@ -2,6 +2,7 @@
 
 namespace Lucent\Http;
 
+use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\Exceptions\FileNotFound;
 use Lucent\Filesystem\File;
 use Lucent\Http\Exceptions\HttpException;
@@ -37,9 +38,11 @@ class HttpRouter extends Router
      */
     public function loadRoutes(string $file, ?string $prefix = null): void
     {
-        $file = new File($file);
+        // Detect absolute paths (e.g. from glob() in Application::boot()) so
+        // the File constructor doesn't prepend rootPath() a second time.
+        $file = new File($file, null, FileSystem::isAbsolute($file));
 
-        if(!$file->exists()){
+        if (!$file->exists()) {
             throw new HttpException(
                 HttpStatus::SERVER_ERROR,
                 "Route file not found",

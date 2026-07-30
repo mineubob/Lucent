@@ -14,7 +14,7 @@ class CliRouter extends Router
      */
     public function registerRoute(string $uri, string $type, string $method, ?string $controller = null, array $middleware = [], ?string $description = null): void
     {
-        $uri = str_replace(":"," ",$uri);
+        $uri = str_replace(":", " ", $uri);
         $this->routes[$type][$uri] = [
             "controller" => $controller,
             "method" => $method,
@@ -29,12 +29,14 @@ class CliRouter extends Router
      */
     public function loadRoutes(string $file, ?string $prefix = null): void
     {
-        $routes = new File($file);
+        // Detect absolute paths (e.g. from glob() in Application::boot()) so
+        // the File constructor doesn't prepend rootPath() a second time.
+        $routes = new File($file, null, FileSystem::isAbsolute($file));
 
-        if(!$routes->exists()) {
+        if (!$routes->exists()) {
             throw new FileNotFound($routes->path);
         }
 
-        require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($file, DIRECTORY_SEPARATOR);
+        require_once $routes->path;
     }
 }
