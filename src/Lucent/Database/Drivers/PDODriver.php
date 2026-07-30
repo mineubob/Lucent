@@ -33,7 +33,8 @@ class PDODriver extends DatabaseInterface
                 "double" => "double",
                 "char" => "char",
                 "longtext" => "longtext",
-                "mediumtext" => "mediumtext"
+                "mediumtext" => "mediumtext",
+                "uuid" => "char"
             ],
             "functions" => [
                 "foreign_key_checks" => [
@@ -69,7 +70,8 @@ class PDODriver extends DatabaseInterface
                 "double" => "REAL",
                 "char" => "TEXT",
                 "longtext" => "TEXT",
-                "mediumtext" => "TEXT"
+                "mediumtext" => "TEXT",
+                "uuid" => "TEXT"
             ],
             "functions" => [
                 "foreign_key_checks" => [

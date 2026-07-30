@@ -24,6 +24,9 @@ const LUCENT_DB_MEDIUMTEXT = "mediumtext";
 // NEW: Add BIGINT support
 const LUCENT_DB_BIGINT = "bigint";
 
+// NEW: Add UUID support (stored as CHAR(36) on MySQL, TEXT on SQLite)
+const LUCENT_DB_UUID = "uuid";
+
 // NEW: Add UNSIGNED modifier (can be combined with other types)
 const LUCENT_DB_UNSIGNED = 'UNSIGNED';
 

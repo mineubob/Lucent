@@ -1098,6 +1098,7 @@ namespace App\Models;
 use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
+use Lucent\Facades\UUID;
 
 enum AllTypesEnum
 {
@@ -1212,6 +1213,12 @@ class AllTypes extends Model
     #[Column(ColumnType::BIGINT, nullable: true)]
     public ?int $bigint_nullable;
 
+    #[Column(ColumnType::UUID)]
+    public string $uuid;
+
+    #[Column(ColumnType::UUID, nullable: true)]
+    public ?string $uuid_nullable;
+
     /**
      * Check that all column types are set.
      * @throws \RuntimeException
@@ -1305,6 +1312,7 @@ class AllTypes extends Model
                     is_array($column->values) => $column->values[array_rand($column->values)],
                     default => throw new \RuntimeException('Invalid ENUM definition'),
                 },
+            ColumnType::UUID => UUID::generate(),
             default => throw new \RuntimeException("Unsupported column type: {$column->type->name}"),
         };
     }

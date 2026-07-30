@@ -125,6 +125,30 @@ The `DatabaseColumn` attribute is used to define column properties:
 
 > **Important**: Each model must have exactly one property marked with `PRIMARY_KEY` set to `true`. This column will be used by default for save() and delete() operations, but you can specify a different column name as an argument if needed.
 
+### UUID Columns
+
+Use `ColumnType::UUID` for columns that store UUIDs. The type defaults to 36-character string storage (`CHAR(36)` on MySQL, `TEXT` on SQLite), matching the output of `UUID::generate()`. Values are validated as RFC 4122 UUIDs on save and on retrieval.
+
+```php
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+use Lucent\Facades\UUID;
+
+class User extends Model
+{
+    #[Column(ColumnType::UUID, primaryKey: true)]
+    public string $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    public string $name;
+
+    public function __construct()
+    {
+        $this->id = UUID::generate();
+    }
+}
+```
+
 ## CRUD Operations
 
 ### Creating Records

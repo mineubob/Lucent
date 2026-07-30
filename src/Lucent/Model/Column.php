@@ -4,6 +4,7 @@ namespace Lucent\Model;
 
 use Attribute;
 use Lucent\Database\Schema\Reference;
+use Lucent\Facades\UUID;
 use ReflectionProperty;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -170,6 +171,9 @@ class Column
         return match ($this->type) {
             ColumnType::BOOLEAN => is_bool($value) ? ($value === true ? 1 : 0) : throw new \InvalidArgumentException("Invalid boolean value"),
             ColumnType::JSON => json_encode($value),
+            ColumnType::UUID => is_string($value) && UUID::isValid($value)
+                ? $value
+                : throw new \InvalidArgumentException("Invalid UUID value"),
             default => $value
         };
     }
@@ -193,6 +197,9 @@ class Column
                     default => throw new \UnexpectedValueException("Invalid boolean value"),
                 },
             ColumnType::JSON => is_string($value) ? json_decode($value, true) : throw new \UnexpectedValueException("Invalid JSON value"),
+            ColumnType::UUID => is_string($value) && UUID::isValid($value)
+                ? $value
+                : throw new \UnexpectedValueException("Invalid UUID value"),
             default => $value
         };
     }
