@@ -6,7 +6,7 @@ class JsonResponse extends HttpResponse
 {
     public protected(set) array $body;
 
-    public function __construct($_ = '', $status = 200)
+    public function __construct($content = [], $status = 200)
     {
         parent::__construct("", $status);
 
@@ -14,7 +14,7 @@ class JsonResponse extends HttpResponse
         $this->body["message"] = "Request successfully executed.";
         $this->body["outcome"] = true;
         $this->body["status"] = $status;
-        $this->body["content"] = [];
+        $this->body["content"] = $content;
 
         $this->headers["Content-Type"] = "application/json; charset=utf-8";
     }
@@ -74,7 +74,6 @@ class JsonResponse extends HttpResponse
         $this->statusCode = 400;
         foreach ($errors as $error) {
             $this->body[$error] = $message;
-
         }
         return $this;
     }
