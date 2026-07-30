@@ -63,7 +63,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         self::generate_test_middleware();
 
         self::generateRoutesFile();
-        App::registerRoutes("/routes/web.php");
+        Application::getInstance()->boot();
     }
 
     public function test_404(): void
