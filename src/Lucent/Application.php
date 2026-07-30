@@ -274,7 +274,7 @@ class Application
 
         // Load explicitly registered command files.
         foreach ($this->commands as $command) {
-            require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
+            require_once $command;
         }
 
         Database::setLogger(new class implements DatabaseLogger {
@@ -317,6 +317,14 @@ class Application
      */
     public function loadRoutes(string $route): void
     {
+        // Resolve against the project root so boot() always passes a real
+        // absolute filesystem path to the router.  This handles both
+        // bare relative paths ("routes/web.php") and paths that look
+        // absolute but are really project-relative ("/routes/web.php").
+        if (!str_starts_with($route, FileSystem::rootPath())) {
+            $route = FileSystem::rootPath() . DIRECTORY_SEPARATOR
+                   . ltrim($route, DIRECTORY_SEPARATOR);
+        }
         $this->routes[] = ["file" => $route];
     }
 
@@ -723,6 +731,10 @@ class Application
      */
     public function loadCommands(string $commandFile): void
     {
+        if (!str_starts_with($commandFile, FileSystem::rootPath())) {
+            $commandFile = FileSystem::rootPath() . DIRECTORY_SEPARATOR
+                         . ltrim($commandFile, DIRECTORY_SEPARATOR);
+        }
         $this->commands[] = $commandFile;
     }
 
