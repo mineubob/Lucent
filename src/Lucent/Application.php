@@ -249,7 +249,7 @@ class Application
 
         // Auto-discover route files from the project's routes/ directory.
         if ($autoLoadRoutes) {
-            $routesDir = FileSystem::rootPath() . 'routes' . DIRECTORY_SEPARATOR;
+            $routesDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'routes' . DIRECTORY_SEPARATOR;
             if (is_dir($routesDir)) {
                 foreach (glob($routesDir . '*.php') as $routeFile) {
                     $this->httpRouter->loadRoutes($routeFile);
@@ -264,7 +264,7 @@ class Application
 
         // Auto-discover command files from the project's commands/ directory.
         if ($autoLoadCommands) {
-            $commandsDir = FileSystem::rootPath() . 'commands' . DIRECTORY_SEPARATOR;
+            $commandsDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'commands' . DIRECTORY_SEPARATOR;
             if (is_dir($commandsDir)) {
                 foreach (glob($commandsDir . '*.php') as $commandFile) {
                     require_once $commandFile;

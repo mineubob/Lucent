@@ -25,7 +25,7 @@ class FileSystem
     private static string $root_path;
 
     /**
-     * Get the current root path
+     * Get the current root path. The trailing `/` will be removed before this function is called.
      *
      * @return string The current root path
      */

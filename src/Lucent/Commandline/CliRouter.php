@@ -35,6 +35,6 @@ class CliRouter extends Router
             throw new FileNotFound($routes->path);
         }
 
-        require_once FileSystem::rootPath().$file;
+        require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($file, DIRECTORY_SEPARATOR);
     }
 }

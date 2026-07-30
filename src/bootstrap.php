@@ -43,7 +43,7 @@ define("LUCENT", ROOT . "Lucent" . DIRECTORY_SEPARATOR);
 require_once LUCENT . "Facades" . DIRECTORY_SEPARATOR . "FileSystem.php";
 FileSystem::overrideRootPath(RUNNING_LOCATION);
 
-define("APP", FileSystem::rootPath() . "App" . DIRECTORY_SEPARATOR);
+define("APP", FileSystem::rootPath() . DIRECTORY_SEPARATOR . "App" . DIRECTORY_SEPARATOR);
 
 // Import database constants
 require_once LUCENT . "Database" . DIRECTORY_SEPARATOR . "constants.php";
