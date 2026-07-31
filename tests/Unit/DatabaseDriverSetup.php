@@ -48,7 +48,7 @@ class DatabaseDriverSetup extends TestCase
         Database::reset();
 
         //Drop all our tables, disable FK checks to ensure we can drop them in any order.
-        Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () {
+        Database::disabling("foreign_key_checks", function () {
             $tables = Database\Schema::list();
 
             //Drop all our tables
