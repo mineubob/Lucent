@@ -239,6 +239,21 @@ $articles = Article::where('published', true)
 
 // Count records
 $count = Article::where('published', true)->count();
+
+// Sum a column
+$total = Article::where('published', true)->sum('views');
+
+// Average a column
+$average = Article::where('published', true)->avg('rating');
+
+// Get minimum/maximum values
+$lowestPrice = Product::min('price');
+$highestPrice = Product::max('price');
+
+// All aggregates work with any query conditions
+$categoryTotal = Order::where('status', 'completed')
+    ->where('created_at', '>=', '2024-01-01')
+    ->sum('amount');
 ```
 
 ### Logical Operators

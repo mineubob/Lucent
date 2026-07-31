@@ -474,9 +474,19 @@ class Model
         return new Collection(static::class)->sum($column);
     }
 
-    public static function collection(): Collection
+    public static function avg(string $column): float
     {
-        return new Collection(static::class);
+        return new Collection(static::class)->avg($column);
+    }
+
+    public static function min(string $column): mixed
+    {
+        return new Collection(static::class)->min($column);
+    }
+
+    public static function max(string $column): mixed
+    {
+        return new Collection(static::class)->max($column);
     }
 
     public static function get(): array
