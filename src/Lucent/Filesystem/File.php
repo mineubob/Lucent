@@ -121,8 +121,9 @@ class File extends FileSystemObject
             return null;
         }
 
-        // Create the new file object
-        $copy = new File($destinationPath, "", true);
+        // Create the new file object WITHOUT writing content - passing null
+        // avoids creating an empty destination file before the copy runs.
+        $copy = new File($destinationPath, null, true);
 
         // Perform copy operation
         $success = copy($this->path, $copy->path);
@@ -151,10 +152,14 @@ class File extends FileSystemObject
     /**
      * Gets the contents of the file
      *
-     * @return string The file contents
+     * @return string The file contents (empty string if the file doesn't exist)
      */
     public function getContents(): string
     {
+        if (!$this->exists()) {
+            return "";
+        }
+
         return file_get_contents($this->path);
     }
 

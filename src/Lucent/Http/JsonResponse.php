@@ -73,7 +73,7 @@ class JsonResponse extends HttpResponse
         $this->body["outcome"] = false;
         $this->statusCode = 400;
         foreach ($errors as $error) {
-            $this->body[$error] = $message;
+            $this->body["errors"][$error] = $message;
         }
         return $this;
     }

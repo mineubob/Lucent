@@ -76,6 +76,18 @@ class Collection
         if ($operator !== 'AND' && $operator !== 'OR') {
             $operator = 'AND';
         }
+        
+        $logicalOperator = strtoupper($logicalOperator);
+
+        // Whitelist the comparison operator to prevent SQL operator injection.
+        // The raw operator is concatenated into the query string, so it must
+        // never accept arbitrary user input.
+        $allowedOperators = ['=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'IS', 'IS NOT'];
+        if (!in_array($logicalOperator, $allowedOperators, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid comparison operator provided: '$logicalOperator'. Allowed operators: " . implode(', ', $allowedOperators)
+            );
+        }
 
         $formattedColumn = $this->formatColumnName($column);
 
@@ -83,7 +95,7 @@ class Collection
             'column' => $formattedColumn,
             'value' => $value,  // Store raw value
             'operator' => $operator,
-            'type' => $logicalOperator  // NEW: Store the comparison operator (>, <, >=, etc)
+            'type' => $logicalOperator  // Store the validated comparison operator (>, <, >=, etc)
         ];
 
         return $this;
@@ -189,8 +201,12 @@ class Collection
 
     public function getFirst(): mixed
     {
+        // Save and restore the limit so reusing the same Collection for a
+        // subsequent get()/count() is not silently limited to 1 row.
+        $previousLimit = $this->limit;
         $this->limit = 1;
         [$query, $bindValues] = $this->buildQuery();
+        $this->limit = $previousLimit;
 
         $data = Database::select($query, false, $bindValues);
 
@@ -212,15 +228,59 @@ class Collection
     public function count(): int
     {
         [$query, $bindValues] = $this->buildQuery();
-        $query = str_replace("*", "count(*)", $query);
-        return (int) Database::select($query, false, $bindValues)["count(*)"];
+
+        // Alias the aggregate so the result key is deterministic across
+        // drivers (MySQL may return COUNT(*) uppercased otherwise).
+        $query = str_replace("SELECT *", "SELECT count(*) AS total_count", $query);
+        $query = preg_replace('/\s+LIMIT\s+\d+.*$/i', '', $query);
+
+        return (int) Database::select($query, false, $bindValues)["total_count"];
     }
 
     public function sum(string $column): float
     {
+        // Whitelist the column against the model's database properties so an
+        // arbitrary string can never be interpolated into the SQL query.
+        // Also handle the extended-model case where the column lives on the
+        // parent class.
+        $columnInfo = $this->resolveSumColumn($column);
+        $formattedColumn = $columnInfo['formatted'];
+        $aggregateKey = $columnInfo['key'];
+
         [$query, $bindValues] = $this->buildQuery();
-        $query = str_replace("*", "sum({$column})", $query);
-        return (float) Database::select($query, false, $bindValues)["sum({$column})"];
+
+        // count()/sum() must aggregate over ALL matching rows, not a LIMIT-ed
+        // subset, and the aggregation must not be affected by the default limit.
+        $query = str_replace("SELECT *", "SELECT SUM({$formattedColumn}) AS {$aggregateKey}", $query);
+        $query = preg_replace('/\s+LIMIT\s+\d+.*$/i', '', $query);
+
+        return (float) Database::select($query, false, $bindValues)[$aggregateKey];
+    }
+
+    private function resolveSumColumn(string $column): array
+    {
+        $parent = $this->reflection->getParentClass();
+
+        // Extended model: column may live on the parent class.
+        if ($parent->getName() !== Model::class) {
+            if (Model::hasDatabaseProperty($parent, $column)) {
+                return [
+                    'formatted' => $parent->getShortName() . '.' . $column,
+                    'key' => 'total_' . $column,
+                ];
+            }
+        }
+
+        if (Model::hasDatabaseProperty($this->reflection, $column)) {
+            return [
+                'formatted' => $column,
+                'key' => 'total_' . $column,
+            ];
+        }
+
+        throw new \InvalidArgumentException(
+            "Column '{$column}' does not exist on model {$this->class}"
+        );
     }
 
     // MODIFIED: Now returns both query and bind values
@@ -241,7 +301,11 @@ class Collection
             $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk->name} = {$parent->getShortName()}.{$pk->name}";
         }
 
-        // Apply trait conditions
+        // Apply trait conditions into a LOCAL list so repeated calls to
+        // buildQuery() (e.g. get() then count() on the same Collection) never
+        // duplicate the trait WHERE clauses on the instance state.
+        $conditions = [];
+
         if (count(self::$traitConditions) > 0) {
             foreach (self::$traitConditions as $traitName => $condition) {
                 if (class_exists($this->class) && in_array($traitName, $this->class_uses_recursive($this->class))) {
@@ -249,14 +313,14 @@ class Collection
                     $value = $condition['value'];
 
                     if ($value === null) {
-                        $this->whereConditions[] = [
+                        $conditions[] = [
                             'column' => $column,
                             'value' => null,
                             'operator' => 'AND',
                             'type' => 'IS NULL'
                         ];
                     } else {
-                        $this->whereConditions[] = [
+                        $conditions[] = [
                             'column' => $column,
                             'value' => $value,
                             'operator' => 'AND',
@@ -267,43 +331,52 @@ class Collection
             }
         }
 
+        // Merge user-supplied conditions after trait conditions.
+        $conditions = array_merge($conditions, $this->whereConditions);
+
         // Build WHERE conditions
-        if (!empty($this->whereConditions) || !empty($this->likeConditions)) {
+        if (!empty($conditions) || !empty($this->likeConditions)) {
             $query .= " WHERE ";
-            $conditions = [];
+            $whereParts = [];
 
             // Process WHERE conditions
-            foreach ($this->whereConditions as $index => $condition) {
+            foreach ($conditions as $index => $condition) {
                 $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
 
                 // Handle different condition types
                 if ($condition['type'] === 'IN') {
+                    // Guard against empty IN lists producing invalid SQL.
+                    if (count($condition['value']) === 0) {
+                        $whereParts[] = $prefix . "0 = 1";
+                        continue;
+                    }
+
                     // Build IN clause with placeholders
                     $placeholders = implode(', ', array_fill(0, count($condition['value']), '?'));
-                    $conditions[] = $prefix . $condition['column'] . " IN (" . $placeholders . ")";
+                    $whereParts[] = $prefix . $condition['column'] . " IN (" . $placeholders . ")";
 
                     // Add each value to bind array
                     foreach ($condition['value'] as $val) {
                         $bindValues[] = is_bool($val) ? ($val ? 1 : 0) : $val;
                     }
                 } elseif ($condition['type'] === 'IS NULL') {
-                    $conditions[] = $prefix . $condition['column'] . " IS NULL";
+                    $whereParts[] = $prefix . $condition['column'] . " IS NULL";
                     // No bind value for IS NULL
                 } else {
                     // Regular comparison (=, >, <, >=, <=, !=)
-                    $conditions[] = $prefix . $condition['column'] . " " . $condition['type'] . " ?";
+                    $whereParts[] = $prefix . $condition['column'] . " " . $condition['type'] . " ?";
                     $bindValues[] = is_bool($condition['value']) ? ($condition['value'] ? 1 : 0) : $condition['value'];
                 }
             }
 
             // Process LIKE conditions
             foreach ($this->likeConditions as $index => $condition) {
-                $prefix = (!empty($this->whereConditions) || $index > 0) ? $condition['operator'] . ' ' : '';
-                $conditions[] = $prefix . $condition['column'] . " LIKE ?";
+                $prefix = (!empty($conditions) || $index > 0) ? $condition['operator'] . ' ' : '';
+                $whereParts[] = $prefix . $condition['column'] . " LIKE ?";
                 $bindValues[] = '%' . $condition['value'] . '%';
             }
 
-            $query .= implode(' ', $conditions);
+            $query .= implode(' ', $whereParts);
         }
 
         if (!empty($this->orderByClauses)) {

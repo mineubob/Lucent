@@ -35,7 +35,10 @@ define("RUNNING_LOCATION", $projectRoot . DIRECTORY_SEPARATOR);
 
 // Version: read from Composer's InstalledVersions (always available
 // since this file is autoloaded via Composer's files entry).
-define("VERSION", \Composer\InstalledVersions::getVersion('blueprintau/lucent') ?: 'unknown');
+// getPrettyVersion() returns a meaningful string for dev installs too
+// (e.g. "dev-main"), unlike getVersion() which is null outside tagged
+// releases and would make VERSION fall back to 'unknown'.
+define("VERSION", \Composer\InstalledVersions::getPrettyVersion('blueprintau/lucent') ?: 'unknown');
 
 define("LUCENT", ROOT . "Lucent" . DIRECTORY_SEPARATOR);
 

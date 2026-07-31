@@ -367,8 +367,33 @@ class Application
             if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
 
                 foreach ($controllerReflection->getConstructor()->getParameters() as $parameter) {
-                    if (array_key_exists($parameter->getType()->getName(), $this->services)) {
-                        $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
+                    $parameterType = $parameter->getType();
+
+                    if ($parameterType === null || !($parameterType instanceof ReflectionNamedType)) {
+                        throw new InvalidArgumentException(
+                            sprintf(
+                                "Constructor parameter '%s' in controller '%s' must have a named type hint to be resolved from the service container.",
+                                $parameter->getName(),
+                                $controllerReflection->getName()
+                            )
+                        );
+                    }
+
+                    if (array_key_exists($parameterType->getName(), $this->services)) {
+                        $parameters[$parameter->getName()] = $this->services[$parameterType->getName()];
+                    } else if ($parameter->isDefaultValueAvailable()) {
+                        // Optional constructor parameters without a matching service
+                        // fall back to their default value.
+                        $parameters[$parameter->getName()] = $parameter->getDefaultValue();
+                    } else {
+                        throw new InvalidArgumentException(
+                            sprintf(
+                                "No service registered for required constructor parameter '%s' of type '%s' in controller '%s'.",
+                                $parameter->getName(),
+                                $parameterType->getName(),
+                                $controllerReflection->getName()
+                            )
+                        );
                     }
                 }
 
@@ -586,10 +611,13 @@ class Application
             $args = str_replace("\n", "", $args);
         }
 
-        // Explode any arguments that contain colons
+        // Split colons in the COMMAND NAME (first argument) to support
+        // "namespace:command" style invocation (e.g. "make:migration").
+        // Other arguments (options, parameter values) are left untouched so
+        // values like "--file=/path:with:colons" are not corrupted.
         $expandedArgs = [];
-        foreach ($args as $arg) {
-            if (str_contains($arg, ':')) {
+        foreach ($args as $index => $arg) {
+            if ($index === 0 && str_contains($arg, ':')) {
                 $parts = explode(':', $arg);
                 foreach ($parts as $part) {
                     if ($part !== '') {
@@ -839,7 +867,11 @@ class Application
     public function setHeaders(array $headers, bool $replace = true): void
     {
         foreach ($headers as $name => $value) {
-            header("$name: $value", $replace);
+            // Strip CR/LF from header names and values to prevent HTTP
+            // response splitting / header injection attacks.
+            $safeName = str_replace(["\r", "\n"], '', $name);
+            $safeValue = str_replace(["\r", "\n"], '', $value);
+            header("$safeName: $safeValue", $replace);
         }
     }
 
@@ -875,6 +907,12 @@ class Application
         $response->setMessage($status->message());
 
         $is_debug = App::env("DEBUG", false);
+
+        // Normalise boolean env strings: "false", "off", "no", "0" and ""
+        // must all be treated as falsy, not as truthy strings.
+        if (is_string($is_debug)) {
+            $is_debug = !in_array(strtolower(trim($is_debug)), ['', '0', 'false', 'off', 'no'], true);
+        }
 
         if (!$is_debug) {
             return $response;

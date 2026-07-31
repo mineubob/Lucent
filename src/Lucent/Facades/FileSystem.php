@@ -138,6 +138,11 @@ class FileSystem
             $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
             $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
 
+            // Contract: return null if the file doesn't exist.
+            if (!file_exists($fullPath)) {
+                return null;
+            }
+
             return new File($fullPath, true);
         } catch (Exception $e) {
             return null;

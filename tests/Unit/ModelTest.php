@@ -867,7 +867,7 @@ trait SoftDelete
      * @param mixed $propertyName The primary key property name
      * @return bool Success
      */
-    public function delete($propertyName = "id"): bool
+    public function delete(?string $propertyName = null): bool
     {
         return $this->softDelete($propertyName);
     }
@@ -878,9 +878,11 @@ trait SoftDelete
      * @param string $propertyName The primary key property name
      * @return bool Success
      */
-    public function softDelete(string $propertyName = "id"): bool
+    public function softDelete(?string $propertyName = null): bool
     {
         $this->deleted_at = time();
+        // Passing null lets the base Model::save() resolve the actual primary
+        // key, so models with a non-"id" PK work correctly.
         return $this->save($propertyName);
     }
 

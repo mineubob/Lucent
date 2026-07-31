@@ -41,18 +41,24 @@ class Model
         if ($parent->getName() === Model::class) {
             if ($identifier === null) {
                 $pk = Model::getDatabasePrimaryKey($reflection);
-                $identifier = $pk->name;
+                $idProperty = $reflection->getProperty($pk->classPropertyName);
+                $idValue = $idProperty->getValue($this);
+                $idValue = $pk->preProcess($idValue);
+
+                $query = "DELETE FROM {$reflection->getShortName()} WHERE {$pk->name} = ?";
+            } else {
+                // A custom property name was provided - use it for both the
+                // reflection lookup and (via its column) the SQL column name.
+                $idProperty = $reflection->getProperty($identifier);
+                $idValue = $idProperty->getValue($this);
+
+                $column = Column::fromProperty($idProperty);
+                if ($column === null)
+                    throw new \RuntimeException("Failed to get column!");
+
+                $idValue = $column->preProcess($idValue);
+                $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
             }
-            $idProperty = $reflection->getProperty($identifier);
-            $idValue = $idProperty->getValue($this);
-
-            $column = Column::fromProperty($idProperty);
-            if ($column === null)
-                throw new \RuntimeException("Failed to get column!");
-
-            $idValue = $column->preProcess($idValue);
-
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
             if (!Database::delete($query, [$idValue])) {
                 return false;
@@ -63,21 +69,26 @@ class Model
 
         if ($identifier === null) {
             $pk = Model::getDatabasePrimaryKey($parent);
-            $identifier = $pk->name;
+            $idProperty = $reflection->getProperty($pk->classPropertyName);
+            $idValue = $idProperty->getValue($this);
+            $idValue = $pk->preProcess($idValue);
+            $idColumnName = $pk->name;
+        } else {
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->getValue($this);
+
+            $column = Column::fromProperty($idProperty);
+            if ($column === null)
+                throw new \RuntimeException("Failed to get column!");
+
+            $idValue = $column->preProcess($idValue);
+            $idColumnName = $column->name;
         }
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
-
-        $column = Column::fromProperty($idProperty);
-        if ($column === null)
-            throw new \RuntimeException("Failed to get column!");
-
-        $idValue = $column->preProcess($idValue);
 
         //Delete extended model
-        return Database::transaction(function () use ($idValue, $column, $parent, $reflection) {
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
-            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
+        return Database::transaction(function () use ($idValue, $idColumnName, $parent, $reflection) {
+            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$idColumnName} = ?";
+            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$idColumnName} = ?";
 
             if (!Database::delete($query, [$idValue])) {
                 return false;
@@ -269,14 +280,23 @@ class Model
 
             if ($identifier === null) {
                 $pk = Model::getDatabasePrimaryKey($parent);
-                $identifier = $pk->name;
-            } else {
-                $pk = Model::getDatabasePrimaryKey($parent);
-            }
-            $idProperty = $reflection->getProperty($identifier);
-            $idValue = $pk->preProcess($idProperty->getValue($this));
 
-            $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$identifier} = ?";
+                $idProperty = $parent->getProperty($pk->classPropertyName);
+                $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+                $idValue = $pk->preProcess($idValue);
+                $idColumnName = $pk->name;
+            } else {
+                $idProperty = $reflection->getProperty($identifier);
+                $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+                $idColumn = Column::fromProperty($idProperty);
+                if ($idColumn === null) {
+                    throw new \RuntimeException("Failed to get column!");
+                }
+                $idValue = $idColumn->preProcess($idValue);
+                $idColumnName = $idColumn->name;
+            }
+
+            $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$idColumnName} = ?";
             $parentBindValues[] = $idValue;
 
             $childUpdates = [];
@@ -300,7 +320,7 @@ class Model
                 return true;
             }
 
-            $childQuery = "UPDATE {$reflection->getShortName()} SET " . implode(", ", $childUpdates) . " WHERE {$identifier} = ?";
+            $childQuery = "UPDATE {$reflection->getShortName()} SET " . implode(", ", $childUpdates) . " WHERE {$idColumnName} = ?";
             $childBindValues[] = $idValue;
 
             return Database::transaction(function () use ($childQuery, $parentQuery, $childBindValues, $parentBindValues) {
@@ -314,18 +334,35 @@ class Model
             });
         }
 
+        
         if ($identifier === null) {
             $pk = Model::getDatabasePrimaryKey($reflection);
-            $identifier = $pk->name;
+            
+            $idProperty = $reflection->getProperty($pk->classPropertyName);
+            $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+            $idValue = $pk->preProcess($idValue);
+            $idColumnName = $pk->name;
+        } else {
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+            $idColumn = Column::fromProperty($idProperty);
+            if ($idColumn === null) {
+                throw new \RuntimeException("Failed to get column!");
+            }
+            $idValue = $idColumn->preProcess($idValue);
+            $idColumnName = $idColumn->name;
         }
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
 
         // Non-extended model handling
         $updates = [];
         $bindValues = [];
 
         foreach (Model::getDatabaseProperties($reflection) as $column) {
+            // Never update the primary key column in a save().
+            if ($column->primaryKey) {
+                continue;
+            }
+
             $property = $reflection->getProperty($column->classPropertyName);
             $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
@@ -337,7 +374,7 @@ class Model
             return true; // No updates needed
         }
 
-        $query = "UPDATE " . $reflection->getShortName() . " SET " . implode(", ", $updates) . " WHERE {$identifier} = ?";
+        $query = "UPDATE " . $reflection->getShortName() . " SET " . implode(", ", $updates) . " WHERE {$idColumnName} = ?";
         $bindValues[] = $idValue;
 
         try {
@@ -390,7 +427,7 @@ class Model
             }
         }
 
-        Database::log("error","[Model] No primary key found for class {$reflection->getName()}");
+        Database::log("error", "[Model] No primary key found for class {$reflection->getName()}");
         throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 

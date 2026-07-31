@@ -23,6 +23,11 @@ class HttpRouter extends Router
         // Build the full URI with prefix
         $fullUri = $prefix ? $prefix . '/' . $uri : $uri;
 
+        // Apply the namespace group attribute (if any) to the controller.
+        if ($controller !== null) {
+            $controller = $this->getFullClassName($controller);
+        }
+
         // Store the route without leading slash for consistent comparison
         $this->routes[$type][$fullUri] = [
             "controller" => $controller,
@@ -56,11 +61,14 @@ class HttpRouter extends Router
             $this->prefix = $prefix;
         }
 
-        require_once $file->path;
-
-        //Restore existing prefix
-        if ($prefix !== null) {
-            $this->prefix = $previousPrefix;
+        try {
+            require_once $file->path;
+        } finally {
+            //Restore existing prefix even if the route file throws, so the
+            //prefix never leaks into subsequently registered routes.
+            if ($prefix !== null) {
+                $this->prefix = $previousPrefix;
+            }
         }
     }
 }
