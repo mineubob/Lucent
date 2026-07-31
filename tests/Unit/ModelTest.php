@@ -705,10 +705,10 @@ class TestUser extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR)]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $email;
 
-    #[Column(ColumnType::VARCHAR)]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $password_hash;
 
     #[Column(ColumnType::VARCHAR, length: 100)]
