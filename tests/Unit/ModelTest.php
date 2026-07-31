@@ -705,23 +705,13 @@ class TestUser extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR)]
     protected string $email;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR)]
     protected string $password_hash;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false,
-        "LENGTH" => 100
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 100)]
     protected string $full_name;
 
     public function __construct(string $email, string $password_hash, string $full_name)
