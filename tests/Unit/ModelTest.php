@@ -695,7 +695,6 @@ class ModelTest extends DatabaseDriverSetup
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
 use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;

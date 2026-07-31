@@ -130,19 +130,6 @@ class Column
     {
         $attributes = $property->getAttributes(self::class);
         if (empty($attributes)) {
-            // FIXME: This is a temporary conversion till DatabaseColumn is remove.
-            $dbColumn = \Lucent\Database\Attributes\DatabaseColumn::fromProperty($property);
-            if ($dbColumn !== null) {
-                $instance = $dbColumn->toModelColumn();
-                $instance->classPropertyName = $property->getName();
-
-                if ($instance->name == null) {
-                    $instance->name = $property->getName();
-                }
-
-                return $instance;
-            }
-
             return null;
         }
 

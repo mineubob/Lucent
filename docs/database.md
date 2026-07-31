@@ -201,22 +201,22 @@ use Lucent\Model\ColumnType;
 
 class Tenant extends Model
 {
-    #[Column(type: ColumnType::INT, primaryKey: true, autoIncrement: true, nullable: false)]
+    #[Column(type: ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public int $id;
 
-    #[Column(type: ColumnType::VARCHAR, length: 100, nullable: false)]
+    #[Column(type: ColumnType::VARCHAR, length: 100)]
     public string $subdomain;
 
-    #[Column(type: ColumnType::VARCHAR, length: 255, nullable: false)]
+    #[Column(type: ColumnType::VARCHAR, length: 255)]
     public string $db_host;
 
-    #[Column(type: ColumnType::VARCHAR, length: 100, nullable: false)]
+    #[Column(type: ColumnType::VARCHAR, length: 100)]
     public string $db_name;
 
-    #[Column(type: ColumnType::VARCHAR, length: 100, nullable: false)]
+    #[Column(type: ColumnType::VARCHAR, length: 100)]
     public string $db_user;
 
-    #[Column(type: ColumnType::VARCHAR, length: 255, nullable: false)]
+    #[Column(type: ColumnType::VARCHAR, length: 255)]
     public string $db_password;
 
     public function dbConfig(): array
