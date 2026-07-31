@@ -488,10 +488,10 @@ One of the powerful features of Lucent's trait support is the ability to registe
 To register a trait condition:
 
 ```php
-use Lucent\ModelCollection;
+use Lucent\Model\Collection;
 
 // Register a condition for models using the SoftDelete trait
-ModelCollection::registerTraitCondition(
+Collection::registerTraitCondition(
     \App\Models\SoftDelete::class,  // The trait class
     'deleted_at',                   // The column to apply the condition to
     null                           // The value to check for (null = include only non-deleted records)
@@ -605,7 +605,7 @@ Automatically applying the soft delete condition:
 
 ```php
 // Register the trait condition once (typically in your application bootstrap)
-ModelCollection::registerTraitCondition(
+Collection::registerTraitCondition(
     App\Models\SoftDelete::class,
     'deleted_at',
     null

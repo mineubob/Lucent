@@ -45,6 +45,4 @@ FileSystem::overrideRootPath(RUNNING_LOCATION);
 
 define("APP", FileSystem::rootPath() . DIRECTORY_SEPARATOR . "App" . DIRECTORY_SEPARATOR);
 
-// Class aliases for backwards compatibility
-class_alias('Lucent\Model\Model', 'Lucent\Model');
-class_alias('Lucent\Model\Collection', 'Lucent\ModelCollection');
+

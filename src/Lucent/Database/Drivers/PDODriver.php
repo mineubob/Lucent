@@ -141,42 +141,6 @@ class PDODriver extends DatabaseInterface
         return $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
     }
 
-    public function createTable(string $name, array $columns): string
-    {
-        //Dynamically generate our table
-        return Schema::table($name, function ($table) use ($columns) {
-
-            //Foreach of our column attributes, transform them into table columns
-            foreach ($columns as $column) {
-
-                $name = $column["NAME"];
-                $type = $column["TYPE"];
-                $column["nullable"] = $column["ALLOW_NULL"];
-
-                $tableColumn = $table->$type($name);
-                $keysToExclude = ["NAME", "UNIQUE_KEY_TO", "ON_UPDATE", "TYPE", "ALLOW_NULL"];
-
-                if (!($tableColumn instanceof Schema\NumericColumn)) {
-                    $keysToExclude[] = "AUTO_INCREMENT";
-                    $keysToExclude[] = "UNSIGNED";
-                }
-
-                //Remove our excluded keys
-                $diff = $this->getValuesNotInArrayAsMap($column, $keysToExclude);
-
-                //For each of our remaining column properties, call the method
-                foreach ($diff as $key => $value) {
-
-                    //Methods need to be converted to camel case before being called.
-                    $key = lcfirst(str_replace('_', '', ucwords(strtolower($key), '_')));
-                    $tableColumn->$key($value);
-                }
-
-            }
-
-        })->toSql();
-    }
-
     public function lastInsertId(): string|int
     {
         return $this->connection->lastInsertId();
@@ -281,20 +245,6 @@ class PDODriver extends DatabaseInterface
             $this->connection->rollBack();
         }
         return $result;
-    }
-
-    private function getValuesNotInArrayAsMap(array $sourceMap, array $excludeArray): array
-    {
-        // Create a temporary array from the excludeArray where values are keys
-        // This allows for efficient key comparison with array_diff_key
-        $excludeKeys = array_flip($excludeArray);
-
-        // Get the keys from the source map that are NOT present in the excludeKeys
-        $diffKeys = array_diff_key($sourceMap, $excludeKeys);
-
-        // Use array_intersect_key to get the original key-value pairs from the source map
-        // for only the keys that were not found in the exclude array
-        return array_intersect_key($sourceMap, $diffKeys);
     }
 
     public function closeDriver(): bool

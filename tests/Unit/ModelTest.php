@@ -5,7 +5,7 @@ namespace Unit;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Filesystem\File;
-use Lucent\ModelCollection;
+use Lucent\Model\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -314,7 +314,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertTrue($user->delete());
 
         // Register the trait condition
-        ModelCollection::registerTraitCondition(
+        Collection::registerTraitCondition(
             \App\Models\SoftDelete::class,
             'deleted_at',
             null
@@ -696,7 +696,7 @@ class ModelTest extends DatabaseDriverSetup
 namespace App\Models;
 
 use Lucent\Database\Attributes\DatabaseColumn;
-use Lucent\Model;
+use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
