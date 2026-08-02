@@ -14,13 +14,13 @@ class NumericColumn extends Column
         $this->unsigned = false;
     }
 
-    public function autoIncrement(): NumericColumn
+    public function autoIncrement(): static
     {
         $this->autoIncrement = true;
         return $this;
     }
 
-    public function unsigned(): NumericColumn
+    public function unsigned(): static
     {
         $this->unsigned = true;
         return $this;

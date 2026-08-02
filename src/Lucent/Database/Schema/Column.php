@@ -40,37 +40,37 @@ class Column implements SqlSerializable
         $this->castType = $castType;
     }
 
-    public function default(mixed $default): self
+    public function default(mixed $default): static
     {
         $this->default = $default;
         return $this;
     }
 
-    public function nullable(): self
+    public function nullable(): static
     {
         $this->nullable = true;
         return $this;
     }
 
-    public function length(int $length): self
+    public function length(int $length): static
     {
         $this->length = $length;
         return $this;
     }
 
-    public function primaryKey(): self
+    public function primaryKey(): static
     {
         $this->primaryKey = true;
         return $this;
     }
 
-    public function unique(): self
+    public function unique(): static
     {
         $this->unique = true;
         return $this;
     }
 
-    public function references(Reference $references): self
+    public function references(Reference $references): static
     {
         $this->references = $references;
         return $this;
@@ -78,9 +78,9 @@ class Column implements SqlSerializable
 
     /**
      * @param array<string> $values
-     * @return Database\Schema\Column
+     * @return static
      */
-    public function values(array $values): self
+    public function values(array $values): static
     {
         $this->values = $values;
         return $this;

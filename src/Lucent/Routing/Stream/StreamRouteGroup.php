@@ -13,19 +13,19 @@ class StreamRouteGroup extends RouteGroup
 
     private bool $enableIds = false;
 
-    public function enableIds(bool $enable = true) : self
+    public function enableIds(bool $enable = true) : static
     {
         $this->enableIds = $enable;
         return $this;
     }
 
-    public function timeout(int $seconds) : self
+    public function timeout(int $seconds) : static
     {
         $this->timeout = $seconds;
         return $this;
     }
 
-    public function abortWithUser(bool $abort = true) : self
+    public function abortWithUser(bool $abort = true) : static
     {
         $this->abortWithUser = $abort;
         return $this;
@@ -35,7 +35,7 @@ class StreamRouteGroup extends RouteGroup
      * @param class-string<StreamController> $controller
      * @suppress PhanTypeInvalidCallableArraySize
      */
-    public function event(string $path, string $controller) : self
+    public function event(string $path, string $controller) : static
     {
         return $this->registerRoute($path, 'GET', [$controller, "execute","metadata"=>["timeout"=>$this->timeout,"abortWithUser"=>$this->abortWithUser,"enableIds"=>$this->enableIds]]);
     }

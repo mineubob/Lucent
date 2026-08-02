@@ -431,34 +431,57 @@ class Model
         throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function where(string $column, string $value): Collection
     {
         return new Collection(static::class)->where($column, $value);
     }
+
+    /**
+     * @return Collection<static>
+     */
     public static function orWhere(string $column, string $value): Collection
     {
         return new Collection(static::class)->orWhere($column, $value);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function like(string $column, string $value): Collection
     {
         return new Collection(static::class)->like($column, $value);
     }
+
+    /**
+     * @return Collection<static>
+     */
     public static function orLike(string $column, string $value): Collection
     {
         return new Collection(static::class)->orLike($column, $value);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function limit(int $count): Collection
     {
         return new Collection(static::class)->limit($count);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function offset(int $offset): Collection
     {
         return new Collection(static::class)->offset($offset);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function orderBy(string $column, string $direction = "ASC"): Collection
     {
         return new Collection(static::class)->orderBy($column, $direction);
@@ -489,21 +512,33 @@ class Model
         return new Collection(static::class)->max($column);
     }
 
+    /**
+     * @return array<static>
+     */
     public static function get(): array
     {
         return new Collection(static::class)->get();
     }
 
-    public static function getFirst(): self|null
+    /**
+     * @return static|null
+     */
+    public static function getFirst(): static|null
     {
         return new Collection(static::class)->getFirst();
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function in(string $column, array $values, string $operator = "AND"): Collection
     {
         return new Collection(static::class)->in($column, $values, $operator);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function compare(string $column, string $logicalOperator, string $value): Collection
     {
         return new Collection(static::class)->compare($column, $logicalOperator, $value);

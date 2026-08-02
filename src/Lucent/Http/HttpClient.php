@@ -5,7 +5,7 @@ namespace Lucent\Http;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 
-class HttpClient
+final class HttpClient
 {
     private array $headers = [];
     private array $options = [];

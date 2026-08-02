@@ -6,7 +6,12 @@ use Lucent\Database;
 use Lucent\Database\Dataset;
 use ReflectionClass;
 
-class Collection
+/**
+ * Query builder / collection for Model rows.
+ *
+ * @template T of \Lucent\Model\Model
+ */
+final class Collection
 {
     private string $class;
     private array $whereConditions;
@@ -18,6 +23,9 @@ class Collection
     private array $cache;
     private static array $traitConditions = [];
 
+    /**
+     * @param class-string<T> $class
+     */
     public function __construct($class)
     {
         $this->class = $class;
@@ -29,6 +37,9 @@ class Collection
         $this->reflection = new ReflectionClass($class);
     }
 
+    /**
+     * @return static<T>
+     */
     public function where(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -48,6 +59,9 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function in(string $column, array $values, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -67,6 +81,9 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -98,11 +115,17 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function orWhere(string $column, string $value): self
     {
         return $this->where($column, $value, 'OR');
     }
 
+    /**
+     * @return static<T>
+     */
     public function like(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -121,11 +144,17 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function orLike(string $column, string $value): self
     {
         return $this->like($column, $value, 'OR');
     }
 
+    /**
+     * @return static<T>
+     */
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
         $direction = strtoupper($direction);
@@ -156,18 +185,27 @@ class Collection
         return $column;
     }
 
+    /**
+     * @return static<T>
+     */
     public function limit(int $count): self
     {
         $this->limit = $count;
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function offset(int $count): self
     {
         $this->offset = $count;
         return $this;
     }
 
+    /**
+     * @return array<T>
+     */
     public function get(): array
     {
         [$query, $bindValues] = $this->buildQuery();
@@ -196,6 +234,9 @@ class Collection
         return $instances;
     }
 
+    /**
+     * @return T|null
+     */
     public function getFirst(): mixed
     {
         // Save and restore the limit so reusing the same Collection for a

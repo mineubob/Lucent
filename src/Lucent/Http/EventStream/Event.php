@@ -5,7 +5,7 @@ namespace Lucent\Http\EventStream;
 /**
  * Represents a single SSE event
  */
-readonly class Event
+readonly final class Event
 {
     public function __construct(
         public string  $type,

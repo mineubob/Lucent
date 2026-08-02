@@ -9,7 +9,7 @@ namespace Lucent\Commandline\Components;
  * to display task progress with features like ETA calculation, custom formatting,
  * and appearance options.
  */
-class ProgressBar
+final class ProgressBar
 {
     /**
      * Total number of steps in the progress
