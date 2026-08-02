@@ -65,5 +65,5 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: test-data
+          name: test-data-php${{ matrix.php }}-${{ matrix.dependencies }}
           path: temp_install/
