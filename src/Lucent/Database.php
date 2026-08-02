@@ -461,8 +461,12 @@ class Database
     {
         if (self::$logger !== null) {
             self::$logger->$level($message);
-        } else {
-            error_log("[Lucent.$level] $message");
         }
+        // No logger configured: silently drop the message.
+        //
+        // This mirrors the PSR-3 NullLogger convention (and Lucent's own
+        // "blank" channel) — a missing logger is a no-op, not a reason to
+        // write to PHP's error_log. If you need pre-boot visibility, install
+        // a logger explicitly via Database::setLogger().
     }
 }
