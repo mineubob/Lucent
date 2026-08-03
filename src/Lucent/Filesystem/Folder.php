@@ -22,7 +22,7 @@ class Folder extends FileSystemObject
      */
     public function __construct(string $path, bool $absolute = false){
         if(!$absolute){
-            $path = FileSystem::rootPath().$path;
+            $path = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
         }
         $this->path = $path;
     }

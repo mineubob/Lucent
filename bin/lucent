@@ -1,0 +1,63 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Lucent CLI binary.
+ *
+ * In a consumer project, Composer creates a proxy at vendor/bin/lucent
+ * that loads the project autoloader before requiring this file — so the
+ * autoloader is already available. In development (running this file
+ * directly from the repo), we load it ourselves.
+ *
+ * User CLI commands are auto-discovered from the project's commands/
+ * directory during Application::boot().
+ */
+
+$_SERVER["REQUEST_METHOD"] = "CLI";
+
+// Resolve the Composer autoloader.
+//
+// When Lucent is installed as a dependency, Composer's bin proxy
+// (vendor/bin/lucent) sets $GLOBALS['_composer_autoload_path'] to the
+// consumer project's autoloader before including this file. When running
+// directly from the repo (dev mode), that global is not set, so we fall
+// back to searching a few well-known locations.
+//
+// This mirrors the approach used by PHPUnit and Symfony's console binary.
+if (!class_exists(\Composer\Autoload\ClassLoader::class, false)) {
+    if (isset($GLOBALS['_composer_autoload_path'])) {
+        $autoloadPath = $GLOBALS['_composer_autoload_path'];
+        unset($GLOBALS['_composer_autoload_path']);
+    } else {
+        $autoloadPath = null;
+        foreach (
+            [
+                dirname(__DIR__) . '/vendor/autoload.php', // Dev mode: package's own vendor.
+                dirname(__DIR__, 4) . '/vendor/autoload.php', // Installed: <project>/vendor/autoload.php.
+            ] as $candidate
+        ) {
+            if (is_file($candidate)) {
+                $autoloadPath = $candidate;
+                break;
+            }
+        }
+    }
+
+    if ($autoloadPath === null) {
+        fwrite(
+            STDERR,
+            'Could not locate the Composer autoloader.' . PHP_EOL . PHP_EOL .
+                'If you are running Lucent from a checkout, install its dependencies:' . PHP_EOL . PHP_EOL .
+                '    composer install' . PHP_EOL . PHP_EOL .
+                'If Lucent is installed as a dependency, run `composer install` in your project root.' . PHP_EOL .
+                'Learn more at https://getcomposer.org/.' . PHP_EOL
+        );
+
+        exit(1);
+    }
+
+    require $autoloadPath;
+}
+
+$app = Lucent\Application::getInstance();
+echo $app->executeConsoleCommand();

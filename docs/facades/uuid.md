@@ -187,35 +187,21 @@ Example model using UUID as primary key:
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Facades\UUID;
 use Lucent\Model;
 
 class User extends Model
 {
-    #[DatabaseColumn([
-        "PRIMARY_KEY" => true,
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 36,
-        "ALLOW_NULL" => false,
-        "AUTO_INCREMENT" => false,
-    ])]
+    #[Column(ColumnType::VARCHAR, primaryKey: true, length: 36, autoIncrement: false)]
     protected string $id;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 255,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $name;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 255,
-        "ALLOW_NULL" => false,
-        "UNIQUE" => true
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255, unique: true)]
     protected string $email;
     
     public function __construct(Dataset $data)
@@ -278,47 +264,27 @@ When using UUIDs in databases, consider these options:
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Facades\UUID;
 use Lucent\Model;
 
 class Article extends Model
 {
-    #[DatabaseColumn([
-        "PRIMARY_KEY" => true,
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 36,
-        "ALLOW_NULL" => false,
-        "AUTO_INCREMENT" => false,
-    ])]
+    #[Column(ColumnType::VARCHAR, primaryKey: true, length: 36, autoIncrement: false)]
     protected string $id;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 36,
-        "ALLOW_NULL" => false,
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 36)]
     protected string $author_id;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 200,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 200)]
     protected string $title;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_TEXT,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::TEXT)]
     protected string $content;
     
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_TIMESTAMP,
-        "DEFAULT" => LUCENT_DB_DEFAULT_CURRENT_TIMESTAMP,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::TIMESTAMP, default: "CURRENT_TIMESTAMP")]
     protected string $created_at;
     
     public function __construct(Dataset $data)

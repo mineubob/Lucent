@@ -17,13 +17,13 @@ abstract class RouteGroup
         $this->router = $router;
     }
 
-    public function middleware(array $middleware): self
+    public function middleware(array $middleware): static
     {
         $this->middleware = $middleware;
         return $this;
     }
 
-    protected function registerRoute(string $path, string $type, array $handler): self
+    protected function registerRoute(string $path, string $type, array $handler): static
     {
         $fullPath = $this->buildPath($path);
         $this->router->registerRoute($fullPath, $type, $handler[1], $handler[0], $this->middleware);

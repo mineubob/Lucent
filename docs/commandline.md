@@ -36,10 +36,22 @@ Lucent comes with several built-in commands:
 | Command | Description |
 |---------|-------------|
 | `migration make {class}` | Creates or updates database tables based on model classes |
-| `update check` | Checks for available Lucent framework updates |
-| `update install` | Downloads and installs the latest Lucent framework version |
-| `update rollback` | Reverts to the previous Lucent framework version |
+| `generate api-docs` | Generates API documentation based on your controller attributes |
+| `serve` | Starts the built-in PHP development server |
+| `deploy latest` | Downloads and deploys the latest project release |
+| `deploy rollback` | Rolls back to the most recent backup |
+| `deploy rollback` | Rolls back to the most recent backup |
 | `generate api-docs` | Generates API documentation from controller annotations |
+
+> **Note:** Lucent is now managed via Composer. To update the framework, run `composer update blueprintau/lucent` instead of using CLI update commands.
+
+## Running Commands
+
+Lucent commands are run via the `vendor/bin/lucent` binary:
+
+```bash
+vendor/bin/lucent migration make App/Models/User
+```
 
 To run these commands, use the CLI script in your project root:
 
@@ -123,7 +135,7 @@ CommandLine::register("user create {name} {email}", "create", UserCommand::class
 When executing the command, provide the parameter values:
 
 ```bash
-php cli user create JohnDoe john@example.com
+vendor/bin/lucent user create JohnDoe john@example.com
 ```
 
 ## Running Commands
@@ -133,15 +145,14 @@ php cli user create JohnDoe john@example.com
 The recommended way to run commands is through the CLI script in your project root:
 
 ```bash
-php cli command [arguments]
+vendor/bin/lucent command [arguments]
 ```
 
 For example:
 
 ```bash
-php cli migration make App/Models/User
-php cli update check
-php cli generate api-docs
+vendor/bin/lucent migration make App/Models/User
+vendor/bin/lucent generate api-docs
 ```
 
 The CLI script is automatically generated when you install the Lucent framework, so you don't need to create it manually.

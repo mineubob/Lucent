@@ -10,7 +10,25 @@ class RestRouteBuilder extends RouteBuilder
 
     public function group($name): RestRouteGroup
     {
-       return new RestRouteGroup($name,Application::getInstance()->httpRouter);
-    }
+        $group = new RestRouteGroup($name, Application::getInstance()->httpRouter);
 
+        // Inherit prefix and middleware from the outer Router::group() state
+        // so that REST routes respect outer group attributes.
+        $router = Application::getInstance()->httpRouter;
+
+        $routerPrefix = $router->getPrefix();
+        if ($routerPrefix !== null) {
+            $group->setBasePrefix($routerPrefix);
+        }
+
+        $routerMiddleware = $router->getMiddleware();
+        if (!empty($routerMiddleware)) {
+            // Set the router's middleware as the base. Subsequent chained
+            // ->middleware() calls on the group will replace this entirely
+            // (RouteGroup::middleware() replaces, it does not merge).
+            $group->middleware($routerMiddleware);
+        }
+
+        return $group;
+    }
 }

@@ -8,6 +8,7 @@ enum ColumnType: string
     case TINYINT = "tinyint";
     case DECIMAL = "decimal";
     case INT = "int";
+    case UUID = "uuid";
     case JSON = "json";
     case TIMESTAMP = "timestamp";
     case ENUM = "enum";

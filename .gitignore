@@ -3,4 +3,13 @@
 /.phpunit.result.cache
 /tests/Unit/tmp/
 /temp_install/
-/mysql-config.php
+.env
+.env.*
+!.env.example
+
+# Ignore the entire JetBrains IDE folder except for shared configurations
+.idea/
+!.idea/runConfigurations/
+!.idea/codeStyleSettings.xml
+!.idea/vcs.xml
+!.idea/modules.xml

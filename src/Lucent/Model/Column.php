@@ -4,6 +4,7 @@ namespace Lucent\Model;
 
 use Attribute;
 use Lucent\Database\Schema\Reference;
+use Lucent\Facades\UUID;
 use ReflectionProperty;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -129,19 +130,6 @@ class Column
     {
         $attributes = $property->getAttributes(self::class);
         if (empty($attributes)) {
-            // FIXME: This is a temporary conversion till DatabaseColumn is remove.
-            $dbColumn = \Lucent\Database\Attributes\DatabaseColumn::fromProperty($property);
-            if ($dbColumn !== null) {
-                $instance = $dbColumn->toModelColumn();
-                $instance->classPropertyName = $property->getName();
-
-                if ($instance->name == null) {
-                    $instance->name = $property->getName();
-                }
-
-                return $instance;
-            }
-
             return null;
         }
 
@@ -170,6 +158,16 @@ class Column
         return match ($this->type) {
             ColumnType::BOOLEAN => is_bool($value) ? ($value === true ? 1 : 0) : throw new \InvalidArgumentException("Invalid boolean value"),
             ColumnType::JSON => json_encode($value),
+            ColumnType::ENUM => match (true) {
+                $value instanceof \UnitEnum => $value instanceof \BackedEnum
+                    ? (string) $value->value
+                    : $value->name,
+                is_string($value) => $value,
+                default => throw new \InvalidArgumentException("Invalid ENUM value"),
+            },
+            ColumnType::UUID => is_string($value) && UUID::isValid($value)
+                ? $value
+                : throw new \InvalidArgumentException("Invalid UUID value"),
             default => $value
         };
     }
@@ -188,11 +186,17 @@ class Column
 
         return match ($this->type) {
             ColumnType::BOOLEAN => match (true) {
-                    is_bool($value) => $value,
-                    is_int($value) => $value === 1,
-                    default => throw new \UnexpectedValueException("Invalid boolean value"),
-                },
+                is_bool($value) => $value,
+                is_int($value) => $value === 1,
+                default => throw new \UnexpectedValueException("Invalid boolean value"),
+            },
             ColumnType::JSON => is_string($value) ? json_decode($value, true) : throw new \UnexpectedValueException("Invalid JSON value"),
+            ColumnType::ENUM => is_string($value)
+                ? $value
+                : throw new \UnexpectedValueException("Invalid ENUM value"),
+            ColumnType::UUID => is_string($value) && UUID::isValid($value)
+                ? $value
+                : throw new \UnexpectedValueException("Invalid UUID value"),
             default => $value
         };
     }

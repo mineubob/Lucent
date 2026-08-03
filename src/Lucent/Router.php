@@ -66,7 +66,14 @@ abstract class Router
 
         // Merge new group attributes
         $this->middleware = array_merge($this->middleware, $attributes['middleware'] ?? []);
-        $this->prefix = $this->prefix . ($attributes['prefix'] ?? '');
+        // Append the new prefix onto the existing one, preserving the
+        // accumulation behaviour for nested groups (e.g. /api + /v1 = /api/v1).
+        // When no prefix is provided, keep the current value (which may be
+        // null) rather than converting it to an empty string.
+        if (array_key_exists('prefix', $attributes)) {
+            $this->prefix = ($this->prefix ?? '') . $attributes['prefix'];
+        }
+        // else: $this->prefix unchanged (preserves null distinct from '')
         $this->namespace = $attributes['namespace'] ?? $this->namespace;
         $this->defaultController = $attributes['defaultController'] ?? $this->defaultController;
 
@@ -137,12 +144,17 @@ abstract class Router
 
         // Remove any protocol, domain, or query string
         $url = parse_url($url, PHP_URL_PATH);
+        if ($url === false || $url === null) {
+            $url = '';
+        }
 
         // Decode URL to handle special characters
         $url = urldecode($url);
 
-        // Remove query string if present
-        if ($pos = strpos($url, "?")) {
+        // Remove query string if present (must use !== false - strpos returns 0
+        // when '?' is the first character, which is falsy)
+        $pos = strpos($url, "?");
+        if ($pos !== false) {
             $url = substr($url, 0, $pos);
         }
 
@@ -242,6 +254,22 @@ abstract class Router
     public function setPrefix(?string $prefix): void
     {
         $this->prefix = $prefix;
+    }
+
+    /**
+     * Get the current route group prefix
+     */
+    public function getPrefix(): ?string
+    {
+        return $this->prefix;
+    }
+
+    /**
+     * Get the current route group middleware
+     */
+    public function getMiddleware(): array
+    {
+        return $this->middleware;
     }
 
     /**

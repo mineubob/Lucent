@@ -333,7 +333,13 @@ class FileSystemTest extends TestCase
 
         $newFolder = new Folder("/storage/html-project-backup");
 
-        if(!$newFolder->exists()){
+        // Clean up any leftover files from a previous run so the count
+        // assertion is reliable (copy merges into an existing folder).
+        if($newFolder->exists()){
+            foreach ($newFolder->getFiles() as $existingFile) {
+                $existingFile->delete();
+            }
+        }else{
             $newFolder->create();
         }
 

@@ -56,42 +56,23 @@ To define a model in Lucent, you create a class that extends `Lucent\Model`. Pro
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Model;
 
 class Article extends Model
 {
-    #[DatabaseColumn([
-        "NAME" => "id",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_INT,
-        "PRIMARY_KEY" => true,
-        "AUTO_INCREMENT" => true
-    ])]
+    #[Column(ColumnType::INT, name: "id", primaryKey: true, autoIncrement: true)]
     public int $id;
 
-    #[DatabaseColumn([
-        "NAME" => "title",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 200
-    ])]
+    #[Column(ColumnType::VARCHAR, name: "title", length: 200)]
     public string $title;
 
-    #[DatabaseColumn([
-        "NAME" => "content",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_TEXT
-    ])]
+    #[Column(ColumnType::TEXT, name: "content")]
     public string $content;
 
-    #[DatabaseColumn([
-        "NAME" => "published",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "DEFAULT" => 0
-    ])]
+    #[Column(ColumnType::BOOLEAN, name: "published", default: 0)]
     public bool $published = false;
     
     /**
@@ -109,21 +90,47 @@ class Article extends Model
 
 ## Database Columns
 
-The `DatabaseColumn` attribute is used to define column properties:
+The `Column` attribute is used to define column properties:
 
-| Property | Description |
-|---|---|
-| `NAME` | Column name in the database table |
-| `ALLOW_NULL` | Whether the column can contain NULL values |
-| `TYPE` | Data type (constants like LUCENT_DB_INT, LUCENT_DB_VARCHAR, etc.) |
-| `PRIMARY_KEY` | Whether this column is the primary key |
-| `AUTO_INCREMENT` | Whether this column auto-increments (for IDs) |
-| `LENGTH` | Maximum length for string-type columns |
-| `DEFAULT` | Default value for the column |
-| `UNIQUE` | Whether values must be unique |
-| `REFERENCES` | Foreign key reference |
+| Parameter | Type | Description |
+|---|---|---|
+| `type` | `ColumnType` | Data type (e.g. `ColumnType::INT`, `ColumnType::VARCHAR`, etc.) |
+| `name` | `?string` | Column name in the database table (defaults to property name) |
+| `nullable` | `?bool` | Whether the column can contain NULL values |
+| `length` | `?int` | Maximum length for string-type columns |
+| `primaryKey` | `?bool` | Whether this column is the primary key |
+| `autoIncrement` | `?bool` | Whether this column auto-increments (for IDs) |
+| `default` | `mixed` | Default value for the column |
+| `unique` | `?bool` | Whether values must be unique |
+| `values` | `class-string<\UnitEnum>\|array<string>\|null` | Allowed enum values for ENUM columns |
+| `references` | `Reference\|class-string<Model>\|string\|null` | Foreign key reference |
+| `unsigned` | `?bool` | Whether the column is unsigned (for numeric types) |
 
 > **Important**: Each model must have exactly one property marked with `PRIMARY_KEY` set to `true`. This column will be used by default for save() and delete() operations, but you can specify a different column name as an argument if needed.
+
+### UUID Columns
+
+Use `ColumnType::UUID` for columns that store UUIDs. The type defaults to 36-character string storage (`CHAR(36)` on MySQL, `TEXT` on SQLite), matching the output of `UUID::generate()`. Values are validated as RFC 4122 UUIDs on save and on retrieval.
+
+```php
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
+use Lucent\Facades\UUID;
+
+class User extends Model
+{
+    #[Column(ColumnType::UUID, primaryKey: true)]
+    public string $id;
+
+    #[Column(ColumnType::VARCHAR, length: 255)]
+    public string $name;
+
+    public function __construct()
+    {
+        $this->id = UUID::generate();
+    }
+}
+```
 
 ## CRUD Operations
 
@@ -215,6 +222,21 @@ $articles = Article::where('published', true)
 
 // Count records
 $count = Article::where('published', true)->count();
+
+// Sum a column
+$total = Article::where('published', true)->sum('views');
+
+// Average a column
+$average = Article::where('published', true)->avg('rating');
+
+// Get minimum/maximum values
+$lowestPrice = Product::min('price');
+$highestPrice = Product::max('price');
+
+// All aggregates work with any query conditions
+$categoryTotal = Order::where('status', 'completed')
+    ->where('created_at', '>=', '2024-01-01')
+    ->sum('amount');
 ```
 
 ### Logical Operators
@@ -308,30 +330,20 @@ Lucent handles model inheritance for relationships. For example, a specialized u
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use App\Models\TestUser;
 
 class Admin extends TestUser
 {
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "ALLOW_NULL" => false,
-        "DEFAULT" => false
-    ])]
+    #[Column(ColumnType::BOOLEAN, default: false)]
     public private(set) bool $can_reset_passwords;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "ALLOW_NULL" => false,
-        "DEFAULT" => false,
-    ])]
+    #[Column(ColumnType::BOOLEAN, default: false)]
     public private(set) bool $can_lock_accounts;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => true,
-    ])]
+    #[Column(ColumnType::VARCHAR, nullable: true, length: 255)]
     public private(set) ?string $notes;
 
 
@@ -367,20 +379,15 @@ Traits in Lucent can define database columns and methods that should be included
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 
 trait Timestampable
 {
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_TIMESTAMP,
-        "ALLOW_NULL" => true
-    ])]
+    #[Column(ColumnType::TIMESTAMP, nullable: true)]
     public private(set) ?string $created_at = null;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_TIMESTAMP,
-        "ALLOW_NULL" => true
-    ])]
+    #[Column(ColumnType::TIMESTAMP, nullable: true)]
     public private(set) ?string $updated_at = null;
     
     public function setCreatedAt(): void
@@ -404,7 +411,8 @@ To use a trait in your model, simply include it with the PHP `use` statement. **
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Model;
 use App\Models\Timestampable;
@@ -413,18 +421,10 @@ class Article extends Model
 {
     use Timestampable;
 
-    #[DatabaseColumn([
-        "PRIMARY_KEY" => true,
-        "TYPE" => LUCENT_DB_INT,
-        "ALLOW_NULL" => false,
-        "AUTO_INCREMENT" => true
-    ])]
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $title;
     
     // ... other properties and methods
@@ -464,10 +464,10 @@ One of the powerful features of Lucent's trait support is the ability to registe
 To register a trait condition:
 
 ```php
-use Lucent\ModelCollection;
+use Lucent\Model\Collection;
 
 // Register a condition for models using the SoftDelete trait
-ModelCollection::registerTraitCondition(
+Collection::registerTraitCondition(
     \App\Models\SoftDelete::class,  // The trait class
     'deleted_at',                   // The column to apply the condition to
     null                           // The value to check for (null = include only non-deleted records)
@@ -485,16 +485,14 @@ Here's a complete example of a SoftDelete trait implementation:
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Model;
 
 trait SoftDelete
 {
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_INT,
-        "ALLOW_NULL" => true
-    ])]
+    #[Column(ColumnType::INT, nullable: true)]
     public private(set) ?int $deleted_at = null;
 
     /**
@@ -540,7 +538,8 @@ Using the SoftDelete trait in a model:
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Database\Dataset;
 use Lucent\Model;
 use App\Models\SoftDelete;
@@ -549,18 +548,10 @@ class TestUser extends Model
 {
     use SoftDelete;
 
-    #[DatabaseColumn([
-        "PRIMARY_KEY" => true,
-        "TYPE" => LUCENT_DB_INT,
-        "ALLOW_NULL" => false,
-        "AUTO_INCREMENT" => true
-    ])]
+    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $email;
 
     // ... other properties
@@ -581,7 +572,7 @@ Automatically applying the soft delete condition:
 
 ```php
 // Register the trait condition once (typically in your application bootstrap)
-ModelCollection::registerTraitCondition(
+Collection::registerTraitCondition(
     App\Models\SoftDelete::class,
     'deleted_at',
     null

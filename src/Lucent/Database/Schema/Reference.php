@@ -4,7 +4,7 @@ namespace Lucent\Database\Schema;
 
 use ReflectionClass;
 
-class Reference
+final class Reference
 {
     public function __construct(public protected(set) string $table, public protected(set) string $column)
     {

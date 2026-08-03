@@ -10,10 +10,10 @@ class SqlHighlighter implements Highlighter
      */
     private array $sqlPatterns = [
         // SELECT <value>
-        '/\bSELECT\b\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)+/is',
+        '/\bSELECT\b\s+(?!.*\b(FROM|WHERE|GROUP|ORDER|HAVING|LIMIT|OFFSET|JOIN)\b)/i',
 
         // SELECT ... FROM <table> [[INNER|LEFT|RIGHT|FULL] [OUTER] JOIN .. ON ..] [WHERE ...] [GROUP BY ...] [ORDER BY ...]
-        '/\bSELECT\b\s+.+?\s+\bFROM\b\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?\bJOIN\b\s+\S+\s+\bON\b\s+.+?)*(\s+\bWHERE\b\s+.+)?(\s+\bGROUP\s+\bBY\b\s+.+)?(\s+\bORDER\s+\bBY\b\s+.+)?(\s+\bLIMIT\b\s+\d+)?(\s+\bOFFSET\b\s+\d+)?/is',
+        '/\bSELECT\b[^;]+?\bFROM\b\s+\S+(?:\s+(?:(?:INNER|LEFT|RIGHT|FULL)(?:\s+OUTER)?\s+)?\bJOIN\b\s+\S+\s+\bON\b[^;]+?)*(?:\s+\bWHERE\b[^;]+?)?(?:\s+\bGROUP\s+\bBY\b[^;]+?)?(?:\s+\bORDER\s+\bBY\b[^;]+?)?(?:\s+\bLIMIT\b\s+\d+)?(?:\s+\bOFFSET\b\s+\d+)?/i',
 
         // INSERT INTO table (...) VALUES (...)
         '/\bINSERT\b\s+\bINTO\b\s+\S+\s*\([^)]+\)\s+\bVALUES\b\s*\([^)]+?\)/is',
@@ -328,12 +328,20 @@ class SqlHighlighter implements Highlighter
 
     public function highlight(string $level, string $line): string
     {
+        // Highlight against the FIRST matching pattern only. Running every
+        // pattern over the whole line is mostly harmless because the ANSI
+        // codes inserted by highlightCore() contain ';' which breaks the
+        // [^;]+ quantifiers in most patterns. However, patterns using .+
+        // (WITH, SHOW, ALTER) could still produce nested codes, so we
+        // stop at the first match for safety.
         foreach ($this->sqlPatterns as $pattern) {
-            $line = preg_replace_callback(
-                $pattern,
-                fn($matches) => $this->highlightCore($matches[0]),
-                $line
-            );
+            if (preg_match($pattern, $line)) {
+                return preg_replace_callback(
+                    $pattern,
+                    fn($matches) => $this->highlightCore($matches[0]),
+                    $line
+                );
+            }
         }
 
         return $line;

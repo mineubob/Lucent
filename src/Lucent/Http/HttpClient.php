@@ -5,7 +5,7 @@ namespace Lucent\Http;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 
-class HttpClient
+final class HttpClient
 {
     private array $headers = [];
     private array $options = [];
@@ -113,7 +113,7 @@ class HttpClient
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
         $downloadPath = FileSystem::rootPath().DIRECTORY_SEPARATOR."storage".DIRECTORY_SEPARATOR."downloads".DIRECTORY_SEPARATOR;
 
-        Log::channel("phpunit")->info("Starting download from {$fullUrl}");
+        Log::channel("lucent.http")->info("Starting download from {$fullUrl}");
 
         // Create download directory if it doesn't exist
         if (!is_dir($downloadPath)) {
@@ -129,7 +129,7 @@ class HttpClient
         $fp = fopen($filePath, 'w+');
         if (!$fp) {
             $errorMsg = "Failed to open file for writing: {$filePath}";
-            Log::channel("phpunit")->error($errorMsg);
+            Log::channel("lucent.http")->error($errorMsg);
             return new HttpResponse(
                 body: null,
                 statusCode: 0,
@@ -157,7 +157,6 @@ class HttpClient
 
         curl_exec($headCh);
         $contentLength = curl_getinfo($headCh, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
-        curl_close($headCh);
 
         // Set up improved cURL options for actual download
         $ch = curl_init();
@@ -215,8 +214,7 @@ class HttpClient
 
         // Check for errors
         if (!$success || $errno) {
-            Log::channel("phpunit")->error("Download Error ({$errno}): {$error}");
-            curl_close($ch);
+            Log::channel("lucent.http")->error("Download Error ({$errno}): {$error}");
             unlink($filePath);
             return new HttpResponse(
                 body: null,
@@ -227,14 +225,12 @@ class HttpClient
             );
         }
 
-        curl_close($ch);
-
         // Verify downloaded file is complete by checking size
         if (file_exists($filePath)) {
             $downloadedSize = filesize($filePath);
             if ($contentLength > 0 && $downloadedSize < $contentLength) {
                 $errorMsg = "Incomplete download: Expected {$contentLength} bytes but got {$downloadedSize} bytes";
-                Log::channel("phpunit")->error($errorMsg);
+                Log::channel("lucent.http")->error($errorMsg);
                 unlink($filePath);
                 return new HttpResponse(
                     body: null,
@@ -249,7 +245,7 @@ class HttpClient
         // Ensure we got a successful HTTP status code
         if ($info['http_code'] !== 200) {
             $errorMsg = "HTTP Error: Received status code {$info['http_code']}";
-            Log::channel("phpunit")->error($errorMsg);
+            Log::channel("lucent.http")->error($errorMsg);
             unlink($filePath);
             return new HttpResponse(
                 body: null,
@@ -272,7 +268,7 @@ class HttpClient
     {
         $fullUrl = $this->baseUrl ? rtrim($this->baseUrl, '/') . '/' . ltrim($url, '/') : $url;
 
-        Log::channel("phpunit")->info("Starting {$method} request to {$fullUrl}");
+        Log::channel("lucent.http")->info("Starting {$method} request to {$fullUrl}");
 
         $ch = curl_init();
         $options = [
@@ -328,15 +324,15 @@ class HttpClient
         $error = curl_error($ch);
         $errno = curl_errno($ch);
 
-        curl_close($ch);
-
         // Log any errors
         if ($error) {
-            Log::channel("phpunit")->error("cURL Error ({$errno}): {$error}");
+            Log::channel("lucent.http")->error("cURL Error ({$errno}): {$error}");
         }
 
         return new HttpResponse(
-            body: $response,
+            // curl_exec() returns false on failure; the body is typed
+            // string|null so coerce to null to avoid a TypeError.
+            body: $response === false ? null : $response,
             statusCode: $info['http_code'],
             headers: $info,
             error: $error,

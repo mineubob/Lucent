@@ -57,7 +57,7 @@ class GenerateDocumentationCommand
         $app = new Folder("/App");
 
         if (!$app->exists()) {
-            Log::channel("phpunit")->error("Fatal error app folder doesnt exist...");
+            Log::channel("lucent.commandline")->error("Fatal error app folder doesnt exist...");
             return [];
         }
 
@@ -69,7 +69,7 @@ class GenerateDocumentationCommand
 
         }
 
-        Log::channel("phpunit")->info("Scan complete. Found " . count($documentation) . " endpoints");
+        Log::channel("lucent.commandline")->info("Scan complete. Found " . count($documentation) . " endpoints");
         return $documentation;
     }
 
@@ -79,7 +79,7 @@ class GenerateDocumentationCommand
             $className = $this->toNamespace($file->path);
 
             if (!class_exists($className)) {
-                Log::channel("phpunit")->debug("Class not found, requiring file: " . $file->path);
+                Log::channel("lucent.commandline")->debug("Class not found, requiring file: " . $file->path);
                 require_once $file->path;
             }
 
@@ -108,7 +108,7 @@ class GenerateDocumentationCommand
             }
 
         } catch (\ReflectionException $e) {
-            Log::channel("phpunit")->critical("ReflectionException " . $e->getMessage());
+            Log::channel("lucent.commandline")->critical("ReflectionException " . $e->getMessage());
         }
     }
 

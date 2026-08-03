@@ -4,7 +4,7 @@ namespace Lucent\Faker;
 
 use Lucent\Http\Request;
 
-class FakeRequest extends Request
+final class FakeRequest extends Request
 {
     private array $fakeData = [];
 

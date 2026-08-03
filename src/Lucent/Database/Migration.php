@@ -17,7 +17,7 @@ class Migration
 
     public function make($class): bool
     {
-        return Database::disabling(LUCENT_DB_FOREIGN_KEY_CHECKS, function () use ($class) {
+        return Database::disabling("foreign_key_checks", function () use ($class) {
             $reflection = new ReflectionClass($class);
 
             // Get the new column structure

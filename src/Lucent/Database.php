@@ -259,22 +259,6 @@ class Database
     }
 
     /**
-     * Create a database table from an array of column definitions.
-     *
-     * @param string $table   The name of the table to create.
-     * @param array  $columns Array of column definition arrays.
-     *
-     * @return string The SQL statement that was executed.
-     *
-     * @deprecated Prefer use of the Schema::table function directly.
-     */
-    #[\Deprecated("Prefer use of the Schema::table function directly.")]
-    public static function createTable(string $table, array $columns): string
-    {
-        return self::getInstance()->createTable($table, $columns);
-    }
-
-    /**
      * Execute a raw SQL statement (DDL or other non-query SQL).
      *
      * Use this for statements that do not return rows, such as ALTER TABLE,
@@ -477,8 +461,12 @@ class Database
     {
         if (self::$logger !== null) {
             self::$logger->$level($message);
-        } else {
-            error_log("[Lucent.$level] $message");
         }
+        // No logger configured: silently drop the message.
+        //
+        // This mirrors the PSR-3 NullLogger convention (and Lucent's own
+        // "blank" channel) — a missing logger is a no-op, not a reason to
+        // write to PHP's error_log. If you need pre-boot visibility, install
+        // a logger explicitly via Database::setLogger().
     }
 }

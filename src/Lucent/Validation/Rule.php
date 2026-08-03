@@ -100,7 +100,8 @@ abstract class Rule
         if (!is_numeric($value))
             return false;
 
-        return intval($value, 10) >= $min;
+        // Use floatval so non-integer numerics (e.g. "100.9") are not truncated.
+        return floatval($value) >= $min;
     }
 
     /**
@@ -127,7 +128,8 @@ abstract class Rule
         if (!is_numeric($value))
             return false;
 
-        return intval($value, 10) <= $max;
+        // Use floatval so non-integer numerics (e.g. "100.9") are not truncated.
+        return floatval($value) <= $max;
     }
 
     /**
@@ -205,8 +207,10 @@ abstract class Rule
             // Remove nullable from a rule array so it's not processed as a validation rule
             $rules = array_filter($rules, fn($rule) => $rule !== "nullable");
 
-            // Skip validation entirely if field is empty and nullable
-            if ($isNullable && ($data[$key] === "" || !isset($data[$key]))) {
+            // Skip validation entirely if field is empty (missing, empty string,
+            // or explicit null) and nullable. "0" and "0.0" are NOT considered
+            // empty - they are valid values.
+            if ($isNullable && ($data[$key] === "" || $data[$key] === null)) {
                 continue;
             }
 
@@ -327,6 +331,12 @@ abstract class Rule
     private function castToType(mixed $value, ?ReflectionType $type): mixed
     {
         if (!$type) {
+            return $value;
+        }
+
+        // getName() only exists on named types; union/intersection/nullable
+        // types cannot be blindly cast.
+        if (!$type instanceof \ReflectionNamedType) {
             return $value;
         }
 

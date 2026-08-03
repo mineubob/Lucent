@@ -39,41 +39,22 @@ Let's walk through a simple but practical example of route model binding with a 
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
+use Lucent\Model\Column;
+use Lucent\Model\ColumnType;
 use Lucent\Model;
 
 class Article extends Model
 {
-    #[DatabaseColumn([
-        "NAME" => "id",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_INT,
-        "PRIMARY_KEY" => true,
-        "AUTO_INCREMENT" => true
-    ])]
+    #[Column(ColumnType::INT, name: "id", primaryKey: true, autoIncrement: true)]
     public int $id;
 
-    #[DatabaseColumn([
-        "NAME" => "title",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "LENGTH" => 200
-    ])]
+    #[Column(ColumnType::VARCHAR, name: "title", length: 200)]
     public string $title;
 
-    #[DatabaseColumn([
-        "NAME" => "content",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_TEXT
-    ])]
+    #[Column(ColumnType::TEXT, name: "content")]
     public string $content;
 
-    #[DatabaseColumn([
-        "NAME" => "published",
-        "ALLOW_NULL" => false,
-        "TYPE" => LUCENT_DB_BOOLEAN,
-        "DEFAULT" => 0
-    ])]
+    #[Column(ColumnType::BOOLEAN, name: "published", default: 0)]
     public bool $published = false;
 }
 ```

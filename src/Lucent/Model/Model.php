@@ -41,18 +41,24 @@ class Model
         if ($parent->getName() === Model::class) {
             if ($identifier === null) {
                 $pk = Model::getDatabasePrimaryKey($reflection);
-                $identifier = $pk->name;
+                $idProperty = $reflection->getProperty($pk->classPropertyName);
+                $idValue = $idProperty->getValue($this);
+                $idValue = $pk->preProcess($idValue);
+
+                $query = "DELETE FROM {$reflection->getShortName()} WHERE {$pk->name} = ?";
+            } else {
+                // A custom property name was provided - use it for both the
+                // reflection lookup and (via its column) the SQL column name.
+                $idProperty = $reflection->getProperty($identifier);
+                $idValue = $idProperty->getValue($this);
+
+                $column = Column::fromProperty($idProperty);
+                if ($column === null)
+                    throw new \RuntimeException("Failed to get column!");
+
+                $idValue = $column->preProcess($idValue);
+                $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
             }
-            $idProperty = $reflection->getProperty($identifier);
-            $idValue = $idProperty->getValue($this);
-
-            $column = Column::fromProperty($idProperty);
-            if ($column === null)
-                throw new \RuntimeException("Failed to get column!");
-
-            $idValue = $column->preProcess($idValue);
-
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
 
             if (!Database::delete($query, [$idValue])) {
                 return false;
@@ -63,21 +69,26 @@ class Model
 
         if ($identifier === null) {
             $pk = Model::getDatabasePrimaryKey($parent);
-            $identifier = $pk->name;
+            $idProperty = $reflection->getProperty($pk->classPropertyName);
+            $idValue = $idProperty->getValue($this);
+            $idValue = $pk->preProcess($idValue);
+            $idColumnName = $pk->name;
+        } else {
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->getValue($this);
+
+            $column = Column::fromProperty($idProperty);
+            if ($column === null)
+                throw new \RuntimeException("Failed to get column!");
+
+            $idValue = $column->preProcess($idValue);
+            $idColumnName = $column->name;
         }
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
-
-        $column = Column::fromProperty($idProperty);
-        if ($column === null)
-            throw new \RuntimeException("Failed to get column!");
-
-        $idValue = $column->preProcess($idValue);
 
         //Delete extended model
-        return Database::transaction(function () use ($idValue, $column, $parent, $reflection) {
-            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$column->name} = ?";
-            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$column->name} = ?";
+        return Database::transaction(function () use ($idValue, $idColumnName, $parent, $reflection) {
+            $query = "DELETE FROM {$reflection->getShortName()} WHERE {$idColumnName} = ?";
+            $parentQuery = "DELETE FROM {$parent->getShortName()} WHERE {$idColumnName} = ?";
 
             if (!Database::delete($query, [$idValue])) {
                 return false;
@@ -269,14 +280,23 @@ class Model
 
             if ($identifier === null) {
                 $pk = Model::getDatabasePrimaryKey($parent);
-                $identifier = $pk->name;
-            } else {
-                $pk = Model::getDatabasePrimaryKey($parent);
-            }
-            $idProperty = $reflection->getProperty($identifier);
-            $idValue = $pk->preProcess($idProperty->getValue($this));
 
-            $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$identifier} = ?";
+                $idProperty = $parent->getProperty($pk->classPropertyName);
+                $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+                $idValue = $pk->preProcess($idValue);
+                $idColumnName = $pk->name;
+            } else {
+                $idProperty = $reflection->getProperty($identifier);
+                $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+                $idColumn = Column::fromProperty($idProperty);
+                if ($idColumn === null) {
+                    throw new \RuntimeException("Failed to get column!");
+                }
+                $idValue = $idColumn->preProcess($idValue);
+                $idColumnName = $idColumn->name;
+            }
+
+            $parentQuery = "UPDATE {$parent->getShortName()} SET " . implode(", ", $parentUpdates) . " WHERE {$idColumnName} = ?";
             $parentBindValues[] = $idValue;
 
             $childUpdates = [];
@@ -300,7 +320,7 @@ class Model
                 return true;
             }
 
-            $childQuery = "UPDATE {$reflection->getShortName()} SET " . implode(", ", $childUpdates) . " WHERE {$identifier} = ?";
+            $childQuery = "UPDATE {$reflection->getShortName()} SET " . implode(", ", $childUpdates) . " WHERE {$idColumnName} = ?";
             $childBindValues[] = $idValue;
 
             return Database::transaction(function () use ($childQuery, $parentQuery, $childBindValues, $parentBindValues) {
@@ -314,18 +334,35 @@ class Model
             });
         }
 
+        
         if ($identifier === null) {
             $pk = Model::getDatabasePrimaryKey($reflection);
-            $identifier = $pk->name;
+            
+            $idProperty = $reflection->getProperty($pk->classPropertyName);
+            $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+            $idValue = $pk->preProcess($idValue);
+            $idColumnName = $pk->name;
+        } else {
+            $idProperty = $reflection->getProperty($identifier);
+            $idValue = $idProperty->isInitialized($this) ? $idProperty->getValue($this) : null;
+            $idColumn = Column::fromProperty($idProperty);
+            if ($idColumn === null) {
+                throw new \RuntimeException("Failed to get column!");
+            }
+            $idValue = $idColumn->preProcess($idValue);
+            $idColumnName = $idColumn->name;
         }
-        $idProperty = $reflection->getProperty($identifier);
-        $idValue = $idProperty->getValue($this);
 
         // Non-extended model handling
         $updates = [];
         $bindValues = [];
 
         foreach (Model::getDatabaseProperties($reflection) as $column) {
+            // Never update the primary key column in a save().
+            if ($column->primaryKey) {
+                continue;
+            }
+
             $property = $reflection->getProperty($column->classPropertyName);
             $value = $property->isInitialized($this) ? $property->getValue($this) : null;
 
@@ -337,7 +374,7 @@ class Model
             return true; // No updates needed
         }
 
-        $query = "UPDATE " . $reflection->getShortName() . " SET " . implode(", ", $updates) . " WHERE {$identifier} = ?";
+        $query = "UPDATE " . $reflection->getShortName() . " SET " . implode(", ", $updates) . " WHERE {$idColumnName} = ?";
         $bindValues[] = $idValue;
 
         try {
@@ -390,38 +427,61 @@ class Model
             }
         }
 
-        Database::log("error","[Model] No primary key found for class {$reflection->getName()}");
+        Database::log("error", "[Model] No primary key found for class {$reflection->getName()}");
         throw new \RuntimeException("No primary key found for class {$reflection->getName()}");
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function where(string $column, string $value): Collection
     {
         return new Collection(static::class)->where($column, $value);
     }
+
+    /**
+     * @return Collection<static>
+     */
     public static function orWhere(string $column, string $value): Collection
     {
         return new Collection(static::class)->orWhere($column, $value);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function like(string $column, string $value): Collection
     {
         return new Collection(static::class)->like($column, $value);
     }
+
+    /**
+     * @return Collection<static>
+     */
     public static function orLike(string $column, string $value): Collection
     {
         return new Collection(static::class)->orLike($column, $value);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function limit(int $count): Collection
     {
         return new Collection(static::class)->limit($count);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function offset(int $offset): Collection
     {
         return new Collection(static::class)->offset($offset);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function orderBy(string $column, string $direction = "ASC"): Collection
     {
         return new Collection(static::class)->orderBy($column, $direction);
@@ -437,26 +497,48 @@ class Model
         return new Collection(static::class)->sum($column);
     }
 
-    public static function collection(): Collection
+    public static function avg(string $column): float
     {
-        return new Collection(static::class);
+        return new Collection(static::class)->avg($column);
     }
 
+    public static function min(string $column): mixed
+    {
+        return new Collection(static::class)->min($column);
+    }
+
+    public static function max(string $column): mixed
+    {
+        return new Collection(static::class)->max($column);
+    }
+
+    /**
+     * @return array<static>
+     */
     public static function get(): array
     {
         return new Collection(static::class)->get();
     }
 
-    public static function getFirst(): self|null
+    /**
+     * @return static|null
+     */
+    public static function getFirst(): static|null
     {
         return new Collection(static::class)->getFirst();
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function in(string $column, array $values, string $operator = "AND"): Collection
     {
         return new Collection(static::class)->in($column, $values, $operator);
     }
 
+    /**
+     * @return Collection<static>
+     */
     public static function compare(string $column, string $logicalOperator, string $value): Collection
     {
         return new Collection(static::class)->compare($column, $logicalOperator, $value);

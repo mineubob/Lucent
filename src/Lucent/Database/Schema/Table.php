@@ -148,6 +148,18 @@ class Table implements SqlSerializable
         return $column;
     }
 
+    /**
+     * UUID column. Defaults to a 36-character string storage (CHAR(36) on MySQL,
+     * TEXT on SQLite), matching the output of \Lucent\Facades\UUID::generate().
+     */
+    public function uuid(string $name): Column
+    {
+        $column = new Column($name, PDODriver::$map[$this->driver]["types"]["uuid"], $this->driver, $this);
+        $column->length(36);
+        $this->columns[] = $column;
+        return $column;
+    }
+
     public function column(string $name): Column
     {
         return new Column($name, "undefined", $this->driver, $this);

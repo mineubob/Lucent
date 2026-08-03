@@ -5,7 +5,7 @@ namespace Unit;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Filesystem\File;
-use Lucent\ModelCollection;
+use Lucent\Model\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 // Manually require the DatabaseDriverSetup file
@@ -314,7 +314,7 @@ class ModelTest extends DatabaseDriverSetup
         $this->assertTrue($user->delete());
 
         // Register the trait condition
-        ModelCollection::registerTraitCondition(
+        Collection::registerTraitCondition(
             \App\Models\SoftDelete::class,
             'deleted_at',
             null
@@ -695,8 +695,7 @@ class ModelTest extends DatabaseDriverSetup
 
 namespace App\Models;
 
-use Lucent\Database\Attributes\DatabaseColumn;
-use Lucent\Model;
+use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
 
@@ -705,23 +704,13 @@ class TestUser extends Model
     #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $email;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 255)]
     protected string $password_hash;
 
-    #[DatabaseColumn([
-        "TYPE" => LUCENT_DB_VARCHAR,
-        "ALLOW_NULL" => false,
-        "LENGTH" => 100
-    ])]
+    #[Column(ColumnType::VARCHAR, length: 100)]
     protected string $full_name;
 
     public function __construct(string $email, string $password_hash, string $full_name)
@@ -877,7 +866,7 @@ trait SoftDelete
      * @param mixed $propertyName The primary key property name
      * @return bool Success
      */
-    public function delete($propertyName = "id"): bool
+    public function delete(?string $propertyName = null): bool
     {
         return $this->softDelete($propertyName);
     }
@@ -888,9 +877,11 @@ trait SoftDelete
      * @param string $propertyName The primary key property name
      * @return bool Success
      */
-    public function softDelete(string $propertyName = "id"): bool
+    public function softDelete(?string $propertyName = null): bool
     {
         $this->deleted_at = time();
+        // Passing null lets the base Model::save() resolve the actual primary
+        // key, so models with a non-"id" PK work correctly.
         return $this->save($propertyName);
     }
 
@@ -1098,6 +1089,7 @@ namespace App\Models;
 use Lucent\Model\Model;
 use Lucent\Model\Column;
 use Lucent\Model\ColumnType;
+use Lucent\Facades\UUID;
 
 enum AllTypesEnum
 {
@@ -1212,6 +1204,12 @@ class AllTypes extends Model
     #[Column(ColumnType::BIGINT, nullable: true)]
     public ?int $bigint_nullable;
 
+    #[Column(ColumnType::UUID)]
+    public string $uuid;
+
+    #[Column(ColumnType::UUID, nullable: true)]
+    public ?string $uuid_nullable;
+
     /**
      * Check that all column types are set.
      * @throws \RuntimeException
@@ -1305,6 +1303,7 @@ class AllTypes extends Model
                     is_array($column->values) => $column->values[array_rand($column->values)],
                     default => throw new \RuntimeException('Invalid ENUM definition'),
                 },
+            ColumnType::UUID => UUID::generate(),
             default => throw new \RuntimeException("Unsupported column type: {$column->type->name}"),
         };
     }

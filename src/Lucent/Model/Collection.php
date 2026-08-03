@@ -6,7 +6,12 @@ use Lucent\Database;
 use Lucent\Database\Dataset;
 use ReflectionClass;
 
-class Collection
+/**
+ * Query builder / collection for Model rows.
+ *
+ * @template T of \Lucent\Model\Model
+ */
+final class Collection
 {
     private string $class;
     private array $whereConditions;
@@ -18,9 +23,9 @@ class Collection
     private array $cache;
     private static array $traitConditions = [];
 
-    // NEW: Store bind values separately
-    private array $bindValues = [];
-
+    /**
+     * @param class-string<T> $class
+     */
     public function __construct($class)
     {
         $this->class = $class;
@@ -32,6 +37,9 @@ class Collection
         $this->reflection = new ReflectionClass($class);
     }
 
+    /**
+     * @return static<T>
+     */
     public function where(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -51,6 +59,9 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function in(string $column, array $values, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -70,11 +81,26 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function compare(string $column, string $logicalOperator, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
         if ($operator !== 'AND' && $operator !== 'OR') {
             $operator = 'AND';
+        }
+        
+        $logicalOperator = strtoupper($logicalOperator);
+
+        // Whitelist the comparison operator to prevent SQL operator injection.
+        // The raw operator is concatenated into the query string, so it must
+        // never accept arbitrary user input.
+        $allowedOperators = ['=', '!=', '<>', '<', '<=', '>', '>=', 'LIKE', 'NOT LIKE', 'IS', 'IS NOT'];
+        if (!in_array($logicalOperator, $allowedOperators, true)) {
+            throw new \InvalidArgumentException(
+                "Invalid comparison operator provided: '$logicalOperator'. Allowed operators: " . implode(', ', $allowedOperators)
+            );
         }
 
         $formattedColumn = $this->formatColumnName($column);
@@ -83,17 +109,23 @@ class Collection
             'column' => $formattedColumn,
             'value' => $value,  // Store raw value
             'operator' => $operator,
-            'type' => $logicalOperator  // NEW: Store the comparison operator (>, <, >=, etc)
+            'type' => $logicalOperator  // Store the validated comparison operator (>, <, >=, etc)
         ];
 
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function orWhere(string $column, string $value): self
     {
         return $this->where($column, $value, 'OR');
     }
 
+    /**
+     * @return static<T>
+     */
     public function like(string $column, string $value, string $operator = 'AND'): self
     {
         $operator = strtoupper($operator);
@@ -112,11 +144,17 @@ class Collection
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function orLike(string $column, string $value): self
     {
         return $this->like($column, $value, 'OR');
     }
 
+    /**
+     * @return static<T>
+     */
     public function orderBy(string $column, string $direction = 'ASC'): self
     {
         $direction = strtoupper($direction);
@@ -147,18 +185,27 @@ class Collection
         return $column;
     }
 
+    /**
+     * @return static<T>
+     */
     public function limit(int $count): self
     {
         $this->limit = $count;
         return $this;
     }
 
+    /**
+     * @return static<T>
+     */
     public function offset(int $count): self
     {
         $this->offset = $count;
         return $this;
     }
 
+    /**
+     * @return array<T>
+     */
     public function get(): array
     {
         [$query, $bindValues] = $this->buildQuery();
@@ -187,10 +234,17 @@ class Collection
         return $instances;
     }
 
+    /**
+     * @return T|null
+     */
     public function getFirst(): mixed
     {
+        // Save and restore the limit so reusing the same Collection for a
+        // subsequent get()/count() is not silently limited to 1 row.
+        $previousLimit = $this->limit;
         $this->limit = 1;
         [$query, $bindValues] = $this->buildQuery();
+        $this->limit = $previousLimit;
 
         $data = Database::select($query, false, $bindValues);
 
@@ -204,44 +258,140 @@ class Collection
         return null;
     }
 
-    public function collection(): self
-    {
-        return $this;
-    }
-
     public function count(): int
     {
-        [$query, $bindValues] = $this->buildQuery();
-        $query = str_replace("*", "count(*)", $query);
-        return (int) Database::select($query, false, $bindValues)["count(*)"];
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+
+        $query = "SELECT count(*) AS total_count {$from}{$where}";
+
+        return (int) Database::select($query, false, $bindValues)["total_count"];
     }
 
     public function sum(string $column): float
     {
-        [$query, $bindValues] = $this->buildQuery();
-        $query = str_replace("*", "sum({$column})", $query);
-        return (float) Database::select($query, false, $bindValues)["sum({$column})"];
+        // Whitelist the column against the model's database properties so an
+        // arbitrary string can never be interpolated into the SQL query.
+        // Also handle the extended-model case where the column lives on the
+        // parent class.
+        $columnInfo = $this->resolveAggregateColumn($column);
+        $formattedColumn = $columnInfo['formatted'];
+        $aggregateKey = $columnInfo['key'];
+
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+
+        $query = "SELECT SUM({$formattedColumn}) AS {$aggregateKey} {$from}{$where}";
+
+        return (float) Database::select($query, false, $bindValues)[$aggregateKey];
     }
 
-    // MODIFIED: Now returns both query and bind values
+    public function avg(string $column): float
+    {
+        $columnInfo = $this->resolveAggregateColumn($column);
+        $formattedColumn = $columnInfo['formatted'];
+        $aggregateKey = $columnInfo['key'];
+
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+
+        $query = "SELECT AVG({$formattedColumn}) AS {$aggregateKey} {$from}{$where}";
+
+        return (float) Database::select($query, false, $bindValues)[$aggregateKey];
+    }
+
+    public function min(string $column): mixed
+    {
+        $columnInfo = $this->resolveAggregateColumn($column);
+        $formattedColumn = $columnInfo['formatted'];
+        $aggregateKey = $columnInfo['key'];
+
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+
+        $query = "SELECT MIN({$formattedColumn}) AS {$aggregateKey} {$from}{$where}";
+
+        return Database::select($query, false, $bindValues)[$aggregateKey];
+    }
+
+    public function max(string $column): mixed
+    {
+        $columnInfo = $this->resolveAggregateColumn($column);
+        $formattedColumn = $columnInfo['formatted'];
+        $aggregateKey = $columnInfo['key'];
+
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+
+        $query = "SELECT MAX({$formattedColumn}) AS {$aggregateKey} {$from}{$where}";
+
+        return Database::select($query, false, $bindValues)[$aggregateKey];
+    }
+
+    private function resolveAggregateColumn(string $column): array
+    {
+        $parent = $this->reflection->getParentClass();
+
+        // Extended model: column may live on the parent class.
+        if ($parent->getName() !== Model::class) {
+            if (Model::hasDatabaseProperty($parent, $column)) {
+                return [
+                    'formatted' => $parent->getShortName() . '.' . $column,
+                    'key' => 'total_' . $column,
+                ];
+            }
+        }
+
+        if (Model::hasDatabaseProperty($this->reflection, $column)) {
+            return [
+                'formatted' => $column,
+                'key' => 'total_' . $column,
+            ];
+        }
+
+        throw new \InvalidArgumentException(
+            "Column '{$column}' does not exist on model {$this->class}"
+        );
+    }
+
     private function buildQuery(): array
     {
-        $bindValues = [];
-        $modelClass = $this->class;
-        $reflection = new ReflectionClass($modelClass);
+        $select = "SELECT *";
+        $from = $this->buildFromClause();
+        [$where, $bindValues] = $this->buildWhereClause();
+        $orderBy = $this->buildOrderByClause();
+        $limit = $this->buildLimitClause();
+
+        $query = "{$select} {$from}{$where}{$orderBy}{$limit}";
+
+        return [$query, $bindValues];
+    }
+
+    private function buildFromClause(): string
+    {
+        $reflection = new ReflectionClass($this->class);
         $parent = $reflection->getParentClass();
 
         $array = explode("\\", $this->class);
         $className = end($array);
-        $query = "SELECT * FROM " . $className;
 
         // Handle inheritance
         if ($parent->getName() !== Model::class) {
             $pk = Model::getDatabasePrimaryKey($parent);
-            $query = "SELECT * FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk->name} = {$parent->getShortName()}.{$pk->name}";
+            return "FROM {$parent->getShortName()} JOIN {$className} ON {$className}.{$pk->name} = {$parent->getShortName()}.{$pk->name}";
         }
 
-        // Apply trait conditions
+        return "FROM " . $className;
+    }
+
+    private function buildWhereClause(): array
+    {
+        $bindValues = [];
+        $conditions = [];
+
+        // Apply trait conditions into a LOCAL list so repeated calls to
+        // buildQuery() (e.g. get() then count() on the same Collection) never
+        // duplicate the trait WHERE clauses on the instance state.
         if (count(self::$traitConditions) > 0) {
             foreach (self::$traitConditions as $traitName => $condition) {
                 if (class_exists($this->class) && in_array($traitName, $this->class_uses_recursive($this->class))) {
@@ -249,14 +399,14 @@ class Collection
                     $value = $condition['value'];
 
                     if ($value === null) {
-                        $this->whereConditions[] = [
+                        $conditions[] = [
                             'column' => $column,
                             'value' => null,
                             'operator' => 'AND',
                             'type' => 'IS NULL'
                         ];
                     } else {
-                        $this->whereConditions[] = [
+                        $conditions[] = [
                             'column' => $column,
                             'value' => $value,
                             'operator' => 'AND',
@@ -267,64 +417,79 @@ class Collection
             }
         }
 
-        // Build WHERE conditions
-        if (!empty($this->whereConditions) || !empty($this->likeConditions)) {
-            $query .= " WHERE ";
-            $conditions = [];
+        // Merge user-supplied conditions after trait conditions.
+        $conditions = array_merge($conditions, $this->whereConditions);
 
-            // Process WHERE conditions
-            foreach ($this->whereConditions as $index => $condition) {
-                $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
+        if (empty($conditions) && empty($this->likeConditions)) {
+            return ['', $bindValues];
+        }
 
-                // Handle different condition types
-                if ($condition['type'] === 'IN') {
-                    // Build IN clause with placeholders
-                    $placeholders = implode(', ', array_fill(0, count($condition['value']), '?'));
-                    $conditions[] = $prefix . $condition['column'] . " IN (" . $placeholders . ")";
+        $whereParts = [];
 
-                    // Add each value to bind array
-                    foreach ($condition['value'] as $val) {
-                        $bindValues[] = is_bool($val) ? ($val ? 1 : 0) : $val;
-                    }
-                } elseif ($condition['type'] === 'IS NULL') {
-                    $conditions[] = $prefix . $condition['column'] . " IS NULL";
-                    // No bind value for IS NULL
-                } else {
-                    // Regular comparison (=, >, <, >=, <=, !=)
-                    $conditions[] = $prefix . $condition['column'] . " " . $condition['type'] . " ?";
-                    $bindValues[] = is_bool($condition['value']) ? ($condition['value'] ? 1 : 0) : $condition['value'];
+        // Process WHERE conditions
+        foreach ($conditions as $index => $condition) {
+            $prefix = ($index > 0) ? $condition['operator'] . ' ' : '';
+
+            // Handle different condition types
+            if ($condition['type'] === 'IN') {
+                // Guard against empty IN lists producing invalid SQL.
+                if (count($condition['value']) === 0) {
+                    $whereParts[] = $prefix . "0 = 1";
+                    continue;
                 }
-            }
 
-            // Process LIKE conditions
-            foreach ($this->likeConditions as $index => $condition) {
-                $prefix = (!empty($this->whereConditions) || $index > 0) ? $condition['operator'] . ' ' : '';
-                $conditions[] = $prefix . $condition['column'] . " LIKE ?";
-                $bindValues[] = '%' . $condition['value'] . '%';
-            }
+                // Build IN clause with placeholders
+                $placeholders = implode(', ', array_fill(0, count($condition['value']), '?'));
+                $whereParts[] = $prefix . $condition['column'] . " IN (" . $placeholders . ")";
 
-            $query .= implode(' ', $conditions);
+                // Add each value to bind array
+                foreach ($condition['value'] as $val) {
+                    $bindValues[] = is_bool($val) ? ($val ? 1 : 0) : $val;
+                }
+            } elseif ($condition['type'] === 'IS NULL') {
+                $whereParts[] = $prefix . $condition['column'] . " IS NULL";
+                // No bind value for IS NULL
+            } else {
+                // Regular comparison (=, >, <, >=, <=, !=)
+                $whereParts[] = $prefix . $condition['column'] . " " . $condition['type'] . " ?";
+                $bindValues[] = is_bool($condition['value']) ? ($condition['value'] ? 1 : 0) : $condition['value'];
+            }
         }
 
-        if (!empty($this->orderByClauses)) {
-            $query .= " ORDER BY ";
-            $orderClauses = [];
-
-            foreach ($this->orderByClauses as $clause) {
-                $orderClauses[] = $clause['column'] . ' ' . $clause['direction'];
-            }
-
-            $query .= implode(', ', $orderClauses);
+        // Process LIKE conditions
+        foreach ($this->likeConditions as $index => $condition) {
+            $prefix = (!empty($conditions) || $index > 0) ? $condition['operator'] . ' ' : '';
+            $whereParts[] = $prefix . $condition['column'] . " LIKE ?";
+            $bindValues[] = '%' . $condition['value'] . '%';
         }
 
-        // Add limit and offset
-        $query .= " LIMIT " . $this->limit;
+        return [' WHERE ' . implode(' ', $whereParts), $bindValues];
+    }
+
+    private function buildOrderByClause(): string
+    {
+        if (empty($this->orderByClauses)) {
+            return '';
+        }
+
+        $orderClauses = [];
+
+        foreach ($this->orderByClauses as $clause) {
+            $orderClauses[] = $clause['column'] . ' ' . $clause['direction'];
+        }
+
+        return ' ORDER BY ' . implode(', ', $orderClauses);
+    }
+
+    private function buildLimitClause(): string
+    {
+        $clause = " LIMIT " . $this->limit;
 
         if ($this->offset !== 0) {
-            $query .= " OFFSET " . $this->offset;
+            $clause .= " OFFSET " . $this->offset;
         }
 
-        return [$query, $bindValues];
+        return $clause;
     }
 
     public static function registerTraitCondition(string $traitName, string $column, $value): void

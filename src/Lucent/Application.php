@@ -8,7 +8,6 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Commandline\UpdateLucentCommand;
 use Lucent\Database\DatabaseLogger;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
@@ -23,6 +22,7 @@ use Lucent\Http\Request;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
+use Lucent\Model\Model;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -65,6 +65,13 @@ class Application
      * @var array
      */
     private array $commands = [];
+
+    /**
+     * Whether the application has been booted.
+     *
+     * @var bool
+     */
+    private bool $booted = false;
 
     /**
      * Singleton instance of the Application
@@ -180,14 +187,9 @@ class Application
         $this->httpRouter = new HttpRouter();
         $this->consoleRouter = new CliRouter();
 
-        //Check if we have a .env file present, if not
-        //then we create the file.
-        if (!file_exists(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env")) {
-            $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "w");
-            fclose($file);
-        }
-
-        //Load the env file
+        //Load the env file if it exists. The .env file is expected to be
+        //created by the project (e.g. via create-project template), not by
+        //the framework itself.
         $this->loadEnv();
 
         $this->loggers["blank"] = new NullChannel();
@@ -222,20 +224,57 @@ class Application
     }
 
     /**
-     * Boot the application
+     * Boot the application.
      *
-     * Loads all registered routes and commands
+     * Loads all registered routes and commands, then sets up the database
+     * logger. When $autoLoadRoutes / $autoLoadCommands are true (the
+     * default), the framework auto-discovers files in the project's
+     * `routes/` and `commands/` directories (top-level, non-recursive).
      *
+     * Pass false to either param to opt out of auto-discovery and manage
+     * loading explicitly via loadRoutes() / CommandLine::register().
+     *
+     * Idempotent: a second call is a no-op (see $booted guard).
+     *
+     * @param bool $autoLoadRoutes   Auto-scan RUNNING_LOCATION/routes/*.php
+     * @param bool $autoLoadCommands Auto-scan RUNNING_LOCATION/commands/*.php
      * @return void
      */
-    public function boot(): void
+    public function boot(bool $autoLoadRoutes = true, bool $autoLoadCommands = true): void
     {
+        if ($this->booted) {
+            return;
+        }
+        $this->booted = true;
+
+        // Auto-discover route files from the project's routes/ directory.
+        if ($autoLoadRoutes) {
+            $routesDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'routes' . DIRECTORY_SEPARATOR;
+            if (is_dir($routesDir)) {
+                foreach (glob($routesDir . '*.php') as $routeFile) {
+                    $this->httpRouter->loadRoutes($routeFile);
+                }
+            }
+        }
+
+        // Load explicitly registered route files.
         foreach ($this->routes as $route) {
             $this->httpRouter->loadRoutes($route["file"]);
         }
 
+        // Auto-discover command files from the project's commands/ directory.
+        if ($autoLoadCommands) {
+            $commandsDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'commands' . DIRECTORY_SEPARATOR;
+            if (is_dir($commandsDir)) {
+                foreach (glob($commandsDir . '*.php') as $commandFile) {
+                    require_once $commandFile;
+                }
+            }
+        }
+
+        // Load explicitly registered command files.
         foreach ($this->commands as $command) {
-            require_once FileSystem::rootPath() . DIRECTORY_SEPARATOR . $command;
+            require_once $command;
         }
 
         Database::setLogger(new class implements DatabaseLogger {
@@ -278,6 +317,14 @@ class Application
      */
     public function loadRoutes(string $route): void
     {
+        // Resolve against the project root so boot() always passes a real
+        // absolute filesystem path to the router.  This handles both
+        // bare relative paths ("routes/web.php") and paths that look
+        // absolute but are really project-relative ("/routes/web.php").
+        if (!str_starts_with($route, FileSystem::rootPath())) {
+            $route = FileSystem::rootPath() . DIRECTORY_SEPARATOR
+                   . ltrim($route, DIRECTORY_SEPARATOR);
+        }
         $this->routes[] = ["file" => $route];
     }
 
@@ -308,7 +355,7 @@ class Application
     public function handleHttpRequest(): HttpResponse
     {
         try {
-            $this->boot();
+            $this->boot(true, true);
 
             $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
             $request = new Request();
@@ -320,8 +367,33 @@ class Application
             if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
 
                 foreach ($controllerReflection->getConstructor()->getParameters() as $parameter) {
-                    if (array_key_exists($parameter->getType()->getName(), $this->services)) {
-                        $parameters[$parameter->getName()] = $this->services[$parameter->getType()->getName()];
+                    $parameterType = $parameter->getType();
+
+                    if ($parameterType === null || !($parameterType instanceof ReflectionNamedType)) {
+                        throw new InvalidArgumentException(
+                            sprintf(
+                                "Constructor parameter '%s' in controller '%s' must have a named type hint to be resolved from the service container.",
+                                $parameter->getName(),
+                                $controllerReflection->getName()
+                            )
+                        );
+                    }
+
+                    if (array_key_exists($parameterType->getName(), $this->services)) {
+                        $parameters[$parameter->getName()] = $this->services[$parameterType->getName()];
+                    } else if ($parameter->isDefaultValueAvailable()) {
+                        // Optional constructor parameters without a matching service
+                        // fall back to their default value.
+                        $parameters[$parameter->getName()] = $parameter->getDefaultValue();
+                    } else {
+                        throw new InvalidArgumentException(
+                            sprintf(
+                                "No service registered for required constructor parameter '%s' of type '%s' in controller '%s'.",
+                                $parameter->getName(),
+                                $parameterType->getName(),
+                                $controllerReflection->getName()
+                            )
+                        );
                     }
                 }
 
@@ -465,34 +537,37 @@ class Application
     public function loadEnv(): void
     {
 
-        $file = fopen(FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env", "r");
+        $envPath = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env";
         $output = [];
 
-        if ($file) {
-            while (($line = fgets($file)) !== false) {
-                // Skip comments and empty lines
-                $line = trim($line);
-                if (empty($line) || str_starts_with($line, '#')) {
-                    continue;
-                }
+        if (file_exists($envPath)) {
+            $file = fopen($envPath, "r");
 
-                // Find position of first equals sign
-                $pos = strpos($line, '=');
-                if ($pos !== false) {
-                    $key = trim(substr($line, 0, $pos));
-                    $value = trim(substr($line, $pos + 1));
+            if ($file) {
+                while (($line = fgets($file)) !== false) {
+                    // Skip comments and empty lines
+                    $line = trim($line);
+                    if (empty($line) || str_starts_with($line, '#')) {
+                        continue;
+                    }
 
-                    // Remove quotes if present
-                    $value = trim($value, '"\'');
+                    // Find position of first equals sign
+                    $pos = strpos($line, '=');
+                    if ($pos !== false) {
+                        $key = trim(substr($line, 0, $pos));
+                        $value = trim(substr($line, $pos + 1));
 
-                    if (!empty($key)) {
-                        $output[$key] = $value;
+                        // Remove quotes if present
+                        $value = trim($value, '"\'');
+
+                        if (!empty($key)) {
+                            $output[$key] = $value;
+                        }
                     }
                 }
+                fclose($file);
             }
         }
-
-        fclose($file);
 
         $this->env = $output;
         Database::configure($this->env);
@@ -517,7 +592,7 @@ class Application
      */
     public function executeConsoleCommand(array $args = []): string
     {
-        $this->boot();
+        $this->boot(true, true);
 
         if (!CommandLine::isCaptured()) {
             ob_implicit_flush(true);
@@ -527,9 +602,6 @@ class Application
         }
 
         CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class, "Generates a database table from the model class.");
-        CommandLine::register(UpdateLucentCommand::$command_check, "check", UpdateLucentCommand::class, "Checks for a lucent update");
-        CommandLine::register(UpdateLucentCommand::$command_install, "install", UpdateLucentCommand::class, "Updated the app to the latest lucent version");
-        CommandLine::register(UpdateLucentCommand::$command_rollback, "rollback", UpdateLucentCommand::class, "Performs a rollback to the previous lucent version");
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
@@ -539,10 +611,13 @@ class Application
             $args = str_replace("\n", "", $args);
         }
 
-        // Explode any arguments that contain colons
+        // Split colons in the COMMAND NAME (first argument) to support
+        // "namespace:command" style invocation (e.g. "make:migration").
+        // Other arguments (options, parameter values) are left untouched so
+        // values like "--file=/path:with:colons" are not corrupted.
         $expandedArgs = [];
-        foreach ($args as $arg) {
-            if (str_contains($arg, ':')) {
+        foreach ($args as $index => $arg) {
+            if ($index === 0 && str_contains($arg, ':')) {
                 $parts = explode(':', $arg);
                 foreach ($parts as $part) {
                     if ($part !== '') {
@@ -636,7 +711,7 @@ class Application
             return '';
 
         } catch (HttpException $e) {
-            $commands = $this->consoleRouter->getRoutes()["CLI"];
+            $commands = $this->consoleRouter->getRoutes()["CLI"] ?? [];
             $output = "Unrecognized command. Type '\033[1mphp cli\033[0m' to see available commands.\n";
 
             $suggestions = [];
@@ -684,11 +759,19 @@ class Application
      */
     public function loadCommands(string $commandFile): void
     {
+        if (!str_starts_with($commandFile, FileSystem::rootPath())) {
+            $commandFile = FileSystem::rootPath() . DIRECTORY_SEPARATOR
+                         . ltrim($commandFile, DIRECTORY_SEPARATOR);
+        }
         $this->commands[] = $commandFile;
     }
 
     /**
-     * Resets all the routes currently registered in the application
+     * Resets the application instance.
+     *
+     * Replaces the singleton with a fresh Application, which naturally
+     * resets $booted (and all other state) to its default. Used by tests
+     * to obtain a clean application between cases.
      *
      * @return void
      */
@@ -784,7 +867,11 @@ class Application
     public function setHeaders(array $headers, bool $replace = true): void
     {
         foreach ($headers as $name => $value) {
-            header("$name: $value", $replace);
+            // Strip CR/LF from header names and values to prevent HTTP
+            // response splitting / header injection attacks.
+            $safeName = str_replace(["\r", "\n"], '', $name);
+            $safeValue = str_replace(["\r", "\n"], '', $value);
+            header("$safeName: $safeValue", $replace);
         }
     }
 
@@ -820,6 +907,12 @@ class Application
         $response->setMessage($status->message());
 
         $is_debug = App::env("DEBUG", false);
+
+        // Normalise boolean env strings: "false", "off", "no", "0" and ""
+        // must all be treated as falsy, not as truthy strings.
+        if (is_string($is_debug)) {
+            $is_debug = !in_array(strtolower(trim($is_debug)), ['', '0', 'false', 'off', 'no'], true);
+        }
 
         if (!$is_debug) {
             return $response;

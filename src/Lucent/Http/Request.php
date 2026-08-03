@@ -42,7 +42,7 @@ class Request
     private array $modelCache = [];
 
     /** @var array URL variables extracted from route parameters */
-    private array $urlVars;
+    private array $urlVars = [];
 
     /**
      * Information about the current route
@@ -89,14 +89,15 @@ class Request
         if ($this->isJsonRequest()) {
             $jsonInput = file_get_contents('php://input');
             if (!empty($jsonInput)) {
-                $this->json = $this->sanitizeUserInput(
-                    json_decode($jsonInput, true) ?? []
-                );
+                $this->json = json_decode($jsonInput, true) ?? [];
             }
         }
 
-        $this->post = $this->sanitizeUserInput($_POST);
-        $this->get = $this->sanitizeUserInput($_GET);
+        // Input is intentionally stored raw. SQL injection is prevented by
+        // prepared statements in the database layer; output escaping is the
+        // responsibility of the rendering layer (escape at output time).
+        $this->post = $_POST;
+        $this->get = $_GET;
     }
 
     /**
@@ -228,9 +229,9 @@ class Request
      *
      * @param string $key The input key to retrieve
      * @param mixed|null $default Default value if key not found
-     * @return string|null The input value or default if not found
+     * @return mixed The input value or default if not found (string, array, or null)
      */
-    public function input(string $key, mixed $default = null): null|string
+    public function input(string $key, mixed $default = null): mixed
     {
         $data = $this->all();
         return array_key_exists($key, $data) ? $data[$key] : $default;
@@ -256,33 +257,6 @@ class Request
         if ($_SERVER["REQUEST_METHOD"] === "GET") {
             $this->get[$key] = $value;
         }
-    }
-
-    /**
-     * Sanitizes user input data by stripping tags, newlines, and other malicious content.
-     *
-     * @param array $input The input data to sanitize
-     *
-     * @return array The sanitized input data
-     */
-    private function sanitizeUserInput(array $input): array
-    {
-        $filter = function ($var) {
-            
-            // Then sanitize the value if it's a string
-            if (is_string($var)) {
-                $var = trim($var);
-                $var = htmlspecialchars($var, ENT_QUOTES, 'UTF-8');
-                $var = addslashes($var);
-            } else if (is_array($var)) {
-                // Handle arrays recursively
-                $var = $this->sanitizeUserInput($var);
-            }
-
-            return $var;
-        };
-
-        return array_map($filter, $input);
     }
 
     /**

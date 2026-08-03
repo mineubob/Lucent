@@ -63,7 +63,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         self::generate_test_middleware();
 
         self::generateRoutesFile();
-        App::registerRoutes("/routes/web.php");
+        Application::getInstance()->boot();
     }
 
     public function test_404(): void
@@ -78,7 +78,6 @@ class RouteGroupTest extends DatabaseDriverSetup
             if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
             }
-
         } catch (Exception $e) {
             $this->fail($e->getMessage());
         }
@@ -106,7 +105,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
-
         } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
@@ -131,7 +129,6 @@ class RouteGroupTest extends DatabaseDriverSetup
 
             $this->assertFalse($decodedResponse["outcome"]);
             $this->assertEquals(500, $decodedResponse["status"]);
-
         } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
@@ -157,7 +154,6 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertTrue($decodedResponse["outcome"]);
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("pong", $decodedResponse["message"]);
-
         } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
@@ -178,7 +174,6 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertTrue($decodedResponse["outcome"]);
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from test 2", $decodedResponse["message"]);
-
         } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
@@ -203,7 +198,6 @@ class RouteGroupTest extends DatabaseDriverSetup
             $this->assertTrue($decodedResponse["outcome"]);
             $this->assertEquals(200, $decodedResponse["status"]);
             $this->assertEquals("Hello from five", $decodedResponse["message"]);
-
         } catch (Exception $e) {
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
@@ -246,7 +240,6 @@ class RouteGroupTest extends DatabaseDriverSetup
         $decodedResponse = json_decode($response->body(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
-
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -287,8 +280,10 @@ class RouteGroupTest extends DatabaseDriverSetup
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
 
-    public function test_invalid_route_file() : void
+    public function test_invalid_route_file(): void
     {
+        // Reset so boot() runs fresh and loads the invalid route file.
+        Application::reset();
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
 
@@ -296,11 +291,13 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $body = json_decode($res->body(), true);
         $this->assertArrayNotHasKey('errors', $body);
-        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(),$res->body());
+        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(), $res->body());
     }
 
-    public function test_invalid_route_file_debug() : void
+    public function test_invalid_route_file_debug(): void
     {
+        // Reset so boot() runs fresh and loads the invalid route file.
+        Application::reset();
         Application::getInstance()->setEnv("debug", true);
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
@@ -492,7 +489,6 @@ PHP;
             $modelPath . DIRECTORY_SEPARATOR . 'UserController.php',
             $modelContent
         );
-
     }
 
     private static function generate_test_middleware(): void
@@ -533,7 +529,6 @@ PHP;
             $middlewarePath . DIRECTORY_SEPARATOR . 'AuthMiddleware.php',
             $middlewareContent
         );
-
     }
 
     private static function generateRoutesFile(): void
@@ -578,11 +573,10 @@ PHP;
         }
 
         file_put_contents($routesPath . '/web.php', $routesContent);
-
     }
 
 
-    public static function generate_stream_routes() : file
+    public static function generate_stream_routes(): file
     {
 
         $routesContent = <<<'PHP'
@@ -600,7 +594,7 @@ PHP;
     }
 
 
-    public static function generate_event_stream_controller() : File
+    public static function generate_event_stream_controller(): File
     {
         $controllerContent = <<<'PHP'
 <?php
