@@ -8,7 +8,6 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Database\DatabaseLogger;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -196,15 +195,19 @@ class Application
     }
 
     /**
-     * Register a new logging channel
+     * Register a new logging channel.
      *
-     * @param string $key Channel identifier
+     * By default the channel is registered under its own name (see
+     * Channel::getName()), which is also the key used by getLoggingChannel().
+     * Pass $name to override the registry key.
+     *
      * @param Channel $log Logger instance
+     * @param string|null $name Optional override for the registry key
      * @return void
      */
-    public function addLoggingChannel(string $key, Channel $log): void
+    public function addLoggingChannel(Channel $log, ?string $name = null): void
     {
-        $this->loggers[$key] = $log;
+        $this->loggers[$name ?? $log->getName()] = $log;
     }
 
     /**
@@ -277,12 +280,7 @@ class Application
             require_once $command;
         }
 
-        Database::setLogger(new class implements DatabaseLogger {
-            public function info(string $message): void     { Log::channel("lucent.db")->info($message); }
-            public function warning(string $message): void  { Log::channel("lucent.db")->warning($message); }
-            public function error(string $message): void    { Log::channel("lucent.db")->error($message); }
-            public function critical(string $message): void { Log::channel("lucent.db")->critical($message); }
-        });
+        Database::setLogger(Log::channel("lucent.db"));
     }
 
     /**

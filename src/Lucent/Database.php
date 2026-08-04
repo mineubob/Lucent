@@ -4,8 +4,8 @@ namespace Lucent;
 
 use Exception;
 use Lucent\Database\DatabaseInterface;
-use Lucent\Database\DatabaseLogger;
 use Lucent\Database\Drivers\PDODriver;
+use Psr\Log\LoggerInterface;
 
 class Database
 {
@@ -46,7 +46,7 @@ class Database
     private static array $env = [];
 
 
-    private static ?DatabaseLogger $logger = null;
+    private static ?LoggerInterface $logger = null;
 
 
     /**
@@ -452,15 +452,15 @@ class Database
         self::$databaseDrivers[$key] = $driverClass;
     }
 
-    public static function setLogger(DatabaseLogger $logger): void
+    public static function setLogger(LoggerInterface $logger): void
     {
         self::$logger = $logger;
     }
 
-    public static function log(string $level, string $message): void
+    public static function log(string $level, string|\Stringable $message, array $context = []): void
     {
         if (self::$logger !== null) {
-            self::$logger->$level($message);
+            self::$logger->log($level, $message, $context);
         }
         // No logger configured: silently drop the message.
         //
