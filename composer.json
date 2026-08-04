@@ -32,6 +32,9 @@
   "require-dev": {
     "phpunit/phpunit": "^12.0"
   },
+  "provide": {
+    "psr/log-implementation": "3.0.0"
+  },
   "autoload": {
     "psr-4": {
       "Lucent\\": "src/Lucent/"
