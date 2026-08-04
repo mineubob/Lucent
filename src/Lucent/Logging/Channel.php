@@ -152,7 +152,12 @@ class Channel implements LoggerInterface
     public function log($level, string|\Stringable $message, array $context = []): void
     {
         if (!in_array($level, self::VALID_LEVELS, true)) {
-            throw new InvalidArgumentException("Unknown log level: {$level}");
+            $levelLabel = match (true) {
+                is_string($level) || is_int($level) || is_float($level) || is_bool($level) => (string) $level,
+                $level instanceof \Stringable => (string) $level,
+                default => gettype($level),
+            };
+            throw new InvalidArgumentException("Unknown log level: {$levelLabel}");
         }
 
         $this->write($level, $this->interpolate($message, $context));

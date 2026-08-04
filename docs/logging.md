@@ -76,17 +76,17 @@ use Lucent\Logging\Drivers\TeeDriver;
 $app = Application::getInstance();
 
 // Single driver — the channel is registered under its own name ('audit')
-$app->addLoggingChannel(new Channel('audit', new FileDriver('/var/log/audit.log')));
+$app->addLoggingChannel(new Channel('audit', new FileDriver('audit.log')));
 
 // Composite driver — write to both a file and STDERR
 $app->addLoggingChannel(new Channel('audit', new TeeDriver(
-    new FileDriver('/var/log/audit.log'),
+    new FileDriver('audit.log'),
     new CliDriver(),
 )));
 
 // Override the registry key (useful for aliasing) — the channel still
 // prints its own name ('audit') in log output, but is looked up as 'audit2'
-$app->addLoggingChannel(new Channel('audit', new FileDriver('/var/log/audit.log')), 'audit2');
+$app->addLoggingChannel(new Channel('audit', new FileDriver('audit.log')), 'audit2');
 ```
 
 ### Custom Drivers
@@ -114,12 +114,12 @@ use Lucent\Database;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Drivers\FileDriver;
 
-Database::setLogger(new Channel('lucent.db', new FileDriver('/var/log/db.log')));
+Database::setLogger(new Channel('lucent.db', new FileDriver('db.log')));
 ```
 
 `Database::log($level, $message, $context = [])` routes through the configured logger. If no logger is set, calls are silently dropped (mirroring the PSR-3 `NullLogger` convention).
 
-> **Note:** The legacy `Lucent\Database\DatabaseLogger` interface is deprecated. It is kept for backward compatibility but `Database::setLogger()` now accepts `Psr\Log\LoggerInterface` directly.
+ > **Note:** The legacy `Lucent\Database\DatabaseLogger` interface is deprecated. It remains as a type alias for projects that still reference it, but implementations must now satisfy the full PSR-3 `Psr\Log\LoggerInterface` contract.
 
 ## Built-in Channels
 

@@ -171,7 +171,7 @@ class LoggingTest extends TestCase
         $this->assertStringContainsString('database message 42', $this->driver->lines[0]);
     }
 
-    public function test_database_log_without_logger_is_noop(): void
+    public function test_database_log_with_null_logger_is_noop(): void
     {
         Database::setLogger(new NullChannel());
 
