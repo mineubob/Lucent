@@ -8,6 +8,9 @@ class EventStreamResponse extends HttpResponse
 {
     private $callback;
 
+    /**
+     * @deprecated Use Lucent\Http\Message\Response::withEventStream() instead.
+     */
     public function __construct(callable $callback)
     {
         parent::__construct('', 200);

@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use Lucent\Application;
 use Lucent\Facades\Regex;
 use Lucent\Http\Request;
+use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -40,9 +41,9 @@ abstract class Rule
     /**
      * The request that initiated this validation, if available
      *
-     * @var Request|null
+     * @var Request|ServerRequestInterface|null
      */
-    protected ?Request $currentRequest = null;
+    protected Request|ServerRequestInterface|null $currentRequest = null;
 
     /**
      * Set up the validation rules
@@ -162,7 +163,7 @@ abstract class Rule
         $model = $instance::where($column, $value)->getFirst();
 
         if ($model !== null) {
-            $this->currentRequest->context[$table] = $model;
+            $this->setContext($table, $model);
         }
 
         return $model === null;
@@ -311,14 +312,40 @@ abstract class Rule
     }
 
     /**
-     * Sets the request that triggered this validation
+     * Sets the request that triggered this validation.
      *
-     * @param Request $request The current HTTP request
+     * Uses a reference so that PSR-7 context updates (via setContext())
+     * propagate back to the caller's variable automatically.
+     *
+     * @param Request|ServerRequestInterface|null $request The current HTTP request
      * @return void
      */
-    public function setCallingRequest(Request $request): void
+    public function setCallingRequest(Request|ServerRequestInterface|null &$request): void
     {
-        $this->currentRequest = $request;
+        $this->currentRequest = &$request;
+    }
+
+    /**
+     * Store a value in the request context.
+     *
+     * Works with both old Request (mutable $context array) and
+     * PSR-7 ServerRequestInterface (immutable withAttribute()).
+     * Uses the reference from setCallingRequest() so the caller's
+     * variable is updated automatically.
+     *
+     * @param string $key The context key
+     * @param mixed $value The value to store
+     * @return void
+     */
+    protected function setContext(string $key, mixed $value): void
+    {
+        if ($this->currentRequest instanceof Request) {
+            $this->currentRequest->context[$key] = $value;
+        } elseif ($this->currentRequest instanceof ServerRequestInterface) {
+            $context = $this->currentRequest->getAttribute('context', []);
+            $context[$key] = $value;
+            $this->currentRequest = $this->currentRequest->withAttribute('context', $context);
+        }
     }
 
     /**

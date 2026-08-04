@@ -6,6 +6,15 @@ use Generator;
 use Lucent\Http\EventStream\Event;
 use Lucent\Http\EventStream\EventStreamResponse;
 
+/**
+ * Abstract base class for Server-Sent Events (SSE) streaming controllers.
+ *
+ * @deprecated Use Response::withEventStream($generator) instead.
+ *             The stream() generator can be passed directly to the PSR-7 Response:
+ *             return (new Response())->withEventStream($this->stream());
+ *             The generator logic moves into IteratorStream/CallbackStream.
+ *             This class is deprecated and will be removed in a future major version.
+ */
 abstract class StreamController
 {
     abstract protected function stream(): Generator;

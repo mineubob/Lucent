@@ -23,11 +23,21 @@
   "require": {
     "php": ">=8.4",
     "ext-curl": "*",
+    "ext-fileinfo": "*",
     "ext-mysqli": "*",
     "ext-pdo": "*",
-    "ext-fileinfo": "*",
     "ext-zip": "*",
+    "psr/http-factory": "^1.1",
+    "psr/http-message": "^2.0",
+    "psr/http-server-handler": "^1.0",
+    "psr/http-server-middleware": "^1.0",
     "psr/log": "^3.0"
+  },
+  "provide": {
+    "psr/http-message-implementation": "2.0",
+    "psr/http-factory-implementation": "1.1",
+    "psr/http-server-handler-implementation": "1.0",
+    "psr/http-server-middleware-implementation": "1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^12.0"

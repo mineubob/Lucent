@@ -6,6 +6,9 @@ class JsonResponse extends HttpResponse
 {
     public protected(set) array $body;
 
+    /**
+     * @deprecated Use Lucent\Http\Message\Response::json() or Response::withJsonEnvelope() instead.
+     */
     public function __construct($content = [], $status = 200)
     {
         parent::__construct("", $status);

@@ -5,6 +5,9 @@ namespace Lucent\Http;
 class HttpResponse
 {
 
+    /**
+     * @deprecated Use Lucent\Http\Message\Response instead. Create via Response::json() or new Response().
+     */
     public function __construct(
         private string|null $body,
         public protected(set) int $statusCode,
@@ -12,6 +15,10 @@ class HttpResponse
         public protected(set) ?string $error = null,
         public protected(set) int $errorCode = 0
     ) {
+        trigger_error(
+            'Lucent\\Http\\HttpResponse is deprecated. Use Lucent\\Http\\Message\\Response instead.',
+            E_USER_DEPRECATED
+        );
     }
 
     public function successful(): bool

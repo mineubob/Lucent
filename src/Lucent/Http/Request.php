@@ -11,6 +11,8 @@ use Lucent\Validation\Rule;
  *
  * Provides methods for accessing request data, headers, validation,
  * and managing the request lifecycle.
+ *
+ * @deprecated Use Lucent\Http\Message\ServerRequest instead. Create via ServerRequest::fromGlobals().
  */
 class Request
 {
