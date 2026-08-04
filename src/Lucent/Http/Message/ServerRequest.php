@@ -305,6 +305,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
 
     /**
      * Get the RouteInfo stored as a PSR-7 attribute.
+     *
+     * @return RouteInfo|null
      */
     public function getRouteInfo(): ?RouteInfo
     {
@@ -313,10 +315,40 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
 
     /**
      * Get the URL variables stored as a PSR-7 attribute.
+     *
+     * @return array<string, string>
      */
     public function getUrlVars(): array
     {
         return $this->getAttribute('urlVars', []);
+    }
+
+    /**
+     * Get a single URL variable by name.
+     *
+     * @param string $name The variable name
+     * @param mixed $default Default value if not found
+     * @return mixed
+     */
+    public function getUrlVar(string $name, mixed $default = null): mixed
+    {
+        return $this->getUrlVars()[$name] ?? $default;
+    }
+
+    /**
+     * Get a value from the request context.
+     *
+     * Context is stored as a PSR-7 attribute (array) and can be set
+     * by validation rules (via setContext()) or middleware.
+     *
+     * @param string $key The context key
+     * @param mixed $default Default value if key not found
+     * @return mixed
+     */
+    public function getContext(string $key, mixed $default = null): mixed
+    {
+        $context = $this->getAttribute('context', []);
+        return $context[$key] ?? $default;
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────

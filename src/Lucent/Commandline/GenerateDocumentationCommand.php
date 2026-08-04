@@ -10,7 +10,6 @@ use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\Attributes\ApiResponse;
-use Lucent\Http\JsonResponse;
 use ReflectionClass;
 
 class GenerateDocumentationCommand
@@ -145,46 +144,45 @@ class GenerateDocumentationCommand
             // Generate validation example using faker
             $failRequest = Faker::request()->failing($endpoint->rule);
             if (!$failRequest->validate($endpoint->rule)) {
-                $examples['400'] = new JsonResponse()
-                    ->setOutcome(false)
-                    ->setStatusCode(400)
-                    ->addErrors($failRequest->getValidationErrors());
+                $examples['400'] = [
+                    'message' => 'Validation failed',
+                    'outcome' => false,
+                    'status' => 400,
+                    'content' => [],
+                    'errors' => $failRequest->getValidationErrors(),
+                ];
             }
         }
 
         // Process API responses
         foreach ($responses as $response) {
-            $jsonResponse = new JsonResponse();
-            $jsonResponse->setMessage($response->message)
-                ->setOutcome($response->outcome)
-                ->setStatusCode($response->status);
+            $body = [
+                'message' => $response->message,
+                'outcome' => $response->outcome,
+                'status' => $response->status,
+                'content' => $response->content ?? [],
+                'errors' => [],
+            ];
 
-            // Add content if present
-            if (!empty($response->content)) {
-                // Convert sequential arrays to associative if they appear to be key-value pairs
-                if (is_array($response->content) && count($response->content) % 2 === 0) {
-                    $pairs = array_chunk($response->content, 2);
-                    $content = [];
-                    foreach ($pairs as $pair) {
-                        if (is_string($pair[0])) {
-                            $content[$pair[0]] = $pair[1];
-                            continue;
-                        }
-                        $content[] = $pair;
+            // Convert sequential arrays to associative if they appear to be key-value pairs
+            if (!empty($response->content) && is_array($response->content) && count($response->content) % 2 === 0) {
+                $pairs = array_chunk($response->content, 2);
+                $content = [];
+                foreach ($pairs as $pair) {
+                    if (is_string($pair[0])) {
+                        $content[$pair[0]] = $pair[1];
+                        continue;
                     }
-                    $jsonResponse->setContent($content);
-                } else {
-                    $jsonResponse->setContent($response->content);
+                    $content[] = $pair;
                 }
+                $body['content'] = $content;
             }
 
             if (!empty($response->errors)) {
-                foreach ($response->errors as $key => $error) {
-                    $jsonResponse->addError($key, $error);
-                }
+                $body['errors'] = $response->errors;
             }
 
-            $examples[$response->status] = $jsonResponse;
+            $examples[$response->status] = $body;
         }
 
         return [
@@ -248,7 +246,7 @@ class GenerateDocumentationCommand
 
             foreach ($endpoint['examples'] as $status => $response) {
                 $responseType = $this->getResponseType($status);
-                $responseData = $response->body;
+                $responseData = $response;
 
                 // Format the response data
                 $formattedResponse = $this->formatResponseData($responseData);

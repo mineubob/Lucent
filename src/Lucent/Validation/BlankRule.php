@@ -11,8 +11,9 @@ class BlankRule extends Rule
         return [];
     }
 
-    public function setRules(array $rules): void
+    public function setRules(array $rules): static
     {
         $this->rules = $rules;
+        return $this;
     }
 }

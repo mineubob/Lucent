@@ -66,22 +66,25 @@ class Article extends Model
 
 namespace App\Middleware;
 
-use Lucent\Http\Request;
-use Lucent\Middleware;
 use Lucent\Facades\Log;
+use Lucent\Http\Message\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class LoggerMiddleware extends Middleware
+class LoggerMiddleware implements MiddlewareInterface
 {
-    public function handle(Request $request): Request
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         // Get the URL parameter if it exists
-        $articleId = $request->getUrlVariable('article');
+        $articleId = $request->getUrlVar('article');
         
         if ($articleId) {
             Log::channel('requests')->info("Accessing article: " . $articleId);
         }
         
-        return $request;
+        return $handler->handle($request);
     }
 }
 ```
@@ -94,7 +97,7 @@ class LoggerMiddleware extends Middleware
 namespace App\Controllers;
 
 use App\Models\Article;
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
 
 class ArticleController
 {
@@ -103,31 +106,27 @@ class ArticleController
      * 
      * @param Article $article Auto-resolved from route parameter
      */
-    public function show(Article $article): JsonResponse
+    public function show(Article $article): Response
     {
         // Article is already loaded through route model binding
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Article retrieved successfully")
-            ->addContent('article', [
+        return Response::json([
+            'article' => [
                 'id' => $article->id,
                 'title' => $article->title,
                 'content' => $article->content,
                 'published' => $article->published
-            ]);
+            ]
+        ], 200);
     }
     
     /**
      * Get all published articles (no model binding)
      */
-    public function index(): JsonResponse
+    public function index(): Response
     {
         $articles = Article::where('published', true)->get();
         
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Articles retrieved successfully")
-            ->setContent(['articles' => $articles]);
+        return Response::json(['articles' => $articles], 200);
     }
 }
 ```

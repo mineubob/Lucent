@@ -14,8 +14,12 @@ use Traversable;
  * PSR-7 Response implementation with Lucent-specific convenience methods.
  *
  * Immutable — all with*() methods return a new instance.
+ *
+ * @final This class should not be extended in production code.
+ *        Use composition or PSR-7 decorators instead.
+ *        See https://github.com/Nyholm/psr7/blob/master/doc/final.md
  */
-final class Response extends AbstractMessage implements ResponseInterface
+class Response extends AbstractMessage implements ResponseInterface
 {
     /** @var int HTTP status code */
     private int $statusCode = 200;
@@ -87,9 +91,9 @@ final class Response extends AbstractMessage implements ResponseInterface
      * @param array $headers Additional headers
      * @return self
      */
-    public static function json(mixed $data, int $status = 200, array $headers = []): self
+    public static function json(mixed $data, int $status = 200, array $headers = []): static
     {
-        $response = new self();
+        $response = new static();
         $response->statusCode = $status;
         $response->reasonPhrase = self::PHRASES[$status] ?? '';
 
@@ -113,14 +117,14 @@ final class Response extends AbstractMessage implements ResponseInterface
      * @return self
      * @deprecated Use the new PSR-7 Response API directly
      */
-    public static function fromLegacy(HttpResponse $legacy): self
+    public static function fromLegacy(HttpResponse $legacy): static
     {
         trigger_error(
             'Lucent\Http\Message\Response::fromLegacy() is deprecated. Return a PSR-7 Response directly instead.',
             E_USER_DEPRECATED
         );
 
-        $response = new self();
+        $response = new static();
         $response->statusCode = $legacy->status();
         $response->reasonPhrase = self::PHRASES[$legacy->status()] ?? '';
 

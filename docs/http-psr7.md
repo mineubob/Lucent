@@ -188,38 +188,36 @@ use Psr\Http\Message\ResponseInterface as Response;
 
 ### 5. Route Info and URL Variables
 
-Lucent-specific data is stored as PSR-7 attributes:
+Lucent-specific data is stored as PSR-7 attributes, with convenience getters on `ServerRequest`:
 
 ```php
-$routeInfo = $request->getAttribute('routeInfo');  // RouteInfo object
-$urlVars   = $request->getAttribute('urlVars', []); // array
-```
-
-Or use the convenience getters on `ServerRequest`:
-```php
-$routeInfo = $request->getRouteInfo();
-$urlVars   = $request->getUrlVars();
+$routeInfo = $request->getRouteInfo();  // RouteInfo object
+$urlVars   = $request->getUrlVars();    // array
 ```
 
 ### 6. Validation
 
-The `Rule` class now accepts both old `Request` and PSR-7 `ServerRequestInterface`.
-`setCallingRequest()` takes the request by reference, so any context updates
-via `setContext()` automatically propagate back to the caller's variable:
+Rules can be used with PSR-7 requests via the static `Rule::validateRequest()` helper.
+The request is passed by reference, so `setContext()` updates propagate back
+automatically:
 
 ```php
 use Lucent\Http\Message\ServerRequest;
 
-public function validate(ServerRequest $request): array
-{
-    $rule = new MyRule();
-    $rule->setCallingRequest($request); // passed by reference
-    return $rule->validate($request->getParsedBody());
-    // $request is auto-updated if setContext() was called inside validate()
-}
+$errors = Rule::validateRequest($request, MyRule::class);
 ```
 
-In a custom rule:
+With explicit data (overrides parsed body):
+```php
+$errors = Rule::validateRequest($request, MyRule::class, $customData);
+```
+
+For plain data without a request:
+```php
+$errors = Rule::validateData($input, MyRule::class);
+```
+
+In a custom rule that stores context:
 ```php
 class MyRule extends Rule
 {

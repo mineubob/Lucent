@@ -5,6 +5,25 @@ namespace Lucent\Routing\Stream;
 use Lucent\Http\StreamController;
 use Lucent\Routing\RouteGroup;
 
+/**
+ * Route group for Server-Sent Events (SSE) endpoints.
+ *
+ * @deprecated Use a regular RestRouteGroup with a controller that returns
+ *             a PSR-7 Response with withEventStream() instead:
+ *
+ * ```php
+ * Route::rest()->group("events")
+ *      ->prefix("/events")
+ *      ->defaultController(EventController::class)
+ *      ->get(path: "/stream", method: "stream");
+ * ```
+ * 
+ * Where EventController::stream() returns:
+ * ```php
+ * return (new \Lucent\Http\Message\Response())->withEventStream($generator);
+ * ```
+ */
+
 class StreamRouteGroup extends RouteGroup
 {
 
