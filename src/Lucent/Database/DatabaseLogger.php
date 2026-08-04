@@ -2,10 +2,15 @@
 
 namespace Lucent\Database;
 
-interface DatabaseLogger
+use Psr\Log\LoggerInterface;
+
+/**
+ * @deprecated Use Psr\Log\LoggerInterface directly instead.
+ *
+ * This interface is kept for backward compatibility with code that references
+ * Lucent\Database\DatabaseLogger. It is no longer used by the framework —
+ * Database::setLogger() now accepts any PSR-3 logger implementation.
+ */
+interface DatabaseLogger extends LoggerInterface
 {
-    public function info(string $message): void;
-    public function warning(string $message): void;
-    public function error(string $message): void;
-    public function critical(string $message): void;
 }
