@@ -73,7 +73,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
         try {
-            $response = (array) json_decode(App::handleHttpRequest()->body());
+            $response = (array) json_decode((string) App::handleHttpRequest()->getBody());
 
             if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
@@ -96,8 +96,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 500);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(500, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -120,8 +120,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 500);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(500, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -144,8 +144,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -164,8 +164,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -188,8 +188,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -214,8 +214,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals(200, $decodedResponse["status"]);
         $this->assertEquals(99, $decodedResponse["content"]["id"]);
@@ -236,8 +236,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
@@ -253,8 +253,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 404);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(404, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals(404, $decodedResponse["status"]);
     }
@@ -274,8 +274,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
@@ -287,11 +287,11 @@ class RouteGroupTest extends DatabaseDriverSetup
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
 
-        $this->assertEquals(500, $res->status());
+        $this->assertEquals(500, $res->getStatusCode());
 
-        $body = json_decode($res->body(), true);
+        $body = json_decode((string) $res->getBody(), true);
         $this->assertArrayNotHasKey('errors', $body);
-        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(), $res->body());
+        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(), (string) $res->getBody());
     }
 
     public function test_invalid_route_file_debug(): void
@@ -302,8 +302,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
 
-        $this->assertEquals(500, $res->status());
-        $body = json_decode($res->body(), true);
+        $this->assertEquals(500, $res->getStatusCode());
+        $body = json_decode((string) $res->getBody(), true);
 
         $this->assertArrayHasKey('errors', $body);
         $this->assertArrayHasKey('exception', $body['errors']);

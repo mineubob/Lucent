@@ -37,10 +37,11 @@ class CustomErrorPageTest extends TestCase
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals(404, $response->status());
-        $this->assertTrue(str_contains($response->body(),"<button>Back</button>"));
-        $this->assertTrue(str_contains($response->body(),"<button>Home</button>"));
-        $this->assertTrue(str_contains($response->body(),"<h1>Ops! it looks like the page cannot be found!</h1>"));
+        $this->assertEquals(404, $response->getStatusCode());
+        $body = (string) $response->getBody();
+        $this->assertTrue(str_contains($body,"<button>Back</button>"));
+        $this->assertTrue(str_contains($body,"<button>Home</button>"));
+        $this->assertTrue(str_contains($body,"<h1>Ops! it looks like the page cannot be found!</h1>"));
     }
 
     private static function generateRoutesFile(): void
