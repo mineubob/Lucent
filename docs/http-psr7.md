@@ -74,6 +74,22 @@ class AuthMiddleware implements MiddlewareInterface
 | PSR-17 Factory | `Lucent\Http\Message\Factory\HttpFactory` | — |
 | Convenience | `Lucent\Http\Message\Factory\LucentResponseFactory` | — |
 | Adapter | `Lucent\Http\Message\Adapter\RequestAdapter` | — |
+| PSR-18 Client | `Lucent\Http\Client\Psr18Client` | (new — see [HTTP Client guide](./http-client.md)) |
+| PSR-18 Exception | `Lucent\Http\Client\Exception\NetworkException` | — |
+| PSR-18 Exception | `Lucent\Http\Client\Exception\RequestException` | — |
+| URI Resolution | `Lucent\Http\Message\UriResolver` | — |
+
+---
+
+## PSR-18 HTTP Client
+
+Lucent also implements **PSR-18** (`psr/http-client`) with a cURL-backed client that reuses the PSR-7/17 messages above. See the [HTTP Client guide](./http-client.md) for usage and configuration.
+
+```php
+use Lucent\Facades\Http;
+
+$response = Http::get('https://api.example.com/users');
+```
 
 ---
 

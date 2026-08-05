@@ -81,3 +81,4 @@ composer update blueprintau/lucent
 
 - PHP >= 8.4
 - ext-curl, ext-mysqli, ext-pdo, ext-fileinfo, ext-zip
+- PSR packages: `psr/http-message`, `psr/http-factory`, `psr/http-client`, `psr/http-server-handler`, `psr/http-server-middleware`, `psr/log` (installed automatically via Composer)

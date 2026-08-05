@@ -15,6 +15,7 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - [Rules & Validation](./docs/rules-and-validation.md)
 - Middleware support
 - [Comprehensive PSR-3 compliant logging](./docs/logging.md)
+- [PSR-18 HTTP client](./docs/http-client.md)
 - [CLI tools for development and maintenance](./docs/commandline.md)
 - [File System](./docs/filesystem/file.md)
 - [UUID's](./docs/facades/uuid.md)

@@ -28,6 +28,7 @@
     "ext-pdo": "*",
     "ext-zip": "*",
     "psr/http-factory": "^1.1",
+    "psr/http-client": "^1.0",
     "psr/http-message": "^2.0",
     "psr/http-server-handler": "^1.0",
     "psr/http-server-middleware": "^1.0",
@@ -38,6 +39,7 @@
   },
   "provide": {
     "psr/log-implementation": "3.0",
+    "psr/http-client-implementation": "1.0",
     "psr/http-message-implementation": "2.0",
     "psr/http-factory-implementation": "1.1",
     "psr/http-server-handler-implementation": "1.0",
