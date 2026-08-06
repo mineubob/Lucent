@@ -351,6 +351,23 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         return $context[$key] ?? $default;
     }
 
+    /**
+     * Set a value in the request context.
+     *
+     * Context is stored as a PSR-7 attribute (array) and can be read
+     * back via getContext(). Returns a new instance (PSR-7 immutable).
+     *
+     * @param string $key The context key
+     * @param mixed $value The value to store
+     * @return static
+     */
+    public function setContext(string $key, mixed $value): static
+    {
+        $context = $this->getAttribute('context', []);
+        $context[$key] = $value;
+        return $this->withAttribute('context', $context);
+    }
+
     // ─── Internal Helpers ───────────────────────────────────────────────
 
     /**

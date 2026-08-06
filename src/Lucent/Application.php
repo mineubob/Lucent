@@ -561,7 +561,11 @@ class Application
     {
         foreach ($method->getParameters() as $parameter) {
             $type = $parameter->getType();
-            if ($type !== null && $type->getName() === ServerRequestInterface::class) {
+            if ($type === null) {
+                continue;
+            }
+            $name = $type->getName();
+            if ($name === ServerRequestInterface::class || $name === ServerRequest::class) {
                 return $parameter->getName();
             }
         }
