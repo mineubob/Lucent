@@ -70,6 +70,20 @@ if ($path === '/final') {
     return;
 }
 
+// Streaming endpoint — emits 3 chunks with a flush between each so a live
+// body can be read incrementally.
+if ($path === '/stream') {
+    http_response_code(200);
+    header('Content-Type: text/plain');
+    header('X-Chunks: 3');
+    for ($i = 1; $i <= 3; $i++) {
+        echo "chunk{$i}";
+        flush();
+        usleep(50000);
+    }
+    return;
+}
+
 // Echo endpoint — return the method, URI, headers, and raw body.
 if ($path === '/echo') {
     $headers = [];

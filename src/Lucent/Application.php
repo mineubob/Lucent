@@ -13,16 +13,12 @@ use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Http\Exceptions\HttpException;
-use Lucent\Http\HttpResponse;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\ServerRequest;
-use Lucent\Http\Message\Adapter\RequestAdapter;
-use Lucent\Http\Middleware\LegacyHandlerAdapter;
-use Lucent\Http\Middleware\LegacyMiddlewareAdapter;
+use Lucent\Http\Middleware\CallbackRequestHandler;
 use Lucent\Http\Middleware\MiddlewarePipeline;
-use Lucent\Http\Request;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
@@ -442,14 +438,10 @@ class Application
             foreach (array_merge($this->globalMiddlewares, $routeData["middleware"]) as $middleware) {
                 if ($middleware instanceof MiddlewareInterface) {
                     $middlewareList[] = $middleware;
-                } elseif ($middleware instanceof Middleware) {
-                    $middlewareList[] = new LegacyMiddlewareAdapter($middleware);
                 } else {
                     $object = new $middleware();
                     if ($object instanceof MiddlewareInterface) {
                         $middlewareList[] = $object;
-                    } elseif ($object instanceof Middleware) {
-                        $middlewareList[] = new LegacyMiddlewareAdapter($object);
                     } else {
                         throw new \RuntimeException('Unknown middleware type: ' . get_class($object));
                     }
@@ -470,17 +462,13 @@ class Application
                     $controller = $controllerReflection->newInstance();
                 }
 
-                // Check if we require our request object (old or new)
-                $requestInjection = $this->requiresHttpRequest($method);
+                // Check if method requires a PSR-7 request parameter
                 $psr7Injection = $this->requiresPsr7Request($method);
 
                 $variables = $routeData["variables"];
 
                 if ($psr7Injection !== null) {
                     $variables[$psr7Injection] = $request;
-                } elseif ($requestInjection !== null) {
-                    // Inject old Request for backward compat
-                    $variables[$requestInjection] = RequestAdapter::fromPsr7($request);
                 }
 
                 // Apply model binding for route parameters
@@ -518,7 +506,7 @@ class Application
                     $pkValue = $variables[$name];
                     $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
 
-                    $context = $routeData["variables"]; // old-style context check
+                    $context = $routeData["variables"];
                     if (
                         array_key_exists($name, $context)
                         && $context[$name] instanceof $type
@@ -543,20 +531,15 @@ class Application
                     return $result;
                 }
 
-                if ($result instanceof HttpResponse) {
-                    return Response::fromLegacy($result);
-                }
-
                 throw new \RuntimeException(sprintf(
-                    'Controller must return a %s or %s, got %s.',
+                    'Controller must return a %s, got %s.',
                     ResponseInterface::class,
-                    HttpResponse::class,
                     is_object($result) ? get_class($result) : gettype($result)
                 ));
             };
 
-            // Create the PSR-15 pipeline
-            $pipeline = new MiddlewarePipeline($middlewareList, new LegacyHandlerAdapter($dispatchCallback));
+            // Wrap dispatch callback as a PSR-15 RequestHandlerInterface
+            $pipeline = new MiddlewarePipeline($middlewareList, new CallbackRequestHandler($dispatchCallback));
 
             return $pipeline->handle($psr7Request);
         } catch (HttpException $e) {
@@ -579,23 +562,6 @@ class Application
         foreach ($method->getParameters() as $parameter) {
             $type = $parameter->getType();
             if ($type !== null && $type->getName() === ServerRequestInterface::class) {
-                return $parameter->getName();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Check if a method requires an old Lucent\Http\Request parameter.
-     *
-     * @param ReflectionMethod $method Method to check
-     * @return string|null Parameter name that should receive the Request, or null if none
-     */
-    private function requiresHttpRequest(ReflectionMethod $method): ?string
-    {
-        foreach ($method->getParameters() as $parameter) {
-            $type = $parameter->getType();
-            if ($type !== null && $type->getName() === Request::class) {
                 return $parameter->getName();
             }
         }
@@ -920,11 +886,9 @@ class Application
         ];
     }
 
-    public function registerFallback(HttpResponse|ResponseInterface $response): void
+    public function registerFallback(ResponseInterface $response): void
     {
-        $this->fallbackResponse = $response instanceof ResponseInterface
-            ? $response
-            : Response::fromLegacy($response);
+        $this->fallbackResponse = $response;
     }
 
     private function requiresOptions(ReflectionMethod $method): bool
@@ -1013,16 +977,12 @@ class Application
         return $response;
     }
 
-    public function registerErrorTemplate(int $code, HttpResponse|ResponseInterface $response): void
+    public function registerErrorTemplate(int $code, ResponseInterface $response): void
     {
-        if ($response instanceof ResponseInterface) {
-            $this->errorPageResponses[$code] = $response;
-        } else {
-            $this->errorPageResponses[$code] = Response::fromLegacy($response);
-        }
+        $this->errorPageResponses[$code] = $response;
     }
 
-    public function registerGlobalMiddleware(Middleware|MiddlewareInterface|string $middleware): void
+    public function registerGlobalMiddleware(MiddlewareInterface|string $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
     }

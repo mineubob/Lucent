@@ -377,7 +377,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         foreach ($server as $key => $value) {
             if (str_starts_with($key, 'HTTP_')) {
                 $name = str_replace('_', '-', substr($key, 5));
-                $name = ucwords($name, '-');
+                $name = ucwords(strtolower($name), '-');
                 if (is_string($value)) {
                     $headers[$name] = [$value];
                 }

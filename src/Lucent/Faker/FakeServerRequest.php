@@ -92,6 +92,44 @@ final class FakeServerRequest extends ServerRequest
         return $this->fakeData[$key] ?? $default;
     }
 
+    /**
+     * No-op for backward compatibility with the old FakeRequest API.
+     *
+     * @return void
+     */
+    public function reInitializeRequestData(): void
+    {
+    }
+
+    /**
+     * Validation errors from the most recent validation.
+     *
+     * @var array<string, string>
+     */
+    private array $validationErrors = [];
+
+    /**
+     * Validate the fake data against rules.
+     *
+     * @param \Lucent\Validation\Rule|string|array $rules
+     * @return bool
+     */
+    public function validate(\Lucent\Validation\Rule|string|array $rules): bool
+    {
+        $this->validationErrors = \Lucent\Validation\Rule::validateData($this->fakeData, $rules);
+        return $this->validationErrors === [];
+    }
+
+    /**
+     * Get validation errors from the most recent validation.
+     *
+     * @return array
+     */
+    public function getValidationErrors(): array
+    {
+        return $this->validationErrors;
+    }
+
     // ─── FakeRequest-compatible API ─────────────────────────────────────
 
     /**

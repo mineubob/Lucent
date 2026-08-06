@@ -10,7 +10,7 @@ use Psr\Http\Server\RequestHandlerInterface;
  * PSR-15 middleware pipeline.
  *
  * Chains PSR-15 middleware, with the final fallback handler being
- * the controller dispatch wrapped in LegacyHandlerAdapter.
+ * the controller dispatch.
  */
 class MiddlewarePipeline implements RequestHandlerInterface
 {

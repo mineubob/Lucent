@@ -4,6 +4,8 @@
 
 Lucent ships a **PSR-18** (`psr/http-client`) compliant HTTP client backed by cURL. It reuses Lucent's PSR-7/17 message implementations, so requests and responses are standard `Psr\Http\Message\RequestInterface` / `ResponseInterface` objects.
 
+The transport is pluggable: by default requests go through a cURL-backed handler, and the `stream => true` per-request option routes to a PHP stream-wrapper handler for true incremental response streaming (see [Streaming responses](#streaming-responses)).
+
 ---
 
 ## Quick Start
@@ -98,7 +100,7 @@ $response = Http::post('https://api.example.com/users', 'name=Jane&role=admin');
 
 ## Per-Request Options
 
-Per-request options are passed as an array to the verb methods. Supported keys: `sink`, `timeout`, `verify_ssl`, `headers`, `curl`, `user_agent`, `basic_auth`.
+Per-request options are passed as an array to the verb methods. Supported keys: `sink`, `timeout`, `verify_ssl`, `headers`, `curl`, `user_agent`, `basic_auth`, `stream`, `progress`.
 
 ### Sink (write body to disk / stream)
 
@@ -168,6 +170,29 @@ $response = Http::post('https://example.com/upload', $data, [
     },
 ]);
 ```
+
+### Streaming responses
+
+By default the client buffers the entire response body before returning. For large or long-lived responses (e.g. server-sent events, chunked downloads) you can opt into **true incremental streaming** with `stream => true`:
+
+```php
+$response = Http::get('https://example.com/events', [], ['stream' => true]);
+
+$body = $response->getBody();
+while (!$body->eof()) {
+    $line = $body->read(1024);
+    // process each chunk as it arrives
+}
+```
+
+With `stream => true` the response body is the **live transport stream** — data is read as it arrives, so memory stays flat regardless of response size. This comes with trade-offs:
+
+- The body is **one-shot and non-seekable** — you can only read it forward, once. You cannot rewind, `(string) $body`, or `json_decode((string) $body)` after reading.
+- The response is **not reusable** — the underlying socket is consumed by reading the body.
+- The `curl` and `progress` options are **not supported** on the stream path (the stream transport ignores cURL options and has no progress callback).
+- Requires `allow_url_fopen` (the stream transport uses PHP's HTTP stream wrapper rather than cURL).
+
+For buffered responses (the default), the body is a seekable `php://temp` stream and can be read, rewound, and cast to string freely.
 
 ---
 

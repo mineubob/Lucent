@@ -3,8 +3,6 @@
 namespace Lucent\Http\Message;
 
 use Generator;
-use Lucent\Http\EventStream\EventStreamResponse;
-use Lucent\Http\HttpResponse;
 use Lucent\Http\Message\Stream\CallbackStream;
 use Lucent\Http\Message\Stream\IteratorStream;
 use Psr\Http\Message\ResponseInterface;
@@ -102,53 +100,6 @@ class Response extends AbstractMessage implements ResponseInterface
 
         $response->withHeaderInternal('Content-Type', 'application/json; charset=utf-8');
         foreach ($headers as $name => $value) {
-            $response->withHeaderInternal($name, $value);
-        }
-
-        return $response;
-    }
-
-    /**
-     * Create a PSR-7 Response from a legacy Lucent\Http\HttpResponse.
-     *
-     * Handles HttpResponse, JsonResponse, RedirectResponse, EventStreamResponse.
-     *
-     * @param HttpResponse $legacy The legacy response to convert
-     * @return self
-     * @deprecated Use the new PSR-7 Response API directly
-     */
-    public static function fromLegacy(HttpResponse $legacy): static
-    {
-        trigger_error(
-            'Lucent\Http\Message\Response::fromLegacy() is deprecated. Return a PSR-7 Response directly instead.',
-            E_USER_DEPRECATED
-        );
-
-        $response = new static();
-        $response->statusCode = $legacy->status();
-        $response->reasonPhrase = self::PHRASES[$legacy->status()] ?? '';
-
-        // Handle EventStreamResponse — wrap its callback in a CallbackStream
-        if ($legacy instanceof EventStreamResponse) {
-            $callback = (new \ReflectionClass($legacy))
-                ->getProperty('callback')
-                ->getValue($legacy);
-
-            $response->setBody(new CallbackStream($callback));
-            $response->withHeaderInternal('Content-Type', 'text/event-stream');
-            $response->withHeaderInternal('Cache-Control', 'no-cache, no-store, must-revalidate');
-            $response->withHeaderInternal('X-Accel-Buffering', 'no');
-            $response->withHeaderInternal('Connection', 'keep-alive');
-            return $response;
-        }
-
-        // Generic HttpResponse (handles HttpResponse, JsonResponse, RedirectResponse)
-        $body = $legacy->body();
-        if ($body !== null) {
-            $response->setBody(Stream::fromString($body));
-        }
-
-        foreach ($legacy->headers() as $name => $value) {
             $response->withHeaderInternal($name, $value);
         }
 

@@ -2,11 +2,11 @@
 
 namespace Lucent\Http\Client;
 
-use Lucent\Facades\Log;
-use Lucent\Http\Client\Exception\NetworkException;
 use Lucent\Http\Client\Exception\RequestException;
+use Lucent\Http\Client\Handler\CurlHandler;
+use Lucent\Http\Client\Handler\HandlerInterface;
+use Lucent\Http\Client\Handler\StreamHandler;
 use Lucent\Http\Message\Factory\HttpFactory;
-use Lucent\Http\Message\Response;
 use Lucent\Http\Message\Stream;
 use Lucent\Http\Message\Uri;
 use Lucent\Http\Message\UriResolver;
@@ -17,7 +17,7 @@ use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
 /**
- * PSR-18 HTTP client backed by cURL.
+ * PSR-18 HTTP client.
  *
  * Implements {@see ClientInterface} and reuses Lucent's PSR-7/17 message
  * implementations. Configuration is passed as an immutable config array:
@@ -35,14 +35,16 @@ use Psr\Http\Message\UriInterface;
  * ```
  *
  * Per-request options (sink, timeout, verify_ssl, headers, curl, user_agent,
- * basic_auth) are passed as an options array — see the verb methods and
- * {@see sendRequest()}.
+ * basic_auth, stream, progress) are passed as an options array — see the verb
+ * methods and {@see sendRequest()}.
+ *
+ * The transport is pluggable: `sendRequest()` resolves the URI, merges config
+ * defaults, then dispatches to a {@see HandlerInterface}. By default the
+ * cURL-backed {@see CurlHandler} is used; the `stream => true` option routes to
+ * the {@see StreamHandler} for true incremental response streaming.
  */
 final class Psr18Client implements ClientInterface
 {
-    /** @var string Log channel used by the client */
-    private const LOG_CHANNEL = 'lucent.http';
-
     /** @var string Option key for the sink (file path, resource, or stream) */
     public const OPTION_SINK = 'sink';
 
@@ -70,32 +72,8 @@ final class Psr18Client implements ClientInterface
     /** @var string Option key for a per-request progress callback */
     public const OPTION_PROGRESS = 'progress';
 
-    /**
-     * cURL options that conflict with the client's own handling and must not
-     * be set via `curl_options`.
-     *
-     * @var array<int, string>
-     */
-    private const CONFLICTING_CURL_OPTIONS = [
-        CURLOPT_URL => 'CURLOPT_URL',
-        CURLOPT_CUSTOMREQUEST => 'CURLOPT_CUSTOMREQUEST',
-        CURLOPT_RETURNTRANSFER => 'CURLOPT_RETURNTRANSFER',
-        CURLOPT_FILE => 'CURLOPT_FILE',
-        CURLOPT_WRITEFUNCTION => 'CURLOPT_WRITEFUNCTION',
-        CURLOPT_HEADERFUNCTION => 'CURLOPT_HEADERFUNCTION',
-        CURLOPT_POSTFIELDS => 'CURLOPT_POSTFIELDS',
-        CURLOPT_READFUNCTION => 'CURLOPT_READFUNCTION',
-        CURLOPT_INFILESIZE => 'CURLOPT_INFILESIZE',
-        CURLOPT_HTTPHEADER => 'CURLOPT_HTTPHEADER',
-        CURLOPT_USERPWD => 'CURLOPT_USERPWD',
-        CURLOPT_USERAGENT => 'CURLOPT_USERAGENT',
-        CURLOPT_TIMEOUT => 'CURLOPT_TIMEOUT',
-        CURLOPT_SSL_VERIFYPEER => 'CURLOPT_SSL_VERIFYPEER',
-        CURLOPT_SSL_VERIFYHOST => 'CURLOPT_SSL_VERIFYHOST',
-        CURLOPT_NOPROGRESS => 'CURLOPT_NOPROGRESS',
-        CURLOPT_XFERINFOFUNCTION => 'CURLOPT_XFERINFOFUNCTION',
-        CURLOPT_PROGRESSFUNCTION => 'CURLOPT_PROGRESSFUNCTION',
-    ];
+    /** @var string Option key for streaming the response body */
+    public const OPTION_STREAM = 'stream';
 
     /** @var UriInterface|null Normalized base URI */
     private readonly ?UriInterface $baseUri;
@@ -121,12 +99,23 @@ final class Psr18Client implements ClientInterface
     /** @var HttpFactory PSR-17 factory used to build requests/streams */
     private readonly HttpFactory $factory;
 
+    /** @var HandlerInterface The default (cURL-backed) transport */
+    private readonly HandlerInterface $defaultHandler;
+
+    /** @var HandlerInterface The streaming transport */
+    private readonly HandlerInterface $streamHandler;
+
     /**
      * @param array<string, mixed> $config Client configuration
+     * @param HandlerInterface|null $defaultHandler The default (cURL) transport
+     * @param HandlerInterface|null $streamHandler The streaming transport
      * @throws \InvalidArgumentException On unknown keys, wrong types, or invalid values
      */
-    public function __construct(array $config = [])
-    {
+    public function __construct(
+        array $config = [],
+        ?HandlerInterface $defaultHandler = null,
+        ?HandlerInterface $streamHandler = null
+    ) {
         $this->validateConfig($config);
 
         $baseUri = $config['base_uri'] ?? null;
@@ -141,6 +130,9 @@ final class Psr18Client implements ClientInterface
         $this->headers = $config['headers'] ?? [];
         $this->curlOptions = $config['curl_options'] ?? [];
         $this->factory = new HttpFactory();
+
+        $this->defaultHandler = $defaultHandler ?? new CurlHandler();
+        $this->streamHandler = $streamHandler ?? new StreamHandler();
     }
 
     /**
@@ -153,36 +145,33 @@ final class Psr18Client implements ClientInterface
      *     'sink'      => '/tmp/file.bin',
      *     'timeout'   => 5,
      *     'verify_ssl'=> false,
+     *     'stream'    => true,
      * ]);
      * ```
      *
-     * @param array<string, mixed> $options Per-request options (sink, timeout, verify_ssl, headers, query, curl, user_agent, basic_auth)
-     * @throws NetworkException On transport-level failures (DNS, connection, timeout)
-     * @throws RequestException On request-level failures (invalid URL, cURL errors)
+     * @param array<string, mixed> $options Per-request options (sink, timeout, verify_ssl, headers, query, curl, user_agent, basic_auth, stream, progress)
+     * @throws \Psr\Http\Client\NetworkExceptionInterface On transport-level failures (DNS, connection, timeout)
+     * @throws \Psr\Http\Client\ClientExceptionInterface On request-level failures (invalid URL, cURL errors)
      */
     public function sendRequest(RequestInterface $request, array $options = []): ResponseInterface
     {
         $this->validateOptions($options);
 
-        $uri = $request->getUri();
-
         // Resolve the full URL against the configured base URI. Only relative
         // URIs (no scheme) are resolved; absolute URIs override the base.
+        $uri = $request->getUri();
         if ($this->baseUri !== null && $uri->getScheme() === '' && $uri->getHost() === '') {
             $uri = UriResolver::resolve($this->baseUri, $uri);
             $request = $request->withUri($uri);
         }
 
-        $url = (string) $uri;
-        $method = $request->getMethod();
+        $streaming = ($options['stream'] ?? false) === true;
 
-        Log::channel(self::LOG_CHANNEL)->info("Starting {$method} request to {$url}");
-
-        $ch = curl_init();
-        if ($ch === false) {
-            throw new RequestException('Unable to initialize cURL', $request);
-        }
-
+        // Merge config defaults into the options (per-request wins). The
+        // associative `headers` and `curl` options are deep-merged so
+        // per-request keys add to (not replace) config defaults. Config curl
+        // defaults are skipped on the stream path so a streaming request is
+        // not rejected for curl options it never asked for.
         $options = array_merge([
             'timeout' => $this->timeout,
             'verify_ssl' => $this->verifySsl,
@@ -192,139 +181,23 @@ final class Psr18Client implements ClientInterface
             'curl' => [],
         ], $options);
 
-        $curl = [
-            CURLOPT_URL => $url,
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => $options['timeout'],
-            CURLOPT_USERAGENT => $options['user_agent'],
-            CURLOPT_SSL_VERIFYPEER => $options['verify_ssl'],
-            CURLOPT_SSL_VERIFYHOST => $options['verify_ssl'] ? 2 : 0,
-        ];
-
-        // Headers: defaults merged with per-request headers, then request headers (request wins).
-        $headers = array_merge($this->headers, $options['headers']);
-        foreach ($request->getHeaders() as $name => $values) {
-            $headers[$name] = implode(', ', $values);
+        $options['headers'] = array_merge($this->headers, $options['headers'] ?? []);
+        if (!$streaming) {
+            // array_replace (not array_merge) — CURLOPT_* keys are integers
+            // and array_merge would renumber them, breaking the conflict
+            // check and curl_setopt_array.
+            $options['curl'] = array_replace($this->curlOptions, $options['curl'] ?? []);
         }
 
-        $headerLines = [];
-        foreach ($headers as $name => $value) {
-            $headerLines[] = "{$name}: {$value}";
-        }
-        if (!empty($headerLines)) {
-            $curl[CURLOPT_HTTPHEADER] = $headerLines;
-        }
+        // Dispatch per-request: stream => true routes to the streaming
+        // handler; everything else uses the default (cURL) handler.
+        $handler = $streaming ? $this->streamHandler : $this->defaultHandler;
 
-        // Basic auth.
-        $basicAuth = $options['basic_auth'];
-        if ($basicAuth !== null) {
-            $curl[CURLOPT_USERPWD] = $basicAuth[0] . ':' . $basicAuth[1];
-        }
+        // Let the handler validate its own options (conflicting curl options,
+        // unsupported options) against the merged options.
+        $handler->validateOptions($options);
 
-        // Request body. All bodies are streamed from the StreamInterface via
-        // CURLOPT_READFUNCTION — method-agnostic and never fully buffered.
-        // The read function returns '' at EOF (which libcurl treats as end of
-        // transfer). CURLOPT_INFILESIZE is set only when the size is known so
-        // libcurl sends Content-Length; when the stream size is unknown (e.g.
-        // IteratorStream) it falls back to Transfer-Encoding: chunked.
-        $body = $request->getBody();
-        $bodySize = $body->getSize();
-
-        if ($bodySize === null || $bodySize > 0) {
-            $curl[CURLOPT_UPLOAD] = true;
-            if ($bodySize !== null) {
-                $curl[CURLOPT_INFILESIZE] = $bodySize;
-            }
-            $curl[CURLOPT_READFUNCTION] = function ($ch, $fd, int $length) use ($body): string {
-                return $body->read($length);
-            };
-        }
-
-        // Sink: always write the body via WRITEFUNCTION into a stream. The
-        // default is a php://temp stream (seekable, memory-efficient); a
-        // configured sink (path/resource/stream) receives the body instead.
-        // CURLOPT_RETURNTRANSFER is never used — it conflicts with streaming.
-        $sink = $this->prepareSink($options['sink'] ?? null);
-        $curl[CURLOPT_WRITEFUNCTION] = function ($ch, string $data) use ($sink): int {
-            return $sink->write($data);
-        };
-
-        // Custom per-request curl options merged over defaults.
-        foreach ($options['curl'] as $option => $value) {
-            $curl[$option] = $value;
-        }
-
-        // Progress callback (modern XFERINFOFUNCTION API). The callback
-        // receives ($downloaded, $total, $uploaded, $uploadTotal) —
-        // download-first to match the common progress-bar use case, with
-        // upload values appended for callers that need them. PHP ignores
-        // extra args, so 2-arg callbacks keep working unchanged.
-        if (isset($options['progress'])) {
-            $curl[CURLOPT_NOPROGRESS] = false;
-            $curl[CURLOPT_XFERINFOFUNCTION] = function ($ch, $dlTotal, $dlNow, $ulTotal, $ulNow) use ($options): int {
-                ($options['progress'])($dlNow, $dlTotal, $ulNow, $ulTotal);
-                return 0;
-            };
-        }
-
-        curl_setopt_array($ch, $curl);
-
-        // Capture response headers.
-        $responseHeaders = [];
-        curl_setopt($ch, CURLOPT_HEADERFUNCTION, function ($ch, $header) use (&$responseHeaders) {
-            $length = strlen($header);
-            $trimmed = trim($header);
-            if ($trimmed === '' || str_starts_with($trimmed, 'HTTP/')) {
-                return $length;
-            }
-
-            $colon = strpos($trimmed, ':');
-            if ($colon === false) {
-                return $length;
-            }
-
-            $name = trim(substr($trimmed, 0, $colon));
-            $value = trim(substr($trimmed, $colon + 1));
-            $responseHeaders[$name][] = $value;
-
-            return $length;
-        });
-
-        $result = curl_exec($ch);
-
-        if ($result === false) {
-            $errno = curl_errno($ch);
-            $error = curl_error($ch);
-            unset($ch);
-
-            Log::channel(self::LOG_CHANNEL)->error("cURL Error ({$errno}): {$error}");
-
-            throw $this->createException($errno, $error, $request);
-        }
-
-        $statusCode = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        unset($ch);
-
-        // Rewind the sink so the response body is readable from the start.
-        if ($sink->isSeekable()) {
-            $sink->rewind();
-        }
-
-        // Build the PSR-7 response.
-        $response = new Response();
-        $response = $response->withStatus($statusCode);
-
-        foreach ($responseHeaders as $name => $values) {
-            $response = $response->withAddedHeader($name, $values);
-        }
-
-        $response = $response->withBody($sink);
-
-        Log::channel(self::LOG_CHANNEL)->debug("Completed {$method} request to {$url} with status {$statusCode}");
-
-        return $response;
+        return $handler->send($request, $options);
     }
 
     // ─── Verb Convenience Methods ───────────────────────────────────────
@@ -455,66 +328,6 @@ final class Psr18Client implements ClientInterface
     }
 
     /**
-     * Prepare the response body sink.
-     *
-     * Defaults to a seekable php://temp stream. A configured sink (string
-     * path, resource, or StreamInterface) receives the body instead.
-     *
-     * @param string|resource|StreamInterface|null $sink
-     */
-    private function prepareSink(mixed $sink): StreamInterface
-    {
-        if ($sink === null) {
-            return Stream::fromResource(fopen('php://temp', 'w+'));
-        }
-
-        if ($sink instanceof StreamInterface) {
-            return $sink;
-        }
-
-        if (is_resource($sink)) {
-            return Stream::fromResource($sink);
-        }
-
-        if (is_string($sink)) {
-            $resource = fopen($sink, 'w+');
-            if ($resource === false) {
-                throw new \InvalidArgumentException("Unable to open sink file: {$sink}");
-            }
-            return Stream::fromResource($resource);
-        }
-
-        throw new \InvalidArgumentException('Sink must be a file path, resource, or StreamInterface');
-    }
-
-    /**
-     * Map a cURL error to a PSR-18 exception.
-     *
-     * Transport-level failures (DNS, proxy, connect, timeout) map to
-     * {@see NetworkException}; everything else to {@see RequestException}.
-     */
-    private function createException(int $errno, string $error, RequestInterface $request): RequestException
-    {
-        $networkErrors = [
-            CURLE_COULDNT_RESOLVE_HOST,
-            CURLE_COULDNT_RESOLVE_PROXY,
-            CURLE_COULDNT_CONNECT,
-            CURLE_OPERATION_TIMEDOUT,
-            CURLE_SSL_CONNECT_ERROR,
-            CURLE_RECV_ERROR,
-            CURLE_SEND_ERROR,
-        ];
-
-        $message = "cURL error {$errno}: {$error}";
-
-        if (in_array($errno, $networkErrors, true)) {
-            return new NetworkException($message, $request);
-        }
-
-        return new RequestException($message, $request);
-    }
-
-    /**
      * Validate the config array, throwing on unknown keys or invalid values.
      *
      * @param array<string, mixed> $config
@@ -565,12 +378,14 @@ final class Psr18Client implements ClientInterface
             throw new \InvalidArgumentException('curl_options must be an array');
         }
 
+        // Fail fast on config-level curl options that conflict with the
+        // handler's own transport handling (single source of truth lives in
+        // CurlHandler so per-request `curl` options are checked identically).
         if (array_key_exists('curl_options', $config)) {
-            foreach (array_keys($config['curl_options']) as $option) {
-                if (isset(self::CONFLICTING_CURL_OPTIONS[$option])) {
+            foreach ($config['curl_options'] as $option => $_) {
+                if (isset(CurlHandler::CONFLICTING_CURL_OPTIONS[$option])) {
                     throw new \InvalidArgumentException(
-                        'curl_options must not override ' . self::CONFLICTING_CURL_OPTIONS[$option]
-                        . ' — it is managed by Psr18Client'
+                        'curl_options must not override ' . CurlHandler::CONFLICTING_CURL_OPTIONS[$option]
                     );
                 }
             }
@@ -585,7 +400,7 @@ final class Psr18Client implements ClientInterface
      */
     private function validateOptions(array $options): void
     {
-        $allowed = ['sink', 'timeout', 'verify_ssl', 'headers', 'curl', 'user_agent', 'basic_auth', 'query', 'progress'];
+        $allowed = ['sink', 'timeout', 'verify_ssl', 'headers', 'curl', 'user_agent', 'basic_auth', 'query', 'progress', 'stream'];
 
         foreach ($options as $key => $value) {
             if (!in_array($key, $allowed, true)) {
@@ -593,8 +408,8 @@ final class Psr18Client implements ClientInterface
             }
         }
 
-        if (array_key_exists('progress', $options) && !is_callable($options['progress'])) {
-            throw new \InvalidArgumentException('progress must be a callable');
+        if (array_key_exists('stream', $options) && !is_bool($options['stream'])) {
+            throw new \InvalidArgumentException('stream must be a boolean');
         }
 
         if (array_key_exists('timeout', $options) && (!is_int($options['timeout']) || $options['timeout'] <= 0)) {
@@ -609,19 +424,8 @@ final class Psr18Client implements ClientInterface
             throw new \InvalidArgumentException('headers must be an array');
         }
 
-        if (array_key_exists('curl', $options)) {
-            if (!is_array($options['curl'])) {
-                throw new \InvalidArgumentException('curl must be an array');
-            }
-
-            foreach (array_keys($options['curl']) as $option) {
-                if (isset(self::CONFLICTING_CURL_OPTIONS[$option])) {
-                    throw new \InvalidArgumentException(
-                        'curl must not override ' . self::CONFLICTING_CURL_OPTIONS[$option]
-                        . ' — it is managed by Psr18Client'
-                    );
-                }
-            }
+        if (array_key_exists('curl', $options) && !is_array($options['curl'])) {
+            throw new \InvalidArgumentException('curl must be an array');
         }
 
         if (array_key_exists('basic_auth', $options) && $options['basic_auth'] !== null) {

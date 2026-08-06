@@ -142,14 +142,15 @@ class GenerateDocumentationCommand
             $validationRules = $ruleInstance->setup();
 
             // Generate validation example using faker
-            $failRequest = Faker::request()->failing($endpoint->rule);
-            if (!$failRequest->validate($endpoint->rule)) {
+            $failRequest = Faker::serverRequest()->failing($endpoint->rule);
+            $errors = \Lucent\Validation\Rule::validateRequest($failRequest, $endpoint->rule);
+            if ($errors !== []) {
                 $examples['400'] = [
                     'message' => 'Validation failed',
                     'outcome' => false,
                     'status' => 400,
                     'content' => [],
-                    'errors' => $failRequest->getValidationErrors(),
+                    'errors' => $errors,
                 ];
             }
         }

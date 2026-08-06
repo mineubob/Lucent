@@ -4,16 +4,22 @@ namespace Unit\Middleware;
 
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\ServerRequest;
+use Lucent\Http\Middleware\CallbackRequestHandler;
 use Lucent\Http\Middleware\MiddlewarePipeline;
 use PHPUnit\Framework\TestCase;
 
 class MiddlewarePipelineTest extends TestCase
 {
-    public function test_empty_pipeline_passes_to_handler(): void
+    private function createHandler(): \Psr\Http\Server\RequestHandlerInterface
     {
-        $handler = new \Lucent\Http\Middleware\LegacyHandlerAdapter(function (ServerRequest $req) {
+        return new CallbackRequestHandler(function (ServerRequest $req) {
             return (new Response())->withStatus(200);
         });
+    }
+
+    public function test_empty_pipeline_passes_to_handler(): void
+    {
+        $handler = $this->createHandler();
 
         $pipeline = new MiddlewarePipeline([], $handler);
         $request = new ServerRequest();
@@ -25,9 +31,7 @@ class MiddlewarePipelineTest extends TestCase
 
     public function test_middleware_modifies_request(): void
     {
-        $handler = new \Lucent\Http\Middleware\LegacyHandlerAdapter(function (ServerRequest $req) {
-            return (new Response())->withStatus(200);
-        });
+        $handler = $this->createHandler();
 
         $pipeline = new MiddlewarePipeline(
             [
@@ -62,9 +66,7 @@ class MiddlewarePipelineTest extends TestCase
 
     public function test_middleware_can_return_early(): void
     {
-        $handler = new \Lucent\Http\Middleware\LegacyHandlerAdapter(function (ServerRequest $req) {
-            return (new Response())->withStatus(200);
-        });
+        $handler = $this->createHandler();
 
         $pipeline = new MiddlewarePipeline(
             [

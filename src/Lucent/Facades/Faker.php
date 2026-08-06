@@ -2,7 +2,6 @@
 
 namespace Lucent\Facades;
 
-use Lucent\Faker\FakeRequest;
 use Lucent\Faker\FakeServerRequest;
 use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
@@ -10,17 +9,20 @@ use Lucent\Filesystem\Folder;
 class Faker
 {
     /**
-     * Create a fake HTTP request (old Lucent Request API)
+     * Create a fake PSR-7 ServerRequest.
      *
-     * @return FakeRequest
+     * @param string $method HTTP method
+     * @param array $body Parsed body parameters
+     * @param array $headers Headers as [name => value, ...]
+     * @return FakeServerRequest
      */
-    public static function request(): FakeRequest
+    public static function request(string $method = 'GET', array $body = [], array $headers = []): FakeServerRequest
     {
-        return new FakeRequest();
+        return self::serverRequest($method, $body, $headers);
     }
 
     /**
-     * Create a fake PSR-7 ServerRequest
+     * Create a fake PSR-7 ServerRequest.
      *
      * @param string $method HTTP method
      * @param array $body Parsed body parameters

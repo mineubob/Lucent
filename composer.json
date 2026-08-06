@@ -58,7 +58,8 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Lucent\\Tests\\": "tests/"
+      "Lucent\\Tests\\": "tests/",
+      "Unit\\": "tests/Unit/"
     }
   },
   "bin": [

@@ -69,11 +69,8 @@ class AuthMiddleware implements MiddlewareInterface
 | PSR-7 Stream | `Lucent\Http\Message\Stream\CallbackStream` | `EventStreamResponse` callback mechanism |
 | PSR-7 Stream | `Lucent\Http\Message\Stream\IteratorStream` | `StreamController::stream()` generator |
 | PSR-15 Middleware | `Lucent\Http\Middleware\MiddlewarePipeline` | — |
-| PSR-15 Middleware | `Lucent\Http\Middleware\LegacyMiddlewareAdapter` | (wraps old `Lucent\Middleware`) |
-| PSR-15 Handler | `Lucent\Http\Middleware\LegacyHandlerAdapter` | (wraps controller dispatch) |
 | PSR-17 Factory | `Lucent\Http\Message\Factory\HttpFactory` | — |
 | Convenience | `Lucent\Http\Message\Factory\LucentResponseFactory` | — |
-| Adapter | `Lucent\Http\Message\Adapter\RequestAdapter` | — |
 | PSR-18 Client | `Lucent\Http\Client\Psr18Client` | (new — see [HTTP Client guide](./http-client.md)) |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\NetworkException` | — |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\RequestException` | — |
@@ -302,8 +299,6 @@ class AuthMiddleware implements Middleware
 }
 ```
 
-Old `Lucent\Middleware` subclasses still work via `LegacyMiddlewareAdapter` (emits `E_USER_DEPRECATED`).
-
 ---
 
 ## Streaming Responses
@@ -392,29 +387,9 @@ New test files are available in `tests/Unit/Message/`:
 - `UriTest.php` — URI parsing and manipulation
 - `ResponseTest.php` — Response creation and convenience methods
 - `ServerRequestTest.php` — Server request creation and attributes
-- `ResponseFromLegacyTest.php` — Legacy-to-PSR-7 conversion
 - `Factory/HttpFactoryTest.php` — PSR-17 factory
 - `Factory/LucentResponseFactoryTest.php` — Convenience factory
 - `Middleware/MiddlewarePipelineTest.php` — PSR-15 pipeline
-- `Middleware/LegacyHandlerAdapterTest.php` — Legacy handler adapter
-
----
-
-## Deprecated Classes
-
-The following classes are deprecated and will be removed in a future major version:
-
-| Class | Replacement |
-|---|---|
-| `Lucent\Http\Request` | `Lucent\Http\Message\ServerRequest` |
-| `Lucent\Http\HttpResponse` | `Lucent\Http\Message\Response` |
-| `Lucent\Http\JsonResponse` | `Lucent\Http\Message\Response::json()` / `withJsonEnvelope()` |
-| `Lucent\Http\RedirectResponse` | `Lucent\Http\Message\Response::withRedirect()` |
-| `Lucent\Http\EventStream\EventStreamResponse` | `Lucent\Http\Message\Response::withEventStream()` |
-| `Lucent\Http\StreamController` | `Lucent\Http\Message\Response::withEventStream()` |
-| `Lucent\Middleware` | PSR-15 `MiddlewareInterface` |
-
-All deprecated classes emit `E_USER_DEPRECATED` warnings and remain fully functional.
 
 ---
 
@@ -424,14 +399,11 @@ All deprecated classes emit `E_USER_DEPRECATED` warnings and remain fully functi
 Controller returns ResponseInterface
          │
          ▼
-LegacyHandlerAdapter (detect-and-convert)
-  ├─ ResponseInterface → passthrough (zero cost)
-  └─ HttpResponse → Response::fromLegacy() (deprecated bridge)
+MiddlewarePipeline (PSR-15)
+  └─ PSR-15 MiddlewareInterface → direct
          │
          ▼
-MiddlewarePipeline (PSR-15)
-  ├─ PSR-15 MiddlewareInterface → direct
-  └─ Lucent\Middleware → LegacyMiddlewareAdapter (deprecated bridge)
+Controller dispatch (RequestHandlerInterface)
          │
          ▼
 Application::executeHttpRequest()

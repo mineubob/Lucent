@@ -80,7 +80,8 @@ class ApiGenerationTest extends TestCase
         namespace App\Controllers;
         
         use Lucent\Http\Attributes\ApiEndpoint;
-        use Lucent\Http\Attributes\ApiResponse;use Lucent\Http\JsonResponse;use Lucent\Http\Request;
+        use Lucent\Http\Attributes\ApiResponse;
+        use Lucent\Http\Message\ServerRequest;
         use App\Rules\SignupRule;
 
         class RegistrationController
@@ -96,7 +97,7 @@ class ApiGenerationTest extends TestCase
                 message: "Successfully created your new account, please check your email to confirm accounts activation.",
                 content: ["redirect","/home"]
             )]
-            public function register(Request $request)
+            public function register(ServerRequest $request)
             {
             
             }

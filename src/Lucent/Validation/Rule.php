@@ -5,7 +5,6 @@ namespace Lucent\Validation;
 use InvalidArgumentException;
 use Lucent\Application;
 use Lucent\Facades\Regex;
-use Lucent\Http\Request;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
 use ReflectionException;
@@ -41,9 +40,9 @@ abstract class Rule
     /**
      * The request that initiated this validation, if available
      *
-     * @var Request|ServerRequestInterface|null
+     * @var ServerRequestInterface|null
      */
-    protected Request|ServerRequestInterface|null $currentRequest = null;
+    protected ?ServerRequestInterface $currentRequest = null;
 
     /**
      * Set up the validation rules
@@ -319,7 +318,7 @@ abstract class Rule
      * @param Request|ServerRequestInterface|null $request The current HTTP request
      * @return void
      */
-    public function setCallingRequest(Request|ServerRequestInterface|null &$request): void
+    public function setCallingRequest(?ServerRequestInterface &$request): void
     {
         $this->currentRequest = &$request;
     }
@@ -384,10 +383,8 @@ abstract class Rule
     }
 
     /**
-     * Store a value in the request context.
+     * Store a value in the request context (PSR-7 only).
      *
-     * Works with both old Request (mutable $context array) and
-     * PSR-7 ServerRequestInterface (immutable withAttribute()).
      * Uses the reference from setCallingRequest() so the caller's
      * variable is updated automatically.
      *
@@ -397,13 +394,13 @@ abstract class Rule
      */
     protected function setContext(string $key, mixed $value): void
     {
-        if ($this->currentRequest instanceof Request) {
-            $this->currentRequest->context[$key] = $value;
-        } elseif ($this->currentRequest instanceof ServerRequestInterface) {
-            $context = $this->currentRequest->getAttribute('context', []);
-            $context[$key] = $value;
-            $this->currentRequest = $this->currentRequest->withAttribute('context', $context);
+        if ($this->currentRequest === null) {
+            return;
         }
+
+        $context = $this->currentRequest->getAttribute('context', []);
+        $context[$key] = $value;
+        $this->currentRequest = $this->currentRequest->withAttribute('context', $context);
     }
 
     /**

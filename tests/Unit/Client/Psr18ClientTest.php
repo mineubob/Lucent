@@ -3,12 +3,14 @@
 namespace Unit\Client;
 
 use Lucent\Http\Client\Exception\NetworkException;
+use Lucent\Http\Client\Handler\CurlHandler;
 use Lucent\Http\Client\Psr18Client;
 use Lucent\Http\Message\Factory\HttpFactory;
 use Lucent\Http\Message\Stream;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
+use Unit\Client\Handler\MockHandler;
 
 class Psr18ClientTest extends TestCase
 {
@@ -513,5 +515,95 @@ class Psr18ClientTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->client(['base_uri' => 'http://']);
+    }
+
+    public function test_stream_option_dispatches_to_stream_handler(): void
+    {
+        $client = $this->client(['base_uri' => self::$baseUrl]);
+
+        $response = $client->get('/stream', [], ['stream' => true]);
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('3', $response->getHeaderLine('X-Chunks'));
+
+        // Live body — read incrementally.
+        $body = $response->getBody();
+        $this->assertFalse($body->isSeekable());
+
+        $contents = '';
+        while (!$body->eof()) {
+            $contents .= $body->read(6);
+        }
+        $this->assertSame('chunk1chunk2chunk3', $contents);
+    }
+
+    public function test_custom_handler_injection(): void
+    {
+        $handler = new MockHandler();
+
+        // The injected handler is used as the default transport.
+        $client = new Psr18Client(
+            ['base_uri' => self::$baseUrl],
+            $handler
+        );
+
+        $client->get('/echo');
+
+        $this->assertInstanceOf(\Psr\Http\Message\RequestInterface::class, $handler->request);
+        $this->assertSame('/echo', $handler->request->getUri()->getPath());
+    }
+
+    public function test_handler_receives_merged_defaults(): void
+    {
+        $handler = new MockHandler();
+
+        $client = new Psr18Client([
+            'base_uri' => self::$baseUrl,
+            'timeout' => 7,
+            'verify_ssl' => false,
+            'user_agent' => 'TestAgent/1.0',
+            'headers' => ['X-Default' => 'default-value'],
+            'curl_options' => [CURLOPT_FRESH_CONNECT => true],
+        ], $handler);
+
+        $client->get('/echo', [], ['headers' => ['X-Request' => 'request-value']]);
+
+        $this->assertSame(7, $handler->options['timeout']);
+        $this->assertFalse($handler->options['verify_ssl']);
+        $this->assertSame('TestAgent/1.0', $handler->options['user_agent']);
+
+        // Per-request headers are deep-merged over config defaults.
+        $this->assertSame('default-value', $handler->options['headers']['X-Default']);
+        $this->assertSame('request-value', $handler->options['headers']['X-Request']);
+
+        // Config curl options are merged into the per-request curl array.
+        $this->assertTrue($handler->options['curl'][CURLOPT_FRESH_CONNECT]);
+    }
+
+    public function test_stream_path_skips_config_curl_defaults(): void
+    {
+        $handler = new MockHandler();
+
+        $client = new Psr18Client([
+            'base_uri' => self::$baseUrl,
+            'curl_options' => [CURLOPT_FRESH_CONNECT => true],
+        ], new CurlHandler(), $handler);
+
+        $client->get('/stream', [], ['stream' => true]);
+
+        // The stream handler must not receive config curl defaults, or it
+        // would reject a streaming request the user never configured with curl.
+        $this->assertSame([], $handler->options['curl']);
+    }
+
+    public function test_handler_validate_options_runs(): void
+    {
+        $handler = new MockHandler();
+        $handler->reject = ['progress' => 'not-a-callable'];
+
+        $client = new Psr18Client(['base_uri' => self::$baseUrl], $handler);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $client->get('/echo', [], ['progress' => 'not-a-callable']);
     }
 }

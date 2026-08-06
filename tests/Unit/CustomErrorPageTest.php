@@ -49,10 +49,14 @@ class CustomErrorPageTest extends TestCase
 
         $routesContent = <<<'PHP'
         <?php
-        use App\Extensions\Http\ViewResponse;
         use Lucent\Facades\Route;
-            
-        Route::error(404,new ViewResponse('/404.html',404));
+        use Lucent\Http\Message\Response;
+        use Lucent\Http\Message\Stream;
+        
+        Route::error(404, (new Response())->withStatus(404)
+            ->withBody(Stream::fromString(file_get_contents(VIEWS . '/404.html')))
+            ->withHeader('Content-Type', 'text/html; charset=utf-8')
+        );
 
         PHP;
 
@@ -68,56 +72,7 @@ class CustomErrorPageTest extends TestCase
 
     private static function generateCustomHtmlResponse(): void
     {
-
-        $classContent = <<<'PHP'
-        <?php
-        /**
-         * Copyright Jack Harris
-         * Peninsula Interactive - policyManager
-         * Last Updated - 18/11/2023
-         */
-        
-        namespace App\Extensions\Http;
-        
-        use Lucent\Http\HttpResponse;
-        
-        class ViewResponse extends HttpResponse
-        {
-        
-            private string $path;        
-        
-            public function __construct(string $path, int $status = 200){
-                parent::__construct("",$status);
-        
-                $this->path = $path;
-            }
-        
-            public function body(): string|null
-            {
-                if(!file_exists(VIEWS.$this->path)){
-                    $this->statusCode = 500;
-                    return "500 FILE NOT FOUND";
-                }
-        
-                return file_get_contents(VIEWS.$this->path);
-            }
-
-            public function set_response_header(): void
-            {
-        
-                header("Content-Type: text/html; charset=utf-8");
-            }
-        }
-        PHP;
-
-        $path =  TEMP_ROOT.DIRECTORY_SEPARATOR."App".DIRECTORY_SEPARATOR. "Extensions" . DIRECTORY_SEPARATOR ."Http".DIRECTORY_SEPARATOR;
-
-        if (!is_dir($path)) {
-            mkdir($path, 0755, true);
-        }
-
-        file_put_contents($path . '/ViewResponse.php', $classContent);
-
+        // No custom class needed — Route::error() accepts PSR-7 Response directly
     }
 
     private static function generateCustom404Page(): void
