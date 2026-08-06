@@ -41,7 +41,7 @@ final class HttpFactory implements
      */
     public function createRequest(string $method, $uri): RequestInterface
     {
-        $uriString = $uri instanceof UriInterface ? $uri : Uri::fromString((string) $uri);
+        $uriString = $uri instanceof UriInterface ? $uri : Uri::fromString($uri);
         return new Request($method, $uriString);
     }
 
@@ -80,12 +80,22 @@ final class HttpFactory implements
     /**
      * Create a new stream from a string.
      *
+     * The stream is created with a temporary resource.
+     *
      * @param string $content String content with which to populate the stream
      * @return StreamInterface
      */
     public function createStream(string $content = ''): StreamInterface
     {
-        return Stream::fromString($content);
+        $resource = fopen('php://temp', 'w+');
+        if ($resource === false) {
+            throw new \RuntimeException('Unable to create temporary stream');
+        }
+        if ($content !== '') {
+            fwrite($resource, $content);
+            rewind($resource);
+        }
+        return Stream::fromResource($resource);
     }
 
     /**
@@ -95,12 +105,21 @@ final class HttpFactory implements
      * @param string $mode Mode with which to open the file (see fopen)
      * @return StreamInterface
      * @throws \RuntimeException If the file cannot be opened
+     * @throws \InvalidArgumentException If the mode is invalid
      */
     public function createStreamFromFile(string $filename, string $mode = 'r'): StreamInterface
     {
-        $resource = fopen($filename, $mode);
+        // Mirror PHP's fopen mode grammar: a base letter (r/w/a/x/c) followed
+        // by any combination of the +, b, e, and t flags (e.g. rb, r+b, wb).
+        if (!preg_match('/^[rwaxc][+bet]*$/', $mode)) {
+            throw new \InvalidArgumentException("Invalid file mode: $mode");
+        }
+
+        $resource = @fopen($filename, $mode);
         if ($resource === false) {
-            throw new \RuntimeException("Unable to open file: $filename");
+            $error = error_get_last();
+            $reason = $error['message'] ?? 'unknown error';
+            throw new \RuntimeException("Unable to open file: $filename ($reason)");
         }
         return Stream::fromResource($resource);
     }
@@ -108,12 +127,24 @@ final class HttpFactory implements
     /**
      * Create a stream from an existing resource.
      *
+     * The stream MUST be readable and may be writable.
+     *
      * @param resource $resource PHP stream resource
      * @return StreamInterface
+     * @throws \InvalidArgumentException If the resource is not a valid readable stream
      */
     public function createStreamFromResource($resource): StreamInterface
     {
-        return Stream::fromResource($resource);
+        if (!is_resource($resource)) {
+            throw new \InvalidArgumentException('Invalid stream resource provided');
+        }
+
+        $stream = Stream::fromResource($resource);
+        if (!$stream->isReadable()) {
+            throw new \InvalidArgumentException('Stream resource must be readable');
+        }
+
+        return $stream;
     }
 
     // ─── UploadedFileFactoryInterface ───────────────────────────────────
@@ -135,6 +166,12 @@ final class HttpFactory implements
         ?string $clientFilename = null,
         ?string $clientMediaType = null
     ): UploadedFileInterface {
+        // If a size is not provided it is determined by
+        // checking the size of the stream.
+        if ($size === null) {
+            $size = $stream->getSize();
+        }
+
         return new UploadedFile($stream, $size, $error, $clientFilename, $clientMediaType);
     }
 
@@ -145,6 +182,7 @@ final class HttpFactory implements
      *
      * @param string $uri URI string (e.g., https://example.com/path?query=1)
      * @return UriInterface
+     * @throws \InvalidArgumentException If the URI cannot be parsed
      */
     public function createUri(string $uri = ''): UriInterface
     {
