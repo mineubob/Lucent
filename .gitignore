@@ -4,6 +4,8 @@
 /tests/Unit/tmp/
 /temp_install/
 /coverage/
+/coverage-report/
+/coverage.xml
 .env
 .env.*
 !.env.example
