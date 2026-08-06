@@ -241,35 +241,33 @@ namespace App\Middleware;
 
 use App\Models\Tenant;
 use Lucent\Database;
-use Lucent\Http\JsonResponse;
-use Lucent\Http\Request;
-use Lucent\Middleware;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class TenantMiddleware extends Middleware
+class TenantMiddleware implements MiddlewareInterface
 {
-    public function handle(Request $request): Request
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         // Resolve the tenant from the subdomain (queries the central/default DB)
-        $subdomain = $request->getHeader('X-Tenant');
+        $subdomain = $request->getHeaderLine('X-Tenant');
         $tenant = Tenant::where('subdomain', $subdomain)->first();
 
         if (!$tenant) {
             // Short-circuit with a 404 if the tenant doesn't exist
-            $this->abort(
-                new JsonResponse()
-                    ->setOutcome(false)
-                    ->setStatusCode(404)
-                    ->setMessage("Tenant not found")
-            );
+            return (new Response())->withStatus(404);
         }
 
         // Register the tenant's database connection
         Database::addConnection('tenant', $tenant->dbConfig());
 
         // Store the tenant on the request for use in controllers
-        $request->setContext('tenant', $tenant);
+        $request = $request->withAttribute('tenant', $tenant);
 
-        return $request;
+        return $handler->handle($request);
     }
 }
 ```
@@ -283,29 +281,23 @@ namespace App\Controllers;
 
 use App\Models\Lead;
 use Lucent\Database;
-use Lucent\Http\JsonResponse;
-use Lucent\Http\Request;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
 
 class LeadController
 {
-    public function index(Request $request): JsonResponse
+    public function index(ServerRequest $request): Response
     {
         // All queries inside this block run against the tenant DB
         $leads = Database::usingConnection('tenant', fn() => Lead::all());
 
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Leads retrieved successfully")
-            ->setContent(['leads' => $leads]);
+        return Response::json(['leads' => $leads], 200);
     }
 
-    public function show(Request $request, Lead $lead): JsonResponse
+    public function show(ServerRequest $request, Lead $lead): Response
     {
         return Database::usingConnection('tenant', function () use ($lead) {
-            return new JsonResponse()
-                ->setOutcome(true)
-                ->setMessage("Lead retrieved successfully")
-                ->addContent('lead', $lead);
+            return Response::json(['lead' => $lead], 200);
         });
     }
 }

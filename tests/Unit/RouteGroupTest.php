@@ -73,7 +73,7 @@ class RouteGroupTest extends DatabaseDriverSetup
         $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
 
         try {
-            $response = (array) json_decode(App::handleHttpRequest()->body());
+            $response = (array) json_decode((string) App::handleHttpRequest()->getBody());
 
             if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
@@ -96,8 +96,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 500);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(500, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -120,8 +120,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 500);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(500, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -144,8 +144,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -164,8 +164,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -188,8 +188,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         try {
             $response = App::handleHttpRequest();
 
-            $this->assertEquals($response->statusCode, 200);
-            $decodedResponse = json_decode($response->body(), true);
+            $this->assertEquals(200, $response->getStatusCode());
+            $decodedResponse = json_decode((string) $response->getBody(), true);
 
             if ($decodedResponse === null) {
                 $this->fail("Failed to decode JSON response: " . json_last_error_msg());
@@ -214,8 +214,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals(200, $decodedResponse["status"]);
         $this->assertEquals(99, $decodedResponse["content"]["id"]);
@@ -236,8 +236,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
@@ -253,8 +253,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 404);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(404, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals(404, $decodedResponse["status"]);
     }
@@ -274,8 +274,8 @@ class RouteGroupTest extends DatabaseDriverSetup
 
         $response = App::handleHttpRequest();
 
-        $this->assertEquals($response->statusCode, 200);
-        $decodedResponse = json_decode($response->body(), true);
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
     }
@@ -287,11 +287,11 @@ class RouteGroupTest extends DatabaseDriverSetup
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
 
-        $this->assertEquals(500, $res->status());
+        $this->assertEquals(500, $res->getStatusCode());
 
-        $body = json_decode($res->body(), true);
+        $body = json_decode((string) $res->getBody(), true);
         $this->assertArrayNotHasKey('errors', $body);
-        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(), $res->body());
+        $this->assertStringContainsString(HttpStatus::fromCode(500)->message(), (string) $res->getBody());
     }
 
     public function test_invalid_route_file_debug(): void
@@ -302,8 +302,8 @@ class RouteGroupTest extends DatabaseDriverSetup
         App::registerRoutes("/test/123.php");
         $res = App::handleHttpRequest();
 
-        $this->assertEquals(500, $res->status());
-        $body = json_decode($res->body(), true);
+        $this->assertEquals(500, $res->getStatusCode());
+        $body = json_decode((string) $res->getBody(), true);
 
         $this->assertArrayHasKey('errors', $body);
         $this->assertArrayHasKey('exception', $body['errors']);
@@ -315,34 +315,24 @@ class RouteGroupTest extends DatabaseDriverSetup
 <?php
 namespace App\Controllers;
 
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
 
 class RouteGroupTestingController
 {
     
-    public function one($input) : JsonResponse
+    public function one($input) : Response
     {
-    
-            $response = new JsonResponse();
-            
             if($input === "ping"){
-                $response->setMessage("pong");
-            }else{
-                $response->setOutcome(false);
-                $response->setStatusCode(400);
-                $response->setMessage("Message not passed as url parameter.");
-            }                 
-            return $response;
+                return (new Response())->withJsonEnvelope([], 'pong', true, 200);
+            }
+            
+            return (new Response())->withJsonEnvelope([], 'Message not passed as url parameter.', false, 400);
     }
 
     
-    public function two() : JsonResponse
+    public function two() : Response
     {
-    $response = new JsonResponse();
-            
-            $response->setMessage("Hello from test 2");
-            
-            return $response;
+            return (new Response())->withJsonEnvelope([], 'Hello from test 2', true, 200);
     }
 }
 PHP;
@@ -367,17 +357,13 @@ PHP;
 <?php
 namespace App\Controllers;
 
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
 
 class SecondRestController
 {
-    public function test() : JsonResponse
+    public function test() : Response
     {
-        $response = new JsonResponse();
-            
-            $response->setMessage("Hello from five");
-            
-            return $response;
+            return (new Response())->withJsonEnvelope([], 'Hello from five', true, 200);
     }
 }
 PHP;
@@ -401,33 +387,24 @@ PHP;
 <?php
 namespace App\Controllers;
 
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
 
 class RouteGroupRpcTestingController
 {
     
-    public function one($input) : JsonResponse
+    public function one($input) : Response
     {
-            $response = new JsonResponse();
-            
             if($input === "ping"){
-                $response->setMessage("pong");
-            }else{
-                $response->setOutcome(false);
-                $response->setStatusCode(400);
-                $response->setMessage("Message not passed as url parameter.");
-            }                 
-            return $response;
+                return (new Response())->withJsonEnvelope([], 'pong', true, 200);
+            }
+            
+            return (new Response())->withJsonEnvelope([], 'Message not passed as url parameter.', false, 400);
     }
 
     
-    public function two() : JsonResponse
+    public function two() : Response
     {
-    $response = new JsonResponse();
-            
-            $response->setMessage("Hello from test 2");
-            
-            return $response;
+            return (new Response())->withJsonEnvelope([], 'Hello from test 2', true, 200);
     }
 }
 PHP;
@@ -453,25 +430,19 @@ PHP;
 
 namespace App\Controllers;
 
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
 use App\Models\TestUser;
 
 class UserController
 {
-    public function getById($id) : JsonResponse
+    public function getById($id) : Response
     {
-        $response = new JsonResponse();
-        $response->addContent("id",$id);
-        
-        return $response;
+        return (new Response())->withJsonEnvelope(['id' => $id], 'OK', true, 200);
     }
     
-    public function getModelById(TestUser $user) : JsonResponse
+    public function getModelById(TestUser $user) : Response
     {
-        $response = new JsonResponse();
-        $response->addContent("full_name",$user->getFullName());
-        
-        return $response;
+        return (new Response())->withJsonEnvelope(['full_name' => $user->getFullName()], 'OK', true, 200);
     }
 
 }
@@ -498,20 +469,23 @@ PHP;
 
 namespace App\Middleware;
 
-use Lucent\Http\JsonResponse;
 use App\Models\TestUser;
-use Lucent\Middleware;
-use Lucent\Http\Request;
+use Lucent\Http\Message\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class AuthMiddleware extends Middleware
+class AuthMiddleware implements MiddlewareInterface
 {
-        public function handle(Request $request): Request
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        if($request->getUrlVariable("user") === "1"){
-            $request->context["user"] = TestUser::where("id",1)->getFirst();
+        $urlVars = $request->getAttribute('urlVars', []);
+        if (($urlVars['user'] ?? null) === "1"){
+            $request = $request->withAttribute('user', TestUser::where("id",1)->getFirst());
         }
 
-        return $request;
+        return $handler->handle($request);
     }
 
 }
@@ -584,9 +558,10 @@ PHP;
     use Lucent\Facades\Route;
     use App\Controllers\StreamTestController;
     
-    Route::stream()
-        ->group("test")
-        ->event("/stream/10seconds",StreamTestController::class);
+    Route::rest()->group("stream")
+        ->prefix("/stream")
+        ->defaultController(StreamTestController::class)
+        ->get(path: "/10seconds", method: "stream");
 
 PHP;
 
@@ -601,24 +576,25 @@ PHP;
 
 namespace App\Controllers;
 
-use Lucent\Http\StreamController;
 use Lucent\Http\EventStream\Event;
+use Lucent\Http\Message\Response;
 use Generator;
 
-class StreamTestController extends StreamController {
+class StreamTestController
+{
+    public function stream(): Response
+    {
+        return (new Response())->withEventStream($this->generateEvents());
+    }
 
-    protected function stream() : Generator{
-        
-     for ($i = 1; $i <= 10; $i++) {
-            yield Event::data('number', ['value' => $i]);
-            
+    private function generateEvents(): Generator
+    {
+        for ($i = 1; $i <= 10; $i++) {
+            yield Event::data('number', ['value' => $i])->toSSE();
             sleep(1);
         }
-        
-        // Send completion
-        yield Event::complete(['total' => 10]);
-    }   
-
+        yield Event::complete(['total' => 10])->toSSE();
+    }
 }
     
 PHP;

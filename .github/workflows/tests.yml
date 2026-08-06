@@ -54,6 +54,7 @@ jobs:
           composer dump-autoload
 
       - name: Run tests
+        id: test
         run: |
           php vendor/bin/phpunit --configuration phpunit.xml --no-progress --display-deprecations --display-warnings --no-coverage
         env:
@@ -65,7 +66,7 @@ jobs:
           DB_PASSWORD: testpassword
 
       - name: Upload test logs
-        if: always()
+        if: always() && steps.test.outcome != 'skipped'
         uses: actions/upload-artifact@v7
         with:
           name: test-data-php${{ matrix.php }}-${{ matrix.dependencies }}

@@ -13,15 +13,19 @@ use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Http\Exceptions\HttpException;
-use Lucent\Http\HttpResponse;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
-use Lucent\Http\JsonResponse;
-use Lucent\Http\Request;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Http\Middleware\CallbackRequestHandler;
+use Lucent\Http\Middleware\MiddlewarePipeline;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
 use Lucent\Model\Model;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -103,14 +107,14 @@ class Application
     /**
      * Registered error pages
      *
-     * @var array<string, HttpResponse>
+     * @var array<string, ResponseInterface>
      */
     public private(set) array $errorPageResponses;
 
     /**
      * Fallback route when no error page or route is set.
      */
-    public private(set) HttpResponse $fallbackResponse;
+    public private(set) ?ResponseInterface $fallbackResponse;
 
     /**
      * An array of globally accessible regex rules.
@@ -321,7 +325,7 @@ class Application
         // absolute but are really project-relative ("/routes/web.php").
         if (!str_starts_with($route, FileSystem::rootPath())) {
             $route = FileSystem::rootPath() . DIRECTORY_SEPARATOR
-                   . ltrim($route, DIRECTORY_SEPARATOR);
+                . ltrim($route, DIRECTORY_SEPARATOR);
         }
         $this->routes[] = ["file" => $route];
     }
@@ -329,13 +333,11 @@ class Application
     /**
      * Execute an HTTP request
      *
-     * Process incoming HTTP request by:
-     * 1. Booting the application
-     * 2. Analyzing and looking up the requested route
-     * 3. Validating controller and method
-     * 4. Running middleware
-     * 5. Performing route model binding
-     * 6. Executing the controller method
+     * Execute an HTTP request
+     *
+     * Process incoming HTTP request and emit the response using streaming-aware
+     * emission (reads body stream in a loop with flush, handling both regular
+     * and streaming/SSE responses uniformly).
      *
      * @return string html body
      */
@@ -343,22 +345,45 @@ class Application
     {
         $response = $this->handleHttpRequest();
 
-        http_response_code($response->status());
-        $this->setHeaders($response->headers());
+        http_response_code($response->getStatusCode());
+        $this->setHeaders($response->getHeaders());
 
-        return $response->body();
+        // Streaming-aware emission
+        $body = $response->getBody();
+        if ($body->isSeekable()) {
+            $body->rewind();
+        }
+
+        $chunkSize = 8192;
+        while (! $body->eof()) {
+            echo $body->read($chunkSize);
+            if (ob_get_level() > 0) {
+                ob_flush();
+            }
+            flush();
+        }
+
+        return '';
     }
 
 
-    public function handleHttpRequest(): HttpResponse
+    /**
+     * Handle an HTTP request and return a PSR-7 ResponseInterface.
+     *
+     * Creates a PSR-7 ServerRequest from globals, runs the PSR-15 middleware pipeline,
+     * dispatches the controller, and detects/converts legacy HttpResponse returns.
+     *
+     * @return ResponseInterface
+     */
+    public function handleHttpRequest(): ResponseInterface
     {
         try {
             $this->boot(true, true);
 
-            $response = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
-            $request = new Request();
+            $routeData = $this->httpRouter->AnalyseRouteAndLookup($this->httpRouter->GetUriAsArray($_SERVER["REQUEST_URI"]));
+            $psr7Request = ServerRequest::fromGlobals();
 
-            $controllerReflection = new ReflectionClass($response["controller"]);
+            $controllerReflection = new ReflectionClass($routeData["controller"]);
             $controllerConstructor = $controllerReflection->getConstructor();
             $parameters = [];
 
@@ -380,8 +405,6 @@ class Application
                     if (array_key_exists($parameterType->getName(), $this->services)) {
                         $parameters[$parameter->getName()] = $this->services[$parameterType->getName()];
                     } else if ($parameter->isDefaultValueAvailable()) {
-                        // Optional constructor parameters without a matching service
-                        // fall back to their default value.
                         $parameters[$parameter->getName()] = $parameter->getDefaultValue();
                     } else {
                         throw new InvalidArgumentException(
@@ -394,134 +417,155 @@ class Application
                         );
                     }
                 }
-
             }
 
-            $request->setRouteInfo(new RouteInfo(
-                $response["controller"],
-                $response["method"],
-                $response["route"],
+            // Store route info and URL vars as PSR-7 attributes
+            $routeInfo = new RouteInfo(
+                $routeData["controller"],
+                $routeData["method"],
+                $routeData["route"],
                 $_SERVER["REQUEST_METHOD"],
-                $response["variables"]
-            ));
+                $routeData["variables"]
+            );
+            $psr7Request = $psr7Request
+                ->withAttribute('routeInfo', $routeInfo)
+                ->withAttribute('urlVars', $routeData["variables"]);
 
-            //Next we check if we have any variables to pass, if not we run the method.
-            //Next this as we have not returned we have variables to pass
-            $method = $controllerReflection->getMethod($response["method"]);
+            $method = $controllerReflection->getMethod($routeData["method"]);
 
-            //Pass our URL variables to the request object.
-            $request->setUrlVars($response["variables"]);
-
-            //Run all our middleware
-            foreach (array_merge($this->globalMiddlewares, $response["middleware"]) as $middleware) {
-                if ($middleware instanceof Middleware) {
-                    $request = $middleware->handle($request);
+            // Build middleware pipeline
+            $middlewareList = [];
+            foreach (array_merge($this->globalMiddlewares, $routeData["middleware"]) as $middleware) {
+                if ($middleware instanceof MiddlewareInterface) {
+                    $middlewareList[] = $middleware;
                 } else {
                     $object = new $middleware();
-                    $request = $object->handle($request);
+                    if ($object instanceof MiddlewareInterface) {
+                        $middlewareList[] = $object;
+                    } else {
+                        throw new \RuntimeException('Unknown middleware type: ' . get_class($object));
+                    }
                 }
             }
 
-            if ($parameters !== []) {
-                $controller = $controllerReflection->newInstanceArgs($parameters);
-            } else {
-                $controller = $controllerReflection->newInstance();
-            }
-
-            //Check if we require our request object.
-            $requestInjection = $this->requiresHttpRequest($method);
-
-            if ($requestInjection !== null) {
-                $response["variables"][$requestInjection] = $request;
-            }
-
-            // Apply model binding for route parameters
-            foreach ($method->getParameters() as $parameter) {
-
-                $type = $parameter->getType()?->getName();
-                $name = $parameter->getName();
-
-                if ($type === null) {
-                    continue;
-                }
-
-                if (!($parameter->getType() instanceof ReflectionNamedType)) {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            "Parameter '%s' in method '%s::%s()' must have a named type hint. Union types, intersection types, and untyped parameters are not supported for automatic injection.",
-                            $parameter->getName(),
-                            $method->getDeclaringClass()->getName(),
-                            $method->getName()
-                        )
-                    );
-                }
-
-                //Service Injection
-                if (array_key_exists($type, $this->services)) {
-                    $response["variables"][$name] = $this->services[$type];
-                    continue;
-                }
-
-                //Skip non model types
-                if (!is_subclass_of($parameter->getType()->getName(), Model::class)) {
-                    continue;
-                }
-
-                $reflection = new ReflectionClass($type);
-
-                $pkValue = $response["variables"][$name];
-                $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
-
-                if (
-                    array_key_exists($name, $request->context)
-                    && $request->context[$name] instanceof $type
-                    && property_exists($request->context[$name], $pkKey)
-                    && $request->context[$name]->$pkKey == $pkValue
-                ) {
-                    $instance = $request->context[$name];
+            // Build controller dispatch callback
+            $dispatchCallback = function (ServerRequestInterface $request) use (
+                $controllerReflection,
+                $method,
+                $routeData,
+                $parameters
+            ): ResponseInterface {
+                // Resolve controller
+                if ($parameters !== []) {
+                    $controller = $controllerReflection->newInstanceArgs($parameters);
                 } else {
-                    $instance = $type::where($pkKey, $pkValue)->getFirst();
+                    $controller = $controllerReflection->newInstance();
                 }
 
-                if ($instance === null) {
-                    throw new HttpException(HttpStatus::NOT_FOUND);
+                // Check if method requires a PSR-7 request parameter
+                $psr7Injection = $this->requiresPsr7Request($method);
+
+                $variables = $routeData["variables"];
+
+                if ($psr7Injection !== null) {
+                    $variables[$psr7Injection] = $request;
                 }
 
-                $response["variables"][$name] = $instance;
-            }
+                // Apply model binding for route parameters
+                foreach ($method->getParameters() as $parameter) {
+                    $type = $parameter->getType()?->getName();
+                    $name = $parameter->getName();
 
-            return $method->invokeArgs($controller, $response["variables"]);
+                    if ($type === null) {
+                        continue;
+                    }
 
+                    if (!($parameter->getType() instanceof ReflectionNamedType)) {
+                        throw new \InvalidArgumentException(
+                            sprintf(
+                                "Parameter '%s' in method '%s::%s()' must have a named type hint.",
+                                $parameter->getName(),
+                                $method->getDeclaringClass()->getName(),
+                                $method->getName()
+                            )
+                        );
+                    }
+
+                    // Service Injection
+                    if (array_key_exists($type, $this->services)) {
+                        $variables[$name] = $this->services[$type];
+                        continue;
+                    }
+
+                    // Skip non-model types
+                    if (!is_subclass_of($type, Model::class)) {
+                        continue;
+                    }
+
+                    $reflection = new ReflectionClass($type);
+                    $pkValue = $variables[$name];
+                    $pkKey = $type::getDatabasePrimaryKey($reflection)->name;
+
+                    $context = $routeData["variables"];
+                    if (
+                        array_key_exists($name, $context)
+                        && $context[$name] instanceof $type
+                        && property_exists($context[$name], $pkKey)
+                        && $context[$name]->$pkKey == $pkValue
+                    ) {
+                        $instance = $context[$name];
+                    } else {
+                        $instance = $type::where($pkKey, $pkValue)->getFirst();
+                    }
+
+                    if ($instance === null) {
+                        throw new HttpException(HttpStatus::NOT_FOUND);
+                    }
+
+                    $variables[$name] = $instance;
+                }
+
+                $result = $method->invokeArgs($controller, $variables);
+
+                if ($result instanceof ResponseInterface) {
+                    return $result;
+                }
+
+                throw new \RuntimeException(sprintf(
+                    'Controller must return a %s, got %s.',
+                    ResponseInterface::class,
+                    is_object($result) ? get_class($result) : gettype($result)
+                ));
+            };
+
+            // Wrap dispatch callback as a PSR-15 RequestHandlerInterface
+            $pipeline = new MiddlewarePipeline($middlewareList, new CallbackRequestHandler($dispatchCallback));
+
+            return $pipeline->handle($psr7Request);
         } catch (HttpException $e) {
             Log::channel('lucent.routing')->warning($e->getMessage());
             return $this->responseWithError($e->getStatus(), $e);
-        }
-        catch (Throwable $throwable){
+        } catch (Throwable $throwable) {
             Log::channel('lucent.routing')->warning($throwable->getMessage());
-            return $this->responseWithError(HttpStatus::SERVER_ERROR,$throwable);
+            return $this->responseWithError(HttpStatus::SERVER_ERROR, $throwable);
         }
     }
 
     /**
-     * Check if a method requires an HTTP Request parameter
+     * Check if a method requires a PSR-7 ServerRequestInterface parameter.
      *
      * @param ReflectionMethod $method Method to check
-     * @return string|null Parameter name that should receive the Request, or null if none
+     * @return string|null Parameter name that should receive the ServerRequest, or null if none
      */
-    private function requiresHttpRequest(ReflectionMethod $method): ?string
+    private function requiresPsr7Request(ReflectionMethod $method): ?string
     {
-        $name = null;
-
         foreach ($method->getParameters() as $parameter) {
-
-            if ($parameter->getType() !== null) {
-                if ($parameter->getType()->getName() === Request::class) {
-                    $name = $parameter->getName();
-                }
+            $type = $parameter->getType();
+            if ($type !== null && $type->getName() === ServerRequestInterface::class) {
+                return $parameter->getName();
             }
         }
-
-        return $name;
+        return null;
     }
 
     /**
@@ -707,7 +751,6 @@ class Application
             }
 
             return '';
-
         } catch (HttpException $e) {
             $commands = $this->consoleRouter->getRoutes()["CLI"] ?? [];
             $output = "Unrecognized command. Type '\033[1mphp cli\033[0m' to see available commands.\n";
@@ -744,7 +787,6 @@ class Application
             }
 
             return $output;
-
         } catch (\Throwable $e) {
             return $e->getMessage();
         }
@@ -759,7 +801,7 @@ class Application
     {
         if (!str_starts_with($commandFile, FileSystem::rootPath())) {
             $commandFile = FileSystem::rootPath() . DIRECTORY_SEPARATOR
-                         . ltrim($commandFile, DIRECTORY_SEPARATOR);
+                . ltrim($commandFile, DIRECTORY_SEPARATOR);
         }
         $this->commands[] = $commandFile;
     }
@@ -844,7 +886,7 @@ class Application
         ];
     }
 
-    public function registerFallback(HttpResponse $response): void
+    public function registerFallback(ResponseInterface $response): void
     {
         $this->fallbackResponse = $response;
     }
@@ -852,24 +894,23 @@ class Application
     private function requiresOptions(ReflectionMethod $method): bool
     {
         return array_any($method->getParameters(), fn($parameter) => $parameter->getName() === "options");
-
     }
 
     /**
-     * Set multiple HTTP headers from an associative array
+     * Set multiple HTTP headers from a headers array (string[][]).
      *
-     * @param array $headers Associative array where keys are header names and values are header content
+     * @param array<string, string[]> $headers Headers where each value is an array of strings
      * @param bool $replace Whether to replace previous headers with the same name (default: true)
      * @return void
      */
     public function setHeaders(array $headers, bool $replace = true): void
     {
-        foreach ($headers as $name => $value) {
-            // Strip CR/LF from header names and values to prevent HTTP
-            // response splitting / header injection attacks.
+        foreach ($headers as $name => $values) {
             $safeName = str_replace(["\r", "\n"], '', $name);
-            $safeValue = str_replace(["\r", "\n"], '', $value);
-            header("$safeName: $safeValue", $replace);
+            foreach ($values as $value) {
+                $safeValue = str_replace(["\r", "\n"], '', $value);
+                header("$safeName: $safeValue", $replace);
+            }
         }
     }
 
@@ -885,7 +926,7 @@ class Application
         return $service;
     }
 
-    private function responseWithError(HttpStatus $status, ?\Throwable $throwable = null): HttpResponse
+    private function responseWithError(HttpStatus $status, ?\Throwable $throwable = null): ResponseInterface
     {
         // Check for registered error pages first
         if (isset($this->errorPageResponses[$status->value])) {
@@ -899,10 +940,8 @@ class Application
             }
         }
 
-        $response = new JsonResponse();
-        $response->setStatusCode($status->value);
-        $response->setOutcome(false);
-        $response->setMessage($status->message());
+        $response = new Response();
+        $response = $response->withJsonEnvelope([], $status->message(), false, $status->value);
 
         $is_debug = App::env("DEBUG", false);
 
@@ -919,29 +958,32 @@ class Application
         $cause = $throwable instanceof HttpException ? $throwable->getPrevious() : $throwable;
 
         if ($cause !== null) {
-            $response->addError("exception", [
+            $debugPayload = [
                 "message" => $cause->getMessage(),
                 "code"    => $cause->getCode(),
                 "file"    => $cause->getFile(),
                 "line"    => $cause->getLine(),
                 "trace"   => $cause->getTrace(),
-            ]);
+            ];
+            $response = $response->withJsonBody([
+                'message' => $status->message(),
+                'outcome' => false,
+                'status' => $status->value,
+                'content' => [],
+                'errors' => ['exception' => $debugPayload],
+            ], $status->value);
         }
-
-        $response->setStatusCode($status->value);
 
         return $response;
     }
 
-    public function registerErrorTemplate(int $code, HttpResponse $response): void
+    public function registerErrorTemplate(int $code, ResponseInterface $response): void
     {
         $this->errorPageResponses[$code] = $response;
     }
 
-    public function registerGlobalMiddleware(Middleware|string $middleware): void
+    public function registerGlobalMiddleware(MiddlewareInterface|string $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
     }
-
-
 }

@@ -9,9 +9,8 @@ namespace Lucent\Facades;
 
 
 use Lucent\Application;
-use Lucent\Http\HttpResponse;
+use Psr\Http\Message\ResponseInterface;
 use Lucent\Routing\Rest\RestRouteBuilder;
-use Lucent\Routing\Stream\StreamRouteBuilder;
 
 class Route
 {
@@ -26,17 +25,12 @@ class Route
         return new RestRouteBuilder(Application::getInstance()->httpRouter);
     }
 
-    public static function stream() :  StreamRouteBuilder
-    {
-        return new StreamRouteBuilder(Application::getInstance()->httpRouter);
-    }
-
-    public static function error(int $code, HttpResponse $response) : void
+    public static function error(int $code, ResponseInterface $response) : void
     {
         Application::getInstance()->registerErrorTemplate($code,$response);
     }
 
-    public static function fallback(HttpResponse $response) : void
+    public static function fallback(ResponseInterface $response) : void
     {
         Application::getInstance()->registerFallback($response);
     }

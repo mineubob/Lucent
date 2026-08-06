@@ -10,8 +10,9 @@ namespace Lucent\Facades;
 
 use Lucent\Application;
 use Lucent\Database;
-use Lucent\Middleware;
 use Lucent\Service;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\MiddlewareInterface;
 
 class App
 {
@@ -56,12 +57,12 @@ class App
         Database::registerDatabaseDriver($key, $driverClass);
     }
 
-    public static function registerGlobalMiddlewares(Middleware|string $middleware): void
+    public static function registerGlobalMiddlewares(MiddlewareInterface|string $middleware): void
     {
         Application::getInstance()->registerGlobalMiddleware($middleware);
     }
 
-    public static function handleHttpRequest(): \Lucent\Http\HttpResponse {
+    public static function handleHttpRequest(): ResponseInterface {
         return Application::getInstance()->handleHttpRequest();
     }
 

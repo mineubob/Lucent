@@ -370,33 +370,26 @@ Here's an example controller for handling file uploads:
 
 namespace App\Controllers;
 
-use Lucent\Facades\File; // Import the File facade
-use Lucent\Filesystem\File as FileClass; // Import the underlying File class
-use Lucent\Http\Request;
-use Lucent\Http\JsonResponse;
+use Lucent\Facades\File;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
 
 class FileUploadController
 {
     private string $uploadDirectory = 'storage/uploads';
     
-    public function upload(Request $request): JsonResponse
+    public function upload(ServerRequest $request): Response
     {
         // Check if file was uploaded
         if (!isset($_FILES['file'])) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("No file was uploaded");
+            return (new Response())->withStatus(400);
         }
         
         $uploadedFile = $_FILES['file'];
         
         // Check for upload errors
         if ($uploadedFile['error'] !== UPLOAD_ERR_OK) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("Upload failed with error code " . $uploadedFile['error']);
+            return (new Response())->withStatus(400);
         }
         
         // Generate a safe filename
@@ -405,20 +398,16 @@ class FileUploadController
         
         // Move the uploaded temp file to our destination
         if (!move_uploaded_file($uploadedFile['tmp_name'], File::rootPath() . $destination)) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(500)
-                ->setMessage("Failed to save uploaded file");
+            return (new Response())->withStatus(500);
         }
         
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("File uploaded successfully")
-            ->addContent('file', [
+        return Response::json([
+            'file' => [
                 'name' => $filename,
                 'path' => $destination,
                 'size' => File::get($destination)->getSize()
-            ]);
+            ]
+        ], 200);
     }
     
     private function getSafeFilename(string $filename): string
