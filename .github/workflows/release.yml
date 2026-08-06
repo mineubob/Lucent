@@ -12,11 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    uses: ./.github/workflows/tests.yml
-
-  release:
-    needs: test
+  check-tag:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,7 +25,22 @@ jobs:
           if git rev-parse "${{ inputs.version }}" >/dev/null 2>&1; then
             echo "Tag ${{ inputs.version }} already exists. Aborting."
             exit 1
+          else
+            echo "Tag ${{ inputs.version }} does not exist. Continuing."
           fi
+
+  test:
+    needs: check-tag
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: [check-tag, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3

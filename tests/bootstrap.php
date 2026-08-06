@@ -99,12 +99,12 @@ FileSystem::overrideRootPath(TEMP_ROOT);
 if ($isMainProcess) {
     $app = Application::getInstance();
 
-    $app->addLoggingChannel('phpunit', new Channel('phpunit', new TeeDriver(new CliDriver(), new FileDriver('phpunit.log')), false));
-    $app->addLoggingChannel('lucent.db', new Channel('lucent.db', new TeeDriver(new CliDriver(), new FileDriver('db.log'))));
-    $app->addLoggingChannel('lucent.routing', new Channel('lucent.routing', new TeeDriver(new CliDriver(), new FileDriver('routing.log'))));
-    $app->addLoggingChannel('lucent.filesystem', new Channel('lucent.filesystem', new TeeDriver(new CliDriver(), new FileDriver('filesystem.log'))));
-    $app->addLoggingChannel('lucent.http', new Channel('lucent.http', new TeeDriver(new CliDriver(), new FileDriver('http.log'))));
-    $app->addLoggingChannel('lucent.commandline', new Channel('lucent.commandline', new TeeDriver(new CliDriver(), new FileDriver('commandline.log'))));
+    $app->addLoggingChannel(new Channel('phpunit', new TeeDriver(new CliDriver(), new FileDriver('phpunit.log')), false));
+    $app->addLoggingChannel(new Channel('lucent.db', new TeeDriver(new CliDriver(), new FileDriver('db.log'))));
+    $app->addLoggingChannel(new Channel('lucent.routing', new TeeDriver(new CliDriver(), new FileDriver('routing.log'))));
+    $app->addLoggingChannel(new Channel('lucent.filesystem', new TeeDriver(new CliDriver(), new FileDriver('filesystem.log'))));
+    $app->addLoggingChannel(new Channel('lucent.http', new TeeDriver(new CliDriver(), new FileDriver('http.log'))));
+    $app->addLoggingChannel(new Channel('lucent.commandline', new TeeDriver(new CliDriver(), new FileDriver('commandline.log'))));
 }
 
 // Register a PSR-4 autoloader for the user's App\ namespace pointing at the

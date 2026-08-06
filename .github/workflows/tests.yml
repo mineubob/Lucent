@@ -11,8 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.4', '8.5']
-        dependencies: ['highest', 'lowest']
+        php: ["8.4", "8.5"]
+        dependencies: ["highest", "lowest"]
 
     services:
       mysql:
@@ -39,11 +39,14 @@ jobs:
       - name: Validate composer.json
         run: composer validate --strict
 
-      - name: Cache Composer dependencies
+      - name: Cache Composer packages
+        id: composer-cache
         uses: actions/cache@v6
         with:
           path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php }}-deps-${{ matrix.dependencies }}-composer-${{ hashFiles('composer.json') }}
+          key: ${{ runner.os }}-php${{ matrix.php }}-deps${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php${{ matrix.php }}-deps${{ matrix.dependencies }}-
 
       - name: Install dependencies
         run: |

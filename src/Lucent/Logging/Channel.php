@@ -2,6 +2,10 @@
 
 namespace Lucent\Logging;
 
+use Psr\Log\InvalidArgumentException;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
+
 interface Highlighter
 {
     public function shouldHighlight(string $level, string $line): bool;
@@ -9,11 +13,22 @@ interface Highlighter
     public function highlight(string $level, string $line): string;
 }
 
-class Channel
+class Channel implements LoggerInterface
 {
     private string $channel;
     private Driver $driver;
     private bool $useColors;
+
+    private const VALID_LEVELS = [
+        LogLevel::EMERGENCY,
+        LogLevel::ALERT,
+        LogLevel::CRITICAL,
+        LogLevel::ERROR,
+        LogLevel::WARNING,
+        LogLevel::NOTICE,
+        LogLevel::INFO,
+        LogLevel::DEBUG,
+    ];
 
     // Simplified color scheme to start with
     private array $levelColors = [
@@ -41,6 +56,15 @@ class Channel
         $this->highlighters = [
             new SqlHighlighter(),
         ];
+    }
+
+    /**
+     * The channel's name, used both in the formatted log output and as the
+     * lookup key when registered via Application::addLoggingChannel().
+     */
+    public function getName(): string
+    {
+        return $this->channel;
     }
 
     private function highlightLine(string $line): string
@@ -90,44 +114,93 @@ class Channel
         $this->driver->write($this->formatMessage($level, $message));
     }
 
+    /**
+     * Interpolate context values into {placeholder} tokens.
+     *
+     * Follows the PSR-3 spec recommendation: a value whose key matches a
+     * placeholder is stringified (if stringable); otherwise the placeholder
+     * is left untouched. The "exception" key is never interpolated, so
+     * exception stack traces are not inlined into the message line.
+     */
+    private function interpolate(string|\Stringable $message, array $context): string
+    {
+        if ($context === []) {
+            return (string) $message;
+        }
+
+        $replace = [];
+        foreach ($context as $key => $value) {
+            if ($key === 'exception') {
+                continue;
+            }
+
+            if (is_string($value) || is_scalar($value) || $value instanceof \Stringable) {
+                $replace['{' . $key . '}'] = (string) $value;
+            }
+        }
+
+        return strtr((string) $message, $replace);
+    }
+
+    /**
+     * Route a log call to the matching level-specific method.
+     *
+     * PSR-3 requires `log()` to behave identically to the level-specific
+     * method for known levels, and to throw an InvalidArgumentException for
+     * unknown levels.
+     */
+    public function log($level, string|\Stringable $message, array $context = []): void
+    {
+        if (!in_array($level, self::VALID_LEVELS, true)) {
+            $levelLabel = match (true) {
+                is_string($level) || is_int($level) || is_float($level) || is_bool($level) => (string) $level,
+                $level instanceof \Stringable => (string) $level,
+                default => gettype($level),
+            };
+            throw new InvalidArgumentException("Unknown log level: {$levelLabel}");
+        }
+
+        $this->write($level, $this->interpolate($message, $context));
+    }
+
     // PSR-3 log levels
-    public function emergency(string $message): void
+    public function emergency(string|\Stringable $message, array $context = []): void
     {
-        $this->write('emergency', $message);
+        $this->log(LogLevel::EMERGENCY, $message, $context);
     }
 
-    public function alert(string $message): void
+    public function alert(string|\Stringable $message, array $context = []): void
     {
-        $this->write('alert', $message);
+        $this->log(LogLevel::ALERT, $message, $context);
     }
 
-    public function critical(string $message): void
+    public function critical(string|\Stringable $message, array $context = []): void
     {
-        $this->write('critical', $message);
+        $this->log(LogLevel::CRITICAL, $message, $context);
     }
 
-    public function error(string $message): void
+    public function error(string|\Stringable $message, array $context = []): void
     {
-        $this->write('error', $message);
+        $this->log(LogLevel::ERROR, $message, $context);
     }
 
-    public function warning(string $message): void
+    public function warning(string|\Stringable $message, array $context = []): void
     {
-        $this->write('warning', $message);
+        $this->log(LogLevel::WARNING, $message, $context);
     }
 
-    public function notice(string $message): void
+    public function notice(string|\Stringable $message, array $context = []): void
     {
-        $this->write('notice', $message);
+        $this->log(LogLevel::NOTICE, $message, $context);
     }
 
-    public function info(string $message): void
+    public function info(string|\Stringable $message, array $context = []): void
     {
-        $this->write('info', $message);
+        $this->log(LogLevel::INFO, $message, $context);
     }
 
-    public function debug(string $message): void
+    public function debug(string|\Stringable $message, array $context = []): void
     {
-        $this->write('debug', $message);
+        $this->log(LogLevel::DEBUG, $message, $context);
     }
 }
