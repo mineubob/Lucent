@@ -3,6 +3,7 @@
 /.phpunit.result.cache
 /tests/Unit/tmp/
 /temp_install/
+/coverage/
 .env
 .env.*
 !.env.example

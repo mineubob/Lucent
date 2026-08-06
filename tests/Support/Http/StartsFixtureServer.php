@@ -1,9 +1,9 @@
 <?php
 
-namespace Unit\Client\Handler;
+namespace Tests\Support\Http;
 
 /**
- * Boots the shared fixture server (tests/Unit/Client/fixtures/router.php)
+ * Boots the shared fixture server (tests/Fixtures/Http/router.php)
  * once per test class and exposes its base URL.
  */
 trait StartsFixtureServer
@@ -32,7 +32,7 @@ trait StartsFixtureServer
         fclose($socket);
         self::$serverPort = (int) substr($address, strrpos($address, ':') + 1);
 
-        $router = __DIR__ . '/../fixtures/router.php';
+        $router = dirname(__DIR__, 2) . '/Fixtures/Http/router.php';
         $cmd = sprintf(
             'php -S 127.0.0.1:%d %s',
             self::$serverPort,

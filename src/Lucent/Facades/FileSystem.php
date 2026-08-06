@@ -71,6 +71,50 @@ class FileSystem
     }
 
     /**
+     * Determine whether a path is contained within the configured root path.
+     *
+     * Resolves the path (handling `..` segments and symlinks) and checks it
+     * does not escape the root. Works for both existing and non-existent
+     * paths — the latter are resolved via their parent directory.
+     *
+     * @param string $path The absolute path to check
+     * @return bool True if the path is within the root, false otherwise
+     */
+    public static function isWithinRoot(string $path): bool
+    {
+        $root = realpath(self::$root_path);
+        if ($root === false) {
+            // Root doesn't exist yet; fall back to a lexical comparison.
+            $root = rtrim(self::$root_path, DIRECTORY_SEPARATOR);
+        }
+        $root = rtrim($root, DIRECTORY_SEPARATOR);
+
+        // Resolve the deepest existing ancestor of $path, then re-append the
+        // remaining (possibly non-existent) segments lexically. This handles
+        // paths whose intermediate directories don't exist yet (e.g. a File
+        // created before its parent Folder).
+        $resolved = $path;
+        $suffix = '';
+        while (true) {
+            $real = realpath($resolved);
+            if ($real !== false) {
+                $resolved = $real . $suffix;
+                break;
+            }
+            $parent = dirname($resolved);
+            if ($parent === $resolved) {
+                // Reached the filesystem root without finding an existing ancestor.
+                return false;
+            }
+            $suffix = DIRECTORY_SEPARATOR . basename($resolved) . $suffix;
+            $resolved = $parent;
+        }
+
+        return $resolved === $root
+            || str_starts_with($resolved, $root . DIRECTORY_SEPARATOR);
+    }
+
+    /**
      * Get all files in a directory recursively with optional extension filtering
      *
      * @param string|null $directory The directory to scan (relative to root path), or null for root path
@@ -138,6 +182,11 @@ class FileSystem
             $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
             $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
 
+            // Containment guard: reject paths that escape the root.
+            if (!self::isWithinRoot($fullPath)) {
+                return null;
+            }
+
             // Contract: return null if the file doesn't exist.
             if (!file_exists($fullPath)) {
                 return null;
@@ -164,6 +213,11 @@ class FileSystem
         // Clean the path
         $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
         $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
+
+        // Containment guard: reject paths that escape the root.
+        if (!self::isWithinRoot($fullPath)) {
+            return null;
+        }
 
         // Create directory if it doesn't exist
         $directory = dirname($fullPath);

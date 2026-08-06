@@ -26,6 +26,13 @@ class File extends FileSystemObject
             $path = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
         }
 
+        // Containment guard: never allow a path to escape the configured root.
+        if (!FileSystem::isWithinRoot($path)) {
+            throw new \RuntimeException(
+                "File path '{$path}' escapes the configured root path '" . FileSystem::rootPath() . "'"
+            );
+        }
+
         $this->path = $path;
 
         if ($content !== null) {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
 use Lucent\Http\Message\ServerRequest;
 use Lucent\Http\RouteInfo;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Client\Handler;
+namespace Tests\Support\Http;
 
 use Lucent\Http\Client\Handler\HandlerInterface;
 use Lucent\Http\Message\Factory\HttpFactory;

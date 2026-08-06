@@ -1,25 +1,26 @@
 <?php
 
-namespace Unit\Client\Handler;
+namespace Tests\Feature\Client\Handler;
 
 use Lucent\Http\Client\Exception\NetworkException;
-use Lucent\Http\Client\Handler\CurlHandler;
+use Lucent\Http\Client\Handler\StreamHandler;
 use Lucent\Http\Message\Factory\HttpFactory;
 use Lucent\Http\Message\Stream;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
+use Tests\Support\Http\StartsFixtureServer;
 
-class CurlHandlerTest extends TestCase
+class StreamHandlerTest extends TestCase
 {
     use StartsFixtureServer;
 
-    private CurlHandler $handler;
+    private StreamHandler $handler;
     private HttpFactory $factory;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->handler = new CurlHandler();
+        $this->handler = new StreamHandler();
         $this->factory = new HttpFactory();
     }
 
@@ -40,7 +41,7 @@ class CurlHandlerTest extends TestCase
         $this->assertSame('/echo', $payload['uri']);
     }
 
-    public function test_sends_body_via_readfunction(): void
+    public function test_sends_body(): void
     {
         $request = $this->request('POST', '/echo')->withBody(Stream::fromString('hello world'));
 
@@ -63,31 +64,37 @@ class CurlHandlerTest extends TestCase
         $this->assertSame('/echo', $payload['uri']);
     }
 
-    public function test_progress_callback_fires(): void
+    public function test_stream_option_returns_live_body(): void
     {
-        $calls = 0;
-        $response = $this->handler->send($this->request('GET', '/echo'), [
-            'progress' => function (...$args) use (&$calls) {
-                $calls++;
-            },
-        ]);
+        $response = $this->handler->send($this->request('GET', '/stream'), ['stream' => true]);
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertGreaterThan(0, $calls);
+        $this->assertSame('3', $response->getHeaderLine('X-Chunks'));
+
+        // The body is the live socket: read it incrementally.
+        $body = $response->getBody();
+        $this->assertFalse($body->isSeekable());
+
+        $contents = '';
+        while (!$body->eof()) {
+            $contents .= $body->read(6);
+        }
+
+        $this->assertSame('chunk1chunk2chunk3', $contents);
     }
 
-    public function test_rejects_conflicting_curl_option(): void
+    public function test_rejects_curl_option(): void
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->handler->validateOptions([
-            'curl' => [CURLOPT_WRITEFUNCTION => 'foo'],
+            'curl' => [CURLOPT_FOLLOWLOCATION => true],
         ]);
     }
 
-    public function test_validate_options_rejects_non_callable_progress(): void
+    public function test_validate_options_rejects_progress(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        $this->handler->validateOptions(['progress' => 'not-a-callable']);
+        $this->handler->validateOptions(['progress' => function () {}]);
     }
 
     public function test_validate_options_accepts_valid_options(): void
@@ -95,8 +102,7 @@ class CurlHandlerTest extends TestCase
         $this->handler->validateOptions([
             'timeout' => 5,
             'verify_ssl' => true,
-            'progress' => function () {},
-            'curl' => [CURLOPT_FRESH_CONNECT => true],
+            'stream' => true,
         ]);
         $this->addToAssertionCount(1);
     }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Client\Exception;
+namespace Tests\Unit\Client\Exception;
 
 use Lucent\Http\Client\Exception\NetworkException;
 use Lucent\Http\Client\Exception\RequestException;
