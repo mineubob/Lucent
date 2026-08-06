@@ -26,8 +26,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /** @var string HTTP method */
     private string $method = 'GET';
 
-    /** @var UriInterface|null */
-    private ?UriInterface $uri = null;
+    /** @var UriInterface */
+    private UriInterface $uri;
 
     /** @var array Server parameters ($_SERVER) */
     private array $serverParams = [];
@@ -170,9 +170,6 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
 
     public function getUri(): UriInterface
     {
-        if ($this->uri === null) {
-            $this->uri = Uri::fromString('/');
-        }
         return $this->uri;
     }
 
