@@ -254,7 +254,7 @@ class TenantMiddleware implements MiddlewareInterface
     {
         // Resolve the tenant from the subdomain (queries the central/default DB)
         $subdomain = $request->getHeaderLine('X-Tenant');
-        $tenant = Tenant::where('subdomain', $subdomain)->first();
+        $tenant = Tenant::where('subdomain', $subdomain)->getFirst();
 
         if (!$tenant) {
             // Short-circuit with a 404 if the tenant doesn't exist
@@ -289,7 +289,7 @@ class LeadController
     public function index(ServerRequest $request): Response
     {
         // All queries inside this block run against the tenant DB
-        $leads = Database::usingConnection('tenant', fn() => Lead::all());
+        $leads = Database::usingConnection('tenant', fn() => Lead::get());
 
         return Response::json(['leads' => $leads], 200);
     }

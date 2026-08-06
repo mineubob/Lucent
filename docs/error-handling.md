@@ -45,15 +45,18 @@ You can register a custom response for any HTTP status code using `Route::error(
 
 ```php
 use Lucent\Facades\Route;
+use Lucent\Facades\FileSystem;
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\Stream;
 
+$views = FileSystem::rootPath() . '/App/Views';
+
 Route::error(404, (new Response())->withStatus(404)
-    ->withBody(Stream::fromString(file_get_contents(VIEWS . '/404.html')))
+    ->withBody(Stream::fromString(file_get_contents($views . '/404.html')))
     ->withHeader('Content-Type', 'text/html; charset=utf-8')
 );
 Route::error(500, (new Response())->withStatus(500)
-    ->withBody(Stream::fromString(file_get_contents(VIEWS . '/500.html')))
+    ->withBody(Stream::fromString(file_get_contents($views . '/500.html')))
     ->withHeader('Content-Type', 'text/html; charset=utf-8')
 );
 ```
@@ -73,11 +76,14 @@ A fallback response is returned when no route matches and no custom 404 error pa
 
 ```php
 use Lucent\Facades\Route;
+use Lucent\Facades\FileSystem;
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\Stream;
 
+$views = FileSystem::rootPath() . '/App/Views';
+
 Route::fallback((new Response())
-    ->withBody(Stream::fromString(file_get_contents(VIEWS . '/index.html')))
+    ->withBody(Stream::fromString(file_get_contents($views . '/index.html')))
     ->withHeader('Content-Type', 'text/html; charset=utf-8')
 );
 ```

@@ -40,8 +40,6 @@ Lucent comes with several built-in commands:
 | `serve` | Starts the built-in PHP development server |
 | `deploy latest` | Downloads and deploys the latest project release |
 | `deploy rollback` | Rolls back to the most recent backup |
-| `deploy rollback` | Rolls back to the most recent backup |
-| `generate api-docs` | Generates API documentation from controller annotations |
 
 > **Note:** Lucent is now managed via Composer. To update the framework, run `composer update blueprintau/lucent` instead of using CLI update commands.
 
@@ -53,10 +51,10 @@ Lucent commands are run via the `vendor/bin/lucent` binary:
 vendor/bin/lucent migration make App/Models/User
 ```
 
-To run these commands, use the CLI script in your project root:
+To run these commands, use the `vendor/bin/lucent` binary in your project root:
 
 ```bash
-php cli migration make App/Models/User
+vendor/bin/lucent migration make App/Models/User
 ```
 
 ## Creating Custom Commands
@@ -103,10 +101,11 @@ CommandLine::register("example run", "run", ExampleCommand::class);
 CommandLine::register("example status", "status", ExampleCommand::class);
 ```
 
-The `register` method takes three parameters:
-1. The command string (including any parameters)
+The `register` method takes four parameters:
+1. The command string (including any parameter placeholders)
 2. The method name to execute in your command class
 3. The fully qualified class name of your command
+4. (Optional) A short description shown in the `vendor/bin/lucent` help output
 
 ### Handling Parameters
 
@@ -140,9 +139,9 @@ vendor/bin/lucent user create JohnDoe john@example.com
 
 ## Running Commands
 
-### Using the CLI Script
+### Using the CLI Binary
 
-The recommended way to run commands is through the CLI script in your project root:
+The recommended way to run commands is through the `vendor/bin/lucent` binary in your project root:
 
 ```bash
 vendor/bin/lucent command [arguments]
@@ -155,7 +154,7 @@ vendor/bin/lucent migration make App/Models/User
 vendor/bin/lucent generate api-docs
 ```
 
-The CLI script is automatically generated when you install the Lucent framework, so you don't need to create it manually.
+The binary is installed automatically by Composer when you require `blueprintau/lucent`, so you don't need to create it manually.
 
 ### Executing Commands Programmatically
 
@@ -175,7 +174,7 @@ Lucent provides several useful components to enhance your command-line applicati
 | Component | Description | Documentation |
 |-----------|-------------|---------------|
 | ProgressBar | Displays real-time progress updates in the terminal for long-running tasks. Supports customizable formats, appearance, and update frequency. | [ProgressBar Documentation](./commandline/progress-bar.md) |
-| ConsoleColors | Utility for adding colored output to your command-line applications. | *Coming soon* |
+| ConsoleColors | Utility for adding colored output to your command-line applications. Located in `Lucent\Logging\ConsoleColors`. | *Documented inline in the class* |
 
 These components can be used individually or combined to create rich, interactive command-line experiences for your users.
 

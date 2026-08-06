@@ -236,7 +236,7 @@ class MyRule extends Rule
 {
     private function custom_rule(string $table, string $column, string $value): bool
     {
-        $model = Model::where($column, $value)->first();
+        $model = Model::where($column, $value)->getFirst();
         if ($model !== null) {
             $this->setContext($table, $model); // auto-updates caller's $request
         }

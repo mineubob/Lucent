@@ -77,16 +77,17 @@ $client = new Psr18Client([
 All verb methods return a PSR-7 `ResponseInterface`.
 
 ```php
-$client->get($uri, $params, $headers);      // GET with query params
-$client->post($uri, $body, $headers);       // POST
-$client->put($uri, $body, $headers);        // PUT
-$client->patch($uri, $body, $headers);      // PATCH
-$client->delete($uri, $body, $headers);     // DELETE
-$client->head($uri, $params, $headers);     // HEAD
+$client->get($uri, $params, $options);      // GET with query params
+$client->post($uri, $body, $options);       // POST
+$client->put($uri, $body, $options);        // PUT
+$client->patch($uri, $body, $options);      // PATCH
+$client->delete($uri, $body, $options);     // DELETE
+$client->head($uri, $params, $options);     // HEAD
 ```
 
 - **`get` / `head`**: `$params` is appended as a query string.
 - **`post` / `put` / `patch` / `delete`**: `$body` may be an array (JSON-encoded with `Content-Type: application/json`), a raw string, or a `StreamInterface`.
+- **`$options`**: Per-request options array — see [Per-Request Options](#per-request-options) for supported keys (`sink`, `timeout`, `verify_ssl`, `headers`, `curl`, `user_agent`, `basic_auth`, `stream`, `progress`).
 
 ```php
 // JSON body

@@ -283,7 +283,7 @@ Validation messages support placeholders that are replaced with actual field nam
 | `max` | `:attribute`, `:max` | "username may not be greater than 20 characters" |
 | `min_num` | `:attribute`, `:min` | "age must be greater than 18" |
 | `max_num` | `:attribute`, `:max` | "age may not be less than 120" |
-| `same` | `:attribute`, `:first` | "password_confirmation and password must match" |
+| `same` | `:attribute`, `:second` | "password_confirmation and password must match" |
 | `regex` | `:attribute` | "email does not match the required format" |
 
 The `:attribute` placeholder is automatically replaced with the field name being validated, and rule-specific placeholders (like `:min`, `:max`, etc.) are replaced with the corresponding parameter values.
