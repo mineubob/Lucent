@@ -102,7 +102,7 @@ class Column
             case ColumnType::BINARY:
                 $this->validateLengthNonNull($typeName);
                 break;
-            case ColumnType::CHAR;
+            case ColumnType::CHAR:
             case ColumnType::VARCHAR:
                 $this->validateLengthNonNull($typeName);
                 break;
