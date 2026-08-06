@@ -1,0 +1,18 @@
+#!/usr/bin/env php
+<?php
+use Lucent\Application;
+use Lucent\Facades\CommandLine;
+use App\Commands\TestCommand;
+
+$_SERVER["REQUEST_METHOD"] = "CLI";
+
+// Load the test bootstrap so RUNNING_LOCATION/FileSystem/App autoloader
+// are configured the same way as the parent test process.
+require_once 'REPO_ROOT/tests/bootstrap.php';
+
+$app = Application::getInstance();
+
+CommandLine::captureOutput();
+CommandLine::register("test run", "run", TestCommand::class);
+
+echo $app->executeConsoleCommand();

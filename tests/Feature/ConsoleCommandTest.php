@@ -1,30 +1,30 @@
 <?php
 
-namespace Unit;
+namespace Tests\Feature;
 
 use App\Commands\TestCommand;
-use Lucent\Application;
 use Lucent\Facades\CommandLine;
-use Lucent\Facades\FileSystem;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\Concerns\CapturesCommandOutput;
+use Tests\Support\FixtureLoader;
 
 class ConsoleCommandTest extends TestCase
 {
+    use CapturesCommandOutput;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        self::generateTestConsoleCommand();
-        self::generateTestCliFile();
+        FixtureLoader::copyCommand('TestCommand.php');
+        FixtureLoader::copyCliTemplate();
 
     }
 
     protected function setUp(): void
     {
         parent::setUp();
-        Application::getInstance()->consoleRouter->reset();
-        CommandLine::captureOutput();
+        $this->captureCommandOutput();
     }
 
 
@@ -77,7 +77,7 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals('Class "Unit\TestTwoCommand" does not exist', $result);
+        $this->assertEquals('Class "Tests\Feature\TestTwoCommand" does not exist', $result);
     }
 
     public function test_command_with_invalid_arguments(): void
@@ -155,78 +155,5 @@ class ConsoleCommandTest extends TestCase
         $this->assertStringContainsString("serve", $result);
     }
 
-    public static function generateTestConsoleCommand(): void
-    {
-        $commandContent = <<<'PHP'
-        <?php
-        namespace App\Commands;
-        
-        class TestCommand
-        {
-           
-            public function run() : string
-            {
-                 return "Test command successfully run";
-            }
-            
-                
-            public function var($var) : string
-            {
-                 return $var;
-            }
-            
-             public function var2() : string
-            {
-                 return "var2";
-            }
-
-        }
-        PHP;
-
-
-        $appPath = TEMP_ROOT . "App";
-        $commandsPath = $appPath . DIRECTORY_SEPARATOR . "Commands";
-
-        if (!is_dir($commandsPath)) {
-            mkdir($commandsPath, 0755, true);
-        }
-
-        file_put_contents(
-            $commandsPath . DIRECTORY_SEPARATOR . 'TestCommand.php',
-            $commandContent
-        );
-    }
-
-    public static function generateTestCliFile(): void
-    {
-        $repoRoot = dirname(__DIR__, 2);
-        $commandContent = <<<'PHP'
-        #!/usr/bin/env php
-        <?php
-        use Lucent\Application;
-        use Lucent\Facades\CommandLine;
-        use App\Commands\TestCommand;
-
-        $_SERVER["REQUEST_METHOD"] = "CLI";
-
-        // Load the test bootstrap so RUNNING_LOCATION/FileSystem/App autoloader
-        // are configured the same way as the parent test process.
-        require_once 'REPO_ROOT/tests/bootstrap.php';
-
-        $app = Application::getInstance();
-
-        CommandLine::captureOutput();
-        CommandLine::register("test run", "run", TestCommand::class);
-
-        echo $app->executeConsoleCommand();
-        PHP;
-
-        $commandContent = str_replace('REPO_ROOT', $repoRoot, $commandContent);
-
-        file_put_contents(
-            TEMP_ROOT . DIRECTORY_SEPARATOR . 'cli',
-            $commandContent
-        );
-    }
 
 }

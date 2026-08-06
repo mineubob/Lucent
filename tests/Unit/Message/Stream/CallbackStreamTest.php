@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Message\Stream;
+namespace Tests\Unit\Message\Stream;
 
 use Lucent\Http\Message\Stream\CallbackStream;
 use PHPUnit\Framework\TestCase;

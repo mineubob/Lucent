@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Message\Factory;
+namespace Tests\Unit\Message\Factory;
 
 use Lucent\Http\Message\Factory\LucentResponseFactory;
 use Lucent\Http\Message\Stream\CallbackStream;

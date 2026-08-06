@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
 use Lucent\Facades\App;
 use PHPUnit\Framework\TestCase;

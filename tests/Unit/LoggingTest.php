@@ -1,30 +1,15 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
 use Lucent\Database;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
-use Lucent\Logging\Driver;
-use Lucent\Logging\Drivers\NullDriver;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-
-/**
- * In-memory driver that captures every line written to it, so tests can
- * assert on the exact output a Channel produces.
- */
-class SpyDriver extends Driver
-{
-    public array $lines = [];
-
-    public function write(string $line): void
-    {
-        $this->lines[] = $line;
-    }
-}
+use Tests\Support\Logging\SpyDriver;
 
 class LoggingTest extends TestCase
 {

@@ -1,80 +1,16 @@
 <?php
 
-namespace Unit;
+namespace Tests\Feature;
 
 use Exception;
 use Lucent\Database;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\DatabaseTesting;
+use Tests\Support\TestCase;
 
-// Manually require the DatabaseDriverSetup file
-$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
-
-if (file_exists($driverSetupPath)) {
-    require_once $driverSetupPath;
-} else {
-    echo "Unable to locate $driverSetupPath\n";
-    die;
-}
-
-class DatabaseConnectionTest extends DatabaseDriverSetup
+class DatabaseConnectionTest extends TestCase
 {
-
-    /**
-     * @return array<string, array{0: string, 1: array<string, string>}>
-     */
-    public static function databaseDriverProvider(): array
-    {
-        return [
-            'sqlite' => [
-                'sqlite',
-                [
-                    'DB_DATABASE' => '/storage/database.sqlite'
-                ]
-            ],
-            'mysql' => [
-                'mysql',
-                [
-                    'DB_HOST'     => getenv('DB_HOST') ?: 'localhost',
-                    'DB_PORT'     => getenv('DB_PORT') ?: '3306',
-                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-                ]
-            ]
-        ];
-    }
-
-    /**
-     * @return array<string, array{0: string, 1: array<string, string>, 2: array<string, string>}>
-     */
-    public static function dualDatabaseDriverProvider(): array
-    {
-        return [
-            'sqlite' => [
-                'sqlite',
-                ['DB_DATABASE' => '/storage/database.sqlite'],
-                ['driver' => 'sqlite', 'database' => '/storage/secondary.sqlite']
-            ],
-            'mysql' => [
-                'mysql',
-                [
-                    'DB_HOST'     => getenv('DB_HOST') ?: 'localhost',
-                    'DB_PORT'     => getenv('DB_PORT') ?: '3306',
-                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-                ],
-                [
-                    'driver'   => 'mysql',
-                    'host'     => getenv('DB_HOST') ?: 'localhost',
-                    'port'     => getenv('DB_PORT') ?: '3306',
-                    'database' => getenv('DB_DATABASE') ?: 'test_database',
-                    'username' => getenv('DB_USERNAME') ?: 'root',
-                    'password' => getenv('DB_PASSWORD') ?: ''
-                ]
-            ]
-        ];
-    }
+    use DatabaseTesting;
 
     // -------------------------------------------------------------------------
     // Default connection behaviour

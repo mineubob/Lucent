@@ -1,50 +1,18 @@
 <?php
 
-namespace Unit;
+namespace Tests\Feature;
 
 use Exception;
 use Lucent\Database;
 use Lucent\Database\Schema;
 use Lucent\Facades\Log;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\DatabaseTesting;
+use Tests\Support\TestCase;
 
-// Manually require the DatabaseDriverSetup file
-$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
-
-if (file_exists($driverSetupPath)) {
-    require_once $driverSetupPath;
-} else {
-    echo "Unable to locate $driverSetupPath\n";
-    die;
-}
-
-class DatabaseTest extends DatabaseDriverSetup
+class DatabaseTest extends TestCase
 {
-
-    /**
-     * @return array<string, array{0: string, 1: array<string, string>}>
-     */
-    public static function databaseDriverProvider(): array
-    {
-        return [
-            'sqlite' => [
-                'sqlite',
-                [
-                    'DB_DATABASE' => '/storage/database.sqlite'
-                ]
-            ],
-            'mysql' => [
-                'mysql',
-                [
-                    'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
-                    'DB_PORT' => getenv('DB_PORT') ?: '3306',
-                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-                ]
-            ]
-        ];
-    }
+    use DatabaseTesting;
 
     #[DataProvider('databaseDriverProvider')]
     public function test_database_connection_explicit($driver, $config): void

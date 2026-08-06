@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Message;
+namespace Tests\Unit\Message;
 
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\Stream;

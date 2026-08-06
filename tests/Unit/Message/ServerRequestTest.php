@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Message;
+namespace Tests\Unit\Message;
 
 use Lucent\Http\Message\ServerRequest;
 use Lucent\Http\Message\Uri;

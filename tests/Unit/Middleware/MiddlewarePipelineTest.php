@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit\Middleware;
+namespace Tests\Unit\Middleware;
 
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\ServerRequest;
