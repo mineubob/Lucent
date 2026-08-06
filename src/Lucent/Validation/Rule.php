@@ -416,7 +416,7 @@ abstract class Rule
      * variable is updated automatically.
      *
      * Works with any ServerRequestInterface: Lucent's ServerRequest uses
-     * the dedicated setContext(), while other implementations fall back
+     * the dedicated withContext(), while other implementations fall back
      * to the generic withAttribute('context', ...) mechanism.
      *
      * @param string $key The context key
@@ -430,7 +430,7 @@ abstract class Rule
         }
 
         if ($this->currentRequest instanceof ServerRequest) {
-            $this->currentRequest = $this->currentRequest->setContext($key, $value);
+            $this->currentRequest = $this->currentRequest->withContext($key, $value);
             return;
         }
 
