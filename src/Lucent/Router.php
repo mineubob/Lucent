@@ -178,8 +178,8 @@ abstract class Router
             throw new HttpException(HttpStatus::NOT_FOUND);
         }
 
-        foreach ($this->routes[$method] as $key => $route) {
-            if ($match = $this->matchRoute($key, $route, '/', $route, $method)) {
+        foreach ($this->routes[$method] as $key => $routeDefinition) {
+            if ($match = $this->matchRoute($key, $route, '/', $routeDefinition, $method)) {
                 if ($this->isDisabled($key)) {
                     throw new HttpException(HttpStatus::FORBIDDEN);
                 }
