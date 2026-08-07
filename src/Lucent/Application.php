@@ -947,13 +947,9 @@ class Application
         $response = new Response();
         $response = $response->withJsonEnvelope([], $status->message(), false, $status->value);
 
-        $is_debug = App::env("DEBUG", false);
-
-        // Normalise boolean env strings: "false", "off", "no", "0" and ""
-        // must all be treated as falsy, not as truthy strings.
-        if (is_string($is_debug)) {
-            $is_debug = !in_array(strtolower(trim($is_debug)), ['', '0', 'false', 'off', 'no'], true);
-        }
+        // Normalise boolean env strings: only "1", "true", "on" and "yes"
+        // (case-insensitive) are truthy; everything else is falsy.
+        $is_debug = filter_var(App::env("DEBUG", false), FILTER_VALIDATE_BOOL);
 
         if (!$is_debug) {
             return $response;
@@ -969,13 +965,13 @@ class Application
                 "line"    => $cause->getLine(),
                 "trace"   => $cause->getTrace(),
             ];
-            $response = $response->withJsonBody([
-                'message' => $status->message(),
-                'outcome' => false,
-                'status' => $status->value,
-                'content' => [],
-                'errors' => ['exception' => $debugPayload],
-            ], $status->value);
+            $response = $response->withJsonEnvelope(
+                [],
+                $status->message(),
+                false,
+                $status->value,
+                ['exception' => $debugPayload]
+            );
         }
 
         return $response;

@@ -105,7 +105,7 @@ class ResponseTest extends TestCase
 
     public function test_with_json_body(): void
     {
-        $response = (new Response())->withJsonBody(['foo' => 'bar'], 202);
+        $response = (new Response())->withJsonBody(['foo' => 'bar'])->withStatus(202);
 
         $this->assertSame(202, $response->getStatusCode());
         $this->assertSame('application/json; charset=utf-8', $response->getHeaderLine('Content-Type'));

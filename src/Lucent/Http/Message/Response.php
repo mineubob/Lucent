@@ -147,22 +147,15 @@ class Response extends AbstractMessage implements ResponseInterface
      * Return a new response with a JSON-encoded body.
      *
      * @param mixed $data Data to JSON-encode
-     * @param int $status Optional status code (defaults to current)
      */
-    public function withJsonBody(mixed $data, ?int $status = null): static
+    public function withJsonBody(mixed $data): static
     {
         $payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($payload === false) {
             throw new \RuntimeException('Unable to JSON-encode response data: ' . json_last_error_msg());
         }
-        $new = $this->withBody(Stream::fromString($payload))
+        return $this->withBody(Stream::fromString($payload))
             ->withHeader('Content-Type', 'application/json; charset=utf-8');
-
-        if ($status !== null) {
-            $new = $new->withStatus($status);
-        }
-
-        return $new;
     }
 
     /**
@@ -172,12 +165,14 @@ class Response extends AbstractMessage implements ResponseInterface
      * @param string $message The response message
      * @param bool $outcome Whether the request succeeded
      * @param int $status HTTP status code
+     * @param array $errors Optional errors payload (e.g. exception details)
      */
     public function withJsonEnvelope(
         array $content = [],
         string $message = 'Request successfully executed.',
         bool $outcome = true,
-        int $status = 200
+        int $status = 200,
+        array $errors = []
     ): static {
         $envelope = [
             'message' => $message,
@@ -186,8 +181,11 @@ class Response extends AbstractMessage implements ResponseInterface
             'content' => $content,
         ];
 
-        $new = $this->withJsonBody($envelope, $status);
-        return $new;
+        if ($errors !== []) {
+            $envelope['errors'] = $errors;
+        }
+
+        return $this->withJsonBody($envelope)->withStatus($status);
     }
 
     /**

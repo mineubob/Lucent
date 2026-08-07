@@ -17,9 +17,7 @@ use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Message\UriInterface;
 
 /**
- * Single PSR-17 factory implementing all 6 factory interfaces.
- *
- * Per PSR-17, creates bare HTTP message objects — no JSON/redirect conveniences.
+ * Creates bare HTTP message objects — no JSON/redirect conveniences.
  * Those are provided by LucentResponseFactory (Lucent-specific).
  */
 final class HttpFactory implements
