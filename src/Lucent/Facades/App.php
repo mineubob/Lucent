@@ -12,6 +12,7 @@ use Lucent\Application;
 use Lucent\Database;
 use Lucent\Service;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 
 class App
@@ -29,11 +30,6 @@ class App
             return $default;
         }
 
-    }
-
-    public static function currentRoute() : array
-    {
-        return Application::getInstance()->httpRouter->getUriAsArray($_SERVER['REQUEST_URI']);
     }
 
     public static function getLucentVersion() : string
@@ -62,8 +58,8 @@ class App
         Application::getInstance()->registerGlobalMiddleware($middleware);
     }
 
-    public static function handleHttpRequest(): ResponseInterface {
-        return Application::getInstance()->handleHttpRequest();
+    public static function handleHttpRequest(ServerRequestInterface $request): ResponseInterface {
+        return Application::getInstance()->handleHttpRequest($request);
     }
 
     public static function execute() : string

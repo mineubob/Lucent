@@ -8,6 +8,7 @@ use Lucent\Facades\App;
 use Lucent\Http\HttpStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\Concerns\DatabaseTesting;
+use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
@@ -15,6 +16,7 @@ use Tests\Support\TestCase;
 class RouteGroupTest extends TestCase
 {
     use DatabaseTesting;
+    use MakeRequest;
     use RefreshApplication;
 
     public static function setUpBeforeClass(): void
@@ -34,12 +36,8 @@ class RouteGroupTest extends TestCase
 
     public function test_404(): void
     {
-
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/asdasdsaasdasdas";
-
         try {
-            $response = (array) json_decode((string) App::handleHttpRequest()->getBody());
+            $response = (array) json_decode((string) $this->get('/asdasdsaasdasdas')->getBody());
 
             if ($response == null || !isset($response)) {
                 $this->fail("Response is null or undefined.");
@@ -54,13 +52,8 @@ class RouteGroupTest extends TestCase
 
     public function test_500_invalid_controller_method(): void
     {
-
-        // Set up server environment for testing
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/test/three";
-
         try {
-            $response = App::handleHttpRequest();
+            $response = $this->get('/test/three');
 
             $this->assertEquals(500, $response->getStatusCode());
             $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -78,13 +71,8 @@ class RouteGroupTest extends TestCase
 
     public function test_500_invalid_controller(): void
     {
-
-        // Set up server environment for testing
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/test/four";
-
         try {
-            $response = App::handleHttpRequest();
+            $response = $this->get('/test/four');
 
             $this->assertEquals(500, $response->getStatusCode());
             $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -102,13 +90,8 @@ class RouteGroupTest extends TestCase
 
     public function test_route_group(): void
     {
-
-        // Set up server environment for testing
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/test/one/ping";
-
         try {
-            $response = App::handleHttpRequest();
+            $response = $this->get('/test/one/ping');
 
             $this->assertEquals(200, $response->getStatusCode());
             $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -124,11 +107,8 @@ class RouteGroupTest extends TestCase
             $this->fail("Test failed with exception: " . $e->getMessage());
         }
 
-        $_SERVER["REQUEST_METHOD"] = "POST";
-        $_SERVER["REQUEST_URI"] = "/test/two";
-
         try {
-            $response = App::handleHttpRequest();
+            $response = $this->post('/test/two');
 
             $this->assertEquals(200, $response->getStatusCode());
             $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -147,12 +127,8 @@ class RouteGroupTest extends TestCase
 
     public function test_route_group_with_none_default_controller(): void
     {
-        // Set up server environment for testing
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/test/five";
-
         try {
-            $response = App::handleHttpRequest();
+            $response = $this->get('/test/five');
 
             $this->assertEquals(200, $response->getStatusCode());
             $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -175,10 +151,7 @@ class RouteGroupTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user/99";
-
-        $response = App::handleHttpRequest();
+        $response = $this->get('/user/99');
 
         $this->assertEquals(200, $response->getStatusCode());
         $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -197,10 +170,7 @@ class RouteGroupTest extends TestCase
 
         $this->assertTrue($user->create());
 
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user/object/1";
-
-        $response = App::handleHttpRequest();
+        $response = $this->get('/user/object/1');
 
         $this->assertEquals(200, $response->getStatusCode());
         $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -214,10 +184,7 @@ class RouteGroupTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user/object/100";
-
-        $response = App::handleHttpRequest();
+        $response = $this->get('/user/object/100');
 
         $this->assertEquals(404, $response->getStatusCode());
         $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -235,10 +202,7 @@ class RouteGroupTest extends TestCase
 
         $this->assertTrue($user->create());
 
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/user2/object/1";
-
-        $response = App::handleHttpRequest();
+        $response = $this->get('/user2/object/1');
 
         $this->assertEquals(200, $response->getStatusCode());
         $decodedResponse = json_decode((string) $response->getBody(), true);
@@ -251,7 +215,7 @@ class RouteGroupTest extends TestCase
         // Reset so boot() runs fresh and loads the invalid route file.
         self::refreshApplication();
         App::registerRoutes("/test/123.php");
-        $res = App::handleHttpRequest();
+        $res = $this->get('/');
 
         $this->assertEquals(500, $res->getStatusCode());
 
@@ -266,7 +230,7 @@ class RouteGroupTest extends TestCase
         self::refreshApplication();
         Application::getInstance()->setEnv("debug", true);
         App::registerRoutes("/test/123.php");
-        $res = App::handleHttpRequest();
+        $res = $this->get('/');
 
         $this->assertEquals(500, $res->getStatusCode());
         $body = json_decode((string) $res->getBody(), true);

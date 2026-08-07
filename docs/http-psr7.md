@@ -301,6 +301,51 @@ class AuthMiddleware implements Middleware
 
 ---
 
+## Global Middleware
+
+Global middleware runs on **every** request, including routing failures and
+dispatch errors. Register it via the `App` facade:
+
+```php
+use Lucent\Facades\App;
+
+App::registerGlobalMiddlewares(AuthMiddleware::class);
+App::registerGlobalMiddlewares(new CorsMiddleware());
+```
+
+You may pass either a middleware instance or a class-string. Global middleware
+is resolved up front and wraps the entire request lifecycle, so it sees every
+response the application produces — a matched route, a 404 (no route matched),
+a 403 (disabled route), or a 500 (dispatch error) — and may short-circuit any
+of them by returning a response without calling `$handler->handle()`.
+
+### Execution order
+
+Global middleware runs **before** route-scoped middleware:
+
+```
+global middleware → route middleware → controller
+```
+
+For a matched route, the response unwinds back through route middleware and
+then global middleware, so global middleware wraps the final response.
+
+### Request attributes
+
+`routeInfo` and `urlVars` are attached to the request **after** routing, so
+they are visible to route-scoped middleware and controllers, but **not** to
+global middleware (which runs before routing). On a routing failure (404/403)
+these attributes are absent entirely — `$request->getAttribute('routeInfo')`
+returns `null`. Middleware that needs route context should be registered as
+route-scoped middleware instead.
+
+### Error handling
+
+Exceptions thrown by global middleware itself are caught and converted to a
+500 response, so they never escape the request handler.
+
+---
+
 ## Streaming Responses
 
 PSR-7 streaming is handled through `StreamInterface` implementations:
@@ -406,7 +451,7 @@ MiddlewarePipeline (PSR-15)
 Controller dispatch (RequestHandlerInterface)
          │
          ▼
-Application::executeHttpRequest()
+Application::handleHttpRequest(ServerRequestInterface)
   ├─ getStatusCode()
   ├─ getHeaders() (string[][])
   └─ getBody() → streaming loop with flush()

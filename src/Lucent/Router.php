@@ -172,18 +172,14 @@ abstract class Router
     /**
      * Find and analyze a matching route for the current request
      */
-    public function analyseRouteAndLookup(array $route): array
+    public function analyseRouteAndLookup(array $route, string $method): array
     {
-        $uri = $route;
-        $requestMethod = $_SERVER["REQUEST_METHOD"] ?? 'GET';
-
-
-        if (!isset($this->routes[$requestMethod])) {
+        if (!isset($this->routes[$method])) {
             throw new HttpException(HttpStatus::NOT_FOUND);
         }
 
-        foreach ($this->routes[$requestMethod] as $key => $route) {
-            if ($match = $this->matchRoute($key, $uri, '/', $route)) {
+        foreach ($this->routes[$method] as $key => $route) {
+            if ($match = $this->matchRoute($key, $route, '/', $route, $method)) {
                 if ($this->isDisabled($key)) {
                     throw new HttpException(HttpStatus::FORBIDDEN);
                 }
@@ -198,7 +194,7 @@ abstract class Router
     /**
      * Check if a route matches the current URI and extract parameters
      */
-    protected function matchRoute(string $routePath, array $uri, string $separator, array $route): ?array
+    protected function matchRoute(string $routePath, array $uri, string $separator, array $route, string $method): ?array
     {
         // Normalize route path
         $routePath = trim($routePath, '/');
@@ -228,7 +224,7 @@ abstract class Router
             return null;
         }
 
-        Log::channel('lucent.routing')->info("[Router] Found route : " . $routePath."\n    Http Method:".$_SERVER['REQUEST_METHOD']."\n    Http Controller: {$route["controller"]}@{$route["method"]}");
+        Log::channel('lucent.routing')->info("[Router] Found route : " . $routePath."\n    Http Method:".$method."\n    Http Controller: {$route["controller"]}@{$route["method"]}");
 
         return [
             "route" => $routePath,

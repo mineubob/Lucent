@@ -4,12 +4,14 @@ namespace Tests\Feature;
 
 use Lucent\Facades\App;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
 use Tests\Support\FixtureLoader;
 
 
 class CustomErrorPageTest extends TestCase
 {
+    use MakeRequest;
     use RefreshApplication;
 
     public static function setUpBeforeClass(): void
@@ -32,10 +34,7 @@ class CustomErrorPageTest extends TestCase
 
     public function test_setting_error_page() : void
     {
-        $_SERVER["REQUEST_METHOD"] = "GET";
-        $_SERVER["REQUEST_URI"] = "/";
-
-        $response = App::handleHttpRequest();
+        $response = $this->get('/');
 
         $this->assertEquals(404, $response->getStatusCode());
         $body = (string) $response->getBody();

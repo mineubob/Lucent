@@ -92,8 +92,6 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_with_null_fields_passing(): void
     {
-        $_SERVER["REQUEST_METHOD"] = "POST";
-
         $request = Faker::request();
 
         $request->setInput("first_name", "Jack");
@@ -114,8 +112,6 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_with_null_fields_failing(): void
     {
-        $_SERVER["REQUEST_METHOD"] = "POST";
-
         $request = Faker::request();
 
         $request->setInput("first_name", "Jack");
