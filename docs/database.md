@@ -349,6 +349,36 @@ Calling `removeConnection()` on a name that doesn't exist is safe — it does no
 Database::reset();
 ```
 
+### Configuring the Database in Tests
+
+In tests you usually don't want to write a `.env` file just to switch database drivers. Configure the database in memory instead:
+
+```php
+use Lucent\Application;
+
+// Replace the whole environment (e.g. switch to a fresh driver per dataset).
+Application::getInstance()->setEnv([
+    'DB_DRIVER'   => 'sqlite',
+    'DB_DATABASE' => '/storage/database.sqlite',
+], false);
+
+// Or merge individual keys on top of the existing environment.
+Application::getInstance()->setEnv(['DEBUG' => true]);
+
+// Re-boot the connection from the new environment.
+Database::reset();
+```
+
+`setEnv()` normalises keys to upper-case, casts values to strings, and re-configures the database layer. By default it merges into the existing environment; pass `false` as the second argument to replace it entirely.
+
+If you do need to load a specific `.env` file (rather than the default `FileSystem::rootPath()/.env`), pass its path to `loadEnv()`:
+
+```php
+Application::getInstance()->loadEnv('/path/to/.env');
+```
+
+`loadEnv()` replaces the in-memory environment with the file's contents — the file is the source of truth. Use `setEnv()` when you want to overlay keys instead.
+
 ---
 
 ## API Reference

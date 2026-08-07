@@ -6,7 +6,6 @@ use Lucent\Application;
 use Lucent\Database;
 use Lucent\Database\Migration;
 use Lucent\Facades\Log;
-use Lucent\Filesystem\File;
 use Lucent\Filesystem\Folder;
 
 /**
@@ -118,21 +117,11 @@ trait DatabaseTesting
             $storage->create(0755);
         }
 
-        $content = "DB_DRIVER={$driver}\n";
-
-        foreach ($config as $key => $value) {
-            $content .= "{$key}={$value}\n";
-        }
-
-        $env = new File(DIRECTORY_SEPARATOR . ".env");
-
-        if (!$env->exists() || !$env->write($content)) {
-            Log::channel("phpunit")->critical("[DatabaseTesting] Failed to create .env file");
-            throw new \Exception("[DatabaseTesting] Failed to create .env file");
-        }
-
+        // Configure the database in memory rather than writing a .env file.
+        // Replace (not merge) so a previous dataset's driver keys don't leak
+        // into this one.
         $app = Application::getInstance();
-        $app->loadEnv();
+        $app->setEnv(array_merge(['DB_DRIVER' => $driver], $config), false);
 
         // Recreate our new database singleton
         Database::reset();

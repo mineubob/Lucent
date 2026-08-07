@@ -228,7 +228,7 @@ class RouteGroupTest extends TestCase
     {
         // Reset so boot() runs fresh and loads the invalid route file.
         self::refreshApplication();
-        Application::getInstance()->setEnv("debug", true);
+        Application::getInstance()->setEnv(['DEBUG' => true]);
         App::registerRoutes("/test/123.php");
         $res = $this->get('/');
 

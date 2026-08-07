@@ -672,17 +672,24 @@ class Application
     }
 
     /**
-     * Load environment variables from .env file
+     * Load environment variables from a .env file
      *
      * Parses the .env file and populates the env property with key-value pairs.
      * Handles empty lines, comments, and quoted values.
      *
+     * The loaded values replace the current in-memory environment (the file is
+     * the source of truth). Keys are normalised to upper-case, matching
+     * {@see setEnv()}. To overlay individual keys on top of the existing
+     * environment instead, use {@see setEnv()}.
+     *
+     * @param string|null $path Optional path to the .env file. Defaults to
+     *                          FileSystem::rootPath()/.env.
      * @return void
      */
-    public function loadEnv(): void
+    public function loadEnv(?string $path = null): void
     {
 
-        $envPath = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env";
+        $envPath = $path ?? FileSystem::rootPath() . DIRECTORY_SEPARATOR . ".env";
         $output = [];
 
         if (file_exists($envPath)) {
@@ -706,7 +713,7 @@ class Application
                         $value = trim($value, '"\'');
 
                         if (!empty($key)) {
-                            $output[$key] = $value;
+                            $output[strtoupper($key)] = $value;
                         }
                     }
                 }
@@ -718,12 +725,34 @@ class Application
         Database::configure($this->env);
     }
 
-    /** @dev-start */
-    public function setEnv(string $key, mixed $value): void
+    /**
+     * Set environment variables in memory.
+     *
+     * Populates the in-memory environment without touching any .env file on
+     * disk. Keys are normalised to upper-case and values cast to string.
+     *
+     * By default the given values are merged into the existing environment. Pass
+     * $merge = false to replace the entire environment with $values instead.
+     *
+     * Re-configures the database layer with the resulting environment, so it can
+     * be used to switch database drivers at runtime (e.g. in tests) without
+     * writing a .env file.
+     *
+     * @param array $values Key-value pairs to set.
+     * @param bool  $merge  Whether to merge into the existing environment
+     *                      (true) or replace it entirely (false).
+     * @return void
+     */
+    public function setEnv(array $values, bool $merge = true): void
     {
-        $this->env[strtoupper($key)] = (string) $value;
+        $normalised = [];
+        foreach ($values as $key => $value) {
+            $normalised[strtoupper($key)] = (string) $value;
+        }
+
+        $this->env = $merge ? array_merge($this->env, $normalised) : $normalised;
+        Database::configure($this->env);
     }
-    /** @dev-end */
 
     /**
      * Execute a console command
