@@ -149,9 +149,13 @@ final class Psr18Client implements ClientInterface
      * ]);
      * ```
      *
-     * @param array<string, mixed> $options Per-request options (sink, timeout, verify_ssl, headers, query, curl, user_agent, basic_auth, stream, progress)
+     * @param array<string, mixed> $options Per-request options (sink, timeout, verify_ssl, headers, query, curl, user_agent, basic_auth, stream, progress).
+     *     NOTE: this second parameter is a Lucent extension — the PSR-18
+     *     interface defines only the $request parameter. Callers relying on
+     *     strict PSR-18 interop should not pass $options.
+     * @throws \Psr\Http\Client\RequestExceptionInterface On request-level failures (invalid request, JSON-encode failure, cURL init failure)
      * @throws \Psr\Http\Client\NetworkExceptionInterface On transport-level failures (DNS, connection, timeout)
-     * @throws \Psr\Http\Client\ClientExceptionInterface On request-level failures (invalid URL, cURL errors)
+     * @throws \Psr\Http\Client\ClientExceptionInterface Parent interface of both of the above
      */
     public function sendRequest(RequestInterface $request, array $options = []): ResponseInterface
     {

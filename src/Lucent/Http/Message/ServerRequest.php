@@ -59,6 +59,14 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         $this->method = strtoupper($method);
         $this->uri = $uri ?? Uri::fromString('/');
         $this->serverParams = $serverParams;
+
+        // A request built with a URI should carry that URI's host as its
+        // Host header unless one was already provided.
+        $host = $this->uri->getHost();
+        if ($host !== '') {
+            $port = $this->uri->getPort();
+            $this->withHeaderInternal('Host', $port !== null ? $host . ':' . $port : $host);
+        }
     }
 
     // ─── Static Factory ─────────────────────────────────────────────────
@@ -159,12 +167,20 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     }
 
     /**
+     * HTTP method names are case-sensitive; The given string is
+     * stored as-provided.
+     *
+     * @throws \InvalidArgumentException for invalid HTTP methods
      * @return static
      */
     public function withMethod(string $method): RequestInterface
     {
+        if ($method === '' || !preg_match('/^[!#$%&\'*+.^_`|~0-9A-Za-z-]+$/', $method)) {
+            throw new \InvalidArgumentException("Invalid HTTP method: '$method'");
+        }
+
         $new = clone $this;
-        $new->method = strtoupper($method);
+        $new->method = $method;
         return $new;
     }
 
@@ -181,7 +197,10 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         $new = clone $this;
         $new->uri = $uri;
 
-        if (! $preserveHost || ! $this->hasHeader('Host')) {
+        // With $preserveHost=true the Host header is only kept when it is
+        // present AND non-empty; a missing or empty Host header is updated
+        // from the new URI.
+        if (! $preserveHost || $this->getHeaderLine('Host') === '') {
             $host = $uri->getHost();
             if ($host !== '') {
                 $port = $uri->getPort();
@@ -236,18 +255,36 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     }
 
     /**
+     * @param array $uploadedFiles An array tree of UploadedFileInterface instances
+     * @throws \InvalidArgumentException if an invalid structure is provided
      * @return static
      */
     public function withUploadedFiles(array $uploadedFiles): ServerRequestInterface
     {
-        foreach ($uploadedFiles as $file) {
-            if (!$file instanceof UploadedFileInterface) {
-                throw new \InvalidArgumentException('Uploaded files must be an array of UploadedFileInterface instances');
-            }
-        }
+        self::assertUploadedFilesTree($uploadedFiles);
+
         $new = clone $this;
         $new->uploadedFiles = $uploadedFiles;
         return $new;
+    }
+
+    /**
+     * Recursively validate an uploaded-files tree (nested arrays of
+     * UploadedFileInterface instances are allowed).
+     *
+     * @throws \InvalidArgumentException
+     */
+    private static function assertUploadedFilesTree(array $tree): void
+    {
+        foreach ($tree as $file) {
+            if (is_array($file)) {
+                self::assertUploadedFilesTree($file);
+                continue;
+            }
+            if (!$file instanceof UploadedFileInterface) {
+                throw new \InvalidArgumentException('Uploaded files must be an array tree of UploadedFileInterface instances');
+            }
+        }
     }
 
     public function getParsedBody(): array|object|null
@@ -431,6 +468,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
                 // Nested array of files (e.g., name[] inputs)
                 $normalized[$key] = self::normalizeUploadedFiles($value);
             }
+            // Malformed entries (non-array values, or arrays without a
+            // 'tmp_name' key that are not nested trees) are skipped — they
+            // cannot be mapped to an UploadedFileInterface.
         }
 
         return $normalized;

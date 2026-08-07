@@ -32,7 +32,12 @@ final class CallbackStream implements StreamInterface
 
     public function __toString(): string
     {
-        return $this->getOutput();
+        // String casting must never raise an exception.
+        try {
+            return $this->getOutput();
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     public function close(): void
@@ -55,8 +60,14 @@ final class CallbackStream implements StreamInterface
 
     public function getSize(): ?int
     {
-        $output = $this->getOutput();
-        return strlen($output);
+        // Size is unknown until the callback has been invoked — invoking it
+        // here would defeat lazy streaming (callers such as CurlHandler call
+        // getSize() before sending). Null means "unknown".
+        if (!$this->called) {
+            return null;
+        }
+
+        return strlen($this->output ?? '');
     }
 
     public function tell(): int
@@ -145,7 +156,14 @@ final class CallbackStream implements StreamInterface
         $callback = $this->callback;
 
         ob_start();
-        $result = $callback();
+        try {
+            $result = $callback();
+        } catch (\Throwable $e) {
+            // Close the buffer so callers are not left with a dangling
+            // output buffer, then rethrow.
+            ob_end_clean();
+            throw $e;
+        }
         $buffered = ob_get_clean();
 
         $this->output = ($buffered !== false && $buffered !== '')

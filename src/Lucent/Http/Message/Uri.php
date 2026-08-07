@@ -25,6 +25,12 @@ final class Uri implements UriInterface
     ];
 
     /**
+     * Unreserved characters (RFC 3986 §2.3) plus sub-delims (§2.2) that are
+     * always allowed unencoded in path/query/fragment components.
+     */
+    private const CHAR_UNRESERVED = 'A-Za-z0-9\-._~!$&\'()*+,;=';
+
+    /**
      * Private constructor — use fromString() or fromGlobals() instead.
      */
     private function __construct()
@@ -47,11 +53,11 @@ final class Uri implements UriInterface
 
         $instance = new self();
         $instance->scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : '';
-        $instance->host = $parts['host'] ?? '';
-        $instance->port = isset($parts['port']) ? (int) $parts['port'] : null;
-        $instance->path = $parts['path'] ?? '';
-        $instance->query = $parts['query'] ?? '';
-        $instance->fragment = $parts['fragment'] ?? '';
+        $instance->host = isset($parts['host']) ? strtolower($parts['host']) : '';
+        $instance->port = isset($parts['port']) ? $instance->filterPort((int) $parts['port']) : null;
+        $instance->path = self::encodePath($parts['path'] ?? '');
+        $instance->query = self::encodeQueryOrFragment($parts['query'] ?? '');
+        $instance->fragment = self::encodeQueryOrFragment($parts['fragment'] ?? '');
         $instance->userInfo = $parts['user'] ?? '';
 
         if (isset($parts['pass'])) {
@@ -93,11 +99,11 @@ final class Uri implements UriInterface
         // Path
         $requestUri = $server['REQUEST_URI'] ?? '/';
         $pathPart = parse_url($requestUri, PHP_URL_PATH);
-        $instance->path = $pathPart !== false ? $pathPart : '/';
+        $instance->path = self::encodePath($pathPart !== false && $pathPart !== null ? $pathPart : '/');
 
         // Query
         $queryPart = parse_url($requestUri, PHP_URL_QUERY);
-        $instance->query = $queryPart !== false && $queryPart !== null ? $queryPart : ($server['QUERY_STRING'] ?? '');
+        $instance->query = self::encodeQueryOrFragment($queryPart !== false && $queryPart !== null ? $queryPart : ($server['QUERY_STRING'] ?? ''));
 
         // Strip standard port
         $instance->port = $instance->filterPort($instance->port);
@@ -159,10 +165,18 @@ final class Uri implements UriInterface
         return $this->fragment;
     }
 
+    /**
+     * @throws \InvalidArgumentException for invalid or unsupported schemes
+     */
     public function withScheme(string $scheme): static
     {
+        $scheme = strtolower($scheme);
+        if ($scheme !== '' && !isset(self::STANDARD_PORTS[$scheme])) {
+            throw new \InvalidArgumentException("Unsupported scheme: '$scheme' (only http and https are supported)");
+        }
+
         $new = clone $this;
-        $new->scheme = strtolower($scheme);
+        $new->scheme = $scheme;
         $new->port = $new->filterPort($new->port);
         return $new;
     }
@@ -177,38 +191,67 @@ final class Uri implements UriInterface
         return $new;
     }
 
+    /**
+     * @throws \InvalidArgumentException for invalid hostnames
+     */
     public function withHost(string $host): static
     {
+        if ($host !== '' && !self::isValidHost($host)) {
+            throw new \InvalidArgumentException("Invalid host: '$host'");
+        }
+
         $new = clone $this;
         $new->host = strtolower($host);
         return $new;
     }
 
+    /**
+     * @throws \InvalidArgumentException for ports outside the TCP/UDP range (0–65535)
+     */
     public function withPort(?int $port): static
     {
+        if ($port !== null && ($port < 0 || $port > 65535)) {
+            throw new \InvalidArgumentException("Invalid port: $port (must be 0-65535)");
+        }
+
         $new = clone $this;
         $new->port = $new->filterPort($port);
         return $new;
     }
 
+    /**
+     * @throws \InvalidArgumentException for invalid paths
+     */
     public function withPath(string $path): static
     {
+        self::assertNoControlChars($path, 'path');
+
         $new = clone $this;
-        $new->path = $path;
+        $new->path = self::encodePath($path);
         return $new;
     }
 
+    /**
+     * @throws \InvalidArgumentException for invalid query strings
+     */
     public function withQuery(string $query): static
     {
+        self::assertNoControlChars($query, 'query');
+
         $new = clone $this;
-        $new->query = ltrim($query, '?');
+        $new->query = self::encodeQueryOrFragment(ltrim($query, '?'));
         return $new;
     }
 
+    /**
+     * @throws \InvalidArgumentException for invalid fragments
+     */
     public function withFragment(string $fragment): static
     {
+        self::assertNoControlChars($fragment, 'fragment');
+
         $new = clone $this;
-        $new->fragment = $fragment;
+        $new->fragment = self::encodeQueryOrFragment($fragment);
         return $new;
     }
 
@@ -227,7 +270,15 @@ final class Uri implements UriInterface
 
         $path = $this->path;
         if ($authority !== '' && $path !== '' && $path[0] !== '/') {
+            // Rootless path with an authority must be prefixed by "/".
             $path = '/' . $path;
+        }
+        if ($authority === '' && str_starts_with($path, '//')) {
+            // A path starting with more than one "/" and no authority is
+            // reduced to a single leading slash. Note: a network-path
+            // reference ("//host/path") parses its leading segment into the
+            // host, so this only triggers for paths set via withPath().
+            $path = '/' . ltrim($path, '/');
         }
         $uri .= $path;
 
@@ -259,5 +310,87 @@ final class Uri implements UriInterface
         }
 
         return $port;
+    }
+
+    /**
+     * Percent-encode a path component per RFC 3986 §3.3.
+     *
+     * Existing percent-encoded triplets are preserved (no double-encoding).
+     *
+     * @param string $path The raw path
+     * @return string The percent-encoded path
+     */
+    private static function encodePath(string $path): string
+    {
+        return self::encodeComponent($path, self::CHAR_UNRESERVED . ':@\/');
+    }
+
+    /**
+     * Percent-encode a query or fragment component per RFC 3986 §3.4/§3.5.
+     *
+     * Existing percent-encoded triplets are preserved (no double-encoding).
+     *
+     * @param string $value The raw query or fragment
+     * @return string The percent-encoded value
+     */
+    private static function encodeQueryOrFragment(string $value): string
+    {
+        return self::encodeComponent($value, self::CHAR_UNRESERVED . ':@\/\?');
+    }
+
+    /**
+     * Percent-encode any character outside the allowed set, preserving
+     * existing valid %XX triplets.
+     *
+     * @param string $value The raw component value
+     * @param string $allowedChars Regex character class content for allowed chars
+     * @return string The encoded component
+     */
+    private static function encodeComponent(string $value, string $allowedChars): string
+    {
+        return (string) preg_replace_callback(
+            '/(?:%[0-9A-Fa-f]{2})|[^' . $allowedChars . ']/',
+            static function (array $matches): string {
+                $char = $matches[0];
+                // Preserve existing valid percent-encoded triplets.
+                if (strlen($char) === 3 && $char[0] === '%') {
+                    return $char;
+                }
+                return rawurlencode($char);
+            },
+            $value
+        );
+    }
+
+    /**
+     * Validate a hostname (DNS name, IPv4, or bracketed IPv6 literal).
+     */
+    private static function isValidHost(string $host): bool
+    {
+        // Bracketed IPv6 literal, e.g. [::1]
+        if (str_starts_with($host, '[')) {
+            return str_ends_with($host, ']')
+                && filter_var(substr($host, 1, -1), FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+        }
+
+        // IPv4
+        if (filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+            return true;
+        }
+
+        // DNS hostname (labels of alphanumerics and hyphens, dot-separated)
+        return (bool) preg_match('/^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*\.?$/', $host);
+    }
+
+    /**
+     * Reject control characters (including null bytes, CR, LF) in a component.
+     *
+     * @throws \InvalidArgumentException
+     */
+    private static function assertNoControlChars(string $value, string $component): void
+    {
+        if (preg_match('/[\x00-\x1F\x7F]/', $value)) {
+            throw new \InvalidArgumentException("Invalid URI $component: contains control characters");
+        }
     }
 }

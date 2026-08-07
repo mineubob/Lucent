@@ -158,6 +158,8 @@ final class HttpFactory implements
      * @param string|null $clientFilename Original client filename
      * @param string|null $clientMediaType Original client media type
      * @return UploadedFileInterface
+     * @throws \InvalidArgumentException If the stream is not readable (enforced
+     *     by the UploadedFile constructor)
      */
     public function createUploadedFile(
         StreamInterface $stream,

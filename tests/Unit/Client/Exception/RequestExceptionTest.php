@@ -41,9 +41,12 @@ class RequestExceptionTest extends TestCase
     {
         $exception = new NetworkException('Connection refused', $this->request);
 
+        // Per PSR-18, a network failure is NOT a "request is invalid" error —
+        // NetworkException extends \RuntimeException directly, not RequestException.
         $this->assertInstanceOf(NetworkExceptionInterface::class, $exception);
-        $this->assertInstanceOf(RequestException::class, $exception);
-        $this->assertInstanceOf(RequestExceptionInterface::class, $exception);
+        $this->assertInstanceOf(\RuntimeException::class, $exception);
+        $this->assertNotInstanceOf(RequestException::class, $exception);
+        $this->assertNotInstanceOf(RequestExceptionInterface::class, $exception);
         $this->assertSame($this->request, $exception->getRequest());
     }
 

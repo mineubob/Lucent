@@ -88,15 +88,24 @@ class Response extends AbstractMessage implements ResponseInterface
      * @param int $status HTTP status code
      * @param array $headers Additional headers
      * @return self
+     * @throws \InvalidArgumentException when the $status is invalid or json encoding fails
      */
     public static function json(mixed $data, int $status = 200, array $headers = []): static
     {
+        // Validate the status code the same way withStatus() does.
+        if ($status < 100 || $status > 599) {
+            throw new \InvalidArgumentException("Invalid status code: $status");
+        }
+
         $response = new static();
         $response->statusCode = $status;
         $response->reasonPhrase = self::PHRASES[$status] ?? '';
 
         $payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $response->setBody(Stream::fromString($payload !== false ? $payload : '{}'));
+        if ($payload === false) {
+            throw new \InvalidArgumentException("Unable to JSON-encode response data: " . json_last_error_msg());
+        }
+        $response->setBody(Stream::fromString($payload));
 
         $response->withHeaderInternal('Content-Type', 'application/json; charset=utf-8');
         foreach ($headers as $name => $value) {
@@ -143,7 +152,10 @@ class Response extends AbstractMessage implements ResponseInterface
     public function withJsonBody(mixed $data, ?int $status = null): static
     {
         $payload = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $new = $this->withBody(Stream::fromString($payload !== false ? $payload : '{}'))
+        if ($payload === false) {
+            throw new \RuntimeException('Unable to JSON-encode response data: ' . json_last_error_msg());
+        }
+        $new = $this->withBody(Stream::fromString($payload))
             ->withHeader('Content-Type', 'application/json; charset=utf-8');
 
         if ($status !== null) {

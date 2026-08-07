@@ -66,9 +66,14 @@ final class Stream implements StreamInterface
      *
      * @param resource $resource A PHP stream resource
      * @return self
+     * @throws \InvalidArgumentException If the given value is not a resource
      */
     public static function fromResource($resource): self
     {
+        if (!is_resource($resource)) {
+            throw new \InvalidArgumentException('Stream resource must be a valid PHP resource');
+        }
+
         $stream = new self();
         $stream->stream = $resource;
         $meta = stream_get_meta_data($resource);
@@ -234,18 +239,18 @@ final class Stream implements StreamInterface
                 throw new RuntimeException('Stream is not seekable');
             }
             $length = strlen($this->content);
-            switch ($whence) {
-                case SEEK_SET:
-                    $this->position = $offset;
-                    break;
-                case SEEK_CUR:
-                    $this->position += $offset;
-                    break;
-                case SEEK_END:
-                    $this->position = $length + $offset;
-                    break;
+            $newPosition = match ($whence) {
+                SEEK_SET => $offset,
+                SEEK_CUR => $this->position + $offset,
+                SEEK_END => $length + $offset,
+                default => throw new RuntimeException("Invalid whence value: $whence"),
+            };
+            // An out-of-range position is a seek failure — throw rather
+            // than silently clamp.
+            if ($newPosition < 0 || $newPosition > $length) {
+                throw new RuntimeException("Unable to seek to position $newPosition (stream length: $length)");
             }
-            $this->position = max(0, min($this->position, $length));
+            $this->position = $newPosition;
             return;
         }
 

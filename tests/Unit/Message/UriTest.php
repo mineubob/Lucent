@@ -36,8 +36,10 @@ class UriTest extends TestCase
 
     public function test_get_authority_omits_standard_port(): void
     {
+        // Per PSR-7, a standard port for the scheme SHOULD NOT be included.
         $uri = Uri::fromString('https://example.com:443/path');
-        $this->assertSame('example.com:443', $uri->getAuthority());
+        $this->assertSame('example.com', $uri->getAuthority());
+        $this->assertNull($uri->getPort());
     }
 
     public function test_get_authority_omits_user_info_when_empty(): void
@@ -184,15 +186,17 @@ class UriTest extends TestCase
         $this->assertSame('', $uri->getQuery());
     }
 
-    public function test_with_port_accepts_any_valid_range(): void
+    public function test_with_port_throws_above_tcp_udp_range(): void
     {
-        $uri = Uri::fromString('http://example.com')->withPort(99999);
-        $this->assertSame(99999, $uri->getPort());
+        // Per PSR-7, implementations MUST raise an exception for ports
+        // outside the established TCP and UDP port ranges (0-65535).
+        $this->expectException(\InvalidArgumentException::class);
+        Uri::fromString('http://example.com')->withPort(99999);
     }
 
-    public function test_with_port_negative_sets_negative_port(): void
+    public function test_with_port_throws_for_negative_port(): void
     {
-        $uri = Uri::fromString('http://example.com')->withPort(-1);
-        $this->assertSame(-1, $uri->getPort());
+        $this->expectException(\InvalidArgumentException::class);
+        Uri::fromString('http://example.com')->withPort(-1);
     }
 }

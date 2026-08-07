@@ -203,7 +203,7 @@ final class CurlHandler implements HandlerInterface
      * Transport-level failures (DNS, proxy, connect, timeout) map to
      * {@see NetworkException}; everything else to {@see RequestException}.
      */
-    private function createException(int $errno, string $error, RequestInterface $request): RequestException
+    private function createException(int $errno, string $error, RequestInterface $request): \Psr\Http\Client\ClientExceptionInterface
     {
         $networkErrors = [
             CURLE_COULDNT_RESOLVE_HOST,

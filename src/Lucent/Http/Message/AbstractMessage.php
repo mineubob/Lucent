@@ -73,7 +73,7 @@ abstract class AbstractMessage implements MessageInterface
         if (empty($values)) {
             return '';
         }
-        return implode(',', $values);
+        return implode(', ', $values);
     }
 
     /**
@@ -151,6 +151,10 @@ abstract class AbstractMessage implements MessageInterface
     }
 
     /**
+     * @param StreamInterface $body Body
+     * @throws \InvalidArgumentException When the body is not valid (enforced
+     *     by the StreamInterface type hint — non-stream bodies are rejected
+     *     by the type system before this method executes)
      * @return static
      */
     public function withBody(StreamInterface $body): MessageInterface
@@ -198,6 +202,9 @@ abstract class AbstractMessage implements MessageInterface
 
     /**
      * Normalize a header name to Title-Case-With-Dashes.
+     *
+     * Normalizing gives consistent getHeaders() keys regardless of the
+     * casing callers used; lookup stays case-insensitive via $headerNames.
      *
      * @param string $name The raw header name
      * @return string The normalized header name

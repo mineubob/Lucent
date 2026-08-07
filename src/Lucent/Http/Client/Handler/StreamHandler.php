@@ -139,11 +139,16 @@ final class StreamHandler implements HandlerInterface
             ],
         ];
 
-        // Request body → http context 'content'.
+        // Request body → http context 'content'. When the size is known,
+        // send Content-Length so the server knows when the body is complete.
         $body = $request->getBody();
         $bodySize = $body->getSize();
         if ($bodySize === null || $bodySize > 0) {
             $context['http']['content'] = (string) $body;
+            if ($bodySize !== null && !$request->hasHeader('Content-Length')) {
+                $headerLines[] = 'Content-Length: ' . $bodySize;
+                $context['http']['header'] = $headerLines;
+            }
         }
 
         // SSL verification.
@@ -158,30 +163,52 @@ final class StreamHandler implements HandlerInterface
     }
 
     /**
-     * @param list<string> $rawHeaders Raw header lines (incl. status line)
+     * Parse the FINAL status line from the raw headers.
+     *
+     * With follow_location enabled or 1xx interim responses, the raw header
+     * list contains multiple status blocks — the last HTTP/ line belongs to
+     * the final response.
+     *
+     * @param list<string> $rawHeaders Raw header lines (incl. status lines)
      * @return array{0: string, 1: int, 2: string} [version, status, reason]
      */
     private function parseHeaders(array $rawHeaders): array
     {
+        $lastStatusLine = null;
         foreach ($rawHeaders as $line) {
             if (str_starts_with(trim($line), 'HTTP/')) {
-                return $this->parseStatusLine($line);
+                $lastStatusLine = $line;
             }
         }
 
-        return ['1.1', 200, ''];
+        return $lastStatusLine !== null
+            ? $this->parseStatusLine($lastStatusLine)
+            : ['1.1', 200, ''];
     }
 
     /**
-     * @param list<string> $rawHeaders Raw header lines (incl. status line)
+     * Normalize headers from the FINAL response block only.
+     *
+     * Only header lines after the last HTTP/ status line belong to the final
+     * response; earlier blocks are redirects or 1xx interim responses.
+     *
+     * @param list<string> $rawHeaders Raw header lines (incl. status lines)
      * @return array<string, string[]> Headers as [name => values]
      */
     private function normalizeHeaders(array $rawHeaders): array
     {
+        // Find the offset of the last status line.
+        $lastStatusOffset = -1;
+        foreach ($rawHeaders as $i => $line) {
+            if (str_starts_with(trim($line), 'HTTP/')) {
+                $lastStatusOffset = $i;
+            }
+        }
+
         $headers = [];
-        foreach ($rawHeaders as $line) {
+        foreach (array_slice($rawHeaders, $lastStatusOffset + 1) as $line) {
             $trimmed = trim($line);
-            if ($trimmed === '' || str_starts_with($trimmed, 'HTTP/')) {
+            if ($trimmed === '') {
                 continue;
             }
 

@@ -54,12 +54,17 @@ class CallbackStreamTest extends TestCase
         $this->assertTrue($stream->eof());
     }
 
-    public function test_get_size_returns_length(): void
+    public function test_get_size_is_null_until_callback_invoked(): void
     {
+        // Per PSR-7, getSize() may return null when the size is unknown —
+        // invoking the callback eagerly would defeat lazy streaming.
         $stream = new CallbackStream(function () {
             return 'Data';
         });
 
+        $this->assertNull($stream->getSize());
+
+        $stream->read(1024);
         $this->assertSame(4, $stream->getSize());
     }
 

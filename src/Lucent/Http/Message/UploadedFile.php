@@ -21,25 +21,55 @@ final class UploadedFile implements UploadedFileInterface
     private ?string $clientMediaType = null;
     private bool $moved = false;
 
+    /** @var int[] Valid UPLOAD_ERR_* constants */
+    private const VALID_ERRORS = [
+        UPLOAD_ERR_OK,
+        UPLOAD_ERR_INI_SIZE,
+        UPLOAD_ERR_FORM_SIZE,
+        UPLOAD_ERR_PARTIAL,
+        UPLOAD_ERR_NO_FILE,
+        UPLOAD_ERR_NO_TMP_DIR,
+        UPLOAD_ERR_CANT_WRITE,
+        UPLOAD_ERR_EXTENSION,
+    ];
+
     /**
      * @param StreamInterface|string|resource $streamOrFile Stream, file path, or resource
      * @param int|null $size File size in bytes
      * @param int $error Upload error code (UPLOAD_ERR_*)
      * @param string|null $clientFilename Original client filename
      * @param string|null $clientMediaType Original client media type
+     * @throws \InvalidArgumentException If the error code is invalid, a stream
+     *     is not readable, or the source type is unsupported
      */
     public function __construct(
-        StreamInterface|string $streamOrFile,
+        mixed $streamOrFile,
         ?int $size = null,
         int $error = UPLOAD_ERR_OK,
         ?string $clientFilename = null,
         ?string $clientMediaType = null
     ) {
-        if ($streamOrFile instanceof StreamInterface) {
-            $this->stream = $streamOrFile;
-        } else {
-            $this->file = $streamOrFile;
+        if (!in_array($error, self::VALID_ERRORS, true)) {
+            throw new \InvalidArgumentException("Invalid upload error code: $error (must be a UPLOAD_ERR_* constant)");
         }
+
+        if ($streamOrFile instanceof StreamInterface) {
+            if (!$streamOrFile->isReadable()) {
+                throw new \InvalidArgumentException('Uploaded file stream must be readable');
+            }
+            $this->stream = $streamOrFile;
+        } elseif (is_resource($streamOrFile)) {
+            $stream = Stream::fromResource($streamOrFile);
+            if (!$stream->isReadable()) {
+                throw new \InvalidArgumentException('Uploaded file resource must be readable');
+            }
+            $this->stream = $stream;
+        } elseif (is_string($streamOrFile) && $streamOrFile !== '') {
+            $this->file = $streamOrFile;
+        } else {
+            throw new \InvalidArgumentException('Uploaded file source must be a StreamInterface, a non-empty file path string, or a resource');
+        }
+
         $this->size = $size;
         $this->error = $error;
         $this->clientFilename = $clientFilename;
@@ -68,19 +98,22 @@ final class UploadedFile implements UploadedFileInterface
         return $this->stream;
     }
 
+    /**
+     * @throws \InvalidArgumentException if the $targetPath specified is invalid
+     * @throws \RuntimeException on any error during the move, or on subsequent calls
+     */
     public function moveTo(string $targetPath): void
     {
         if ($this->moved) {
             throw new RuntimeException('File has already been moved');
         }
 
-        if ($this->error !== UPLOAD_ERR_OK) {
-            throw new RuntimeException('Cannot move file due to upload error');
+        if ($targetPath === '' || str_contains($targetPath, "\0")) {
+            throw new \InvalidArgumentException('Target path must be a non-empty string without null bytes');
         }
 
-        $source = $this->file;
-        if ($source === null) {
-            throw new RuntimeException('No source file available');
+        if ($this->error !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Cannot move file due to upload error');
         }
 
         $dir = dirname($targetPath);
@@ -88,6 +121,24 @@ final class UploadedFile implements UploadedFileInterface
             throw new RuntimeException("Target directory does not exist: $dir");
         }
 
+        if ($this->file !== null) {
+            $this->moveFile($this->file, $targetPath);
+        } elseif ($this->stream !== null) {
+            $this->moveStream($targetPath);
+        } else {
+            throw new RuntimeException('No source file or stream available');
+        }
+
+        $this->moved = true;
+    }
+
+    /**
+     * Move a file-backed upload using the appropriate SAPI-aware mechanism.
+     *
+     * @throws \RuntimeException
+     */
+    private function moveFile(string $source, string $targetPath): void
+    {
         if (is_uploaded_file($source)) {
             if (! move_uploaded_file($source, $targetPath)) {
                 throw new RuntimeException("Unable to move uploaded file to $targetPath");
@@ -99,8 +150,41 @@ final class UploadedFile implements UploadedFileInterface
             }
         }
 
-        $this->moved = true;
         $this->file = $targetPath;
+    }
+
+    /**
+     * Move a stream-backed upload by writing the stream to the target path.
+     *
+     * @throws \RuntimeException
+     */
+    private function moveStream(string $targetPath): void
+    {
+        $target = fopen($targetPath, 'wb');
+        if ($target === false) {
+            throw new RuntimeException("Unable to open target path for writing: $targetPath");
+        }
+
+        try {
+            $stream = $this->stream;
+            if ($stream->isSeekable()) {
+                $stream->rewind();
+            }
+            while (!$stream->eof()) {
+                $chunk = $stream->read(8192);
+                if ($chunk === '') {
+                    break;
+                }
+                if (fwrite($target, $chunk) === false) {
+                    throw new RuntimeException("Unable to write to target path: $targetPath");
+                }
+            }
+        } finally {
+            fclose($target);
+        }
+
+        // The original stream is consumed by the move — detach it.
+        $this->stream = null;
     }
 
     public function getSize(): ?int
