@@ -23,7 +23,7 @@ use Psr\Http\Message\UriInterface;
  * implementations. Configuration is passed as an immutable config array:
  *
  * ```php
- * $client = new Psr18Client([
+ * $client = new HttpClient([
  *     'base_uri'    => 'https://api.example.com/v1',
  *     'timeout'     => 30,
  *     'verify_ssl'  => true,
@@ -43,7 +43,7 @@ use Psr\Http\Message\UriInterface;
  * cURL-backed {@see CurlHandler} is used; the `stream => true` option routes to
  * the {@see StreamHandler} for true incremental response streaming.
  */
-final class Psr18Client implements ClientInterface
+final class HttpClient implements ClientInterface
 {
     /** @var string Option key for the sink (file path, resource, or stream) */
     public const OPTION_SINK = 'sink';
@@ -126,7 +126,7 @@ final class Psr18Client implements ClientInterface
         $this->timeout = $config['timeout'] ?? 30;
         $this->verifySsl = $config['verify_ssl'] ?? true;
         $this->basicAuth = $config['basic_auth'] ?? null;
-        $this->userAgent = $config['user_agent'] ?? 'Lucent-Psr18Client/1.0';
+        $this->userAgent = $config['user_agent'] ?? 'Lucent-HttpClient/' . (defined('VERSION') ? VERSION : 'unknown');
         $this->headers = $config['headers'] ?? [];
         $this->curlOptions = $config['curl_options'] ?? [];
         $this->factory = new HttpFactory();
@@ -343,7 +343,7 @@ final class Psr18Client implements ClientInterface
 
         foreach ($config as $key => $value) {
             if (!in_array($key, $allowed, true)) {
-                throw new \InvalidArgumentException("Unknown Psr18Client config key: {$key}");
+                throw new \InvalidArgumentException("Unknown HttpClient config key: {$key}");
             }
         }
 
@@ -408,7 +408,7 @@ final class Psr18Client implements ClientInterface
 
         foreach ($options as $key => $value) {
             if (!in_array($key, $allowed, true)) {
-                throw new \InvalidArgumentException("Unknown Psr18Client request option: {$key}");
+                throw new \InvalidArgumentException("Unknown HttpClient request option: {$key}");
             }
         }
 

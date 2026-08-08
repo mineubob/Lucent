@@ -10,7 +10,7 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * cURL-backed transport handler — the default handler for Psr18Client.
+ * cURL-backed transport handler — the default handler for HttpClient.
  *
  * This handler uses cURL and buffers the full response body before returning
  * (via a WRITEFUNCTION into a sink). It accepts the `stream => true` option
@@ -70,7 +70,7 @@ final class CurlHandler implements HandlerInterface
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => $options['timeout'] ?? 30,
-            CURLOPT_USERAGENT => $options['user_agent'] ?? 'Lucent-Psr18Client/1.0',
+            CURLOPT_USERAGENT => $options['user_agent'],
             CURLOPT_SSL_VERIFYPEER => $options['verify_ssl'] ?? true,
             CURLOPT_SSL_VERIFYHOST => ($options['verify_ssl'] ?? true) ? 2 : 0,
         ];

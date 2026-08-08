@@ -134,7 +134,7 @@ final class StreamHandler implements HandlerInterface
                 'follow_location' => 1,
                 'max_redirects' => 10,
                 'timeout' => (float) ($options['timeout'] ?? 30),
-                'user_agent' => $options['user_agent'] ?? 'Lucent-Psr18Client/1.0',
+                'user_agent' => $options['user_agent'],
                 'header' => $headerLines,
             ],
         ];

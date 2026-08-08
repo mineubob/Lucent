@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Fixture router for the PHP built-in server used by Psr18ClientTest.
+ * Fixture router for the PHP built-in server used by HttpClientTest.
  *
  * Echoes back request metadata as JSON so tests can assert what the client
  * actually sent (method, URI, headers, body, basic auth, etc.).

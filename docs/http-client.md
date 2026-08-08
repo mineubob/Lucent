@@ -23,9 +23,9 @@ $body = json_decode((string) $response->getBody(), true);
 ### Using the Client Directly
 
 ```php
-use Lucent\Http\Client\Psr18Client;
+use Lucent\Http\Client\HttpClient;
 
-$client = new Psr18Client([
+$client = new HttpClient([
     'base_uri' => 'https://api.example.com/v1',
     'timeout'  => 30,
 ]);
@@ -46,7 +46,7 @@ $response = $client->sendRequest($request);
 
 ## Configuration
 
-`Psr18Client` accepts an immutable config array. Unknown keys and invalid values throw `\InvalidArgumentException`.
+`HttpClient` accepts an immutable config array. Unknown keys and invalid values throw `\InvalidArgumentException`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -54,12 +54,12 @@ $response = $client->sendRequest($request);
 | `timeout` | `int` | `30` | Request timeout in seconds (must be > 0) |
 | `verify_ssl` | `bool` | `true` | Verify SSL certificates |
 | `basic_auth` | `array{0: string, 1: string}` | `null` | `[username, password]` for HTTP Basic auth |
-| `user_agent` | `string` | `Lucent-Psr18Client/1.0` | User-Agent header |
+| `user_agent` | `string` | `Lucent-HttpClient/<version>` | User-Agent header (uses the framework `VERSION`) |
 | `headers` | `array<string, string>` | `[]` | Default headers merged into every request (request headers win) |
 | `curl_options` | `array<int, mixed>` | `[]` | Additional cURL options (applied last, can override defaults) |
 
 ```php
-$client = new Psr18Client([
+$client = new HttpClient([
     'base_uri'    => 'https://api.example.com',
     'timeout'     => 10,
     'verify_ssl'  => true,
