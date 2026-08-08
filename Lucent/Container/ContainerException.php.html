@@ -2,7 +2,7 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
-  <title>Code Coverage for /home/runner/work/Lucent/Lucent/src/Lucent/Logging/Driver.php</title>
+  <title>Code Coverage for /home/runner/work/Lucent/Lucent/src/Lucent/Container/ContainerException.php</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
   <link href="../../_css/octicons.css?v=12.5.7" rel="stylesheet" type="text/css">
@@ -18,8 +18,8 @@
        <ol class="breadcrumb">
          <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
          <li class="breadcrumb-item"><a href="../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="index.html">Logging</a></li>
-         <li class="breadcrumb-item active">Driver.php</li>
+         <li class="breadcrumb-item"><a href="index.html">Container</a></li>
+         <li class="breadcrumb-item active">ContainerException.php</li>
 
        </ol>
       </nav>
@@ -58,7 +58,7 @@
       </tr>
 
       <tr>
-       <td class=""><abbr title="Lucent\Logging\Driver">Driver</abbr></td>
+       <td class=""><abbr title="Lucent\Container\ContainerException">ContainerException</abbr></td>
        <td class=" big"></td>
        <td class=" small"><div align="right">n/a</div></td>
        <td class=" small"><div align="right">0&nbsp;/&nbsp;0</div></td>
@@ -69,18 +69,6 @@
        <td class=" big"></td>
        <td class=" small"><div align="right">n/a</div></td>
        <td class=" small"><div align="right">0&nbsp;/&nbsp;0</div></td>
-      </tr>
-
-      <tr>
-       <td class="">&nbsp;<a href="#7"><abbr title="write(string $line): void">write</abbr></a></td>
-       <td class=" big"></td>
-       <td class=" small"><div align="right">n/a</div></td>
-       <td class=" small"><div align="right">0&nbsp;/&nbsp;0</div></td>
-       <td class=" big"></td>
-       <td class=" small"><div align="right">n/a</div></td>
-       <td class=" small"><div align="right">0&nbsp;/&nbsp;0</div></td>
-       <td class=" small">0</td>
-       <td class="" colspan="3"></td>
       </tr>
 
 
@@ -91,13 +79,20 @@
 <tbody>
     <tr class=" d-flex"><td  class="col-1 text-end"><a id="1" href="#1">1</a></td><td class="col-11 codeLine"><span class="default">&lt;?php</span></td></tr>
     <tr class=" d-flex"><td  class="col-1 text-end"><a id="2" href="#2">2</a></td><td class="col-11 codeLine"></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="3" href="#3">3</a></td><td class="col-11 codeLine"><span class="keyword">namespace</span><span class="default">&nbsp;</span><span class="default">Lucent\Logging</span><span class="keyword">;</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="3" href="#3">3</a></td><td class="col-11 codeLine"><span class="keyword">namespace</span><span class="default">&nbsp;</span><span class="default">Lucent\Container</span><span class="keyword">;</span></td></tr>
     <tr class=" d-flex"><td  class="col-1 text-end"><a id="4" href="#4">4</a></td><td class="col-11 codeLine"></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="5" href="#5">5</a></td><td class="col-11 codeLine"><span class="keyword">abstract</span><span class="default">&nbsp;</span><span class="keyword">class</span><span class="default">&nbsp;</span><span class="default">Driver</span></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="6" href="#6">6</a></td><td class="col-11 codeLine"><span class="keyword">{</span></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="7" href="#7">7</a></td><td class="col-11 codeLine"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword">abstract</span><span class="default">&nbsp;</span><span class="keyword">public</span><span class="default">&nbsp;</span><span class="keyword">function</span><span class="default">&nbsp;</span><span class="default">write</span><span class="keyword">(</span><span class="default">string</span><span class="default">&nbsp;</span><span class="default">$line</span><span class="keyword">)</span><span class="default">&nbsp;</span><span class="keyword">:</span><span class="default">&nbsp;</span><span class="default">void</span><span class="keyword">;</span></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="8" href="#8">8</a></td><td class="col-11 codeLine"></td></tr>
-    <tr class=" d-flex"><td  class="col-1 text-end"><a id="9" href="#9">9</a></td><td class="col-11 codeLine"><span class="keyword">}</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="5" href="#5">5</a></td><td class="col-11 codeLine"><span class="keyword">use</span><span class="default">&nbsp;</span><span class="default">Psr\Container\ContainerExceptionInterface</span><span class="keyword">;</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="6" href="#6">6</a></td><td class="col-11 codeLine"><span class="keyword">use</span><span class="default">&nbsp;</span><span class="default">RuntimeException</span><span class="keyword">;</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="7" href="#7">7</a></td><td class="col-11 codeLine"></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="8" href="#8">8</a></td><td class="col-11 codeLine"><span class="comment">/**</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="9" href="#9">9</a></td><td class="col-11 codeLine"><span class="comment">&nbsp;*&nbsp;Thrown&nbsp;when&nbsp;a&nbsp;container&nbsp;entry&nbsp;exists&nbsp;but&nbsp;cannot&nbsp;be&nbsp;resolved&nbsp;without&nbsp;error.</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="10" href="#10">10</a></td><td class="col-11 codeLine"><span class="comment">&nbsp;*</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="11" href="#11">11</a></td><td class="col-11 codeLine"><span class="comment">&nbsp;*&nbsp;Examples:&nbsp;a&nbsp;factory&nbsp;returns&nbsp;a&nbsp;value&nbsp;of&nbsp;the&nbsp;wrong&nbsp;type,&nbsp;or&nbsp;a&nbsp;class-string</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="12" href="#12">12</a></td><td class="col-11 codeLine"><span class="comment">&nbsp;*&nbsp;cannot&nbsp;be&nbsp;instantiated.</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="13" href="#13">13</a></td><td class="col-11 codeLine"><span class="comment">&nbsp;*/</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="14" href="#14">14</a></td><td class="col-11 codeLine"><span class="keyword">class</span><span class="default">&nbsp;</span><span class="default">ContainerException</span><span class="default">&nbsp;</span><span class="keyword">extends</span><span class="default">&nbsp;</span><span class="default">RuntimeException</span><span class="default">&nbsp;</span><span class="keyword">implements</span><span class="default">&nbsp;</span><span class="default">ContainerExceptionInterface</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="15" href="#15">15</a></td><td class="col-11 codeLine"><span class="keyword">{</span></td></tr>
+    <tr class=" d-flex"><td  class="col-1 text-end"><a id="16" href="#16">16</a></td><td class="col-11 codeLine"><span class="keyword">}</span></td></tr>
 
 </tbody>
 </table>
