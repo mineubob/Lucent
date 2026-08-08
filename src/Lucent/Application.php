@@ -9,6 +9,7 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
+use Lucent\Date\Clock;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -27,6 +28,7 @@ use Lucent\Model\Model;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Psr\Clock\ClockInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -198,6 +200,11 @@ class Application
 
         $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
+
+        // Register the shared PSR-20 clock so services can type-hint
+        // Psr\Clock\ClockInterface for constructor injection.
+        $this->container->instance(Clock::local(), ClockInterface::class);
+        $this->container->instance(Clock::local(), Clock::class);
     }
 
     /**
