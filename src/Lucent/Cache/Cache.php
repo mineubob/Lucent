@@ -1,0 +1,114 @@
+<?php
+
+namespace Lucent\Cache;
+
+use DateInterval;
+use Psr\SimpleCache\CacheInterface;
+
+/**
+ * Shared foundation for cache drivers.
+ *
+ * Provides key validation and TTL normalisation, plus default loop
+ * implementations for the multi-key operations built on top of the
+ * single-key methods each driver implements.
+ *
+ * Keys must be non-empty strings of at most 64 characters drawn from
+ * `[A-Za-z0-9_.]`. The reserved characters `{}()/\@:` are rejected.
+ *
+ * TTL semantics:
+ *  - `null` means "cache forever" (no expiry).
+ *  - a positive integer is a number of seconds from now.
+ *  - a {@see DateInterval} is a duration from now.
+ *  - zero or a negative value means the item is already expired and must
+ *    be removed rather than stored.
+ */
+abstract class Cache implements CacheInterface
+{
+    /**
+     * Validate a cache key.
+     *
+     * @param string $key The key to validate
+     * @return void
+     * @throws InvalidArgumentException If the key is not a legal value
+     */
+    protected function validateKey(string $key): void
+    {
+        if (preg_match('/^[A-Za-z0-9_.]{1,64}$/', $key) !== 1) {
+            throw new InvalidArgumentException($key);
+        }
+    }
+
+    /**
+     * Convert a TTL into an absolute expiry timestamp.
+     *
+     * @param null|int|DateInterval $ttl The TTL to convert
+     * @return int|null Absolute unix timestamp of expiry, or null for "forever"
+     */
+    protected function expiryFromTtl(null|int|DateInterval $ttl): ?int
+    {
+        if ($ttl === null) {
+            return null;
+        }
+
+        if ($ttl instanceof DateInterval) {
+            $ttl = (new \DateTimeImmutable())->add($ttl)->getTimestamp() - time();
+        }
+
+        if ($ttl <= 0) {
+            // Already expired: return a timestamp in the past so the item is
+            // treated as stale and removed rather than stored.
+            return time() - 1;
+        }
+
+        return time() + $ttl;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    {
+        $result = [];
+
+        foreach ($keys as $key) {
+            $this->validateKey($key);
+            $result[$key] = $this->get($key, $default);
+        }
+
+        return $result;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setMultiple(iterable $values, null|int|DateInterval $ttl = null): bool
+    {
+        $success = true;
+
+        foreach ($values as $key => $value) {
+            $this->validateKey($key);
+            if (!$this->set($key, $value, $ttl)) {
+                $success = false;
+            }
+        }
+
+        return $success;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function deleteMultiple(iterable $keys): bool
+    {
+        $success = true;
+
+        foreach ($keys as $key) {
+            $this->validateKey($key);
+            if (!$this->delete($key)) {
+                $success = false;
+            }
+        }
+
+        return $success;
+    }
+}

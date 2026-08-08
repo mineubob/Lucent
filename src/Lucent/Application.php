@@ -3,7 +3,9 @@
 namespace Lucent;
 
 use InvalidArgumentException;
+use Lucent\Cache\CacheFactory;
 use Lucent\Container\Container;
+use Lucent\Commandline\ClearCacheCommand;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
@@ -27,6 +29,7 @@ use Lucent\Model\Model;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Psr\SimpleCache\CacheInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -90,6 +93,16 @@ class Application
      * @var Container
      */
     private Container $container;
+
+    /**
+     * The application's cache store.
+     *
+     * Lazily built from the `CACHE_DRIVER` environment variable on first
+     * access, or replaced explicitly via {@see setCache()}.
+     *
+     * @var CacheInterface|null
+     */
+    private ?CacheInterface $cache = null;
 
     /**
      * Environment variables loaded from .env file
@@ -211,6 +224,47 @@ class Application
     public function container(): Container
     {
         return $this->container;
+    }
+
+    /**
+     * Get the application's cache store.
+     *
+     * Builds the store lazily on first access from the `CACHE_DRIVER`
+     * environment variable (defaulting to `file`), then registers it on the
+     * container under {@see CacheInterface::class} so it can be resolved via
+     * dependency injection. The same instance is returned on subsequent calls.
+     *
+     * @return CacheInterface The cache store
+     */
+    public function cache(): CacheInterface
+    {
+        if ($this->cache === null) {
+            $driver = $this->env['CACHE_DRIVER'] ?? 'file';
+            $path = $this->env['CACHE_PATH'] ?? 'storage/cache';
+
+            $this->cache = CacheFactory::create($driver, $this->container, $path);
+            $this->container->instance($this->cache, CacheInterface::class);
+        }
+
+        return $this->cache;
+    }
+
+    /**
+     * Replace the application's cache store.
+     *
+     * This is the injection point for third-party cache implementations: any
+     * object implementing {@see CacheInterface} can be supplied here. The
+     * replacement is also registered on the container under
+     * {@see CacheInterface::class}, so dependency-injected consumers resolve
+     * the new store.
+     *
+     * @param CacheInterface $cache The cache store to use
+     * @return void
+     */
+    public function setCache(CacheInterface $cache): void
+    {
+        $this->cache = $cache;
+        $this->container->instance($cache, CacheInterface::class);
     }
 
     /**
@@ -795,6 +849,7 @@ class Application
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
         CommandLine::register(DeploymentController::$command_rollback, "rollback", DeploymentController::class, "Rolls back to the most recent backup");
+        CommandLine::register(ClearCacheCommand::$command, "clear", ClearCacheCommand::class, "Clears the application cache");
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);
