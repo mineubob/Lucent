@@ -3,7 +3,7 @@
 namespace Lucent\Facades;
 
 use Lucent\Application;
-use Lucent\Http\Client\Psr18Client;
+use Lucent\Http\Client\HttpClient;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
@@ -16,22 +16,22 @@ use Psr\Http\Message\StreamInterface;
  * $response = Http::post('https://api.example.com/users', ['name' => 'Jane']);
  * ```
  *
- * The underlying {@see Psr18Client} is created lazily and registered on the
+ * The underlying {@see HttpClient} is created lazily and registered on the
  * Application service container, so `Http::client()` always returns the same
  * shared instance.
  */
 class Http
 {
-    /** @var Psr18Client|null Cached shared client instance */
-    private static ?Psr18Client $client = null;
+    /** @var HttpClient|null Cached shared client instance */
+    private static ?HttpClient $client = null;
 
     /**
-     * Get the shared Psr18Client instance, registering it on the container.
+     * Get the shared HttpClient instance, registering it on the container.
      */
-    public static function client(): Psr18Client
+    public static function client(): HttpClient
     {
         if (self::$client === null) {
-            self::$client = new Psr18Client();
+            self::$client = new HttpClient();
             Application::getInstance()->container()->instance(self::$client);
         }
 
@@ -123,7 +123,7 @@ class Http
     /**
      * Swap the shared client instance (primarily for tests).
      */
-    public static function swap(?Psr18Client $client): void
+    public static function swap(?HttpClient $client): void
     {
         self::$client = $client;
     }

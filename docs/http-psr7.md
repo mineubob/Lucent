@@ -71,7 +71,7 @@ class AuthMiddleware implements MiddlewareInterface
 | PSR-15 Middleware | `Lucent\Http\Middleware\MiddlewarePipeline` | — |
 | PSR-17 Factory | `Lucent\Http\Message\Factory\HttpFactory` | — |
 | Convenience | `Lucent\Http\Message\Factory\LucentResponseFactory` | — |
-| PSR-18 Client | `Lucent\Http\Client\Psr18Client` | (new — see [HTTP Client guide](./http-client.md)) |
+| PSR-18 Client | `Lucent\Http\Client\HttpClient` | (new — see [HTTP Client guide](./http-client.md)) |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\NetworkException` | — |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\RequestException` | — |
 | URI Resolution | `Lucent\Http\Message\UriResolver` | — |

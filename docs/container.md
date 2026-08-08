@@ -39,7 +39,7 @@ the object's class name, or you can supply an alias:
 
 ```php
 $container->instance($logger, LoggerInterface::class);
-$container->instance($httpClient);           // keyed by Psr18Client::class
+$container->instance($httpClient);           // keyed by HttpClient::class
 ```
 
 ### Shared Singleton from a Class Name
@@ -151,9 +151,9 @@ App::container()->singleton(SmtpMailer::class, MailerInterface::class);
 ## Sharing with the HTTP Facade
 
 Some Lucent facades register their collaborators on the container so they are
-shared. For example, `Http::client()` registers the shared `Psr18Client` under
-`Psr18Client::class`:
+shared. For example, `Http::client()` registers the shared `HttpClient` under
+`HttpClient::class`:
 
 ```php
-$sameClient = App::container()->get(Psr18Client::class);
+$sameClient = App::container()->get(HttpClient::class);
 ```

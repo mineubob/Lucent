@@ -6,7 +6,7 @@ use Exception;
 use Lucent\Commandline\Components\ProgressBar;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
-use Lucent\Http\Client\Psr18Client;
+use Lucent\Http\Client\HttpClient;
 use Psr\Http\Client\ClientExceptionInterface;
 use ZipArchive;
 
@@ -67,7 +67,7 @@ class DeploymentController
         $progress->setBarCharacters(['█', '░']);
         $progress->setUpdateInterval(0.1);
 
-        $client = new Psr18Client([
+        $client = new HttpClient([
             'timeout'     => 120,
             'curl_options'=> [
                 CURLOPT_UNRESTRICTED_AUTH => true,
