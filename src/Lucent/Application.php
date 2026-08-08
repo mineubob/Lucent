@@ -3,6 +3,7 @@
 namespace Lucent;
 
 use InvalidArgumentException;
+use Lucent\Container\Container;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
@@ -84,11 +85,11 @@ class Application
     private static ?Application $instance = null;
 
     /**
-     * Singleton instance of service classes
+     * The dependency injection container for this application.
      *
-     * @var array
+     * @var Container
      */
-    public private(set) array $services = [];
+    private Container $container;
 
     /**
      * Environment variables loaded from .env file
@@ -195,7 +196,21 @@ class Application
         //the framework itself.
         $this->loadEnv();
 
+        $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
+    }
+
+    /**
+     * Get the application's dependency injection container.
+     *
+     * The container is app-scoped (created in the constructor), so it is
+     * naturally reset whenever the application singleton is replaced.
+     *
+     * @return Container The PSR-11 service container
+     */
+    public function container(): Container
+    {
+        return $this->container;
     }
 
     /**
@@ -524,8 +539,8 @@ class Application
                     );
                 }
 
-                if (array_key_exists($parameterType->getName(), $this->services)) {
-                    $parameters[$parameter->getName()] = $this->services[$parameterType->getName()];
+                if ($this->container->has($parameterType->getName())) {
+                    $parameters[$parameter->getName()] = $this->container->get($parameterType->getName());
                 } else if ($parameter->isDefaultValueAvailable()) {
                     $parameters[$parameter->getName()] = $parameter->getDefaultValue();
                 } else {
@@ -604,8 +619,8 @@ class Application
             $typeName = $type->getName();
 
             // Service Injection
-            if (array_key_exists($typeName, $this->services)) {
-                $variables[$name] = $this->services[$typeName];
+            if ($this->container->has($typeName)) {
+                $variables[$name] = $this->container->get($typeName);
                 continue;
             }
 
@@ -1044,18 +1059,6 @@ class Application
                 header("$safeName: $safeValue", $replace);
             }
         }
-    }
-
-    public function addService(object|string $service, ?string $alias = null): mixed
-    {
-        if (getType($service) === "string") {
-            $instance = new $service();
-            $this->services[$alias ?? $service] = $instance;
-            return $instance;
-        }
-
-        $this->services[$alias ?? get_class($service)] = $service;
-        return $service;
     }
 
     private function responseWithError(HttpStatus $status, ?\Throwable $throwable = null): ResponseInterface

@@ -29,7 +29,7 @@ class HttpFacadeTest extends TestCase
     {
         $client = Http::client();
 
-        $registered = Application::getInstance()->services[Psr18Client::class] ?? null;
+        $registered = Application::getInstance()->container()->get(Psr18Client::class);
         $this->assertSame($client, $registered);
     }
 

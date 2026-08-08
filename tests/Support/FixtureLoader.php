@@ -121,6 +121,17 @@ class FixtureLoader
     }
 
     /**
+     * Copy a service fixture into temp_install/App/Services/.
+     *
+     * @param string $name Filename, e.g. 'InjectionGreeter.php'
+     * @return File
+     */
+    public static function copyService(string $name): File
+    {
+        return self::copy('Services', $name, 'App/Services');
+    }
+
+    /**
      * Copy a route fixture into temp_install/routes/.
      *
      * @param string $name Filename, e.g. 'web.php'

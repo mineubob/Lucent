@@ -32,7 +32,7 @@ class Http
     {
         if (self::$client === null) {
             self::$client = new Psr18Client();
-            Application::getInstance()->addService(self::$client, Psr18Client::class);
+            Application::getInstance()->container()->instance(self::$client);
         }
 
         return self::$client;
