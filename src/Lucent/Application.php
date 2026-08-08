@@ -9,6 +9,8 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
+use Lucent\EventDispatcher\EventDispatcher;
+use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
@@ -27,6 +29,8 @@ use Lucent\Model\Model;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -90,6 +94,20 @@ class Application
      * @var Container
      */
     private Container $container;
+
+    /**
+     * Dispatches events to their registered listeners.
+     *
+     * @var EventDispatcher
+     */
+    public private(set) EventDispatcher $eventDispatcher;
+
+    /**
+     * Maps events to the listeners registered for them.
+     *
+     * @var ListenerProvider
+     */
+    public private(set) ListenerProvider $listenerProvider;
 
     /**
      * Environment variables loaded from .env file
@@ -198,6 +216,14 @@ class Application
 
         $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
+
+        // Set up the event dispatcher and its listener provider, and expose
+        // them through the container so they can be resolved by interface.
+        $this->listenerProvider = new ListenerProvider();
+        $this->eventDispatcher = new EventDispatcher($this->listenerProvider, $this->container);
+
+        $this->container->instance($this->listenerProvider, ListenerProviderInterface::class);
+        $this->container->instance($this->eventDispatcher, EventDispatcherInterface::class);
     }
 
     /**
@@ -211,6 +237,34 @@ class Application
     public function container(): Container
     {
         return $this->container;
+    }
+
+    /**
+     * Register a listener for an event.
+     *
+     * Convenience passthrough to the application's listener provider.
+     *
+     * @param class-string $eventClass Event class (or parent class / interface) to listen for
+     * @param callable|string $listener Callable, or class-string of an invokable listener
+     * @param int $priority Higher priorities run first; defaults to 0
+     * @return void
+     */
+    public function listen(string $eventClass, callable|string $listener, int $priority = 0): void
+    {
+        $this->listenerProvider->listen($eventClass, $listener, $priority);
+    }
+
+    /**
+     * Dispatch an event to its registered listeners.
+     *
+     * Convenience passthrough to the application's event dispatcher.
+     *
+     * @param object $event The event to dispatch
+     * @return object The event, possibly modified by listeners
+     */
+    public function dispatch(object $event): object
+    {
+        return $this->eventDispatcher->dispatch($event);
     }
 
     /**

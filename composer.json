@@ -33,7 +33,8 @@
     "psr/http-server-handler": "^1.0",
     "psr/http-server-middleware": "^1.0",
     "psr/log": "^3.0",
-    "psr/container": "^2.0"
+    "psr/container": "^2.0",
+    "psr/event-dispatcher": "^1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^12.0"
@@ -44,7 +45,8 @@
     "psr/http-message-implementation": "2.0",
     "psr/http-factory-implementation": "1.1",
     "psr/http-server-handler-implementation": "1.0",
-    "psr/container-implementation": "2.0"
+    "psr/container-implementation": "2.0",
+    "psr/event-dispatcher-implementation": "1.0"
   },
   "autoload": {
     "psr-4": {
