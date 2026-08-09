@@ -5,7 +5,8 @@ namespace Lucent\Validation;
 use InvalidArgumentException;
 use Lucent\Application;
 use Lucent\Facades\Regex;
-use Lucent\Http\Request;
+use Lucent\Http\Message\ServerRequest;
+use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -40,9 +41,9 @@ abstract class Rule
     /**
      * The request that initiated this validation, if available
      *
-     * @var Request|null
+     * @var ServerRequestInterface|null
      */
-    protected ?Request $currentRequest = null;
+    protected ?ServerRequestInterface $currentRequest = null;
 
     /**
      * Set up the validation rules
@@ -51,7 +52,7 @@ abstract class Rule
      *
      * @return array Associative array of field names and validation rules
      */
-    public abstract function setup() : array;
+    public abstract function setup(): array;
 
     /**
      * Validates a value against a regex pattern
@@ -65,11 +66,11 @@ abstract class Rule
     {
         $patterns = $this->getRegexPatterns();
 
-        if(!isset($patterns[$key])){
+        if (!isset($patterns[$key])) {
             throw new InvalidArgumentException("Regex {$key} does not exists");
         }
 
-        if($patterns[$key]["message"] !== null){
+        if ($patterns[$key]["message"] !== null) {
             $this->customMessages["regex"] = $patterns[$key]["message"];
         }
 
@@ -162,7 +163,7 @@ abstract class Rule
         $model = $instance::where($column, $value)->getFirst();
 
         if ($model !== null) {
-            $this->currentRequest->context[$table] = $model;
+            $this->setContext($table, $model);
         }
 
         return $model === null;
@@ -221,12 +222,12 @@ abstract class Rule
                 $isNegatedRule = false;
 
                 //Check if we are passing a '!', if so set negated to true
-                if(str_starts_with($methodName, "!")){
+                if (str_starts_with($methodName, "!")) {
                     $methodName = substr($methodName, 1);
                     $isNegatedRule = true;
                 }
 
-                if($methodName === "unique" || $methodName === "!unique"){
+                if ($methodName === "unique" || $methodName === "!unique") {
                     $parts[] = $key;
                 }
 
@@ -236,13 +237,13 @@ abstract class Rule
                     $params = $method->getParameters();
 
                     $parts = array_slice($parts, 1);
-                    $parts = array_merge($parts,[$data[$key]]);
+                    $parts = array_merge($parts, [$data[$key]]);
 
                     $args = [];
 
                     foreach ($params as $index => $param) {
                         if (isset($parts[$index])) {
-                            $value = $this->processVariable($parts[$index],$data);
+                            $value = $this->processVariable($parts[$index], $data);
                             $args[] = $this->castToType($value, $param->getType());
                         } else {
                             // If parameter has default value and no corresponding value provided
@@ -258,11 +259,11 @@ abstract class Rule
                     // If not is true, we want to flip the outcome
                     if ((!$outcome && !$isNegatedRule) || ($outcome && $isNegatedRule)) {
 
-                        $messages = array_merge(Application::getInstance()->getValidationMessages(),$this->customMessages);
+                        $messages = array_merge(Application::getInstance()->getValidationMessages(), $this->customMessages);
 
-                        if(array_key_exists($method->getName(), $messages)) {
+                        if (array_key_exists($method->getName(), $messages)) {
 
-                            if($methodName === "same"){
+                            if ($methodName === "same") {
                                 $args[1] = substr($parts[0], 1);
                             }
 
@@ -272,7 +273,6 @@ abstract class Rule
                             $output[$key] = $key . " failed " . str_replace('_', ' ', $method->getName()) . " validation rule";
                         }
                     }
-
                 } else {
                     // Unknown validation rule - throw exception
                     throw new InvalidArgumentException("Unknown validation rule '{$parts[0]}' in field '{$key}'");
@@ -311,14 +311,133 @@ abstract class Rule
     }
 
     /**
-     * Sets the request that triggered this validation
+     * Sets the request that triggered this validation.
      *
-     * @param Request $request The current HTTP request
+     * Uses a reference so that PSR-7 context updates (via setContext())
+     * propagate back to the caller's variable automatically.
+     *
+     * @param Request|ServerRequestInterface|null $request The current HTTP request
      * @return void
      */
-    public function setCallingRequest(Request $request): void
+    public function setCallingRequest(?ServerRequestInterface &$request): void
     {
-        $this->currentRequest = $request;
+        $this->currentRequest = &$request;
+    }
+
+    /**
+     * Validate data against a set of rules (no request context).
+     *
+     *   $errors = Rule::validateData($input, MyRule::class);
+     *   $errors = Rule::validateData($input, ['name' => ['min:2']]);
+     *
+     * @param array $data The data to validate
+     * @param string|Rule|array $rules Rule class name, Rule instance, or array of rules
+     * @return array<string, string> Validation errors (empty = passed)
+     * @throws InvalidArgumentException
+     */
+    public static function validateData(array $data, string|Rule|array $rules): array
+    {
+        $instance = match (true) {
+            is_string($rules) => new $rules(),
+            $rules instanceof Rule => $rules,
+            is_array($rules) => (new BlankRule())->setRules($rules),
+            default => throw new InvalidArgumentException('Invalid rule format'),
+        };
+
+        return $instance->validate($data);
+    }
+
+    /**
+     * Validate a PSR-7 request against a set of rules.
+     *
+     * The request is passed by reference, so setContext() updates propagate
+     * back to the caller automatically.
+     * For the old Lucent\Http\Request, use $request->validate() instead.
+     *
+     *   $errors = Rule::validateRequest($request, MyRule::class);
+     *
+     * With explicit data (overrides parsed body):
+     *   $errors = Rule::validateRequest($request, MyRule::class, $customData);
+     *
+     * @param ServerRequestInterface|null &$request The current request (passed by reference)
+     * @param string|Rule|array $rules Rule class name, Rule instance, or array of rules
+     * @param array|null $data Optional data to validate (defaults to request body)
+     * @return array<string, string> Validation errors (empty = passed)
+     * @throws InvalidArgumentException
+     */
+    public static function validateRequest(ServerRequestInterface|null &$request, string|Rule|array $rules, ?array $data = null): array
+    {
+        $instance = match (true) {
+            is_string($rules) => new $rules(),
+            $rules instanceof Rule => $rules,
+            is_array($rules) => (new BlankRule())->setRules($rules),
+            default => throw new InvalidArgumentException('Invalid rule format'),
+        };
+
+        if ($request !== null) {
+            $instance->setCallingRequest($request);
+        }
+
+        $data ??= (array) $request?->getParsedBody() ?? [];
+
+        return $instance->validate($data);
+    }
+
+    /**
+     * Read a value from the request context (PSR-7 only).
+     *
+     * Reads from the same 'context' attribute that setContext() writes to,
+     * so a rule can inspect context stored by an earlier rule during the
+     * same validation pass.
+     *
+     * @param string $key The context key
+     * @param mixed $default Default value if key not found
+     * @return mixed
+     */
+    protected function getContext(string $key, mixed $default = null): mixed
+    {
+        if ($this->currentRequest === null) {
+            return $default;
+        }
+
+        if ($this->currentRequest instanceof ServerRequest) {
+            return $this->currentRequest->getContext($key, $default);
+        }
+
+        // Generic PSR-7 fallback: read context from the attribute.
+        $context = $this->currentRequest->getAttribute('context', []);
+        return $context[$key] ?? $default;
+    }
+
+    /**
+     * Store a value in the request context (PSR-7 only).
+     *
+     * Uses the reference from setCallingRequest() so the caller's
+     * variable is updated automatically.
+     *
+     * Works with any ServerRequestInterface: Lucent's ServerRequest uses
+     * the dedicated withContext(), while other implementations fall back
+     * to the generic withAttribute('context', ...) mechanism.
+     *
+     * @param string $key The context key
+     * @param mixed $value The value to store
+     * @return void
+     */
+    protected function setContext(string $key, mixed $value): void
+    {
+        if ($this->currentRequest === null) {
+            return;
+        }
+
+        if ($this->currentRequest instanceof ServerRequest) {
+            $this->currentRequest = $this->currentRequest->withContext($key, $value);
+            return;
+        }
+
+        // Generic PSR-7 fallback: store context as an attribute.
+        $context = $this->currentRequest->getAttribute('context', []);
+        $context[$key] = $value;
+        $this->currentRequest = $this->currentRequest->withAttribute('context', $context);
     }
 
     /**
@@ -342,7 +461,7 @@ abstract class Rule
 
         $typeName = $type->getName();
 
-        return match($typeName) {
+        return match ($typeName) {
             'int' => (int)$value,
             'float' => (float)$value,
             'bool' => (bool)$value,
@@ -364,12 +483,11 @@ abstract class Rule
     private function processVariable(mixed $value, array $data): mixed
     {
 
-        if(is_string($value) && str_starts_with($value, "@")) {
+        if (is_string($value) && str_starts_with($value, "@")) {
 
             $fieldName = substr($value, 1);
 
             return $data[$fieldName] ?? null;
-
         } else {
 
             return $value;
@@ -426,7 +544,7 @@ abstract class Rule
      */
     public function addRegexPattern(string $name, string $pattern, ?string $message = null): void
     {
-        $this->customRegexPatterns[$name] = ["pattern"=>$pattern, "message"=>$message];
+        $this->customRegexPatterns[$name] = ["pattern" => $pattern, "message" => $message];
     }
 
     public function overrideRuleMessage(string $rule, string $message): void

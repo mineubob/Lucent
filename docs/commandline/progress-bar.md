@@ -13,8 +13,7 @@ The `ProgressBar` component provides a customizable command-line progress bar to
     - [Setting the Bar Format](#setting-the-bar-format)
     - [Customizing Bar Appearance](#customizing-bar-appearance)
     - [Setting Bar Width](#setting-bar-width)
-    - [Performance Optimization](#performance-optimization)
-    - [Output Flushing](#output-flushing)
+    - [Update Interval](#update-interval)
 - [Advanced Usage](#advanced-usage)
 - [Real-world Examples](#real-world-examples)
 - [Performance Considerations](#performance-considerations)
@@ -98,22 +97,13 @@ You can change the width of the progress bar:
 $progress = new ProgressBar(50, 30);
 ```
 
-### Performance Optimization
+### Update Interval
 
 To prevent too frequent screen updates (which can slow down your application), you can set a minimum update interval:
 
 ```php
 $progress = new ProgressBar(1000);
 $progress->setUpdateInterval(0.5); // Update at most every 0.5 seconds
-```
-
-### Output Flushing
-
-In some environments, you may need to disable output buffer flushing:
-
-```php
-$progress = new ProgressBar(100);
-$progress->enableOutputFlush(false);
 ```
 
 ## Advanced Usage

@@ -80,14 +80,6 @@ if ($isMainProcess) {
             @mkdir($path, 0755, true);
         }
     }
-
-    // Ensure an empty .env exists so Application::loadEnv() doesn't fail.
-    // The constructor no longer creates .env automatically (that's the
-    // project's responsibility, not the framework's).
-    $envFile = TEMP_ROOT . '.env';
-    if (!file_exists($envFile)) {
-        @touch($envFile);
-    }
 }
 
 // Override the FileSystem root so the framework operates inside temp_install/.

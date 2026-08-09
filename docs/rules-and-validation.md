@@ -98,28 +98,25 @@ To validate incoming requests in your controllers:
 namespace App\Controllers;
 
 use App\Validation\UserRule;
-use Lucent\Http\Request;
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Rule;
 
 class UserController
 {
-    public function register(Request $request): JsonResponse
+    public function register(ServerRequest $request): Response
     {
         // Validate the request data
-        if (!$request->validate(UserRule::class)) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("Validation failed")
-                ->addErrors($request->getValidationErrors());
+        $errors = Rule::validateRequest($request, UserRule::class);
+        
+        if ($errors !== []) {
+            return Response::json(['errors' => $errors], 400);
         }
         
         // If validation passed, continue with registration...
         // ...
         
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("User registered successfully");
+        return Response::json(['message' => "User registered successfully"], 200);
     }
 }
 ```
@@ -286,7 +283,7 @@ Validation messages support placeholders that are replaced with actual field nam
 | `max` | `:attribute`, `:max` | "username may not be greater than 20 characters" |
 | `min_num` | `:attribute`, `:min` | "age must be greater than 18" |
 | `max_num` | `:attribute`, `:max` | "age may not be less than 120" |
-| `same` | `:attribute`, `:first` | "password_confirmation and password must match" |
+| `same` | `:attribute`, `:second` | "password_confirmation and password must match" |
 | `regex` | `:attribute` | "email does not match the required format" |
 
 The `:attribute` placeholder is automatically replaced with the field name being validated, and rule-specific placeholders (like `:min`, `:max`, etc.) are replaced with the corresponding parameter values.
@@ -513,8 +510,8 @@ You can also use your custom validation methods in inline rules, not just in ded
 
 namespace App\Controllers;
 
-use Lucent\Http\Request;
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
 use Lucent\Validation\Rule;
 
 class OrderController extends Rule
@@ -526,18 +523,16 @@ class OrderController extends Rule
         return in_array($value, $validMethods);
     }
     
-    public function createOrder(Request $request): JsonResponse
+    public function createOrder(ServerRequest $request): Response
     {
-        // Using the custom validation method in inline rules
-        if (!$request->validate([
+        // Using the custom validation method with inline rules
+        $errors = Rule::validateRequest($request, [
             'items' => ['min:1'],
             'payment_method' => ['payment_method']
-        ])) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("Invalid order data")
-                ->addErrors($request->getValidationErrors());
+        ]);
+        
+        if ($errors !== []) {
+            return Response::json(['errors' => $errors], 400);
         }
         
         // Process the order...
@@ -600,31 +595,29 @@ class ContactFormRule extends Rule
 namespace App\Controllers;
 
 use App\Validation\ContactFormRule;
-use Lucent\Http\Request;
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Rule;
 use App\Models\ContactMessage;
 
 class ContactController
 {
-    public function submit(Request $request): JsonResponse
+    public function submit(ServerRequest $request): Response
     {
         // Validate the form input
-        if (!$request->validate(ContactFormRule::class)) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("Please correct the form errors")
-                ->addErrors($request->getValidationErrors());
+        $errors = Rule::validateRequest($request, ContactFormRule::class);
+        
+        if ($errors !== []) {
+            return Response::json(['errors' => $errors], 400);
         }
         
         // Create a new contact message
-        $message = new ContactMessage($request->dataset());
+        $data = $request->getParsedBody();
+        $message = new ContactMessage($data);
         $message->create();
         
         // Return success response
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Thank you for your message. We'll respond shortly.");
+        return Response::json(['message' => "Thank you for your message."], 200);
     }
 }
 ```
@@ -717,49 +710,43 @@ class ArticleRule extends Rule
 namespace App\Controllers;
 
 use App\Validation\ArticleRule;
-use Lucent\Http\Request;
-use Lucent\Http\JsonResponse;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Rule;
 use App\Models\Article;
 
 class ArticleController
 {
-    public function create(Request $request): JsonResponse
+    public function create(ServerRequest $request): Response
     {
         // Validate the article data
-        if (!$request->validate(ArticleRule::class)) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(400)
-                ->setMessage("Please fix the errors in your article")
-                ->addErrors($request->getValidationErrors());
+        $errors = Rule::validateRequest($request, ArticleRule::class);
+        
+        if ($errors !== []) {
+            return Response::json(['errors' => $errors], 400);
         }
         
         // If we get here, validation passed
-        // Create a dataset from the request and add the author_id
-        $data = $request->dataset();
-        $data->set('author_id', $request->getUrlVariable('user_id'));
+        $data = $request->getParsedBody();
+        $authorId = $request->getUrlVar('user_id');
         
-        // Create the article with the dataset
+        // Create the article
         $article = new Article($data);
         
         // Save the article
         if (!$article->create()) {
-            return new JsonResponse()
-                ->setOutcome(false)
-                ->setStatusCode(500)
-                ->setMessage("Failed to create the article");
+            return (new Response())->withStatus(500);
         }
         
         // Return success response with the created article
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Article created successfully")
-            ->addContent('article', [
+        return Response::json([
+            'article' => [
                 'id' => $article->id,
                 'title' => $article->title,
                 'slug' => $article->slug,
                 'status' => $article->status
-            ]);
+            ]
+        ], 200);
     }
 }
 ```

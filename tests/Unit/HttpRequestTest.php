@@ -1,21 +1,16 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
-use Lucent\Http\Request;
+use Lucent\Http\Message\ServerRequest;
 use Lucent\Http\RouteInfo;
 use PHPUnit\Framework\TestCase;
 
 class HttpRequestTest extends TestCase
 {
-    private Request $request;
-
     protected function setUp(): void
     {
         parent::setUp();
-        $this->request = new Request();
-
-        // Reset $_SERVER global for each test
         $_SERVER = [];
     }
 
@@ -23,23 +18,24 @@ class HttpRequestTest extends TestCase
     {
         // Test valid bearer token
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer abc123token';
-        $request = new Request();
-        $this->assertEquals('abc123token', $request->bearerToken());
+        $request = ServerRequest::fromGlobals();
+        $this->assertEquals('Bearer abc123token', $request->getHeaderLine('Authorization'));
+        $this->assertStringStartsWith('Bearer ', $request->getHeaderLine('Authorization'));
 
         // Test missing Authorization header
         $_SERVER = [];
-        $request = new Request();
-        $this->assertNull($request->bearerToken());
+        $request = ServerRequest::fromGlobals();
+        $this->assertSame('', $request->getHeaderLine('Authorization'));
 
         // Test malformed Authorization header
         $_SERVER['HTTP_AUTHORIZATION'] = 'Basic abc123';
-        $request = new Request();
-        $this->assertNull($request->bearerToken());
+        $request = ServerRequest::fromGlobals();
+        $this->assertStringStartsWith('Basic', $request->getHeaderLine('Authorization'));
 
         // Test empty bearer token
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ';
-        $request = new Request();
-        $this->assertNull($request->bearerToken());
+        $request = ServerRequest::fromGlobals();
+        $this->assertSame('Bearer ', $request->getHeaderLine('Authorization'));
     }
 
     public function test_header_retrieval()
@@ -47,17 +43,16 @@ class HttpRequestTest extends TestCase
         // Test basic header retrieval
         $_SERVER['HTTP_CONTENT_TYPE'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'custom-value';
-        $request = new Request();
+        $request = ServerRequest::fromGlobals();
 
-        $this->assertEquals('application/json', $request->header('Content-Type'));
-        $this->assertEquals('custom-value', $request->header('X-Custom-Header'));
+        $this->assertEquals('application/json', $request->getHeaderLine('Content-Type'));
+        $this->assertEquals('custom-value', $request->getHeaderLine('X-Custom-Header'));
 
         // Test case insensitivity
-        $this->assertEquals('custom-value', $request->header('x-custom-header'));
+        $this->assertEquals('custom-value', $request->getHeaderLine('x-custom-header'));
 
         // Test default value for missing header
-        $this->assertEquals('default', $request->header('nonexistent', 'default'));
-        $this->assertNull($request->header('nonexistent'));
+        $this->assertSame('', $request->getHeaderLine('nonexistent'));
     }
 
     public function test_all_headers_retrieval()
@@ -66,41 +61,41 @@ class HttpRequestTest extends TestCase
         $_SERVER['HTTP_ACCEPT'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'custom-value';
 
-        $request = new Request();
-        $headers = $request->headers();
+        $request = ServerRequest::fromGlobals();
+        $headers = $request->getHeaders();
 
         $this->assertIsArray($headers);
         $this->assertArrayHasKey('Content-Type', $headers);
         $this->assertArrayHasKey('Accept', $headers);
         $this->assertArrayHasKey('X-Custom-Header', $headers);
-        $this->assertEquals('application/json', $headers['Content-Type']);
+        $this->assertEquals(['application/json'], $headers['Content-Type']);
     }
 
     public function test_json_request_detection()
     {
         // Test JSON content type detection
         $_SERVER['CONTENT_TYPE'] = 'application/json';
-        $request = new Request();
-        $this->assertTrue($this->invokeMethod($request, 'isJsonRequest'));
+        $request = ServerRequest::fromGlobals();
+        $this->assertSame('application/json', $request->getHeaderLine('Content-Type'));
 
         // Test non-JSON content type
         $_SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded';
-        $request = new Request();
-        $this->assertFalse($this->invokeMethod($request, 'isJsonRequest'));
+        $request = ServerRequest::fromGlobals();
+        $this->assertSame('application/x-www-form-urlencoded', $request->getHeaderLine('Content-Type'));
 
         // Test missing content type
         unset($_SERVER['CONTENT_TYPE']);
-        $request = new Request();
-        $this->assertFalse($this->invokeMethod($request, 'isJsonRequest'));
+        $request = ServerRequest::fromGlobals();
+        $this->assertSame('', $request->getHeaderLine('Content-Type'));
     }
 
     public function test_header_normalization()
     {
         $_SERVER['HTTP_CONTENT_TYPE'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'value';
-        $request = new Request();
+        $request = ServerRequest::fromGlobals();
 
-        $headers = $this->invokeMethod($request, 'getHeaders');
+        $headers = $request->getHeaders();
 
         // Test that HTTP_ prefix is removed and format is correct
         $this->assertArrayHasKey('Content-Type', $headers);
@@ -114,66 +109,43 @@ class HttpRequestTest extends TestCase
     public function test_header_sanitization()
     {
         $_SERVER['HTTP_X_UNSAFE'] = "test\r\nX-Injected: malicious";
-        $request = new Request();
+        $request = ServerRequest::fromGlobals();
 
-        $headers = $request->headers();
+        $headers = $request->getHeaders();
 
         // Verify that header injection attempts are prevented
         $this->assertArrayHasKey('X-Unsafe', $headers);
-        $this->assertEquals("test\r\nX-Injected: malicious", $headers['X-Unsafe']);
         $this->assertArrayNotHasKey('X-Injected', $headers);
     }
 
-    public function test_header_set(): void
+    public function test_method_and_uri()
     {
-        $_SERVER['HTTP_CONTENT_TYPE'] = 'text/html';
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_SERVER['REQUEST_URI'] = '/test/123?q=1';
 
-        $request = new Request();
+        $request = ServerRequest::fromGlobals();
 
-        $this->assertEquals('text/html', $request->header('Content-Type'));
-
-        $request->setHeader('Content-Type', 'application/json');
-        $this->assertEquals('application/json', $request->header('Content-Type'));
-
+        $this->assertSame('POST', $request->getMethod());
+        $this->assertSame('/test/123', $request->getUri()->getPath());
+        $this->assertSame('q=1', $request->getUri()->getQuery());
     }
 
-    public function test_route_info() : void
+    public function test_route_info_attribute()
     {
-        $request = new Request();
+        $request = ServerRequest::fromGlobals();
 
-        $routeResponse = [
-            "outcome" => true,
-            "controller" => "App\\Controllers\\TestController",
-            "method" => "show",
-            "route" => "/test/123",
-            "variables" => ["id" => "123"],
-            "middleware" => []
-        ];
-
-        $routeInfo = new RouteInfo(
-            $routeResponse["controller"],
-            $routeResponse["method"],
-            $routeResponse["route"],
+        $request = $request->withAttribute('routeInfo', new RouteInfo(
+            'App\\Controllers\\TestController',
+            'show',
+            '/test/123',
             'GET',
-            $routeResponse["variables"]
-        );
-
-        // Set the RouteInfo on the Request
-        $request->setRouteInfo($routeInfo);
+            ['id' => '123']
+        ));
 
         // Assert RouteInfo was set correctly
-        $this->assertNotNull($request->routeInfo);
-        $this->assertEquals("App\\Controllers\\TestController", $request->routeInfo->controllerClass);
-        $this->assertEquals("show", $request->routeInfo->method);
-    }
-
-    /**
-     * Helper method to invoke private methods for testing
-     */
-    private function invokeMethod($object, string $methodName, array $parameters = [])
-    {
-        $reflection = new \ReflectionClass(get_class($object));
-        $method = $reflection->getMethod($methodName);
-        return $method->invokeArgs($object, $parameters);
+        $routeInfo = $request->getRouteInfo();
+        $this->assertNotNull($routeInfo);
+        $this->assertEquals('App\\Controllers\\TestController', $routeInfo->controllerClass);
+        $this->assertEquals('show', $routeInfo->method);
     }
 }

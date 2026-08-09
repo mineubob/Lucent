@@ -241,35 +241,33 @@ namespace App\Middleware;
 
 use App\Models\Tenant;
 use Lucent\Database;
-use Lucent\Http\JsonResponse;
-use Lucent\Http\Request;
-use Lucent\Middleware;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class TenantMiddleware extends Middleware
+class TenantMiddleware implements MiddlewareInterface
 {
-    public function handle(Request $request): Request
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         // Resolve the tenant from the subdomain (queries the central/default DB)
-        $subdomain = $request->getHeader('X-Tenant');
-        $tenant = Tenant::where('subdomain', $subdomain)->first();
+        $subdomain = $request->getHeaderLine('X-Tenant');
+        $tenant = Tenant::where('subdomain', $subdomain)->getFirst();
 
         if (!$tenant) {
             // Short-circuit with a 404 if the tenant doesn't exist
-            $this->abort(
-                new JsonResponse()
-                    ->setOutcome(false)
-                    ->setStatusCode(404)
-                    ->setMessage("Tenant not found")
-            );
+            return (new Response())->withStatus(404);
         }
 
         // Register the tenant's database connection
         Database::addConnection('tenant', $tenant->dbConfig());
 
         // Store the tenant on the request for use in controllers
-        $request->setContext('tenant', $tenant);
+        $request = $request->withAttribute('tenant', $tenant);
 
-        return $request;
+        return $handler->handle($request);
     }
 }
 ```
@@ -283,29 +281,23 @@ namespace App\Controllers;
 
 use App\Models\Lead;
 use Lucent\Database;
-use Lucent\Http\JsonResponse;
-use Lucent\Http\Request;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
 
 class LeadController
 {
-    public function index(Request $request): JsonResponse
+    public function index(ServerRequest $request): Response
     {
         // All queries inside this block run against the tenant DB
-        $leads = Database::usingConnection('tenant', fn() => Lead::all());
+        $leads = Database::usingConnection('tenant', fn() => Lead::get());
 
-        return new JsonResponse()
-            ->setOutcome(true)
-            ->setMessage("Leads retrieved successfully")
-            ->setContent(['leads' => $leads]);
+        return Response::json(['leads' => $leads], 200);
     }
 
-    public function show(Request $request, Lead $lead): JsonResponse
+    public function show(ServerRequest $request, Lead $lead): Response
     {
         return Database::usingConnection('tenant', function () use ($lead) {
-            return new JsonResponse()
-                ->setOutcome(true)
-                ->setMessage("Lead retrieved successfully")
-                ->addContent('lead', $lead);
+            return Response::json(['lead' => $lead], 200);
         });
     }
 }
@@ -356,6 +348,36 @@ Calling `removeConnection()` on a name that doesn't exist is safe — it does no
 ```php
 Database::reset();
 ```
+
+### Configuring the Database in Tests
+
+In tests you usually don't want to write a `.env` file just to switch database drivers. Configure the database in memory instead:
+
+```php
+use Lucent\Application;
+
+// Replace the whole environment (e.g. switch to a fresh driver per dataset).
+Application::getInstance()->setEnv([
+    'DB_DRIVER'   => 'sqlite',
+    'DB_DATABASE' => '/storage/database.sqlite',
+], false);
+
+// Or merge individual keys on top of the existing environment.
+Application::getInstance()->setEnv(['DEBUG' => true]);
+
+// Re-boot the connection from the new environment.
+Database::reset();
+```
+
+`setEnv()` normalises keys to upper-case, casts values to strings, and re-configures the database layer. By default it merges into the existing environment; pass `false` as the second argument to replace it entirely.
+
+If you do need to load a specific `.env` file (rather than the default `FileSystem::rootPath()/.env`), pass its path to `loadEnv()`:
+
+```php
+Application::getInstance()->loadEnv('/path/to/.env');
+```
+
+`loadEnv()` replaces the in-memory environment with the file's contents — the file is the source of truth. Use `setEnv()` when you want to overlay keys instead.
 
 ---
 

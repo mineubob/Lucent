@@ -33,6 +33,9 @@ readonly final class Event
 
         // Handle multi-line data
         $jsonData = json_encode($this->data);
+        if ($jsonData === false) {
+            throw new \RuntimeException('Unable to JSON-encode event data: ' . json_last_error_msg());
+        }
         $lines = explode("\n", $jsonData);
         foreach ($lines as $line) {
             $output .= "data: {$line}\n";

@@ -15,6 +15,9 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - [Rules & Validation](./docs/rules-and-validation.md)
 - Middleware support
 - [Comprehensive PSR-3 compliant logging](./docs/logging.md)
+- [PSR-7/15/17 HTTP messages](./docs/http-psr7.md)
+- [PSR-18 HTTP client](./docs/http-client.md)
+- [Dependency Injection Container](./docs/container.md)
 - [CLI tools for development and maintenance](./docs/commandline.md)
 - [File System](./docs/filesystem/file.md)
 - [UUID's](./docs/facades/uuid.md)
@@ -38,7 +41,11 @@ cd myapp
 vendor/bin/lucent serve
 ```
 
-You can pass an optional port to use by adding `--port=9000` to the end.
+By default the server runs on port `8080`. Pass `--port=9000` to use a different port:
+
+```bash
+vendor/bin/lucent serve --port=9000
+```
 
 Alternatively, add Lucent to an existing project:
 

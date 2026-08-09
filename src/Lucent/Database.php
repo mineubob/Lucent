@@ -459,6 +459,22 @@ class Database
 
     public static function log(string $level, string|\Stringable $message, array $context = []): void
     {
+        // Validate the level even when no logger is installed, so callers get
+        // consistent PSR-3 behavior (unknown levels must throw) regardless of
+        // whether a logger happens to be configured yet.
+        if (!in_array($level, [
+            \Psr\Log\LogLevel::EMERGENCY,
+            \Psr\Log\LogLevel::ALERT,
+            \Psr\Log\LogLevel::CRITICAL,
+            \Psr\Log\LogLevel::ERROR,
+            \Psr\Log\LogLevel::WARNING,
+            \Psr\Log\LogLevel::NOTICE,
+            \Psr\Log\LogLevel::INFO,
+            \Psr\Log\LogLevel::DEBUG,
+        ], true)) {
+            throw new \Psr\Log\InvalidArgumentException("Unknown log level: {$level}");
+        }
+
         if (self::$logger !== null) {
             self::$logger->log($level, $message, $context);
         }

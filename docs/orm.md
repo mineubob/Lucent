@@ -235,7 +235,7 @@ $highestPrice = Product::max('price');
 
 // All aggregates work with any query conditions
 $categoryTotal = Order::where('status', 'completed')
-    ->where('created_at', '>=', '2024-01-01')
+    ->compare('created_at', '>=', '2024-01-01')
     ->sum('amount');
 ```
 
@@ -579,11 +579,11 @@ Collection::registerTraitCondition(
 );
 
 // Now queries will automatically exclude soft-deleted records
-$users = TestUser::where('email', 'like', '@example.com')->get();
+$users = TestUser::like('email', '@example.com')->get();
 
 // To include soft-deleted records, you would need to override the condition
-$allUsers = TestUser::where('deleted_at', 'IS NOT NULL', 'OR')
-    ->orWhere('deleted_at', null)
+$allUsers = TestUser::compare('deleted_at', 'IS NOT', '', 'OR')
+    ->orWhere('deleted_at', '')
     ->get();
 ```
 

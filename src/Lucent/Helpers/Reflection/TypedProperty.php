@@ -3,8 +3,10 @@
 namespace Lucent\Helpers\Reflection;
 
 use ReflectionEnum;
+use ReflectionEnumBackedCase;
 use ReflectionNamedType;
 use ReflectionProperty;
+use ReflectionUnionType;
 use TypeError;
 
 class TypedProperty
@@ -19,7 +21,6 @@ class TypedProperty
 
         // Untyped or mixed → assign directly
         if ($type === null || ($type instanceof ReflectionNamedType && $type->getName() === 'mixed')) {
-            $prop->setAccessible(true);
             $prop->setValue($object, $value);
             return;
         }
@@ -29,7 +30,6 @@ class TypedProperty
             foreach ($type->getTypes() as $innerType) {
                 try {
                     $coerced = self::coerceValueToType($innerType, $value);
-                    $prop->setAccessible(true);
                     $prop->setValue($object, $coerced);
                     return;
                 } catch (TypeError) {
@@ -41,7 +41,6 @@ class TypedProperty
 
         // Single type
         $coerced = self::coerceValueToType($type, $value);
-        $prop->setAccessible(true);
         $prop->setValue($object, $coerced);
     }
 
@@ -81,10 +80,9 @@ class TypedProperty
         if (enum_exists($typeName)) {
             $refEnum = new ReflectionEnum($typeName);
             if ($refEnum->isBacked()) {
-                foreach ($refEnum->getCases() as $case) {
-                    if ($case->getBackingValue() == $value) {
-                        return $case->getValue();
-                    }
+                $case = $typeName::tryFrom($value);
+                if ($case !== null) {
+                    return $case;
                 }
             } else {
                 foreach ($refEnum->getCases() as $case) {

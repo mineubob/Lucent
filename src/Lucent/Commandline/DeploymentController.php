@@ -6,7 +6,8 @@ use Exception;
 use Lucent\Commandline\Components\ProgressBar;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
-use Lucent\Http\HttpClient;
+use Lucent\Http\Client\HttpClient;
+use Psr\Http\Client\ClientExceptionInterface;
 use ZipArchive;
 
 class DeploymentController
@@ -46,22 +47,19 @@ class DeploymentController
         echo "Deploy URL: {$url}" . PHP_EOL;
         echo "Token: " . ($token ? substr($token, 0, 8) . "..." : "not set") . PHP_EOL;
 
-        $client = new HttpClient();
-        $client->withTimeout(120);
-        $client->withCurlOption(CURLOPT_UNRESTRICTED_AUTH, true);
-        $client->withCurlOption(CURLOPT_FOLLOWLOCATION, true);
-
+        $headers = [];
         if ($token) {
-            $client->withHeaders([
+            $headers = [
                 'Authorization'        => "Bearer {$token}",
                 'Accept'               => 'application/vnd.github+json',
                 'X-GitHub-Api-Version' => '2022-11-28',
-            ]);
+            ];
         }
 
         echo "Downloading update..." . PHP_EOL;
 
         $zipName = 'project-update.zip';
+        $zipPath = FileSystem::rootPath() . '/storage/downloads/' . $zipName;
 
         $estimatedSize = 10 * 1024 * 1024;
         $progress = new ProgressBar($estimatedSize);
@@ -69,17 +67,31 @@ class DeploymentController
         $progress->setBarCharacters(['█', '░']);
         $progress->setUpdateInterval(0.1);
 
-        $response = $client->download($url, $zipName, function ($downloaded, $total) use ($progress) {
-            $progress->update($downloaded);
-        });
+        $client = new HttpClient([
+            'timeout'     => 120,
+            'curl_options'=> [
+                CURLOPT_UNRESTRICTED_AUTH => true,
+                CURLOPT_FOLLOWLOCATION    => true,
+            ],
+        ]);
+
+        try {
+            $response = $client->get($url, [], [
+                'headers'  => $headers,
+                'sink'     => $zipPath,
+                'progress' => function ($downloaded, $total) use ($progress) {
+                    $progress->update($downloaded);
+                },
+            ]);
+        } catch (ClientExceptionInterface $e) {
+            return "Failed to download update: " . $e->getMessage() . PHP_EOL;
+        }
 
         $progress->finish();
 
-        if (!$response->successful()) {
-            return "Failed to download update. HTTP status: " . $response->status() . PHP_EOL;
+        if ($response->getStatusCode() !== 200) {
+            return "Failed to download update. HTTP status: " . $response->getStatusCode() . PHP_EOL;
         }
-
-        $zipPath = FileSystem::rootPath() . '/storage/downloads/' . $zipName;
 
         if (!file_exists($zipPath)) {
             return "Download appeared successful but zip not found at: {$zipPath}" . PHP_EOL;

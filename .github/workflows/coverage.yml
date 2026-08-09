@@ -1,0 +1,91 @@
+name: Coverage
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "phpunit.xml"
+            - "composer.json"
+            - "composer.lock"
+    pull_request:
+        paths:
+            - "src/**"
+            - "tests/**"
+            - "phpunit.xml"
+            - "composer.json"
+            - "composer.lock"
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+concurrency:
+    group: pages
+    cancel-in-progress: true
+
+jobs:
+    coverage:
+        runs-on: ubuntu-latest
+
+        services:
+            mysql:
+                image: mysql:lts
+                env:
+                    MYSQL_ROOT_PASSWORD: testpassword
+                    MYSQL_DATABASE: test_database
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v7
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: "8.4"
+                  extensions: mysqli, pdo_mysql
+                  tools: composer:v2
+                  coverage: xdebug
+
+            - name: Cache Composer packages
+              id: composer-cache
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php${{ matrix.php }}-deps${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php${{ matrix.php }}-deps${{ matrix.dependencies }}-
+
+            - name: Install dependencies
+              run: |
+                  composer update --no-interaction --prefer-dist
+                  composer dump-autoload
+
+            - name: Run tests with coverage
+              run: |
+                  php vendor/bin/phpunit --configuration phpunit.xml --no-progress --coverage-html coverage-report --coverage-clover coverage.xml
+              env:
+                  DB_DRIVER: mysql
+                  DB_HOST: 127.0.0.1
+                  DB_PORT: 3306
+                  DB_NAME: test_database
+                  DB_USER: root
+                  DB_PASSWORD: testpassword
+
+            - name: Upload coverage artifact
+              uses: actions/upload-artifact@v7
+              with:
+                  name: coverage-report
+                  path: coverage-report
+
+            - name: Deploy coverage to GitHub Pages
+              if: github.ref == 'refs/heads/main'
+              uses: peaceiris/actions-gh-pages@v4
+              with:
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: ./coverage-report
+                  publish_branch: gh-pages

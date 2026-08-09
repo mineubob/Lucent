@@ -1,6 +1,6 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
 use Lucent\Commandline\Components\ProgressBar;
 use PHPUnit\Framework\TestCase;

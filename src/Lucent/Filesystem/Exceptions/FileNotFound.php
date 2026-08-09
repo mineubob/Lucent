@@ -2,9 +2,9 @@
 
 namespace Lucent\Filesystem\Exceptions;
 
-use Exception;
+use RuntimeException;
 
-class FileNotFound extends Exception
+class FileNotFound extends RuntimeException
 {
     public function __construct(
         private readonly string $filePath,

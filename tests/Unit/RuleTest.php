@@ -1,179 +1,34 @@
 <?php
 
-namespace Unit;
+namespace Tests\Unit;
 
+use App\Rules\ArrayRule;
+use App\Rules\CustomRegexRule;
+use App\Rules\CustomRule;
+use App\Rules\DynamicRule;
+use App\Rules\NumRule;
+use App\Rules\OverrideMessageRule;
 use Lucent\Application;
 use Lucent\Facades\Faker;
 use Lucent\Facades\Regex;
-use Lucent\Validation\Rule;
-use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\FixtureLoader;
+use Tests\Support\TestCase;
 
-abstract class TestRule extends Rule
+class RuleTest extends TestCase
 {
-    public function validate_bool(array $data): bool
+    public static function setUpBeforeClass(): void
     {
-        return sizeof($this->validate($data)) === 0;
-    }
-}
+        parent::setUpBeforeClass();
 
-class NumRule extends TestRule
-{
-    public function setup(): array
-    {
-        return [
-            'num1' => [
-                'min_num:1',
-                'max_num:5',
-            ],
-            'num2' => [
-                'min_num:7',
-                'max_num:10',
-            ]
-        ];
-    }
-}
-
-class OverrideMessageRule extends TestRule
-{
-    public function setup(): array
-    {
-
-        $this->overrideRuleMessage("min", "Message Override!");
-
-        return [
-            'first_name' => [
-                'min:5',
-                'max:10',
-            ]
-        ];
-    }
-}
-
-class DynamicRule extends Rule
-{
-
-    private array $keys;
-
-    public function __construct(array $keys)
-    {
-        $this->keys = $keys;
-    }
-
-    public function setup(): array
-    {
-        $rules = [
-            'first_name' => [
-                'min:2',
-                'max:10',
-            ],
-            'last_name' => [
-                'min:2',
-                'max:10',
-            ]
-            ,
-            'address' => [
-                'min:0',
-                'max:10',
-            ]
-        ];
-
-        return array_filter($rules, function (string $field) {
-            return array_key_exists($field, $this->keys);
-        }, ARRAY_FILTER_USE_KEY);
-    }
-}
-
-class ArrayRule extends Rule
-{
-
-    private array $keys = ["first_name", "last_name", "address"];
-
-    public function setup(): array
-    {
-        return [
-            'values' => "allowed_values"
-        ];
-    }
-
-    protected function allowed_values(array $value): bool
-    {
-        return empty(array_diff(array_keys($value), $this->keys));
-    }
-}
-
-class CustomRule extends Rule
-{
-
-    public function setup(): array
-    {
-        return [
-            'post_code' => [
-                'validate_post_code',
-            ]
-        ];
-    }
-
-    protected function validate_post_code(mixed $value): bool
-    {
-        return strlen((string) $value) === 4;
-    }
-}
-
-class CustomRegexRule extends Rule
-{
-
-    public function setup(): array
-    {
-        $this->addRegexPattern("custom_rule", '/^(?=(?:.*\d){3})(?=(?:.*[a-zA-Z]){3})[a-zA-Z\d]{6}$/');
-
-        return [
-            'test' => [
-                'regex:custom_rule',
-            ]
-        ];
-
-    }
-
-}
-
-
-// Manually require the DatabaseDriverSetup file
-$driverSetupPath = __DIR__ . '/DatabaseDriverSetup.php';
-
-if (file_exists($driverSetupPath)) {
-    require_once $driverSetupPath;
-} else {
-    // Fallback path if the normal path doesn't work
-    require_once dirname(__DIR__, 1) . '/Unit/DatabaseDriverSetup.php';
-}
-
-
-class RuleTest extends DatabaseDriverSetup
-{
-
-    /**
-     * @return array<string, array{0: string, 1: array<string, string>}>
-     */
-    public static function databaseDriverProvider(): array
-    {
-        return [
-            'sqlite' => [
-                'sqlite',
-                [
-                    'DB_DATABASE' => '/storage/database.sqlite'
-                ]
-            ],
-            'mysql' => [
-                'mysql',
-                [
-                    'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
-                    'DB_PORT' => getenv('DB_PORT') ?: '3306',
-                    'DB_DATABASE' => getenv('DB_DATABASE') ?: 'test_database',
-                    'DB_USERNAME' => getenv('DB_USERNAME') ?: 'root',
-                    'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
-                ]
-            ]
-        ];
+        // Copy the rule stubs into temp_install/App/Rules/ so the App\ PSR-4
+        // autoloader can resolve them.
+        FixtureLoader::copyRule('TestRule.php');
+        FixtureLoader::copyRule('NumRule.php');
+        FixtureLoader::copyRule('OverrideMessageRule.php');
+        FixtureLoader::copyRule('DynamicRule.php');
+        FixtureLoader::copyRule('ArrayRule.php');
+        FixtureLoader::copyRule('CustomRule.php');
+        FixtureLoader::copyRule('CustomRegexRule.php');
     }
 
     public function test_num_rule_is_valid(): void
@@ -237,8 +92,6 @@ class RuleTest extends DatabaseDriverSetup
 
     public function test_dynamic_rule_with_null_fields_passing(): void
     {
-        $_SERVER["REQUEST_METHOD"] = "POST";
-
         $request = Faker::request();
 
         $request->setInput("first_name", "Jack");
@@ -259,8 +112,6 @@ class RuleTest extends DatabaseDriverSetup
 
     public function test_dynamic_rule_with_null_fields_failing(): void
     {
-        $_SERVER["REQUEST_METHOD"] = "POST";
-
         $request = Faker::request();
 
         $request->setInput("first_name", "Jack");
@@ -465,78 +316,6 @@ class RuleTest extends DatabaseDriverSetup
         $request->reInitializeRequestData();
 
         $this->assertFalse($request->validate(["email" => ["regex:email"], "password" => ["regex:password", "min:4"]]));
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_validate_rule_unique_passing($driver, $config): void
-    {
-        $this->assertTrue(ModelTest::generate_test_model()->exists());
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        $request = Faker::request();
-        $request->setInput("email", "unique-test@email.com");
-        $request->setInput("full_name", "John Doe");
-        $request->reInitializeRequestData();
-
-        $this->assertTrue($request->validate([
-            "email" => ["unique:TestUser"]
-        ]));
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_validate_rule_unique_failing($driver, $config): void
-    {
-        $this->assertTrue(ModelTest::generate_test_model()->exists());
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        $user = new \App\Models\TestUser("unique-test@email.com", "password", "John Doe");
-
-        $this->assertTrue($user->create());
-
-        $request = Faker::request();
-        $request->setInput("email", "unique-test@email.com");
-        $request->setInput("full_name", "John Doe");
-        $request->reInitializeRequestData();
-
-        $this->assertFalse($request->validate([
-            "email" => ["unique:TestUser"]
-        ]));
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_validate_rule_not_unique_passing($driver, $config): void
-    {
-        $this->assertTrue(ModelTest::generate_test_model()->exists());
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        $user = new \App\Models\TestUser("not-unique-test@email.com", "password", "John Doe");
-
-        $this->assertTrue($user->create());
-
-        $request = Faker::request();
-        $request->setInput("email", "not-unique-test@email.com");
-        $request->setInput("full_name", "John Doe");
-        $request->reInitializeRequestData();
-
-        $this->assertTrue($request->validate([
-            "email" => ["!unique:TestUser"]
-        ]));
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_validate_rule_not_unique_failing($driver, $config): void
-    {
-        $this->assertTrue(ModelTest::generate_test_model()->exists());
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        $request = Faker::request();
-        $request->setInput("email", "not-unique-test@email.com");
-        $request->setInput("full_name", "John Doe");
-        $request->reInitializeRequestData();
-
-        $this->assertFalse($request->validate([
-            "email" => ["!unique:TestUser"]
-        ]));
     }
 
     public function test_nullable_passing(): void

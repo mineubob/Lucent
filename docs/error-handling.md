@@ -41,48 +41,34 @@ In production (`DEBUG` unset or `false`), the `errors` block is omitted entirely
 
 ## Custom Error Pages
 
-You can register a custom response for any HTTP status code using `Route::error()`. This is typically done inside a routes file.
+You can register a custom response for any HTTP status code using `Route::error()`. This is typically done inside a routes file. Your custom error response can be any PSR-7 `ResponseInterface` — create it inline:
 
 ```php
 use Lucent\Facades\Route;
-use App\Http\ViewResponse;
+use Lucent\Facades\FileSystem;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\Stream;
 
-Route::error(404, new ViewResponse('/404.html', 404));
-Route::error(500, new ViewResponse('/500.html', 500));
+$views = FileSystem::rootPath() . '/App/Views';
+
+Route::error(404, (new Response())->withStatus(404)
+    ->withBody(Stream::fromString(file_get_contents($views . '/404.html')))
+    ->withHeader('Content-Type', 'text/html; charset=utf-8')
+);
+Route::error(500, (new Response())->withStatus(500)
+    ->withBody(Stream::fromString(file_get_contents($views . '/500.html')))
+    ->withHeader('Content-Type', 'text/html; charset=utf-8')
+);
 ```
 
-When Lucent encounters that status code, it will return your registered response instead of the default JSON response. Custom error pages take priority over all other error handling.
+When Lucent encounters an unhandled exception (thrown `HttpException` or any other `Throwable`) during dispatch, it checks for a registered error page for that status code. If one exists, it's returned instead of the default JSON response. Custom error pages take priority over all other error handling.
 
-### Custom Response Classes
-
-Your custom response can be any class that extends `HttpResponse`. A common pattern is a `ViewResponse` that renders an HTML file:
-
-```php
-namespace App\Http;
-
-use Lucent\Http\HttpResponse;
-
-class ViewResponse extends HttpResponse
-{
-    private string $path;
-
-    public function __construct(string $path, int $status = 200)
-    {
-        parent::__construct("", $status);
-        $this->path = $path;
-    }
-
-    public function body(): string|null
-    {
-        if (!file_exists(VIEWS . $this->path)) {
-            $this->statusCode = 500;
-            return "500 FILE NOT FOUND";
-        }
-
-        return file_get_contents(VIEWS . $this->path);
-    }
-}
-```
+| Error scenario | Error page applies? |
+|---|---|
+| Controller throws `HttpException` | ✅ Yes — caught by dispatch, routed through `responseWithError()` |
+| Any other `Throwable` in dispatch | ✅ Yes — caught as 500, routed through `responseWithError()` |
+| Middleware returns a `Response` directly | ❌ No — middleware short-circuits before dispatch |
+| Invalid route / controller not found | ✅ Yes — caught as `HttpException` during dispatch |
 
 ## Fallback Response
 
@@ -90,9 +76,16 @@ A fallback response is returned when no route matches and no custom 404 error pa
 
 ```php
 use Lucent\Facades\Route;
-use App\Http\ViewResponse;
+use Lucent\Facades\FileSystem;
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\Stream;
 
-Route::fallback(new ViewResponse('/index.html', 200));
+$views = FileSystem::rootPath() . '/App/Views';
+
+Route::fallback((new Response())
+    ->withBody(Stream::fromString(file_get_contents($views . '/index.html')))
+    ->withHeader('Content-Type', 'text/html; charset=utf-8')
+);
 ```
 
 The fallback only applies to 404 (route not found) responses. It does not affect other error codes.
