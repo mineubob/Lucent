@@ -49,7 +49,7 @@ class ArrayDriver extends Cache
     {
         $this->validateKey($key);
 
-        $expires = $this->expiryFromTtl($ttl);
+        $expires = $this->expiryFromTtl($this->resolveTtl($ttl));
 
         if ($expires !== null && $expires <= time()) {
             unset($this->store[$key]);

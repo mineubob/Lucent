@@ -3,6 +3,7 @@
 namespace Lucent;
 
 use InvalidArgumentException;
+use Lucent\Cache\Cache;
 use Lucent\Cache\CacheFactory;
 use Lucent\Container\Container;
 use Lucent\Commandline\ClearCacheCommand;
@@ -103,6 +104,18 @@ class Application
      * @var CacheInterface|null
      */
     private ?CacheInterface $cache = null;
+
+    /**
+     * The application's query cache store.
+     *
+     * A dedicated store, separate from the main cache, built lazily from the
+     * `QUERY_CACHE_DRIVER` / `QUERY_CACHE_PATH` environment variables on
+     * first access. Injected into {@see Database} as the query cache when
+     * `QUERY_CACHE` is enabled.
+     *
+     * @var CacheInterface|null
+     */
+    private ?CacheInterface $queryCache = null;
 
     /**
      * Environment variables loaded from .env file
@@ -243,6 +256,12 @@ class Application
             $path = $this->env['CACHE_PATH'] ?? 'storage/cache';
 
             $this->cache = CacheFactory::create($driver, $this->container, $path);
+
+            if ($this->cache instanceof Cache) {
+                $defaultTtl = $this->env['CACHE_DEFAULT_TTL'] ?? null;
+                $this->cache->setDefaultTtl($defaultTtl === null ? null : (int) $defaultTtl);
+            }
+
             $this->container->instance($this->cache, CacheInterface::class);
         }
 
@@ -265,6 +284,47 @@ class Application
     {
         $this->cache = $cache;
         $this->container->instance($cache, CacheInterface::class);
+    }
+
+    /**
+     * Get the application's query cache store.
+     *
+     * Builds a dedicated store lazily on first access from the
+     * `QUERY_CACHE_DRIVER` environment variable (defaulting to `array`) and
+     * `QUERY_CACHE_PATH` (defaulting to `storage/cache`). Kept separate from
+     * the main cache so each can use a different driver. The same instance is
+     * returned on subsequent calls.
+     *
+     * @return CacheInterface The query cache store
+     */
+    public function queryCache(): CacheInterface
+    {
+        if ($this->queryCache === null) {
+            $driver = $this->env['QUERY_CACHE_DRIVER'] ?? 'array';
+            $path = $this->env['QUERY_CACHE_PATH'] ?? 'storage/cache';
+
+            $this->queryCache = CacheFactory::create($driver, $this->container, $path);
+        }
+
+        return $this->queryCache;
+    }
+
+    /**
+     * Inject the application's query cache store into the database, when
+     * query caching is enabled.
+     *
+     * Query caching is opt-in via the `QUERY_CACHE` environment variable. When
+     * it is truthy, the dedicated query cache store is passed to
+     * {@see Database::setQueryCache()} so SELECT results are cached. When it
+     * is falsy, any previously injected query cache is cleared.
+     *
+     * @return void
+     */
+    private function injectQueryCache(): void
+    {
+        $enabled = filter_var($this->env['QUERY_CACHE'] ?? false, FILTER_VALIDATE_BOOL);
+
+        Database::setQueryCache($enabled ? $this->queryCache() : null);
     }
 
     /**
@@ -354,6 +414,11 @@ class Application
         }
 
         Database::setLogger(Log::channel("lucent.db"));
+
+        // Wire up the query cache from the environment (QUERY_CACHE) so it is
+        // active before any queries run. The store itself stays lazy — it is
+        // only built here when QUERY_CACHE is truthy.
+        $this->injectQueryCache();
     }
 
     /**
@@ -821,6 +886,7 @@ class Application
 
         $this->env = $merge ? array_merge($this->env, $normalised) : $normalised;
         Database::configure($this->env);
+        $this->injectQueryCache();
     }
 
     /**

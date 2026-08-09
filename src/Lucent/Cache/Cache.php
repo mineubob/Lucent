@@ -25,6 +25,51 @@ use Psr\SimpleCache\CacheInterface;
 abstract class Cache implements CacheInterface
 {
     /**
+     * Default TTL in seconds applied when a {@see set()} call omits one.
+     *
+     * `null` means "no default" — an omitted TTL caches forever, matching the
+     * PSR-16 semantics. Set via {@see setDefaultTtl()}.
+     *
+     * @var int|null
+     */
+    private ?int $defaultTtl = null;
+
+    /**
+     * Set the default TTL applied when a {@see set()} call omits one.
+     *
+     * @param int|null $ttl Default TTL in seconds, or null for no default
+     * @return void
+     */
+    public function setDefaultTtl(?int $ttl): void
+    {
+        $this->defaultTtl = $ttl;
+    }
+
+    /**
+     * Get the configured default TTL.
+     *
+     * @return int|null Default TTL in seconds, or null when none is set
+     */
+    public function getDefaultTtl(): ?int
+    {
+        return $this->defaultTtl;
+    }
+
+    /**
+     * Resolve the effective TTL for a {@see set()} call.
+     *
+     * Returns the caller-supplied TTL, or the configured default when none
+     * was given.
+     *
+     * @param null|int|DateInterval $ttl The caller-supplied TTL
+     * @return null|int|DateInterval The effective TTL
+     */
+    protected function resolveTtl(null|int|DateInterval $ttl): null|int|DateInterval
+    {
+        return $ttl ?? $this->defaultTtl;
+    }
+
+    /**
      * Validate a cache key.
      *
      * @param string $key The key to validate

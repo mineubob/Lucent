@@ -95,7 +95,7 @@ class FileDriver extends Cache
     {
         $this->validateKey($key);
 
-        $expires = $this->expiryFromTtl($ttl);
+        $expires = $this->expiryFromTtl($this->resolveTtl($ttl));
 
         if ($expires !== null && $expires <= time()) {
             return $this->delete($key);

@@ -2,6 +2,7 @@
 
 namespace Lucent\Cache;
 
+use Lucent\Cache\Drivers\ApcuDriver;
 use Lucent\Cache\Drivers\ArrayDriver;
 use Lucent\Cache\Drivers\FileDriver;
 use Lucent\Cache\Drivers\NullDriver;
@@ -33,6 +34,7 @@ class CacheFactory
             'array' => new ArrayDriver(),
             'file' => new FileDriver($path),
             'null' => new NullDriver(),
+            'apcu' => new ApcuDriver(),
             default => self::resolveCustom($name, $container),
         };
     }

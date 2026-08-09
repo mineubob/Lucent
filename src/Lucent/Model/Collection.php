@@ -215,12 +215,29 @@ final class Collection
             return $this->cache[$cacheKey];
         }
 
+        // Query caching is handled by Database::select() when a query cache
+        // store has been injected via Database::setQueryCache(). The ORM
+        // never constructs a cache driver itself.
         $results = Database::select($query, true, $bindValues);
 
         if ($results === null) {
             return [];
         }
 
+        $instances = $this->hydrateAll($results);
+
+        $this->cache[$cacheKey] = $instances;
+        return $instances;
+    }
+
+    /**
+     * Hydrate an array of raw result rows into model instances.
+     *
+     * @param array $results Raw rows from the database or query cache
+     * @return array<T>
+     */
+    private function hydrateAll(array $results): array
+    {
         $instances = [];
         $class = new ReflectionClass($this->class);
 
@@ -230,7 +247,6 @@ final class Collection
             array_push($instances, $instance);
         }
 
-        $this->cache[$cacheKey] = $instances;
         return $instances;
     }
 

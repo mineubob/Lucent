@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Lucent\Application;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Model\Collection;
@@ -662,5 +663,79 @@ class ModelTest extends TestCase
         }
 
         return '/^' . $regex . '$/';
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_query_cache_disabled_by_default($driver, $config): void
+    {
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $this->assertTrue($user->create());
+
+        // QUERY_CACHE is not set, so Application does not inject a query
+        // cache into Database — select() runs the query directly.
+        $app = Application::getInstance();
+        $app->setEnv([]);
+        $this->assertNull(\Lucent\Database::queryCache());
+
+        $result = \App\Models\TestUser::where("email", "john@doe.com")->get();
+        $this->assertCount(1, $result);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_query_cache_hit_returns_cached_rows($driver, $config): void
+    {
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        // Enable query caching via the env flag; Application auto-injects its
+        // dedicated query cache store into Database.
+        $app = Application::getInstance();
+        $app->setEnv(['QUERY_CACHE' => 'true']);
+
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $this->assertTrue($user->create());
+
+        // First call populates the query cache.
+        $first = \App\Models\TestUser::where("email", "john@doe.com")->get();
+        $this->assertCount(1, $first);
+
+        // Second call should hit the query cache and return the same rows.
+        $second = \App\Models\TestUser::where("email", "john@doe.com")->get();
+        $this->assertCount(1, $second);
+        $this->assertEquals($first[0]->getFullName(), $second[0]->getFullName());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_query_cache_uses_dedicated_store($driver, $config): void
+    {
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $app = Application::getInstance();
+        // Main cache uses file, query cache uses array.
+        $app->setEnv([
+            'CACHE_DRIVER' => 'file',
+            'QUERY_CACHE' => 'true',
+            'QUERY_CACHE_DRIVER' => 'array',
+        ]);
+
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $this->assertTrue($user->create());
+
+        \App\Models\TestUser::where("email", "john@doe.com")->get();
+
+        // The query cache is a dedicated store, separate from the main cache.
+        $this->assertInstanceOf(
+            \Lucent\Cache\Drivers\FileDriver::class,
+            $app->cache()
+        );
+        $this->assertInstanceOf(
+            \Lucent\Cache\Drivers\ArrayDriver::class,
+            $app->queryCache()
+        );
+        $this->assertSame($app->queryCache(), \Lucent\Database::queryCache());
     }
 }

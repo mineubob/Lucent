@@ -5,6 +5,7 @@ namespace Tests\Unit\Cache;
 use Lucent\Application;
 use Lucent\Cache\CacheDriverException;
 use Lucent\Cache\CacheFactory;
+use Lucent\Cache\Drivers\ApcuDriver;
 use Lucent\Cache\Drivers\ArrayDriver;
 use Lucent\Cache\Drivers\FileDriver;
 use Lucent\Cache\Drivers\NullDriver;
@@ -63,6 +64,17 @@ class CacheTest extends TestCase
         );
     }
 
+    public function test_application_cache_applies_default_ttl(): void
+    {
+        $app = Application::getInstance();
+        $app->setEnv(['CACHE_DRIVER' => 'array', 'CACHE_DEFAULT_TTL' => '30']);
+
+        $store = $app->cache();
+
+        $this->assertInstanceOf(ArrayDriver::class, $store);
+        $this->assertSame(30, $store->getDefaultTtl());
+    }
+
     public function test_set_cache_replaces_store_and_container_binding(): void
     {
         $app = Application::getInstance();
@@ -119,6 +131,29 @@ class CacheTest extends TestCase
         $this->assertInstanceOf(ArrayDriver::class, CacheFactory::create('array', $container));
         $this->assertInstanceOf(FileDriver::class, CacheFactory::create('file', $container));
         $this->assertInstanceOf(NullDriver::class, CacheFactory::create('null', $container));
+    }
+
+    public function test_factory_creates_apcu_driver_when_extension_loaded(): void
+    {
+        if (!extension_loaded('apcu')) {
+            $this->markTestSkipped('The apcu extension is not loaded.');
+        }
+
+        $container = Application::getInstance()->container();
+
+        $this->assertInstanceOf(ApcuDriver::class, CacheFactory::create('apcu', $container));
+    }
+
+    public function test_factory_throws_when_apcu_extension_missing(): void
+    {
+        if (extension_loaded('apcu')) {
+            $this->markTestSkipped('The apcu extension is loaded, so the missing-extension path cannot be tested.');
+        }
+
+        $container = Application::getInstance()->container();
+
+        $this->expectException(\RuntimeException::class);
+        CacheFactory::create('apcu', $container);
     }
 
     public function test_factory_resolves_custom_driver_from_container(): void
