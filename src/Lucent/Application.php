@@ -9,6 +9,7 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
+use Lucent\Date\Clock;
 use Lucent\EventDispatcher\EventDispatcher;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
@@ -26,6 +27,7 @@ use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
 use Lucent\Model\Model;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -216,6 +218,11 @@ class Application
 
         $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
+
+        // Register the shared PSR-20 clock so services can type-hint
+        // Psr\Clock\ClockInterface for constructor injection.
+        $this->container->instance(Clock::local(), ClockInterface::class);
+        $this->container->instance(Clock::local(), Clock::class);
 
         // Set up the event dispatcher and its listener provider, and expose
         // them through the container so they can be resolved by interface.
