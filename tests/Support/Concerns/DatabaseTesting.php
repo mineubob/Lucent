@@ -70,14 +70,16 @@ trait DatabaseTesting
             'DB_PASSWORD' => getenv('DB_PASSWORD') ?: ''
         ];
 
-        $sqlite = ['DB_DATABASE' => '/storage/database.sqlite'];
+        // Use an in-memory SQLite database: faster, no leftover files, and each
+        // connection is fully isolated (a fresh empty DB per connection).
+        $sqlite = ['DB_DATABASE' => ':memory:'];
 
         if ($connections === 2) {
             return [
                 'sqlite' => [
                     'sqlite',
                     $sqlite,
-                    ['driver' => 'sqlite', 'database' => '/storage/secondary.sqlite']
+                    ['driver' => 'sqlite', 'database' => ':memory:']
                 ],
                 'mysql' => [
                     'mysql',
