@@ -18,23 +18,23 @@ class HttpRequestTest extends TestCase
     {
         // Test valid bearer token
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer abc123token';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertEquals('Bearer abc123token', $request->getHeaderLine('Authorization'));
         $this->assertStringStartsWith('Bearer ', $request->getHeaderLine('Authorization'));
 
         // Test missing Authorization header
         $_SERVER = [];
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertSame('', $request->getHeaderLine('Authorization'));
 
         // Test malformed Authorization header
         $_SERVER['HTTP_AUTHORIZATION'] = 'Basic abc123';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertStringStartsWith('Basic', $request->getHeaderLine('Authorization'));
 
         // Test empty bearer token
         $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertSame('Bearer ', $request->getHeaderLine('Authorization'));
     }
 
@@ -43,7 +43,7 @@ class HttpRequestTest extends TestCase
         // Test basic header retrieval
         $_SERVER['HTTP_CONTENT_TYPE'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'custom-value';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
 
         $this->assertEquals('application/json', $request->getHeaderLine('Content-Type'));
         $this->assertEquals('custom-value', $request->getHeaderLine('X-Custom-Header'));
@@ -61,7 +61,7 @@ class HttpRequestTest extends TestCase
         $_SERVER['HTTP_ACCEPT'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'custom-value';
 
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $headers = $request->getHeaders();
 
         $this->assertIsArray($headers);
@@ -75,17 +75,17 @@ class HttpRequestTest extends TestCase
     {
         // Test JSON content type detection
         $_SERVER['CONTENT_TYPE'] = 'application/json';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertSame('application/json', $request->getHeaderLine('Content-Type'));
 
         // Test non-JSON content type
         $_SERVER['CONTENT_TYPE'] = 'application/x-www-form-urlencoded';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertSame('application/x-www-form-urlencoded', $request->getHeaderLine('Content-Type'));
 
         // Test missing content type
         unset($_SERVER['CONTENT_TYPE']);
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
         $this->assertSame('', $request->getHeaderLine('Content-Type'));
     }
 
@@ -93,7 +93,7 @@ class HttpRequestTest extends TestCase
     {
         $_SERVER['HTTP_CONTENT_TYPE'] = 'application/json';
         $_SERVER['HTTP_X_CUSTOM_HEADER'] = 'value';
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
 
         $headers = $request->getHeaders();
 
@@ -109,7 +109,7 @@ class HttpRequestTest extends TestCase
     public function test_header_sanitization()
     {
         $_SERVER['HTTP_X_UNSAFE'] = "test\r\nX-Injected: malicious";
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
 
         $headers = $request->getHeaders();
 
@@ -123,7 +123,7 @@ class HttpRequestTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REQUEST_URI'] = '/test/123?q=1';
 
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
 
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('/test/123', $request->getUri()->getPath());
@@ -132,7 +132,7 @@ class HttpRequestTest extends TestCase
 
     public function test_route_info_attribute()
     {
-        $request = ServerRequest::fromGlobals();
+        $request = ServerRequest::capture();
 
         $request = $request->withAttribute('routeInfo', new RouteInfo(
             'App\\Controllers\\TestController',

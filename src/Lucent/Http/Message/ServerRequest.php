@@ -15,7 +15,7 @@ use Psr\Http\Message\UriInterface;
  * Lucent-specific data (routeInfo, urlVars, context) is stored as
  * attributes, which is the PSR-7-sanctioned extension mechanism.
  *
- * Factory: ServerRequest::fromGlobals() replaces the old Request::__construct().
+ * Factory: ServerRequest::capture() replaces the old Request::__construct().
  *
  * @final This class should not be extended in production code.
  *        Use PSR-7 attributes for extension instead. For testing, a
@@ -82,7 +82,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      * @param array|null $cookies $_COOKIE (defaults to $_COOKIE)
      * @param array|null $files $_FILES (defaults to $_FILES, converted to UploadedFileInterface[])
      */
-    public static function fromGlobals(
+    public static function capture(
         ?array $server = null,
         ?array $query = null,
         ?array $body = null,
@@ -91,7 +91,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     ): self {
         $server = $server ?? $_SERVER;
         $method = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
-        $uri = Uri::fromGlobals($server);
+        $uri = Uri::fromServer($server);
 
         $request = new self($method, $uri, $server);
 

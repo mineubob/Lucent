@@ -536,7 +536,7 @@ class Application
      */
     public function executeHttpRequest(): string
     {
-        $response = $this->handleHttpRequest(ServerRequest::fromGlobals());
+        $response = $this->handleHttpRequest(ServerRequest::capture());
 
         http_response_code($response->getStatusCode());
         $this->setHeaders($response->getHeaders());

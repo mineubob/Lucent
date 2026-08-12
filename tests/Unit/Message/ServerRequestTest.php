@@ -143,7 +143,7 @@ class ServerRequestTest extends TestCase
             'CONTENT_TYPE' => 'application/json',
         ];
 
-        $request = ServerRequest::fromGlobals($server, ['q' => '1'], ['field' => 'value']);
+        $request = ServerRequest::capture($server, ['q' => '1'], ['field' => 'value']);
 
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('example.com', $request->getHeaderLine('Host'));
