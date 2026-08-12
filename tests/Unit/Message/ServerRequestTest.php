@@ -133,23 +133,38 @@ class ServerRequestTest extends TestCase
         $this->assertSame('*', $request->getRequestTarget());
     }
 
-    public function test_from_globals_creates_request(): void
+    public function test_create_builds_request_from_explicit_values(): void
     {
-        $server = [
-            'REQUEST_METHOD' => 'POST',
-            'HTTP_HOST' => 'example.com',
-            'SERVER_PORT' => '80',
-            'REQUEST_URI' => '/submit?q=1',
-            'CONTENT_TYPE' => 'application/json',
-        ];
-
-        $request = ServerRequest::capture($server, ['q' => '1'], ['field' => 'value']);
+        $request = ServerRequest::create(
+            'POST',
+            '/submit',
+            query: ['q' => '1'],
+            body: ['field' => 'value'],
+            headers: ['Host' => 'example.com'],
+        );
 
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('example.com', $request->getHeaderLine('Host'));
-        $this->assertSame('/submit?q=1', $request->getRequestTarget());
+        $this->assertSame('/submit', $request->getRequestTarget());
         $this->assertSame(['field' => 'value'], $request->getParsedBody());
         $this->assertSame(['q' => '1'], $request->getQueryParams());
+    }
+
+    public function test_create_parses_query_string_from_uri(): void
+    {
+        // If a query string is in the URI, it's parsed and merged with $query
+        $request = ServerRequest::create('GET', '/search?q=test&page=1');
+
+        $this->assertSame('/search', $request->getRequestTarget());
+        $this->assertSame(['q' => 'test', 'page' => '1'], $request->getQueryParams());
+    }
+
+    public function test_create_explicit_query_overrides_uri_query(): void
+    {
+        // Explicit $query params take precedence over URI query string
+        $request = ServerRequest::create('GET', '/search?q=from_uri', query: ['q' => 'from_param']);
+
+        $this->assertSame(['q' => 'from_param'], $request->getQueryParams());
     }
 
     public function test_get_uri_returns_uri_interface(): void

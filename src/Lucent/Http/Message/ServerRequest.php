@@ -15,11 +15,12 @@ use Psr\Http\Message\UriInterface;
  * Lucent-specific data (routeInfo, urlVars, context) is stored as
  * attributes, which is the PSR-7-sanctioned extension mechanism.
  *
- * Factory: ServerRequest::capture() replaces the old Request::__construct().
+ * Factory: ServerRequest::capture() reads from PHP superglobals (production).
+ * ServerRequest::create() builds from explicit values (testing/fabrication).
  *
  * @final This class should not be extended in production code.
- *        Use PSR-7 attributes for extension instead. For testing, a
- *        FakeServerRequest subclass is available in Lucent\Faker.
+ *        Use PSR-7 attributes for extension instead. For testing, use
+ *        ServerRequest::create() to build requests from explicit values.
  */
 class ServerRequest extends AbstractMessage implements ServerRequestInterface
 {
@@ -72,63 +73,123 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     // ─── Static Factory ─────────────────────────────────────────────────
 
     /**
-     * Create a ServerRequest from PHP superglobals.
+     * Capture the incoming HTTP request from PHP superglobals.
      *
-     * Replaces the logic in old Lucent\Http\Request::__construct().
+     * This is the production entry point — reads from $_SERVER, $_GET,
+     * $_POST, $_COOKIE, $_FILES, and php://input. Takes no arguments.
      *
-     * @param array|null $server $_SERVER (defaults to $_SERVER)
-     * @param array|null $query $_GET (defaults to $_GET)
-     * @param array|null $body $_POST (defaults to $_POST)
-     * @param array|null $cookies $_COOKIE (defaults to $_COOKIE)
-     * @param array|null $files $_FILES (defaults to $_FILES, converted to UploadedFileInterface[])
+     * For tests, use {@see create()} to build a request from explicit
+     * values instead of relying on global state.
+     *
+     * @return self
      */
-    public static function capture(
-        ?array $server = null,
-        ?array $query = null,
-        ?array $body = null,
-        ?array $cookies = null,
-        ?array $files = null,
-    ): self {
-        $server = $server ?? $_SERVER;
-        $method = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
-        $uri = Uri::fromServer($server);
+    public static function capture(): self
+    {
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $uri = Uri::fromServer($_SERVER);
 
-        $request = new self($method, $uri, $server);
+        $request = new self($method, $uri, $_SERVER);
 
-        // Query params
-        $request->queryParams = $query ?? $_GET;
+        $request->queryParams = $_GET;
+        $request->cookieParams = $_COOKIE;
+        $request->uploadedFiles = self::normalizeUploadedFiles($_FILES);
+        $request->setHeaders(self::extractHeaders($_SERVER));
 
-        // Cookie params
-        $request->cookieParams = $cookies ?? $_COOKIE;
-
-        // Uploaded files — convert $_FILES to UploadedFileInterface[]
-        $request->uploadedFiles = self::normalizeUploadedFiles($files ?? $_FILES);
-
-        // Headers
-        $request->setHeaders(self::extractHeaders($server));
-
-        // Body — read php://input once
+        // Body — read php://input once (only meaningful in a real request)
         $rawBody = file_get_contents('php://input');
         $request->setBody(Stream::fromString($rawBody !== false ? $rawBody : ''));
 
-        $contentType = $server['CONTENT_TYPE'] ?? '';
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (str_contains($contentType, 'application/json') && $rawBody !== false && $rawBody !== '') {
             $decoded = json_decode($rawBody, true);
             if (is_array($decoded)) {
                 $request->parsedBody = $decoded;
             }
-        } elseif ($body !== null) {
-            $request->parsedBody = $body;
         } else {
             $request->parsedBody = $_POST;
         }
 
-        // Protocol version
-        if (isset($server['SERVER_PROTOCOL'])) {
-            $version = $server['SERVER_PROTOCOL'];
+        if (isset($_SERVER['SERVER_PROTOCOL'])) {
+            $version = $_SERVER['SERVER_PROTOCOL'];
             if (preg_match('#^HTTP/(\d+\.\d+)$#', $version, $matches)) {
                 $request->withProtocolVersionInternal($matches[1]);
             }
+        }
+
+        return $request;
+    }
+
+    /**
+     * Create a ServerRequest from explicit values.
+     *
+     * Laravel-style factory for testing and fabrication — builds a request
+     * from a method, URI, and optional parameters without touching global
+     * state. Replaces the old FakeServerRequest class.
+     *
+     * The URI should be the path only (e.g. '/users/42'). If a query string
+     * is included in the URI (e.g. '/search?q=test'), it is parsed and
+     * merged with the $query parameter.
+     *
+     * @param string $method       HTTP method (GET, POST, etc.)
+     * @param string|UriInterface $uri  URI path string or object (defaults to '/')
+     * @param array $query         Query string parameters
+     * @param array $body          Parsed body parameters
+     * @param array $cookies       Cookie parameters
+     * @param array $files         Uploaded files as $_FILES-style array
+     * @param array $headers       Headers as [name => value, ...] or [name => [value, ...]]
+     * @param array $server        Server parameters ($_SERVER-style)
+     * @return self
+     */
+    public static function create(
+        string $method = 'GET',
+        string|UriInterface $uri = '/',
+        array $query = [],
+        array $body = [],
+        array $cookies = [],
+        array $files = [],
+        array $headers = [],
+        array $server = [],
+    ): self {
+        $method = strtoupper($method);
+        $uriObject = $uri instanceof UriInterface ? $uri : Uri::fromString($uri);
+
+        // If the URI has a query string, parse it and merge with $query
+        // (explicit $query params take precedence)
+        $uriQuery = $uriObject->getQuery();
+        if ($uriQuery !== '') {
+            parse_str($uriQuery, $parsedQuery);
+            $query = array_merge($parsedQuery, $query);
+            // Strip the query from the URI so getRequestTarget() uses
+            // queryParams consistently
+            $uriObject = $uriObject->withQuery('');
+        }
+
+        // Build minimal $_SERVER-style array if not provided
+        $server = array_merge([
+            'REQUEST_METHOD' => $method,
+            'REQUEST_URI' => $uriObject->getPath() ?: '/',
+            'SERVER_PROTOCOL' => 'HTTP/1.1',
+            'HTTP_HOST' => $uriObject->getHost() ?: 'localhost',
+        ], $server);
+
+        $request = new self($method, $uriObject, $server);
+
+        $request->queryParams = $query;
+        $request->cookieParams = $cookies;
+        $request->uploadedFiles = self::normalizeUploadedFiles($files);
+
+        // Apply explicit headers (overrides anything extracted from $server)
+        $request->setHeaders(self::extractHeaders($server));
+        foreach ($headers as $name => $value) {
+            $request->withHeaderInternal($name, is_array($value) ? $value : [$value]);
+        }
+
+        // Body — no php://input in tests, use $body directly
+        $request->parsedBody = $body;
+
+        // Set Content-Type if body is present and no Content-Type was given
+        if ($body !== [] && !isset($headers['Content-Type'])) {
+            $request->withHeaderInternal('Content-Type', ['application/x-www-form-urlencoded']);
         }
 
         return $request;
