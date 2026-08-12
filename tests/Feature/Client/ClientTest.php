@@ -4,7 +4,7 @@ namespace Tests\Feature\Client;
 
 use Lucent\Http\Client\Exception\NetworkException;
 use Lucent\Http\Client\Handler\CurlHandler;
-use Lucent\Http\Client\HttpClient;
+use Lucent\Http\Client\Client;
 use Lucent\Http\Message\Factory\HttpFactory;
 use Lucent\Http\Message\Stream;
 use PHPUnit\Framework\TestCase;
@@ -13,13 +13,13 @@ use Psr\Http\Message\ResponseInterface;
 use Tests\Support\Http\MockHandler;
 use Tests\Support\Http\StartsFixtureServer;
 
-class HttpClientTest extends TestCase
+class ClientTest extends TestCase
 {
     use StartsFixtureServer;
 
-    private function client(array $config = []): HttpClient
+    private function client(array $config = []): Client
     {
-        return new HttpClient($config);
+        return new Client($config);
     }
 
     public function test_send_request_returns_psr7_response(): void
@@ -465,7 +465,7 @@ class HttpClientTest extends TestCase
         $handler = new MockHandler();
 
         // The injected handler is used as the default transport.
-        $client = new HttpClient(
+        $client = new Client(
             ['base_uri' => self::$baseUrl],
             $handler
         );
@@ -480,7 +480,7 @@ class HttpClientTest extends TestCase
     {
         $handler = new MockHandler();
 
-        $client = new HttpClient([
+        $client = new Client([
             'base_uri' => self::$baseUrl,
             'timeout' => 7,
             'verify_ssl' => false,
@@ -507,7 +507,7 @@ class HttpClientTest extends TestCase
     {
         $handler = new MockHandler();
 
-        $client = new HttpClient([
+        $client = new Client([
             'base_uri' => self::$baseUrl,
             'curl_options' => [CURLOPT_FRESH_CONNECT => true],
         ], new CurlHandler(), $handler);
@@ -524,7 +524,7 @@ class HttpClientTest extends TestCase
         $handler = new MockHandler();
         $handler->reject = ['progress' => 'not-a-callable'];
 
-        $client = new HttpClient(['base_uri' => self::$baseUrl], $handler);
+        $client = new Client(['base_uri' => self::$baseUrl], $handler);
 
         $this->expectException(\InvalidArgumentException::class);
         $client->get('/echo', [], ['progress' => 'not-a-callable']);

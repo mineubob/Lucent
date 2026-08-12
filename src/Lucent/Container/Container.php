@@ -20,7 +20,7 @@ use Throwable;
  * ```php
  * $container = \Lucent\Facades\App::container();
  *
- * $container->instance($httpClient, HttpClient::class); // shared object
+ * $container->instance($httpClient, Client::class); // shared object
  * $container->singleton(Logger::class);                  // eager, shared
  * $container->singleton(static fn () => new Mailer(...)); // lazy, shared
  *

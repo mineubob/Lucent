@@ -5,6 +5,7 @@ namespace Lucent\Http\Client\Handler;
 use Lucent\Facades\Log;
 use Lucent\Http\Client\Exception\NetworkException;
 use Lucent\Http\Client\Handler\Concerns\HandlesResponseBodies;
+use Lucent\Http\Client\Client;
 use Lucent\Http\Message\Stream;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -134,7 +135,7 @@ final class StreamHandler implements HandlerInterface
                 'follow_location' => 1,
                 'max_redirects' => 10,
                 'timeout' => (float) ($options['timeout'] ?? 30),
-                'user_agent' => $options['user_agent'],
+                'user_agent' => $options['user_agent'] ?? Client::defaultUserAgent(),
                 'header' => $headerLines,
             ],
         ];

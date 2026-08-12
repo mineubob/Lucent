@@ -23,7 +23,7 @@ use Psr\Http\Message\UriInterface;
  * implementations. Configuration is passed as an immutable config array:
  *
  * ```php
- * $client = new HttpClient([
+ * $client = new Client([
  *     'base_uri'    => 'https://api.example.com/v1',
  *     'timeout'     => 30,
  *     'verify_ssl'  => true,
@@ -43,7 +43,7 @@ use Psr\Http\Message\UriInterface;
  * cURL-backed {@see CurlHandler} is used; the `stream => true` option routes to
  * the {@see StreamHandler} for true incremental response streaming.
  */
-final class HttpClient implements ClientInterface
+final class Client implements ClientInterface
 {
     /** @var string Option key for the sink (file path, resource, or stream) */
     public const OPTION_SINK = 'sink';
@@ -74,6 +74,20 @@ final class HttpClient implements ClientInterface
 
     /** @var string Option key for streaming the response body */
     public const OPTION_STREAM = 'stream';
+
+    /**
+     * Generate the default User-Agent string.
+     *
+     * Used as the client's config default and by handlers as a fallback when
+     * the merged options omit `user_agent` (e.g. when a handler is used
+     * directly). Centralized here so every transport sends the same value.
+     * 
+     * @return string The default User-Agent string of a Client.
+     */
+    public static function defaultUserAgent(): string
+    {
+        return 'Lucent-HttpClient/' . (defined('VERSION') ? VERSION : 'unknown');
+    }
 
     /** @var UriInterface|null Normalized base URI */
     private readonly ?UriInterface $baseUri;
@@ -126,7 +140,7 @@ final class HttpClient implements ClientInterface
         $this->timeout = $config['timeout'] ?? 30;
         $this->verifySsl = $config['verify_ssl'] ?? true;
         $this->basicAuth = $config['basic_auth'] ?? null;
-        $this->userAgent = $config['user_agent'] ?? 'Lucent-HttpClient/' . (defined('VERSION') ? VERSION : 'unknown');
+        $this->userAgent = $config['user_agent'] ?? self::defaultUserAgent();
         $this->headers = $config['headers'] ?? [];
         $this->curlOptions = $config['curl_options'] ?? [];
         $this->factory = new HttpFactory();
@@ -343,7 +357,7 @@ final class HttpClient implements ClientInterface
 
         foreach ($config as $key => $value) {
             if (!in_array($key, $allowed, true)) {
-                throw new \InvalidArgumentException("Unknown HttpClient config key: {$key}");
+                throw new \InvalidArgumentException("Unknown Client config key: {$key}");
             }
         }
 
@@ -408,7 +422,7 @@ final class HttpClient implements ClientInterface
 
         foreach ($options as $key => $value) {
             if (!in_array($key, $allowed, true)) {
-                throw new \InvalidArgumentException("Unknown HttpClient request option: {$key}");
+                throw new \InvalidArgumentException("Unknown Client request option: {$key}");
             }
         }
 
