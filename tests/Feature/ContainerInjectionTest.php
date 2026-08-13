@@ -31,7 +31,7 @@ class ContainerInjectionTest extends TestCase
         // Register the service under its interface identifier, matching what
         // the controller constructor and method type-hint.
         Application::getInstance()->container()
-            ->instance(new InjectionGreeter(), InjectionGreeterInterface::class);
+            ->instance(InjectionGreeterInterface::class, new InjectionGreeter());
 
         Application::getInstance()->boot();
     }

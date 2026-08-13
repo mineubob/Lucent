@@ -162,12 +162,12 @@ class EventDispatcherTest extends TestCase
     public function test_class_string_listener_is_resolved_through_container(): void
     {
         $container = new Container();
-        $container->instance(new class {
+        $container->instance(InvokableListener::class, new class {
             public function __invoke(object $event): void
             {
                 $event->handled = true;
             }
-        }, InvokableListener::class);
+        });
 
         $dispatcher = new EventDispatcher(new ListenerProvider(), $container);
         $dispatcher->getProvider()->listen(\stdClass::class, InvokableListener::class);

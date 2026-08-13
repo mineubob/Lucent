@@ -43,7 +43,7 @@ class ContainerTest extends TestCase
         $container = new Container();
         $service = new ContainerServiceStub();
 
-        $container->instance($service);
+        $container->instance(ContainerServiceStub::class, $service);
 
         $this->assertTrue($container->has(ContainerServiceStub::class));
         $this->assertSame($service, $container->get(ContainerServiceStub::class));
@@ -54,14 +54,35 @@ class ContainerTest extends TestCase
         $container = new Container();
         $service = new ContainerServiceStub();
 
-        $container->instance($service, 'custom-alias');
+        $container->instance('custom-alias', $service);
 
         $this->assertFalse($container->has(ContainerServiceStub::class));
         $this->assertTrue($container->has('custom-alias'));
         $this->assertSame($service, $container->get('custom-alias'));
     }
 
-    public function test_singleton_with_class_string_is_eager_and_shared(): void
+    public function test_instance_with_object_abstract_keys_by_class_name(): void
+    {
+        $container = new Container();
+        $service = new ContainerServiceStub();
+
+        $container->instance($service);
+
+        $this->assertTrue($container->has(ContainerServiceStub::class));
+        $this->assertSame($service, $container->get(ContainerServiceStub::class));
+    }
+
+    public function test_instance_with_string_abstract_requires_an_instance(): void
+    {
+        $container = new Container();
+
+        $this->expectException(ContainerException::class);
+        $this->expectExceptionMessage('requires an instance when given a string identifier');
+
+        $container->instance(ContainerServiceStub::class);
+    }
+
+    public function test_singleton_with_class_string_is_lazy_and_shared(): void
     {
         $container = new Container();
 
@@ -72,11 +93,26 @@ class ContainerTest extends TestCase
         $this->assertSame($container->get(ContainerServiceStub::class), $container->get(ContainerServiceStub::class));
     }
 
+    public function test_singleton_with_class_string_is_not_instantiated_until_get(): void
+    {
+        $container = new Container();
+        ContainerServiceStub::$instances = 0;
+
+        $container->singleton(ContainerServiceStub::class);
+
+        // A lazy singleton must not be instantiated until the first get().
+        $this->assertSame(0, ContainerServiceStub::$instances);
+        $this->assertTrue($container->has(ContainerServiceStub::class));
+
+        $container->get(ContainerServiceStub::class);
+        $this->assertSame(1, ContainerServiceStub::$instances);
+    }
+
     public function test_singleton_with_class_string_under_alias(): void
     {
         $container = new Container();
 
-        $container->singleton(ContainerServiceStub::class, 'stub');
+        $container->singleton('stub', ContainerServiceStub::class);
 
         $this->assertFalse($container->has(ContainerServiceStub::class));
         $this->assertTrue($container->has('stub'));
@@ -94,7 +130,7 @@ class ContainerTest extends TestCase
         };
 
         $alias = 'lazy-service';
-        $container->singleton($factory, $alias);
+        $container->singleton($alias, $factory);
 
         // Factory should not have run until first get().
         $this->assertSame(0, $calls);
@@ -108,24 +144,55 @@ class ContainerTest extends TestCase
         $this->assertInstanceOf(ContainerServiceStub::class, $first);
     }
 
-    public function test_singleton_with_closure_requires_an_alias(): void
+    public function test_singleton_with_callable_abstract_keys_by_return_type(): void
+    {
+        $container = new Container();
+        $calls = 0;
+
+        $container->singleton(function () use (&$calls): ContainerServiceStub {
+            $calls++;
+            return new ContainerServiceStub();
+        });
+
+        // Identifier derived from the return type; factory is lazy.
+        $this->assertSame(0, $calls);
+        $this->assertTrue($container->has(ContainerServiceStub::class));
+
+        $first = $container->get(ContainerServiceStub::class);
+        $second = $container->get(ContainerServiceStub::class);
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, $calls);
+    }
+
+    public function test_singleton_with_callable_abstract_without_return_type_throws(): void
     {
         $container = new Container();
 
         $this->expectException(ContainerException::class);
-        $this->expectExceptionMessage('must be registered under an explicit alias');
+        $this->expectExceptionMessage('must declare a class return type');
 
         $container->singleton(fn () => new ContainerServiceStub());
     }
 
-    public function test_bind_with_closure_requires_an_alias(): void
+    public function test_singleton_with_closure_under_class_abstract(): void
     {
         $container = new Container();
+        $calls = 0;
 
-        $this->expectException(ContainerException::class);
-        $this->expectExceptionMessage('must be registered under an explicit alias');
+        $container->singleton(ContainerServiceStub::class, function () use (&$calls) {
+            $calls++;
+            return new ContainerServiceStub();
+        });
 
-        $container->bind(fn () => new ContainerServiceStub());
+        $this->assertSame(0, $calls);
+        $this->assertTrue($container->has(ContainerServiceStub::class));
+
+        $first = $container->get(ContainerServiceStub::class);
+        $second = $container->get(ContainerServiceStub::class);
+
+        $this->assertSame($first, $second);
+        $this->assertSame(1, $calls);
     }
 
     public function test_bind_with_closure_returns_fresh_instance_each_get(): void
@@ -133,10 +200,10 @@ class ContainerTest extends TestCase
         $container = new Container();
         $calls = 0;
 
-        $container->bind(function () use (&$calls) {
+        $container->bind('factory', function () use (&$calls) {
             $calls++;
             return new ContainerServiceStub();
-        }, 'factory');
+        });
 
         $this->assertTrue($container->has('factory'));
 
@@ -147,11 +214,30 @@ class ContainerTest extends TestCase
         $this->assertSame(2, $calls);
     }
 
+    public function test_bind_with_callable_abstract_keys_by_return_type(): void
+    {
+        $container = new Container();
+        $calls = 0;
+
+        $container->bind(function () use (&$calls): ContainerServiceStub {
+            $calls++;
+            return new ContainerServiceStub();
+        });
+
+        $this->assertTrue($container->has(ContainerServiceStub::class));
+
+        $first = $container->get(ContainerServiceStub::class);
+        $second = $container->get(ContainerServiceStub::class);
+
+        $this->assertNotSame($first, $second, 'A bound callable abstract should return a new instance each time');
+        $this->assertSame(2, $calls);
+    }
+
     public function test_closure_that_returns_non_object_raises_container_exception(): void
     {
         $container = new Container();
 
-        $container->singleton(fn () => 'not-an-object', 'bad');
+        $container->singleton('bad', fn () => 'not-an-object');
 
         $exception = null;
         try {
@@ -167,7 +253,7 @@ class ContainerTest extends TestCase
     {
         $container = new Container();
         $service = new ContainerServiceStub();
-        $container->instance($service, 'known');
+        $container->instance('known', $service);
 
         $this->assertTrue($container->has('known'));
         $this->assertSame($service, $container->get('known'));
@@ -176,10 +262,10 @@ class ContainerTest extends TestCase
     public function test_instance_overrides_existing_binding(): void
     {
         $container = new Container();
-        $container->bind(fn () => new ContainerServiceStub(), 'svc');
+        $container->bind('svc', fn () => new ContainerServiceStub());
 
         $concrete = new ContainerServiceStub();
-        $container->instance($concrete, 'svc');
+        $container->instance('svc', $concrete);
 
         $this->assertSame($concrete, $container->get('svc'));
     }
@@ -187,9 +273,9 @@ class ContainerTest extends TestCase
     public function test_bind_overrides_existing_instance(): void
     {
         $container = new Container();
-        $container->instance(new ContainerServiceStub(), 'svc');
+        $container->instance('svc', new ContainerServiceStub());
 
-        $container->bind(fn () => new ContainerServiceStub(), 'svc');
+        $container->bind('svc', fn () => new ContainerServiceStub());
 
         $this->assertNotSame(
             $container->get('svc'),
@@ -201,12 +287,153 @@ class ContainerTest extends TestCase
     public function test_singleton_overrides_existing_binding(): void
     {
         $container = new Container();
-        $container->bind(fn () => new ContainerServiceStub(), 'svc');
+        $container->bind('svc', fn () => new ContainerServiceStub());
 
-        $container->singleton(ContainerServiceStub::class, 'svc');
+        $container->singleton('svc', ContainerServiceStub::class);
 
         $this->assertInstanceOf(ContainerServiceStub::class, $container->get('svc'));
         $this->assertSame($container->get('svc'), $container->get('svc'));
+    }
+
+    public function test_alias_resolves_to_same_singleton_instance(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+
+        $this->assertTrue($container->has('stub'));
+        $this->assertSame(
+            $container->get(ContainerServiceStub::class),
+            $container->get('stub'),
+            'An alias should resolve to the same shared instance'
+        );
+    }
+
+    public function test_alias_can_be_registered_before_abstract(): void
+    {
+        $container = new Container();
+
+        $container->alias(ContainerServiceStub::class, 'stub');
+        $container->singleton(ContainerServiceStub::class);
+
+        $this->assertTrue($container->has('stub'));
+        $this->assertSame(
+            $container->get(ContainerServiceStub::class),
+            $container->get('stub')
+        );
+    }
+
+    public function test_alias_chains_resolve_to_terminal_abstract(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'first');
+        $container->alias('first', 'second');
+
+        $this->assertSame(
+            $container->get(ContainerServiceStub::class),
+            $container->get('second')
+        );
+    }
+
+    public function test_alias_does_not_instantiate_until_get(): void
+    {
+        $container = new Container();
+        ContainerServiceStub::$instances = 0;
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+
+        $this->assertSame(0, ContainerServiceStub::$instances);
+        $container->get('stub');
+        $this->assertSame(1, ContainerServiceStub::$instances);
+    }
+
+    public function test_remove_clears_entry_and_aliases_pointing_to_it(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+
+        $container->remove(ContainerServiceStub::class);
+
+        $this->assertFalse($container->has(ContainerServiceStub::class));
+        $this->assertFalse($container->has('stub'), 'Aliases pointing to the removed id should be removed too');
+    }
+
+    public function test_remove_resolves_alias_to_underlying_entry(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+
+        // Passing the alias removes the underlying entry and its aliases.
+        $container->remove('stub');
+
+        $this->assertFalse($container->has(ContainerServiceStub::class));
+        $this->assertFalse($container->has('stub'));
+    }
+
+    public function test_remove_alias_removes_only_the_alias(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+
+        $container->removeAlias('stub');
+
+        $this->assertFalse($container->has('stub'));
+        $this->assertTrue($container->has(ContainerServiceStub::class), 'The entry should remain intact');
+    }
+
+    public function test_remove_clears_transitive_alias_chain(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'first');
+        $container->alias('first', 'second');
+
+        $container->remove(ContainerServiceStub::class);
+
+        $this->assertFalse($container->has('first'));
+        $this->assertFalse($container->has('second'));
+    }
+
+    public function test_remove_preserves_unrelated_aliases(): void
+    {
+        $container = new Container();
+
+        $container->singleton(ContainerServiceStub::class);
+        $container->alias(ContainerServiceStub::class, 'stub');
+        $container->singleton('other', ContainerServiceStub::class);
+        $container->alias('other', 'other-alias');
+
+        $container->remove(ContainerServiceStub::class);
+
+        $this->assertFalse($container->has('stub'));
+        $this->assertTrue($container->has('other-alias'), 'Unrelated aliases should be preserved');
+        $this->assertTrue($container->has('other'));
+    }
+
+    public function test_remove_does_not_break_alias_before_abstract_re_registration(): void
+    {
+        $container = new Container();
+
+        // Alias registered before the abstract survives re-registration.
+        $container->alias(ContainerServiceStub::class, 'stub');
+        $container->singleton(ContainerServiceStub::class);
+
+        $this->assertTrue($container->has('stub'));
+
+        // Re-registering (via singleton) must not wipe the alias.
+        $container->singleton(ContainerServiceStub::class);
+        $this->assertTrue($container->has('stub'));
     }
 }
 
@@ -215,4 +442,11 @@ class ContainerTest extends TestCase
  */
 class ContainerServiceStub
 {
+    /** @var int Number of times this stub has been instantiated. */
+    public static int $instances = 0;
+
+    public function __construct()
+    {
+        self::$instances++;
+    }
 }

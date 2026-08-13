@@ -7,6 +7,8 @@ use Psr\Container\ContainerInterface;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\NotFoundExceptionInterface;
 use ReflectionClass;
+use ReflectionFunction;
+use ReflectionNamedType;
 use Throwable;
 
 /**
@@ -20,9 +22,11 @@ use Throwable;
  * ```php
  * $container = \Lucent\Facades\App::container();
  *
- * $container->instance($httpClient, Client::class); // shared object
- * $container->singleton(Logger::class);                  // eager, shared
- * $container->singleton(static fn () => new Mailer(...)); // lazy, shared
+ * $container->instance(Client::class, $httpClient);       // shared object
+ * $container->instance($httpClient);                      // shared object, keyed by Client::class
+ * $container->singleton(Logger::class);                   // lazy, shared
+ * $container->singleton(fn (): Mailer => new Mailer(...)); // lazy, shared, keyed by Mailer::class
+ * $container->singleton(Mailer::class, static fn () => new Mailer(...)); // lazy, shared
  *
  * $logger = $container->get(Logger::class);   // resolves via PSR-11
  * $container->has(Logger::class);             // true
@@ -60,6 +64,13 @@ class Container implements ContainerInterface
     private array $bindings = [];
 
     /**
+     * Alias identifiers mapped to the abstract they resolve to.
+     *
+     * @var array<string, string>
+     */
+    private array $aliases = [];
+
+    /**
      * Get a container entry by its identifier.
      *
      * Returns the cached instance when present, otherwise invokes and caches
@@ -73,6 +84,8 @@ class Container implements ContainerInterface
      */
     public function get(string $id): mixed
     {
+        $id = $this->resolveAlias($id);
+
         if (array_key_exists($id, $this->instances)) {
             return $this->instances[$id];
         }
@@ -103,6 +116,8 @@ class Container implements ContainerInterface
      */
     public function has(string $id): bool
     {
+        $id = $this->resolveAlias($id);
+
         return array_key_exists($id, $this->instances)
             || array_key_exists($id, $this->factories)
             || array_key_exists($id, $this->bindings);
@@ -111,52 +126,70 @@ class Container implements ContainerInterface
     /**
      * Register a shared singleton entry.
      *
-     * When given a class-string the class is instantiated eagerly (matching
-     * the previous {@see \Lucent\Application::addService()} behaviour). When
-     * given a closure, it is stored as a lazy factory and only invoked on the
-     * first {@see get()}; the result is then cached as a shared singleton.
+     * The entry is registered as a lazy factory and only instantiated on the
+     * first {@see get()}; the result is then cached as a shared singleton
+     * (matching Laravel's lazy singleton behaviour).
+     *
+     * ```php
+     * $container->singleton(Mailer::class);                          // lazy, shared
+     * $container->singleton(MailerInterface::class, SmtpMailer::class);
+     * $container->singleton(Mailer::class, fn () => new Mailer(...));
+     * $container->singleton(fn (): Mailer => new Mailer(...));       // keyed by Mailer::class
+     * ```
      *
      * Retrieve the instance with {@see get()}.
      *
-     * @param string|callable $concrete Class name to instantiate, or a factory callable returning the instance
-     * @param string|null $alias Optional identifier to register the entry under instead of the default
+     * @param string|callable $abstract Identifier (class name or alias) to register the entry under, or a factory callable whose return type names the identifier
+     * @param string|callable|null $concrete Class name to instantiate lazily, or a factory callable returning the instance; defaults to $abstract
      * @return void
-     * @throws ContainerExceptionInterface If a class-string cannot be instantiated, or a closure is given without an alias
+     * @throws ContainerExceptionInterface If the class cannot be instantiated, or a callable abstract has no class return type
      */
-    public function singleton(string|callable $concrete, ?string $alias = null): void
+    public function singleton(string|callable $abstract, string|callable|null $concrete = null): void
     {
-        if (is_string($concrete)) {
-            $this->createEager($concrete, $alias);
-
-            return;
+        if (is_callable($abstract)) {
+            $concrete = $abstract;
+            $abstract = $this->abstractFromCallable($abstract);
         }
 
-        if ($alias === null) {
-            throw new ContainerException(
-                'A closure passed to singleton() must be registered under an explicit alias, e.g. ' .
-                'singleton(fn () => new Mailer(...), Mailer::class).'
-            );
-        }
+        $concrete ??= $abstract;
+        $this->forget($abstract);
 
-        $factory = Closure::fromCallable($concrete);
-        $this->forget($alias);
-        $this->factories[$alias] = $factory;
+        $this->factories[$abstract] = is_string($concrete)
+            ? fn () => $this->newInstance($concrete)
+            : Closure::fromCallable($concrete);
     }
 
     /**
      * Register an existing object instance under an identifier.
      *
-     * @param object $service The instance to register
-     * @param string|null $alias Optional identifier; defaults to the object's class name
+     * ```php
+     * $container->instance(LoggerInterface::class, $logger);
+     * $container->instance($logger); // keyed by Logger::class
+     * ```
+     *
+     * @param string|object $abstract Identifier (class name or alias) to register the instance under, or the instance itself (keyed by its class name)
+     * @param object|null $instance The instance to register; required when $abstract is a string
      * @return object The registered instance
+     * @throws ContainerExceptionInterface If $abstract is a string and no instance is given
      */
-    public function instance(object $service, ?string $alias = null): object
+    public function instance(string|object $abstract, ?object $instance = null): object
     {
-        $id = $alias ?? $service::class;
-        $this->forget($id);
-        $this->instances[$id] = $service;
+        if (is_object($abstract)) {
+            $instance = $abstract;
+            $abstract = $abstract::class;
+        }
 
-        return $service;
+        if ($instance === null) {
+            throw new ContainerException(
+                'instance() requires an instance when given a string identifier, e.g. ' .
+                'instance(LoggerInterface::class, $logger).'
+            );
+        }
+
+        $this->forget($abstract);
+        $this->instances[$abstract] = $instance;
+
+        return $instance;
     }
 
     /**
@@ -166,53 +199,106 @@ class Container implements ContainerInterface
      * call, so each resolution returns a fresh instance:
      *
      * ```php
-     * $container->bind(static fn () => new Connection($dsn));
+     * $container->bind(Connection::class, static fn () => new Connection($dsn));
+     * $container->bind(fn (): Connection => new Connection($dsn)); // keyed by Connection::class
      *
      * $a = $container->get(Connection::class);
      * $b = $container->get(Connection::class); // $a !== $b
      * ```
      *
-     * @param string|callable $concrete Class name to instantiate per resolution, or a factory callable
-     * @param string|null $alias Optional identifier to register the entry under
+     * @param string|callable $abstract Identifier (class name or alias) to register the entry under, or a factory callable whose return type names the identifier
+     * @param string|callable|null $concrete Class name to instantiate per resolution, or a factory callable; defaults to $abstract
      * @return void
+     * @throws ContainerExceptionInterface If a callable abstract has no class return type
      */
-    public function bind(string|callable $concrete, ?string $alias = null): void
+    public function bind(string|callable $abstract, string|callable|null $concrete = null): void
     {
-        if (is_string($concrete)) {
-            $factory = fn () => $this->newInstance($concrete);
-            $id = $alias ?? $concrete;
-        } else {
-            if ($alias === null) {
-                throw new ContainerException(
-                    'A closure passed to bind() must be registered under an explicit alias, e.g. ' .
-                    'bind(fn () => new Connection($dsn), Connection::class).'
-                );
-            }
-
-            $factory = Closure::fromCallable($concrete);
-            $id = $alias;
+        if (is_callable($abstract)) {
+            $concrete = $abstract;
+            $abstract = $this->abstractFromCallable($abstract);
         }
 
-        $this->forget($id);
-        $this->bindings[$id] = $factory;
+        $concrete ??= $abstract;
+        $this->forget($abstract);
+
+        $this->bindings[$abstract] = is_string($concrete)
+            ? fn () => $this->newInstance($concrete)
+            : Closure::fromCallable($concrete);
     }
 
     /**
-     * Eagerly instantiate a class-string and register it as a shared singleton.
+     * Register an alias so a second identifier resolves to the same entry as
+     * an already-registered abstract, without re-instantiating it.
      *
-     * @param string $class Class name to instantiate
-     * @param string|null $alias Optional identifier, defaults to the class name
-     * @return object The instantiated instance
-     * @throws ContainerExceptionInterface If the class cannot be instantiated
+     * ```php
+     * $container->singleton(MailerInterface::class, SmtpMailer::class);
+     * $container->alias(MailerInterface::class, SmtpMailer::class);
+     *
+     * $a = $container->get(MailerInterface::class);
+     * $b = $container->get(SmtpMailer::class); // $a === $b
+     * ```
+     *
+     * Aliases are resolved lazily at {@see get()} time, so the abstract does
+     * not need to be registered yet when the alias is created.
+     *
+     * @param string $abstract The identifier the alias points to
+     * @param string $alias The additional identifier to resolve to $abstract
+     * @return void
      */
-    private function createEager(string $class, ?string $alias = null): object
+    public function alias(string $abstract, string $alias): void
     {
-        $service = $this->newInstance($class);
-        $id = $alias ?? $class;
-        $this->forget($id);
-        $this->instances[$id] = $service;
+        $this->aliases[$alias] = $abstract;
+    }
 
-        return $service;
+    /**
+     * Remove an entry and every alias that resolves to it.
+     *
+     * The identifier is resolved first (like {@see get()} and {@see has()}),
+     * so passing an alias removes the underlying entry and all aliases that
+     * point to it. To remove a single alias without touching the entry, use
+     * {@see removeAlias()}.
+     *
+     * ```php
+     * $container->singleton(MailerInterface::class, SmtpMailer::class);
+     * $container->alias(MailerInterface::class, SmtpMailer::class);
+     *
+     * $container->remove(MailerInterface::class);
+     * $container->has(SmtpMailer::class); // false — alias removed too
+     * ```
+     *
+     * @param string $abstract The identifier (or alias) of the entry to remove
+     * @return void
+     */
+    public function remove(string $abstract): void
+    {
+        $abstract = $this->resolveAlias($abstract);
+        $this->forget($abstract);
+
+        foreach ($this->aliases as $alias => $target) {
+            if ($this->resolvesTo($alias, $abstract)) {
+                unset($this->aliases[$alias]);
+            }
+        }
+    }
+
+    /**
+     * Remove a single alias without touching the entry it points to.
+     *
+     * ```php
+     * $container->singleton(MailerInterface::class, SmtpMailer::class);
+     * $container->alias(MailerInterface::class, SmtpMailer::class);
+     *
+     * $container->removeAlias(SmtpMailer::class);
+     * $container->has(SmtpMailer::class); // false
+     * $container->has(MailerInterface::class); // true — entry intact
+     * ```
+     *
+     * @param string $alias The alias identifier to remove
+     * @return void
+     */
+    public function removeAlias(string $alias): void
+    {
+        unset($this->aliases[$alias]);
     }
 
     /**
@@ -220,14 +306,74 @@ class Container implements ContainerInterface
      *
      * Ensures a given id lives in at most one of {@see $instances},
      * {@see $factories}, or {@see $bindings} at a time, so the most recent
-     * registration always wins.
+     * registration always wins. Also clears any alias registered *under* the
+     * id, but deliberately preserves aliases that point *to* it so the
+     * "alias before abstract" pattern survives re-registration.
      *
      * @param string $id The identifier to clear
      * @return void
      */
     private function forget(string $id): void
     {
-        unset($this->instances[$id], $this->factories[$id], $this->bindings[$id]);
+        unset($this->instances[$id], $this->factories[$id], $this->bindings[$id], $this->aliases[$id]);
+    }
+
+    /**
+     * Follow the alias chain for an identifier.
+     *
+     * @param string $id The identifier to resolve
+     * @return string The terminal (non-alias) identifier
+     */
+    private function resolveAlias(string $id): string
+    {
+        while (isset($this->aliases[$id])) {
+            $id = $this->aliases[$id];
+        }
+
+        return $id;
+    }
+
+    /**
+     * Determine whether an alias (transitively) resolves to a target id.
+     *
+     * @param string $alias The alias to follow
+     * @param string $target The id to look for
+     * @return bool True if following the chain from $alias reaches $target
+     */
+    private function resolvesTo(string $alias, string $target): bool
+    {
+        $seen = [];
+        while (isset($this->aliases[$alias]) && !isset($seen[$alias])) {
+            $seen[$alias] = true;
+            $alias = $this->aliases[$alias];
+            if ($alias === $target) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Derive an abstract identifier from a factory callable's return type.
+     *
+     * @param callable $callable The factory callable
+     * @return string The class name the callable returns
+     * @throws ContainerExceptionInterface If the callable has no class return type
+     */
+    private function abstractFromCallable(callable $callable): string
+    {
+        $ref = new ReflectionFunction(Closure::fromCallable($callable));
+        $type = $ref->getReturnType();
+
+        if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
+            return $type->getName();
+        }
+
+        throw new ContainerException(
+            'A callable passed as the abstract must declare a class return type, e.g. ' .
+            'singleton(fn (): Mailer => new Mailer(...)).'
+        );
     }
 
     /**
