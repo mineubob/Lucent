@@ -160,7 +160,7 @@ class CacheTest extends TestCase
     {
         $container = Application::getInstance()->container();
         $custom = new CustomCacheStub();
-        $container->instance($custom, CustomCacheStub::class);
+        $container->instance(CustomCacheStub::class, $custom);
 
         $this->assertSame($custom, CacheFactory::create(CustomCacheStub::class, $container));
     }
@@ -176,7 +176,7 @@ class CacheTest extends TestCase
     public function test_factory_throws_when_resolved_value_is_not_a_driver(): void
     {
         $container = Application::getInstance()->container();
-        $container->instance(new \stdClass(), 'not-a-driver');
+        $container->instance('not-a-driver', new \stdClass());
 
         $this->expectException(CacheDriverException::class);
         CacheFactory::create('not-a-driver', $container);

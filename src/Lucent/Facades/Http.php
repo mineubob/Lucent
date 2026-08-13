@@ -32,7 +32,7 @@ class Http
     {
         if (self::$client === null) {
             self::$client = new Client();
-            Application::getInstance()->container()->instance(self::$client);
+            Application::getInstance()->container()->instance(Client::class, self::$client);
         }
 
         return self::$client;

@@ -57,6 +57,56 @@ To run these commands, use the `vendor/bin/lucent` binary in your project root:
 vendor/bin/lucent migration make App/Models/User
 ```
 
+### The `serve` Command
+
+`serve` starts the PHP built-in development server. It uses `public/index.php` as a **router script**, so every request is forwarded through Lucent — meaning routes like `/users` work instead of returning a 404 — while existing static files are still served directly.
+
+```bash
+vendor/bin/lucent serve
+```
+
+All values are configurable. Precedence is **CLI option > env var > default**:
+
+| CLI option | Env var | Default | Description |
+|------------|---------|---------|-------------|
+| `--port` | `SERVER_PORT` | `8080` | Port to bind |
+| `--host` | `SERVER_HOST` | `127.0.0.1` | Host/interface to bind |
+| `--docroot` | `SERVER_DOCROOT` | `public` | Document root (relative to project root) |
+| `--router` | `SERVER_ROUTER` | `public/index.php` | Router script path (relative to project root) |
+| `--tries` | `SERVER_TRIES` | `10` | Max ports to try if the requested one is busy |
+| `--no-restart` | `SERVER_NO_RESTART` | `false` | Disable auto-restart when `.env` changes |
+
+```bash
+# CLI options
+vendor/bin/lucent serve --port=9000 --host=127.0.0.1
+vendor/bin/lucent serve --no-restart
+
+# Or via .env
+# SERVER_PORT=9000
+# SERVER_HOST=127.0.0.1
+# SERVER_NO_RESTART=true
+```
+
+### Auto-restart on `.env` changes
+
+By default, `serve` watches `.env` and **restarts the server automatically** when it changes, so new environment values take effect without you manually restarting. This mirrors Laravel's behavior. Disable it with `--no-restart` (or `SERVER_NO_RESTART=true`).
+
+### Port auto-increment
+
+If the requested port is already in use, `serve` automatically tries the next port up to `--tries` times (default 10), mirroring Laravel. This only applies when the port wasn't explicitly set.
+
+The router script (`public/index.php`) is loaded by the built-in server for every request. It serves existing static files directly (returning `false` hands control back to the server) and forwards everything else to Lucent:
+
+```php
+<?php
+$path = __DIR__ . parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && is_file($path)) {
+    return false; // serve the static file directly
+}
+require_once '../vendor/autoload.php';
+echo Lucent\Facades\App::Execute(); // forward everything else to Lucent
+```
+
 ## Creating Custom Commands
 
 ### Command Structure

@@ -5,7 +5,7 @@ namespace Lucent\Validation;
 use InvalidArgumentException;
 use Lucent\Application;
 use Lucent\Facades\Regex;
-use Lucent\Http\Message\ServerRequest;
+use Lucent\Http\Message\RequestContext;
 use Psr\Http\Message\ServerRequestInterface;
 use ReflectionClass;
 use ReflectionException;
@@ -313,15 +313,28 @@ abstract class Rule
     /**
      * Sets the request that triggered this validation.
      *
-     * Uses a reference so that PSR-7 context updates (via setContext())
-     * propagate back to the caller's variable automatically.
-     *
-     * @param Request|ServerRequestInterface|null $request The current HTTP request
+     * @param ServerRequestInterface|null $request The current HTTP request
      * @return void
      */
-    public function setCallingRequest(?ServerRequestInterface &$request): void
+    public function setCallingRequest(?ServerRequestInterface $request): void
     {
-        $this->currentRequest = &$request;
+        $this->currentRequest = $request;
+    }
+
+    /**
+     * Get the {@see Rule} instance from a string, array or an instance
+     *
+     * @param string|Rule|array $rules The rule definition
+     * @return Rule The Rule instance
+     */
+    protected static function getRuleInstance(string|Rule|array $rules): Rule
+    {
+        return match (true) {
+            is_string($rules) => new $rules(),
+            $rules instanceof Rule => $rules,
+            is_array($rules) => (new BlankRule())->setRules($rules),
+            default => throw new InvalidArgumentException('Invalid rule format'),
+        };
     }
 
     /**
@@ -337,21 +350,16 @@ abstract class Rule
      */
     public static function validateData(array $data, string|Rule|array $rules): array
     {
-        $instance = match (true) {
-            is_string($rules) => new $rules(),
-            $rules instanceof Rule => $rules,
-            is_array($rules) => (new BlankRule())->setRules($rules),
-            default => throw new InvalidArgumentException('Invalid rule format'),
-        };
-
+        $instance = self::getRuleInstance($rules);
         return $instance->validate($data);
     }
 
     /**
      * Validate a PSR-7 request against a set of rules.
      *
-     * The request is passed by reference, so setContext() updates propagate
-     * back to the caller automatically.
+     * Context updates made by rules (via setContext()) are visible to the
+     * caller because they mutate the shared RequestContext bag attached to
+     * the request — no by-reference passing is needed.
      * For the old Lucent\Http\Request, use $request->validate() instead.
      *
      *   $errors = Rule::validateRequest($request, MyRule::class);
@@ -359,20 +367,15 @@ abstract class Rule
      * With explicit data (overrides parsed body):
      *   $errors = Rule::validateRequest($request, MyRule::class, $customData);
      *
-     * @param ServerRequestInterface|null &$request The current request (passed by reference)
+     * @param ServerRequestInterface|null $request The current request
      * @param string|Rule|array $rules Rule class name, Rule instance, or array of rules
      * @param array|null $data Optional data to validate (defaults to request body)
      * @return array<string, string> Validation errors (empty = passed)
      * @throws InvalidArgumentException
      */
-    public static function validateRequest(ServerRequestInterface|null &$request, string|Rule|array $rules, ?array $data = null): array
+    public static function validateRequest(ServerRequestInterface|null $request, string|Rule|array $rules, ?array $data = null): array
     {
-        $instance = match (true) {
-            is_string($rules) => new $rules(),
-            $rules instanceof Rule => $rules,
-            is_array($rules) => (new BlankRule())->setRules($rules),
-            default => throw new InvalidArgumentException('Invalid rule format'),
-        };
+        $instance = self::getRuleInstance($rules);
 
         if ($request !== null) {
             $instance->setCallingRequest($request);
@@ -384,11 +387,12 @@ abstract class Rule
     }
 
     /**
-     * Read a value from the request context (PSR-7 only).
+     * Read a value from the request context.
      *
-     * Reads from the same 'context' attribute that setContext() writes to,
-     * so a rule can inspect context stored by an earlier rule during the
-     * same validation pass.
+     * Reads from the shared {@see RequestContext} bag attached to the
+     * request, so a rule can inspect context stored by an earlier rule
+     * during the same validation pass. Returns $default when no request
+     * (or no context bag) is available.
      *
      * @param string $key The context key
      * @param mixed $default Default value if key not found
@@ -396,28 +400,20 @@ abstract class Rule
      */
     protected function getContext(string $key, mixed $default = null): mixed
     {
-        if ($this->currentRequest === null) {
-            return $default;
-        }
+        $context = $this->currentRequest !== null
+            ? RequestContext::fromRequest($this->currentRequest)
+            : null;
 
-        if ($this->currentRequest instanceof ServerRequest) {
-            return $this->currentRequest->getContext($key, $default);
-        }
-
-        // Generic PSR-7 fallback: read context from the attribute.
-        $context = $this->currentRequest->getAttribute('context', []);
-        return $context[$key] ?? $default;
+        return $context?->get($key, $default) ?? $default;
     }
 
     /**
-     * Store a value in the request context (PSR-7 only).
+     * Store a value in the request context.
      *
-     * Uses the reference from setCallingRequest() so the caller's
-     * variable is updated automatically.
-     *
-     * Works with any ServerRequestInterface: Lucent's ServerRequest uses
-     * the dedicated withContext(), while other implementations fall back
-     * to the generic withAttribute('context', ...) mechanism.
+     * Mutates the shared {@see RequestContext} bag attached to the request,
+     * so the write is visible to every copy of the request. Silently does
+     * nothing when no request (or no context bag) is available — e.g. when
+     * validating via {@see validateData()} with no attached request.
      *
      * @param string $key The context key
      * @param mixed $value The value to store
@@ -425,19 +421,11 @@ abstract class Rule
      */
     protected function setContext(string $key, mixed $value): void
     {
-        if ($this->currentRequest === null) {
-            return;
-        }
+        $context = $this->currentRequest !== null
+            ? RequestContext::fromRequest($this->currentRequest)
+            : null;
 
-        if ($this->currentRequest instanceof ServerRequest) {
-            $this->currentRequest = $this->currentRequest->withContext($key, $value);
-            return;
-        }
-
-        // Generic PSR-7 fallback: store context as an attribute.
-        $context = $this->currentRequest->getAttribute('context', []);
-        $context[$key] = $value;
-        $this->currentRequest = $this->currentRequest->withAttribute('context', $context);
+        $context?->set($key, $value);
     }
 
     /**

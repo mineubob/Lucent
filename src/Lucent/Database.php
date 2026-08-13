@@ -75,6 +75,13 @@ class Database
         self::$env = $env;
     }
 
+    /**
+     * Read a value from the configured environment.
+     *
+     * @param string $key The environment key
+     * @param mixed $default Default value if the key is not set
+     * @return mixed The environment value, or $default on a miss
+     */
     public static function env(string $key, mixed $default = null): mixed
     {
         return isset(self::$env[$key]) ? trim(self::$env[$key]) : $default;

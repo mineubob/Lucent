@@ -94,6 +94,10 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         $request->uploadedFiles = self::normalizeUploadedFiles($_FILES);
         $request->setHeaders(self::extractHeaders($_SERVER));
 
+        // One mutable context bag per request, shared by every copy of the
+        // request (see getContext()/withContext()).
+        $request->attributes['context'] = new RequestContext();
+
         // Body — read php://input once (only meaningful in a real request)
         $rawBody = file_get_contents('php://input');
         $request->setBody(Stream::fromString($rawBody !== false ? $rawBody : ''));
@@ -176,6 +180,10 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         $request->queryParams = $query;
         $request->cookieParams = $cookies;
         $request->uploadedFiles = self::normalizeUploadedFiles($files);
+
+        // One mutable context bag per request, shared by every copy of the
+        // request (see getContext()/withContext()).
+        $request->attributes['context'] = new RequestContext();
 
         // Apply explicit headers (overrides anything extracted from $server)
         $request->setHeaders(self::extractHeaders($server));
@@ -371,6 +379,13 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         return $this->attributes;
     }
 
+    /**
+     * Get a single PSR-7 attribute by name.
+     *
+     * @param string $name The attribute name
+     * @param mixed $default Default value if the attribute is not set
+     * @return mixed The attribute value, or $default on a miss
+     */
     public function getAttribute(string $name, $default = null): mixed
     {
         return array_key_exists($name, $this->attributes) ? $this->attributes[$name] : $default;
@@ -433,8 +448,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /**
      * Get a value from the request context.
      *
-     * Context is stored as a PSR-7 attribute (array) and can be set
-     * by validation rules (via withContext()) or middleware.
+     * Context lives in a mutable {@see RequestContext} bag attached to the
+     * request, so it can be written by validation rules (via withContext())
+     * or middleware and read back anywhere that holds the same request.
      *
      * @param string $key The context key
      * @param mixed $default Default value if key not found
@@ -442,15 +458,15 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      */
     public function getContext(string $key, mixed $default = null): mixed
     {
-        $context = $this->getAttribute('context', []);
-        return $context[$key] ?? $default;
+        return RequestContext::fromRequest($this)?->get($key) ?? $default;
     }
 
     /**
      * Set a value in the request context.
      *
-     * Context is stored as a PSR-7 attribute (array) and can be read
-     * back via getContext(). Returns a new instance (PSR-7 immutable).
+     * Mutates the shared {@see RequestContext} bag in place, so the write is
+     * visible to every copy of the request (no clone needed). Returns $this
+     * for chaining.
      *
      * @param string $key The context key
      * @param mixed $value The value to store
@@ -458,9 +474,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      */
     public function withContext(string $key, mixed $value): static
     {
-        $context = $this->getAttribute('context', []);
-        $context[$key] = $value;
-        return $this->withAttribute('context', $context);
+        RequestContext::fromRequest($this)?->set($key, $value);
+        return $this;
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────

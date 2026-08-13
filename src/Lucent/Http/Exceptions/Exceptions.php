@@ -26,12 +26,32 @@ final class Exceptions
     /** @var array<callable> */
     private array $renderCallbacks = [];
 
+    /**
+     * Register a report callback.
+     *
+     * The callback is invoked for every exception whose type matches the
+     * type-hint of its first parameter. All matching report callbacks run.
+     *
+     * @param callable(Throwable $e, ServerRequestInterface $request): void $callback
+     * @return $this
+     */
     public function report(callable $callback): self
     {
         $this->reportCallbacks[] = $callback;
         return $this;
     }
 
+    /**
+     * Register a render callback.
+     *
+     * The callback is invoked for every exception whose type matches the
+     * type-hint of its first parameter. The first callback to return a
+     * Response wins; a callback that returns null (or nothing) falls
+     * through to the next callback, then to the framework default.
+     *
+     * @param callable(Throwable $e, ServerRequestInterface $request): ?ResponseInterface $callback
+     * @return $this
+     */
     public function render(callable $callback): self
     {
         $this->renderCallbacks[] = $callback;
@@ -41,11 +61,12 @@ final class Exceptions
     /**
      * Run every report callback whose first-param type matches $e.
      *
-     * $request is passed BY REFERENCE so a callback can reassign it
-     * (e.g. $request = $request->withAttribute(...)) and have that
-     * propagate back to the caller — mirroring Rule::setContext().
+     * $request is passed by value. Callbacks that need to stash state on
+     * the request should use the shared mutable RequestContext bag, e.g.
+     * RequestContext::fromRequest($request)?->set('key', $value), rather
+     * than reassigning the request.
      */
-    public function reportException(Throwable $e, ServerRequestInterface &$request): void
+    public function reportException(Throwable $e, ServerRequestInterface $request): void
     {
         foreach ($this->reportCallbacks as $callback) {
             if ($this->matches($callback, $e)) {
@@ -57,11 +78,8 @@ final class Exceptions
     /**
      * Return the first render callback's Response that matches $e,
      * or null to fall through to the framework default.
-     *
-     * $request is passed BY REFERENCE so it sees any reassignment made
-     * by a report callback (e.g. a stashed error_id attribute).
      */
-    public function renderException(Throwable $e, ServerRequestInterface &$request): ?ResponseInterface
+    public function renderException(Throwable $e, ServerRequestInterface $request): ?ResponseInterface
     {
         foreach ($this->renderCallbacks as $callback) {
             if ($this->matches($callback, $e)) {

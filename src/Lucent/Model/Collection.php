@@ -316,6 +316,12 @@ final class Collection
         return (float) Database::select($query, false, $bindValues)[$aggregateKey];
     }
 
+    /**
+     * Get the minimum value of a column.
+     *
+     * @param string $column The column name
+     * @return mixed The minimum value, or null when no rows match
+     */
     public function min(string $column): mixed
     {
         $columnInfo = $this->resolveAggregateColumn($column);
@@ -330,6 +336,12 @@ final class Collection
         return Database::select($query, false, $bindValues)[$aggregateKey];
     }
 
+    /**
+     * Get the maximum value of a column.
+     *
+     * @param string $column The column name
+     * @return mixed The maximum value, or null when no rows match
+     */
     public function max(string $column): mixed
     {
         $columnInfo = $this->resolveAggregateColumn($column);

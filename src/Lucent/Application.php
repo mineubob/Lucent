@@ -19,6 +19,7 @@ use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
+use Lucent\Http\Exceptions\Exceptions;
 use Lucent\Http\Exceptions\HttpException;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
@@ -247,16 +248,20 @@ class Application
 
         // Register the shared PSR-20 clock so services can type-hint
         // Psr\Clock\ClockInterface for constructor injection.
-        $this->container->instance(Clock::local(), ClockInterface::class);
-        $this->container->instance(Clock::local(), Clock::class);
+        $this->container->instance(ClockInterface::class, Clock::local());
+        $this->container->instance(Clock::class, Clock::local());
 
         // Set up the event dispatcher and its listener provider, and expose
         // them through the container so they can be resolved by interface.
         $this->listenerProvider = new ListenerProvider();
         $this->eventDispatcher = new EventDispatcher($this->listenerProvider, $this->container);
 
-        $this->container->instance($this->listenerProvider, ListenerProviderInterface::class);
-        $this->container->instance($this->eventDispatcher, EventDispatcherInterface::class);
+        $this->container->instance(ListenerProviderInterface::class, $this->listenerProvider);
+        $this->container->instance(EventDispatcherInterface::class, $this->eventDispatcher);
+
+        // Register the Laravel-style exception manager as a lazy container
+        // singleton. It is only instantiated on the first exceptions() call.
+        $this->container->singleton(Exceptions::class);
     }
 
     /**
@@ -270,6 +275,19 @@ class Application
     public function container(): Container
     {
         return $this->container;
+    }
+
+    /**
+     * Resolve the shared Laravel-style exception manager from the container.
+     *
+     * The manager is registered as a lazy singleton, so it is instantiated on
+     * first use and the same instance is returned on every call.
+     *
+     * @return Exceptions The shared exception manager
+     */
+    public function exceptions(): Exceptions
+    {
+        return $this->container->get(Exceptions::class);
     }
 
     /**
@@ -323,7 +341,7 @@ class Application
                 $this->cache->setDefaultTtl($defaultTtl === null ? null : (int) $defaultTtl);
             }
 
-            $this->container->instance($this->cache, CacheInterface::class);
+            $this->container->instance(CacheInterface::class, $this->cache);
         }
 
         return $this->cache;
@@ -344,7 +362,7 @@ class Application
     public function setCache(CacheInterface $cache): void
     {
         $this->cache = $cache;
-        $this->container->instance($cache, CacheInterface::class);
+        $this->container->instance(CacheInterface::class, $cache);
     }
 
     /**
@@ -536,7 +554,8 @@ class Application
      */
     public function executeHttpRequest(): string
     {
-        $response = $this->handleHttpRequest(ServerRequest::capture());
+        $request = ServerRequest::capture();
+        $response = $this->handleHttpRequest($request);
 
         http_response_code($response->getStatusCode());
         $this->setHeaders($response->getHeaders());
@@ -586,31 +605,47 @@ class Application
 
             // Fallback handler: route lookup + dispatch + error conversion all
             // happen INSIDE the pipeline so global middleware wraps the errors too.
-            $fallback = new CallbackRequestHandler(function (ServerRequestInterface $request): ResponseInterface {
+            $fallback = new CallbackRequestHandler(function (ServerRequestInterface $req): ResponseInterface {
                 try {
-                    return $this->dispatchRoute($request);
-                } catch (HttpException $e) {
-                    Log::channel('lucent.routing')->warning($e->getMessage());
-                    return $this->responseWithError($e->getStatus(), $e);
+                    // dispatchRoute() attaches route attributes (routeInfo,
+                    // urlVars) to the request passed down the pipeline.
+                    return $this->dispatchRoute($req);
                 } catch (Throwable $throwable) {
-                    Log::channel('lucent.routing')->warning($throwable->getMessage());
-                    return $this->responseWithError(HttpStatus::SERVER_ERROR, $throwable);
+                    $this->exceptions()->reportException($throwable, $req);
+
+                    $response = $this->exceptions()->renderException($throwable, $req);
+                    if ($response instanceof ResponseInterface) {
+                        return $response;
+                    }
+
+                    // Preserve the 4xx status for HttpException, else 500.
+                    $status = $throwable instanceof HttpException
+                        ? $throwable->getStatus()
+                        : HttpStatus::SERVER_ERROR;
+
+                    return $this->responseWithError($status, $throwable);
                 }
             });
 
             $pipeline = new MiddlewarePipeline($middlewareList, $fallback);
 
             return $pipeline->handle($request);
-        } catch (HttpException $e) {
-            // An HttpException thrown by global middleware itself (e.g. a 401
-            // auth middleware) keeps its status rather than becoming a 500.
-            Log::channel('lucent.routing')->warning($e->getMessage());
-            return $this->responseWithError($e->getStatus(), $e);
         } catch (Throwable $throwable) {
             // Exceptions thrown by global middleware itself still produce a
             // 500 response rather than escaping the request handler.
-            Log::channel('lucent.routing')->warning($throwable->getMessage());
-            return $this->responseWithError(HttpStatus::SERVER_ERROR, $throwable);
+            $this->exceptions()->reportException($throwable, $request);
+
+            $response = $this->exceptions()->renderException($throwable, $request);
+            if ($response instanceof ResponseInterface) {
+                return $response;
+            }
+
+            // Preserve the 4xx status for HttpException, else 500.
+            $status = $throwable instanceof HttpException
+                ? $throwable->getStatus()
+                : HttpStatus::SERVER_ERROR;
+
+            return $this->responseWithError($status, $throwable);
         }
     }
 
