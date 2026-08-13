@@ -95,7 +95,7 @@ class PsrComplianceTest extends TestCase
 
     public function test_server_request_with_method_preserves_case(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertSame('custom', $request->withMethod('custom')->getMethod());
     }
 
@@ -119,7 +119,7 @@ class PsrComplianceTest extends TestCase
 
     public function test_server_request_constructor_sets_host_header_from_uri(): void
     {
-        $request = new ServerRequest('GET', Uri::fromString('https://example.com/path'));
+        $request = ServerRequest::create('GET', 'https://example.com/path');
         $this->assertSame('example.com', $request->getHeaderLine('Host'));
     }
 
@@ -146,7 +146,7 @@ class PsrComplianceTest extends TestCase
     public function test_with_uploaded_files_accepts_nested_tree(): void
     {
         $file = new UploadedFile(Stream::fromString('x'), 1);
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
 
         $new = $request->withUploadedFiles(['avatar' => [$file]]);
         $this->assertSame($file, $new->getUploadedFiles()['avatar'][0]);
@@ -155,7 +155,7 @@ class PsrComplianceTest extends TestCase
     public function test_with_uploaded_files_rejects_invalid_nested_structure(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        (new ServerRequest())->withUploadedFiles(['avatar' => ['not-a-file']]);
+        ServerRequest::create()->withUploadedFiles(['avatar' => ['not-a-file']]);
     }
 
     // ─── UploadedFile ───────────────────────────────────────────────────
@@ -358,7 +358,7 @@ class PsrComplianceTest extends TestCase
 
         $pipeline = new MiddlewarePipeline([$middleware], $fallback);
 
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $pipeline->handle($request);
         // A second handle() on the same instance must run the middleware again
         // (the cursor-based pipeline does not consume its middleware list).

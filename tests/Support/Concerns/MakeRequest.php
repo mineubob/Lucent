@@ -28,7 +28,7 @@ trait MakeRequest
      */
     protected function makeRequest(string $method, string $uri, array $serverParams = []): ServerRequestInterface
     {
-        return new ServerRequest($method, \Lucent\Http\Message\Uri::fromString($uri), $serverParams);
+        return ServerRequest::create($method, $uri, server: $serverParams);
     }
 
     /**

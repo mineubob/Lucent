@@ -411,15 +411,31 @@ $stream   = $factory->createStreamResponse($callable, ['X-Custom' => 'value']);
 
 ## Testing
 
-### FakeServerRequest
+### ServerRequest::create()
 
-For tests and documentation generation, use `FakeServerRequest`:
+For tests, use `ServerRequest::create()` to build a request from explicit
+values:
 
 ```php
-use Lucent\Facades\Faker;
+use Lucent\Http\Message\ServerRequest;
 
-$request = Faker::serverRequest('POST', ['name' => 'John'], ['X-Auth' => 'token']);
+$request = ServerRequest::create('POST', '/users', body: ['name' => 'John'], headers: ['X-Auth' => 'token']);
 $body = $request->getParsedBody(); // ['name' => 'John']
+```
+
+### TestDataBuilder
+
+For validation tests, use `Tests\Support\TestDataBuilder` to build test
+data with `setInput()`, `all()`, `validate()`, `passing()`, `failing()`:
+
+```php
+use Tests\Support\TestDataBuilder;
+
+$data = new TestDataBuilder();
+$data->setInput('email', 'test@example.com');
+$data->setInput('password', 'Pa55w0rd');
+$isValid = $data->validate(MyRule::class);
+$errors = $data->getValidationErrors();
 ```
 
 ### Unit Tests

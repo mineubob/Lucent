@@ -20,7 +20,7 @@ use Psr\Http\Message\StreamInterface;
  * returning, matching the buffered semantics of the CurlHandler.
  *
  * Requires allow_url_fopen. The `curl` option is rejected (this handler
- * ignores cURL options), mirroring Guzzle's StreamHandler.
+ * ignores cURL options).
  */
 final class StreamHandler implements HandlerInterface
 {

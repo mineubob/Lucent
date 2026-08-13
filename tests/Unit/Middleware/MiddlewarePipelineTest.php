@@ -22,7 +22,7 @@ class MiddlewarePipelineTest extends TestCase
         $handler = $this->createHandler();
 
         $pipeline = new MiddlewarePipeline([], $handler);
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
 
         $result = $pipeline->handle($request);
 
@@ -57,7 +57,7 @@ class MiddlewarePipelineTest extends TestCase
             $handler
         );
 
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $result = $pipeline->handle($request);
 
         $this->assertSame(200, $result->getStatusCode());
@@ -82,7 +82,7 @@ class MiddlewarePipelineTest extends TestCase
             $handler
         );
 
-        $result = $pipeline->handle(new ServerRequest());
+        $result = $pipeline->handle(ServerRequest::create());
 
         $this->assertSame(401, $result->getStatusCode());
         $this->assertSame('true', $result->getHeaderLine('X-Blocked'));

@@ -16,7 +16,7 @@ use Psr\Http\Message\ResponseInterface;
  * This handler uses cURL and buffers the full response body before returning
  * (via a WRITEFUNCTION into a sink). It accepts the `stream => true` option
  * but does NOT stream incrementally — the body is still fully downloaded
- * before send() returns (like Guzzle's cURL handler). Use the StreamHandler
+ * before send() returns. Use the StreamHandler
  * for true incremental streaming.
  */
 final class CurlHandler implements HandlerInterface

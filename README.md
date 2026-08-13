@@ -4,7 +4,7 @@
 [![Code Coverage](https://img.shields.io/badge/Coverage-Report-brightgreen)](https://blueprintau.github.io/Lucent/)
 [![Packagist](https://img.shields.io/packagist/v/blueprintau/lucent.svg)](https://packagist.org/packages/blueprintau/lucent)
 
-Lucent is a lightweight PHP framework designed for building APIs with minimal overhead. It offers an elegant, intuitive syntax that will feel familiar to developers with experience in Laravel or Spring Boot.
+Lucent is a lightweight PHP framework designed for building APIs with minimal overhead. It offers an elegant, intuitive syntax for building web applications and services.
 
 Lucent provides a streamlined approach to building PHP APIs with:
 

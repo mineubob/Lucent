@@ -18,9 +18,8 @@ use Psr\Http\Message\UriInterface;
  * Factory: ServerRequest::capture() reads from PHP superglobals (production).
  * ServerRequest::create() builds from explicit values (testing/fabrication).
  *
- * @final This class should not be extended in production code.
- *        Use PSR-7 attributes for extension instead. For testing, use
- *        ServerRequest::create() to build requests from explicit values.
+ * @final This class should not be extended. Use ServerRequest::create()
+ *        for testing/fabrication and ServerRequest::capture() for production.
  */
 class ServerRequest extends AbstractMessage implements ServerRequestInterface
 {
@@ -51,7 +50,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /** @var string|null Request target */
     private ?string $requestTarget = null;
 
-    public function __construct(
+    private function __construct(
         string $method = 'GET',
         ?UriInterface $uri = null,
         array $serverParams = [],
@@ -122,9 +121,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /**
      * Create a ServerRequest from explicit values.
      *
-     * Laravel-style factory for testing and fabrication — builds a request
-     * from a method, URI, and optional parameters without touching global
-     * state. Replaces the old FakeServerRequest class.
+     * Builds a request from a method, URI, and
+     * optional parameters without touching global
+     * state.
      *
      * The URI should be the path only (e.g. '/users/42'). If a query string
      * is included in the URI (e.g. '/search?q=test'), it is parsed and
@@ -185,7 +184,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         }
 
         // Body — no php://input in tests, use $body directly
-        $request->parsedBody = $body;
+        // null when no body provided (matches PSR-7 convention for "no body")
+        $request->parsedBody = $body !== [] ? $body : null;
 
         // Set Content-Type if body is present and no Content-Type was given
         if ($body !== [] && !isset($headers['Content-Type'])) {
