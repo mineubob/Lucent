@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Rules\ArrayRule;
+use App\Rules\ContextRule;
 use App\Rules\CustomRegexRule;
 use App\Rules\CustomRule;
 use App\Rules\DynamicRule;
@@ -10,6 +11,8 @@ use App\Rules\NumRule;
 use App\Rules\OverrideMessageRule;
 use Lucent\Application;
 use Lucent\Facades\Regex;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Rule;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
 use Tests\Support\TestDataBuilder;
@@ -29,6 +32,7 @@ class RuleTest extends TestCase
         FixtureLoader::copyRule('ArrayRule.php');
         FixtureLoader::copyRule('CustomRule.php');
         FixtureLoader::copyRule('CustomRegexRule.php');
+        FixtureLoader::copyRule('ContextRule.php');
     }
 
     public function test_num_rule_is_valid(): void
@@ -467,6 +471,64 @@ class RuleTest extends TestCase
         $request->setInput("values", ["first_name"=>"John","last_name"=>"Smith","username"=>"John Smith"]);
 
         $this->assertFalse($request->validate(ArrayRule::class));
+    }
+
+    public function test_context_rule_passing(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        $errors = Rule::validateRequest($request, ContextRule::class);
+
+        $this->assertEmpty($errors);
+        // The rule stored 'name' into the request context during validation.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_failing(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'Jane',
+        ]);
+
+        $errors = Rule::validateRequest($request, ContextRule::class);
+
+        $this->assertCount(1, $errors);
+        $this->assertArrayHasKey('confirm', $errors);
+        // Even on failure, the earlier rule's context write is preserved.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_edits_request_by_reference(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        Rule::validateRequest($request, ContextRule::class);
+
+        // setCallingRequest() binds by reference, so the caller's variable
+        // must reflect the context written during validation.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_without_request_returns_default(): void
+    {
+        // No request is attached, so getContext() must fall back to its default.
+        $rule = new ContextRule();
+
+        $errors = $rule->validate([
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        // 'confirm' reads a missing context key -> default null, so it fails.
+        $this->assertCount(1, $errors);
+        $this->assertArrayHasKey('confirm', $errors);
     }
 
 }
