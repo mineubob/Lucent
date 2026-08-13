@@ -66,26 +66,61 @@ class RequestContext
     }
 
     /**
-     * Read a value from the context, guaranteed to be an instance of a class.
+     * Read a value from the context, guaranteed to match a given type.
      *
-     * Returns the stored value when it is an instance of the given class,
-     * otherwise returns the default. This is the type-safe counterpart to
-     * {@see get()}: it lets middleware and rules stash objects (a User, a
-     * Session, a request id) and read them back without an instanceof check
-     * at every call site.
+     * Returns the stored value when it matches the type, otherwise returns
+     * the default. This is the type-safe counterpart to {@see get()}: it lets
+     * middleware and rules stash objects (a User, a Session, a request id) or
+     * scalars and read them back without a manual instanceof / is_* check at
+     * every call site.
+     *
+     * The type may be a class or interface name (checked with instanceof) or
+     * a builtin type name: string, int, float, bool, array, object, callable,
+     * iterable, numeric, scalar, resource, or null.
      *
      * @template T
      * @param string $key The context key
-     * @param class-string<T> $class The expected class of the stored value
+     * @param class-string<T>|string $type The expected type of the stored
+     *                                     value (class name or builtin type)
      * @param T|null $default Default value if the key is not set or holds a
-     *                        value that is not an instance of $class
+     *                        value that does not match $type
      * @return T|null
      */
-    public function getTyped(string $key, string $class, mixed $default = null): mixed
+    public function getTyped(string $key, string $type, mixed $default = null): mixed
     {
         $value = $this->data[$key] ?? null;
 
-        return $value instanceof $class ? $value : $default;
+        return $this->matchesType($value, $type) ? $value : $default;
+    }
+
+    /**
+     * Determine whether a value matches a class name or builtin type.
+     *
+     * @param mixed $value The value to check
+     * @param string $type A class/interface name or a builtin type name
+     * @return bool
+     */
+    private function matchesType(mixed $value, string $type): bool
+    {
+        if (class_exists($type) || interface_exists($type)) {
+            return $value instanceof $type;
+        }
+
+        return match ($type) {
+            'string' => is_string($value),
+            'int', 'integer' => is_int($value),
+            'float', 'double' => is_float($value),
+            'bool', 'boolean' => is_bool($value),
+            'array' => is_array($value),
+            'object' => is_object($value),
+            'callable' => is_callable($value),
+            'iterable' => is_iterable($value),
+            'numeric' => is_numeric($value),
+            'scalar' => is_scalar($value),
+            'resource' => is_resource($value),
+            'null' => $value === null,
+            default => false,
+        };
     }
 
     /**
