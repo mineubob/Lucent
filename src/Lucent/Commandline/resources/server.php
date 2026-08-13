@@ -23,9 +23,19 @@ $uri = urldecode(
 
 // Serve real static files directly. Returning `false` hands control back to
 // the built-in server, which serves the file without invoking the framework.
+// PHP logs these requests itself (e.g. `[200]: GET /style.css`).
 if ($uri !== '/' && file_exists($publicPath . $uri)) {
     return false;
 }
+
+// PHP's built-in server does NOT log requests that are handled by the router
+// (it only logs connection open/close). So we write a request line ourselves,
+// mirroring Laravel's server.php, so framework routes are visible in the
+// terminal. Static files above are already logged by PHP, so we skip them.
+$formattedDateTime = date('D M j H:i:s Y');
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$remoteAddress = ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . ':' . ($_SERVER['REMOTE_PORT'] ?? '');
+file_put_contents('php://stdout', "[$formattedDateTime] $remoteAddress [$requestMethod] URI: $uri\n");
 
 // Forward everything else to the framework's front controller.
 require_once $publicPath . '/index.php';

@@ -106,8 +106,20 @@ if ($uri !== '/' && file_exists($publicPath . $uri)) {
     return false; // serve the static file directly
 }
 
+// PHP's built-in server only logs requests it serves itself (static files).
+// Requests handled by the router are logged here so framework routes are
+// visible in the terminal.
+$formattedDateTime = date('D M j H:i:s Y');
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$remoteAddress = ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . ':' . ($_SERVER['REMOTE_PORT'] ?? '');
+file_put_contents('php://stdout', "[$formattedDateTime] $remoteAddress [$requestMethod] URI: $uri\n");
+
 require_once $publicPath . '/index.php'; // forward everything else to Lucent
 ```
+
+### Request logging
+
+`serve` logs every request to the terminal. Static files are logged by PHP's built-in server (e.g. `[200]: GET /style.css`), and framework routes are logged by the router (e.g. `[GET] URI: /users`).
 
 ### Customising the router (e.g. SPA-shell fallback)
 
