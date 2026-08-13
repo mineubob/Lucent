@@ -71,9 +71,13 @@ class StartDevServerCommand
                 escapeshellarg($routerPath)
             );
 
-            // proc_open streams output in real-time AND lets us react to the
-            // child process (unlike passthru, which blocks the parent entirely).
-            $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            // Run the server with the docroot as its working directory. PHP's
+            // built-in server executes the router script with the CWD of the
+            // `php -S` process, so relative paths inside the router (e.g.
+            // `require_once '../vendor/autoload.php'`) must resolve from the
+            // docroot — not from wherever the CLI was invoked. This mirrors
+            // Laravel's `serve` command, which sets the process CWD to public/.
+            $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $docRootPath);
 
             if (!is_resource($process)) {
                 return ConsoleColors::FG_RED . "✗ Failed to start the server" . ConsoleColors::RESET;
