@@ -18,7 +18,7 @@ class StartDevServerCommand
         $port = $portExplicit ?? 8080;
         $host = $options['host'] ?? App::env('SERVER_HOST', '127.0.0.1');
         $docRoot = $options['docroot'] ?? App::env('SERVER_DOCROOT', 'public');
-        $router = $options['router'] ?? App::env('SERVER_ROUTER', 'public/index.php');
+        $router = $options['router'] ?? App::env('SERVER_ROUTER');
         $tries = $options['tries'] ?? App::env('SERVER_TRIES', 10);
         $noRestart = $options['no-restart'] ?? filter_var(App::env('SERVER_NO_RESTART', false), FILTER_VALIDATE_BOOL);
 
@@ -36,7 +36,19 @@ class StartDevServerCommand
 
         // Resolve docroot and router against the project root.
         $docRootPath = $this->resolvePath($docRoot);
-        $routerPath = $this->resolvePath($router);
+
+        // Router precedence (mirrors Laravel's serve command):
+        //   1. A project-root server.php, if present (user override).
+        //   2. The --router option / SERVER_ROUTER env var, if set.
+        //   3. The bundled router shipped with Lucent.
+        $projectServer = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'server.php';
+        if (is_file($projectServer)) {
+            $routerPath = $projectServer;
+        } elseif ($router !== null) {
+            $routerPath = $this->resolvePath($router);
+        } else {
+            $routerPath = __DIR__ . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'server.php';
+        }
 
         if (!is_dir($docRootPath)) {
             return ConsoleColors::FG_RED . "✗ Document root not found: {$docRootPath}" . ConsoleColors::RESET;
@@ -77,30 +89,24 @@ class StartDevServerCommand
             // `require_once '../vendor/autoload.php'`) must resolve from the
             // docroot — not from wherever the CLI was invoked. This mirrors
             // Laravel's `serve` command, which sets the process CWD to public/.
-            $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $docRootPath);
+            //
+            // Pass STDOUT/STDERR through directly so the child writes straight
+            // to the terminal: output is real-time and unbuffered, and the
+            // child can detect a TTY (preserving colors and line buffering).
+            // We don't need to inspect the output programmatically — port-busy
+            // detection relies on the exit code, not on parsing stderr.
+            $process = proc_open($command, [1 => STDOUT, 2 => STDERR], $pipes, $docRootPath);
 
             if (!is_resource($process)) {
                 return ConsoleColors::FG_RED . "✗ Failed to start the server" . ConsoleColors::RESET;
             }
 
-            // Non-blocking reads so we never stall on a partial line.
-            stream_set_blocking($pipes[1], false);
-            stream_set_blocking($pipes[2], false);
-
             $envChanged = false;
 
-            // Stream stdout/stderr until the server exits. stream_select()
-            // waits efficiently for output (or process exit) instead of
-            // busy-waiting.
+            // Poll until the server exits. Without pipes there's no stream to
+            // select on, so a short sleep is the simplest way to wait. 100ms is
+            // imperceptible for a dev server.
             while (true) {
-                // Drain whatever output is currently available.
-                foreach ([1, 2] as $fd) {
-                    $chunk = stream_get_contents($pipes[$fd]);
-                    if ($chunk !== false && $chunk !== '') {
-                        echo $chunk;
-                    }
-                }
-
                 $status = proc_get_status($process);
                 if (!$status['running']) {
                     break;
@@ -117,11 +123,7 @@ class StartDevServerCommand
                     }
                 }
 
-                // Block until there is more output to read or the process exits.
-                $read = [$pipes[1], $pipes[2]];
-                $write = null;
-                $except = null;
-                stream_select($read, $write, $except, 1);
+                usleep(100000);
             }
 
             // Capture the exit status BEFORE closing so we can distinguish a
