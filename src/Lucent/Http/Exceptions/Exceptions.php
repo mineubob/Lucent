@@ -20,10 +20,10 @@ use Throwable;
  */
 final class Exceptions
 {
-    /** @var array<callable> */
+    /** @var array<callable(Throwable $e, ServerRequestInterface $request): void> */
     private array $reportCallbacks = [];
 
-    /** @var array<callable> */
+    /** @var array<callable(Throwable $e, ServerRequestInterface $request): ?ResponseInterface> */
     private array $renderCallbacks = [];
 
     /**
