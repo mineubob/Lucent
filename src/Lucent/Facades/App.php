@@ -84,4 +84,21 @@ class App
     {
         return Application::getInstance()->container();
     }
+
+    /**
+     * Get the shared exception manager.
+     *
+     * ```php
+     * App::exceptions()->render(function (HttpException $e) {
+     *     // Return a Response for any HttpException, or null to fall through.
+     *     return null;
+     * });
+     * ```
+     *
+     * @return \Lucent\Http\Exceptions\Exceptions The shared exception manager
+     */
+    public static function exceptions(): \Lucent\Http\Exceptions\Exceptions
+    {
+        return Application::getInstance()->exceptions();
+    }
 }
