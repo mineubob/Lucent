@@ -9,7 +9,7 @@ use ReflectionNamedType;
 use Throwable;
 
 /**
- * Laravel-style exception manager.
+ * Shared exception manager.
  *
  * Holds two registries of callbacks:
  *  - report: closures that log exceptions (all matching callbacks run).
@@ -94,9 +94,8 @@ final class Exceptions
 
     /**
      * Match a callback to an exception by the type-hint of its first
-     * parameter (mirrors Laravel). A callback typed to Throwable matches
-     * everything; one typed to a specific class matches only that class
-     * (and subclasses).
+     * parameter. A callback typed to Throwable matches everything; one typed
+     * to a specific class matches only that class (and subclasses).
      */
     private function matches(callable $callback, Throwable $e): bool
     {

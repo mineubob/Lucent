@@ -30,8 +30,8 @@ if ($uri !== '/' && file_exists($publicPath . $uri)) {
 
 // PHP's built-in server does NOT log requests that are handled by the router
 // (it only logs connection open/close). So we write a request line ourselves,
-// mirroring Laravel's server.php, so framework routes are visible in the
-// terminal. Static files above are already logged by PHP, so we skip them.
+// so framework routes are visible in the terminal. Static files above are
+// already logged by PHP, so we skip them.
 $formattedDateTime = date('D M j H:i:s Y');
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $remoteAddress = ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . ':' . ($_SERVER['REMOTE_PORT'] ?? '');

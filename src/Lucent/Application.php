@@ -2,24 +2,25 @@
 
 namespace Lucent;
 
-use InvalidArgumentException;
 use Lucent\Cache\Cache;
 use Lucent\Cache\CacheFactory;
 use Lucent\Container\Container;
+use Lucent\Container\ServiceProvider;
 use Lucent\Commandline\ClearCacheCommand;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Date\Clock;
-use Lucent\EventDispatcher\EventDispatcher;
+use Lucent\Date\ClockServiceProvider;
+use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Http\Exceptions\Exceptions;
+use Lucent\Http\Exceptions\ExceptionsServiceProvider;
 use Lucent\Http\Exceptions\HttpException;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
@@ -31,12 +32,10 @@ use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
 use Lucent\Model\Model;
-use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\SimpleCache\CacheInterface;
 use ReflectionClass;
 use ReflectionException;
@@ -101,20 +100,6 @@ class Application
      * @var Container
      */
     private Container $container;
-
-    /**
-     * Dispatches events to their registered listeners.
-     *
-     * @var EventDispatcher
-     */
-    public private(set) EventDispatcher $eventDispatcher;
-
-    /**
-     * Maps events to the listeners registered for them.
-     *
-     * @var ListenerProvider
-     */
-    public private(set) ListenerProvider $listenerProvider;
 
     /**
      * The application's cache store.
@@ -227,10 +212,18 @@ class Application
     private array $globalMiddlewares = [];
 
     /**
+     * Registered service providers.
+     *
+     * @var array<int, ServiceProvider>
+     */
+    private array $providers = [];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
-     * loads environment variables, and initializes a null logger.
+     * loads environment variables, registers core service providers,
+     * and initializes a null logger.
      */
     public function __construct()
     {
@@ -246,22 +239,10 @@ class Application
         $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
 
-        // Register the shared PSR-20 clock so services can type-hint
-        // Psr\Clock\ClockInterface for constructor injection.
-        $this->container->instance(ClockInterface::class, Clock::local());
-        $this->container->instance(Clock::class, Clock::local());
-
-        // Set up the event dispatcher and its listener provider, and expose
-        // them through the container so they can be resolved by interface.
-        $this->listenerProvider = new ListenerProvider();
-        $this->eventDispatcher = new EventDispatcher($this->listenerProvider, $this->container);
-
-        $this->container->instance(ListenerProviderInterface::class, $this->listenerProvider);
-        $this->container->instance(EventDispatcherInterface::class, $this->eventDispatcher);
-
-        // Register the Laravel-style exception manager as a lazy container
-        // singleton. It is only instantiated on the first exceptions() call.
-        $this->container->singleton(Exceptions::class);
+        // Register core service providers (clock, event dispatcher,
+        // exceptions). Their register() methods bind the shared services
+        // onto the container.
+        $this->registerProviders();
     }
 
     /**
@@ -278,7 +259,89 @@ class Application
     }
 
     /**
-     * Resolve the shared Laravel-style exception manager from the container.
+     * Register a service provider.
+     *
+     * The provider's {@see ServiceProvider::register()} is invoked immediately
+     * so its bindings are available before anything is resolved. Deferred
+     * providers are registered as usual, but their boot() is delayed until
+     * {@see bootProviders()}.
+     *
+     * @param ServiceProvider|class-string<ServiceProvider> $provider Provider instance or class name
+     * @return ServiceProvider The registered provider
+     */
+    public function register(ServiceProvider|string $provider): ServiceProvider
+    {
+        if (is_string($provider)) {
+            $provider = new $provider($this->container);
+        }
+
+        $this->providers[] = $provider;
+        $provider->register();
+
+        return $provider;
+    }
+
+    /**
+     * Register the application's core service providers.
+     *
+     * Called from the constructor after the container is created. Each core
+     * provider registers its subsystem's services on the container.
+     *
+     * @return void
+     */
+    private function registerProviders(): void
+    {
+        $this->register(ClockServiceProvider::class);
+        $this->register(EventDispatcherServiceProvider::class);
+        $this->register(ExceptionsServiceProvider::class);
+    }
+
+    /**
+     * Boot all registered service providers.
+     *
+     * Called at the start of {@see boot()}, after every provider has been
+     * registered, so providers can safely resolve services in boot().
+     *
+     * @return void
+     */
+    private function bootProviders(): void
+    {
+        foreach ($this->providers as $provider) {
+            $provider->boot();
+        }
+    }
+
+    /**
+     * Resolve a service from the container, autowiring its dependencies.
+     *
+     * Passthrough to {@see Container::make()}.
+     *
+     * @param string $abstract Identifier (class name or alias) to resolve
+     * @param array $parameters Explicit values keyed by constructor parameter name
+     * @return mixed The resolved entry
+     */
+    public function make(string $abstract, array $parameters = []): mixed
+    {
+        return $this->container->make($abstract, $parameters);
+    }
+
+    /**
+     * Invoke a callable, resolving its parameters from the container.
+     *
+     * Passthrough to {@see Container::call()}.
+     *
+     * @param callable|string|array $callback The callable to invoke
+     * @param array $parameters Explicit values keyed by parameter name
+     * @param string|null $defaultMethod Method to invoke when $callback is an invokable class string
+     * @return mixed The callable's return value
+     */
+    public function call(callable|string|array $callback, array $parameters = [], ?string $defaultMethod = null): mixed
+    {
+        return $this->container->call($callback, $parameters, $defaultMethod);
+    }
+
+    /**
+     * Resolve the shared exception manager from the container.
      *
      * The manager is registered as a lazy singleton, so it is instantiated on
      * first use and the same instance is returned on every call.
@@ -293,7 +356,7 @@ class Application
     /**
      * Register a listener for an event.
      *
-     * Convenience passthrough to the application's listener provider.
+     * Convenience passthrough to the container-registered listener provider.
      *
      * @param class-string $eventClass Event class (or parent class / interface) to listen for
      * @param callable|string $listener Callable, or class-string of an invokable listener
@@ -302,20 +365,20 @@ class Application
      */
     public function listen(string $eventClass, callable|string $listener, int $priority = 0): void
     {
-        $this->listenerProvider->listen($eventClass, $listener, $priority);
+        $this->container->get(ListenerProvider::class)->listen($eventClass, $listener, $priority);
     }
 
     /**
      * Dispatch an event to its registered listeners.
      *
-     * Convenience passthrough to the application's event dispatcher.
+     * Convenience passthrough to the container-registered event dispatcher.
      *
      * @param object $event The event to dispatch
      * @return object The event, possibly modified by listeners
      */
     public function dispatch(object $event): object
     {
-        return $this->eventDispatcher->dispatch($event);
+        return $this->container->get(EventDispatcherInterface::class)->dispatch($event);
     }
 
     /**
@@ -461,6 +524,10 @@ class Application
             return;
         }
         $this->booted = true;
+
+        // Boot registered service providers now that every provider has been
+        // registered, so they can safely resolve services.
+        $this->bootProviders();
 
         // Auto-discover route files from the project's routes/ directory.
         if ($autoLoadRoutes) {
@@ -670,8 +737,7 @@ class Application
             $request->getMethod()
         );
 
-        $controllerReflection = new ReflectionClass($routeData["controller"]);
-        $parameters = $this->resolveConstructorParameters($controllerReflection);
+        $controller = $this->container->make($routeData["controller"]);
 
         // Store route info and URL vars as PSR-7 attributes
         $routeInfo = new RouteInfo(
@@ -685,7 +751,7 @@ class Application
             ->withAttribute('routeInfo', $routeInfo)
             ->withAttribute('urlVars', $routeData["variables"]);
 
-        $method = $controllerReflection->getMethod($routeData["method"]);
+        $method = new ReflectionMethod($routeData["controller"], $routeData["method"]);
 
         // Build route-scoped middleware pipeline
         $middlewareList = [];
@@ -695,12 +761,11 @@ class Application
 
         // Build controller dispatch callback
         $dispatchCallback = function (ServerRequestInterface $request) use (
-            $controllerReflection,
             $method,
             $routeData,
-            $parameters
+            $controller
         ): ResponseInterface {
-            return $this->dispatchController($request, $controllerReflection, $method, $routeData, $parameters);
+            return $this->dispatchController($request,  $method, $routeData, $controller);
         };
 
         // Wrap dispatch callback as a PSR-15 RequestHandlerInterface
@@ -730,78 +795,25 @@ class Application
     }
 
     /**
-     * Resolve controller constructor parameters from the service container.
-     *
-     * @param ReflectionClass $controllerReflection Controller reflection
-     * @return array<string, mixed> Parameter name => resolved value
-     */
-    private function resolveConstructorParameters(ReflectionClass $controllerReflection): array
-    {
-        $controllerConstructor = $controllerReflection->getConstructor();
-        $parameters = [];
-
-        if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
-            foreach ($controllerConstructor->getParameters() as $parameter) {
-                $parameterType = $parameter->getType();
-
-                if ($parameterType === null || !($parameterType instanceof ReflectionNamedType)) {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            "Constructor parameter '%s' in controller '%s' must have a named type hint to be resolved from the service container.",
-                            $parameter->getName(),
-                            $controllerReflection->getName()
-                        )
-                    );
-                }
-
-                if ($this->container->has($parameterType->getName())) {
-                    $parameters[$parameter->getName()] = $this->container->get($parameterType->getName());
-                } else if ($parameter->isDefaultValueAvailable()) {
-                    $parameters[$parameter->getName()] = $parameter->getDefaultValue();
-                } else {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            "No service registered for required constructor parameter '%s' of type '%s' in controller '%s'.",
-                            $parameter->getName(),
-                            $parameterType->getName(),
-                            $controllerReflection->getName()
-                        )
-                    );
-                }
-            }
-        }
-
-        return $parameters;
-    }
-
-    /**
      * Dispatch a matched route to its controller method.
      *
-     * Instantiates the controller, injects the PSR-7 request and services,
-     * applies model binding for route parameters, invokes the method, and
-     * validates the returned ResponseInterface.
+     * The controller is resolved from the container (constructor injection),
+     * the PSR-7 request and services are injected, model binding is applied
+     * for route parameters, the method is invoked via the container's
+     * {@see call()}, and the returned ResponseInterface is validated.
      *
      * @param ServerRequestInterface $request The PSR-7 request
-     * @param ReflectionClass $controllerReflection Controller reflection
      * @param ReflectionMethod $method Controller method to invoke
      * @param array $routeData Matched route data
-     * @param array $parameters Resolved constructor parameters
+     * @param object $controller The container-resolved controller instance
      * @return ResponseInterface
      */
     private function dispatchController(
         ServerRequestInterface $request,
-        ReflectionClass $controllerReflection,
         ReflectionMethod $method,
         array $routeData,
-        array $parameters
+        object $controller
     ): ResponseInterface {
-        // Resolve controller
-        if ($parameters !== []) {
-            $controller = $controllerReflection->newInstanceArgs($parameters);
-        } else {
-            $controller = $controllerReflection->newInstance();
-        }
-
         // Check if method requires a PSR-7 request parameter
         $psr7Injection = $this->requiresPsr7Request($method);
 
@@ -833,13 +845,7 @@ class Application
 
             $typeName = $type->getName();
 
-            // Service Injection
-            if ($this->container->has($typeName)) {
-                $variables[$name] = $this->container->get($typeName);
-                continue;
-            }
-
-            // Skip non-model types
+            // Skip non-model types (services are resolved by call())
             if (!is_subclass_of($typeName, Model::class)) {
                 continue;
             }
@@ -867,7 +873,7 @@ class Application
             $variables[$name] = $instance;
         }
 
-        $result = $method->invokeArgs($controller, $variables);
+        $result = $this->container->call([$controller, $method->getName()], $variables);
 
         if ($result instanceof ResponseInterface) {
             return $result;

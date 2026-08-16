@@ -24,22 +24,22 @@ class EventDispatcherTest extends TestCase
 
     public function test_application_exposes_dispatcher_and_provider(): void
     {
-        $app = Application::getInstance();
+        $container = Application::getInstance()->container();
 
-        $this->assertInstanceOf(EventDispatcher::class, $app->eventDispatcher);
-        $this->assertInstanceOf(ListenerProvider::class, $app->listenerProvider);
+        $this->assertInstanceOf(EventDispatcher::class, $container->get(EventDispatcherInterface::class));
+        $this->assertInstanceOf(ListenerProvider::class, $container->get(ListenerProviderInterface::class));
     }
 
     public function test_dispatcher_and_provider_are_resolvable_from_container(): void
     {
         $container = Application::getInstance()->container();
 
-        $this->assertSame(
-            Application::getInstance()->eventDispatcher,
+        $this->assertInstanceOf(
+            EventDispatcherInterface::class,
             $container->get(EventDispatcherInterface::class),
         );
-        $this->assertSame(
-            Application::getInstance()->listenerProvider,
+        $this->assertInstanceOf(
+            ListenerProviderInterface::class,
             $container->get(ListenerProviderInterface::class),
         );
     }

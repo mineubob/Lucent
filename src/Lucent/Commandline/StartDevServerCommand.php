@@ -23,7 +23,7 @@ class StartDevServerCommand
         $noRestart = $options['no-restart'] ?? filter_var(App::env('SERVER_NO_RESTART', false), FILTER_VALIDATE_BOOL);
 
         // Only auto-increment the port when it wasn't explicitly configured
-        // (mirrors Laravel, which checks is_null($input->getOption('port'))).
+        // (checks whether the port option was provided).
         $portIsExplicit = $portExplicit !== null;
 
         if (!is_numeric($port)) {
@@ -37,7 +37,7 @@ class StartDevServerCommand
         // Resolve docroot and router against the project root.
         $docRootPath = $this->resolvePath($docRoot);
 
-        // Router precedence (mirrors Laravel's serve command):
+        // Router precedence:
         //   1. A project-root server.php, if present (user override).
         //   2. The --router option / SERVER_ROUTER env var, if set.
         //   3. The bundled router shipped with Lucent.
@@ -58,13 +58,13 @@ class StartDevServerCommand
             return ConsoleColors::FG_RED . "✗ Router script not found: {$routerPath}" . ConsoleColors::RESET;
         }
 
-        // Track .env so we can restart the server when it changes (mirrors
-        // Laravel). Disabled via --no-restart / SERVER_NO_RESTART.
+        // Track .env so we can restart the server when it changes. Disabled
+        // via --no-restart / SERVER_NO_RESTART.
         $envFile = FileSystem::rootPath() . DIRECTORY_SEPARATOR . '.env';
         $envLastModified = file_exists($envFile) ? filemtime($envFile) : null;
 
-        // Auto-increment the port if the requested one is busy (mirrors
-        // Laravel's --tries). Only applies when the port wasn't explicitly set.
+        // Auto-increment the port if the requested one is busy. Only applies
+        // when the port wasn't explicitly set.
         $portOffset = 0;
         $restart = true;
 
@@ -87,8 +87,7 @@ class StartDevServerCommand
             // built-in server executes the router script with the CWD of the
             // `php -S` process, so relative paths inside the router (e.g.
             // `require_once '../vendor/autoload.php'`) must resolve from the
-            // docroot — not from wherever the CLI was invoked. This mirrors
-            // Laravel's `serve` command, which sets the process CWD to public/.
+            // docroot — not from wherever the CLI was invoked.
             //
             // Pass STDOUT/STDERR through directly so the child writes straight
             // to the terminal: output is real-time and unbuffered, and the
