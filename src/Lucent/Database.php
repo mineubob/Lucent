@@ -351,7 +351,9 @@ class Database
         $cache = self::$queryCache;
         if ($cache !== null) {
             // PSR-16 keys are limited to 64 chars, so hash the full key.
-            $key = hash('sha256', $query . '|' . json_encode($args) . '|' . ($fetchAll ? 'all' : 'one'));
+            // The active connection name is part of the key so identical
+            // queries on different named connections never collide.
+            $key = hash('sha256', self::$activeConnection . '|' . $query . '|' . json_encode($args) . '|' . ($fetchAll ? 'all' : 'one'));
 
             // Treat "key exists" as a hit, even when the cached value is
             // null (a query with no results), so we don't re-run the query.
