@@ -353,9 +353,10 @@ class Database
             // PSR-16 keys are limited to 64 chars, so hash the full key.
             $key = hash('sha256', $query . '|' . json_encode($args) . '|' . ($fetchAll ? 'all' : 'one'));
 
-            $cached = $cache->get($key);
-            if (is_array($cached)) {
-                return $cached;
+            // Treat "key exists" as a hit, even when the cached value is
+            // null (a query with no results), so we don't re-run the query.
+            if ($cache->has($key)) {
+                return $cache->get($key);
             }
 
             $result = self::getInstance()->select($query, $fetchAll, $args);

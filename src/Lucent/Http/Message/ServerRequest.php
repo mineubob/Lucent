@@ -196,7 +196,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         $request->parsedBody = $body !== [] ? $body : null;
 
         // Set Content-Type if body is present and no Content-Type was given
-        if ($body !== [] && !isset($headers['Content-Type'])) {
+        // (header names are case-insensitive, so use hasHeader())
+        if ($body !== [] && !$request->hasHeader('Content-Type')) {
             $request->withHeaderInternal('Content-Type', ['application/x-www-form-urlencoded']);
         }
 
@@ -458,7 +459,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      */
     public function getContext(string $key, mixed $default = null): mixed
     {
-        return RequestContext::fromRequest($this)?->get($key) ?? $default;
+        $context = RequestContext::fromRequest($this);
+        return $context !== null ? $context->get($key, $default) : $default;
     }
 
     /**

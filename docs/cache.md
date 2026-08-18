@@ -97,17 +97,17 @@ never constructs a cache driver itself.
 use Lucent\Facades\Cache;
 
 // Store a value for 60 seconds.
-Cache::set('user:42', $user, 60);
+Cache::set('user.42', $user, 60);
 
 // Store a value with no expiry.
 Cache::set('config', $config);
 
 // Fetch a value, with a default on a miss.
-$user = Cache::get('user:42', $fallbackUser);
+$user = Cache::get('user.42', $fallbackUser);
 
 // Check, delete, and clear.
-Cache::has('user:42');
-Cache::delete('user:42');
+Cache::has('user.42');
+Cache::delete('user.42');
 Cache::clear();
 ```
 

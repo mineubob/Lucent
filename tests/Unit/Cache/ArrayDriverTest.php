@@ -192,6 +192,27 @@ class ArrayDriverTest extends TestCase
         $cache->deleteMultiple(['valid', 'invalid key']);
     }
 
+    public function test_non_string_key_throws_on_get_multiple(): void
+    {
+        $cache = new ArrayDriver();
+        $this->expectException(InvalidArgumentException::class);
+        $cache->getMultiple(['valid', 42]);
+    }
+
+    public function test_non_string_key_throws_on_set_multiple(): void
+    {
+        $cache = new ArrayDriver();
+        $this->expectException(InvalidArgumentException::class);
+        $cache->setMultiple([42 => 'value']);
+    }
+
+    public function test_non_string_key_throws_on_delete_multiple(): void
+    {
+        $cache = new ArrayDriver();
+        $this->expectException(InvalidArgumentException::class);
+        $cache->deleteMultiple(['valid', 42]);
+    }
+
     public function test_stores_arbitrary_serializable_values(): void
     {
         $cache = new ArrayDriver();

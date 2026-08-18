@@ -16,14 +16,14 @@ class InvalidArgumentException extends BaseInvalidArgumentException implements S
     /**
      * The key that failed validation.
      */
-    public private(set) string $key;
+    public private(set) mixed $key;
 
     /**
-     * @param string $key The key that failed validation
+     * @param mixed $key The key that failed validation
      */
-    public function __construct(string $key)
+    public function __construct(mixed $key)
     {
         $this->key = $key;
-        parent::__construct(sprintf('Invalid cache key "%s".', $key));
+        parent::__construct(sprintf('Invalid cache key "%s".', is_scalar($key) ? $key : get_debug_type($key)));
     }
 }

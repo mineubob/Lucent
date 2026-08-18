@@ -404,7 +404,7 @@ abstract class Rule
             ? RequestContext::fromRequest($this->currentRequest)
             : null;
 
-        return $context?->get($key, $default) ?? $default;
+        return $context !== null ? $context->get($key, $default) : $default;
     }
 
     /**

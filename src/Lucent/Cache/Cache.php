@@ -72,13 +72,16 @@ abstract class Cache implements CacheInterface
     /**
      * Validate a cache key.
      *
-     * @param string $key The key to validate
+     * Keys must be strings; anything else is rejected so callers get a
+     * consistent {@see InvalidArgumentException} rather than a TypeError.
+     *
+     * @param mixed $key The key to validate
      * @return void
      * @throws InvalidArgumentException If the key is not a legal value
      */
-    protected function validateKey(string $key): void
+    protected function validateKey(mixed $key): void
     {
-        if (preg_match('/^[A-Za-z0-9_.]{1,64}$/', $key) !== 1) {
+        if (!is_string($key) || preg_match('/^[A-Za-z0-9_.]{1,64}$/', $key) !== 1) {
             throw new InvalidArgumentException($key);
         }
     }
