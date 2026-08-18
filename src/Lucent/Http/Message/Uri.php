@@ -31,7 +31,7 @@ final class Uri implements UriInterface
     private const CHAR_UNRESERVED = 'A-Za-z0-9\-._~!$&\'()*+,;=';
 
     /**
-     * Private constructor — use fromString() or fromGlobals() instead.
+     * Private constructor — use fromString() or fromServer() instead.
      */
     private function __construct()
     {
@@ -73,7 +73,7 @@ final class Uri implements UriInterface
      * @param array $server Typically $_SERVER
      * @return self
      */
-    public static function fromGlobals(array $server): self
+    public static function fromServer(array $server): self
     {
         $instance = new self();
 

@@ -9,7 +9,7 @@ use Psr\Http\Message\RequestInterface;
  * PSR-18 exception for when a request failed.
  *
  * Examples: the request is invalid, or a runtime request error occurred
- * (e.g. an unreadable body stream). Thrown by {@see \Lucent\Http\Client\HttpClient}
+ * (e.g. an unreadable body stream). Thrown by {@see \Lucent\Http\Client\Client}
  * when the request itself prevents the transfer from completing.
  */
 class RequestException extends \RuntimeException implements RequestExceptionInterface

@@ -23,9 +23,9 @@ $body = json_decode((string) $response->getBody(), true);
 ### Using the Client Directly
 
 ```php
-use Lucent\Http\Client\HttpClient;
+use Lucent\Http\Client\Client;
 
-$client = new HttpClient([
+$client = new Client([
     'base_uri' => 'https://api.example.com/v1',
     'timeout'  => 30,
 ]);
@@ -46,7 +46,7 @@ $response = $client->sendRequest($request);
 
 ## Configuration
 
-`HttpClient` accepts an immutable config array. Unknown keys and invalid values throw `\InvalidArgumentException`.
+`Client` accepts an immutable config array. Unknown keys and invalid values throw `\InvalidArgumentException`.
 
 | Key | Type | Default | Description |
 |---|---|---|---|
@@ -59,7 +59,7 @@ $response = $client->sendRequest($request);
 | `curl_options` | `array<int, mixed>` | `[]` | Additional cURL options (applied last, can override defaults) |
 
 ```php
-$client = new HttpClient([
+$client = new Client([
     'base_uri'    => 'https://api.example.com',
     'timeout'     => 10,
     'verify_ssl'  => true,

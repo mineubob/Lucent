@@ -502,11 +502,23 @@ class Model
         return new Collection(static::class)->avg($column);
     }
 
+    /**
+     * Get the minimum value of a column across all rows.
+     *
+     * @param string $column The column name
+     * @return mixed The minimum value, or null when no rows match
+     */
     public static function min(string $column): mixed
     {
         return new Collection(static::class)->min($column);
     }
 
+    /**
+     * Get the maximum value of a column across all rows.
+     *
+     * @param string $column The column name
+     * @return mixed The maximum value, or null when no rows match
+     */
     public static function max(string $column): mixed
     {
         return new Collection(static::class)->max($column);

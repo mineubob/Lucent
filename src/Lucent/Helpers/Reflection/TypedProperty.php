@@ -46,6 +46,11 @@ class TypedProperty
 
     /**
      * Coerces a value to the given ReflectionNamedType.
+     *
+     * @param ReflectionNamedType $type The target type
+     * @param mixed $value The value to coerce
+     * @return mixed The coerced value
+     * @throws TypeError If the value cannot be coerced to the target type
      */
     private static function coerceValueToType(ReflectionNamedType $type, mixed $value): mixed
     {

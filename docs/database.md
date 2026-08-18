@@ -32,6 +32,14 @@ DB_DRIVER=sqlite
 DB_DATABASE=/storage/database.sqlite
 ```
 
+For SQLite you can also use an **in-memory** database by setting `DB_DATABASE=:memory:`. This creates a database that lives entirely in memory and is destroyed when the connection closes. It is ideal for tests and other ephemeral use cases: it is faster (no file I/O), leaves no files behind, and each connection gets its own fully isolated database.
+
+```ini
+# SQLite (in-memory)
+DB_DRIVER=sqlite
+DB_DATABASE=:memory:
+```
+
 ### Running Queries
 
 ```php

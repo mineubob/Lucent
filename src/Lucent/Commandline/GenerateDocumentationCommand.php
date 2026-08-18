@@ -3,7 +3,6 @@
 namespace Lucent\Commandline;
 
 use Lucent\Facades\App;
-use Lucent\Facades\Faker;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Filesystem\File;
@@ -141,9 +140,9 @@ class GenerateDocumentationCommand
             $ruleInstance = new $endpoint->rule;
             $validationRules = $ruleInstance->setup();
 
-            // Generate validation example using faker
-            $failRequest = Faker::serverRequest()->failing($endpoint->rule);
-            $errors = \Lucent\Validation\Rule::validateRequest($failRequest, $endpoint->rule);
+            // Generate failing validation data for the 400 example
+            $failData = $this->generateFailingData($ruleInstance, $validationRules);
+            $errors = \Lucent\Validation\Rule::validateData($failData, $endpoint->rule);
             if ($errors !== []) {
                 $examples['400'] = [
                     'message' => 'Validation failed',
@@ -303,5 +302,26 @@ class GenerateDocumentationCommand
             $status >= 500 => 'Server Error',
             default => 'Unknown'
         };
+    }
+
+    /**
+     * Generate failing validation data for a rule's fields.
+     *
+     * Produces intentionally invalid values for each field so the 400
+     * example in the docs shows validation errors.
+     *
+     * @param object $ruleInstance The rule instance (has setup())
+     * @param array $rules The rules from setup()
+     * @return array<string, string>
+     */
+    private function generateFailingData(object $ruleInstance, array $rules): array
+    {
+        $data = [];
+
+        foreach ($rules as $field => $fieldRules) {
+            $data[$field] = '';
+        }
+
+        return $data;
     }
 }

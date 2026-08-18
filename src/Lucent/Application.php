@@ -2,17 +2,25 @@
 
 namespace Lucent;
 
-use InvalidArgumentException;
+use Lucent\Cache\Cache;
+use Lucent\Cache\CacheFactory;
 use Lucent\Container\Container;
+use Lucent\Container\ServiceProvider;
+use Lucent\Commandline\ClearCacheCommand;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
+use Lucent\Date\ClockServiceProvider;
+use Lucent\EventDispatcher\EventDispatcherServiceProvider;
+use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
 use Lucent\Facades\CommandLine;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
+use Lucent\Http\Exceptions\Exceptions;
+use Lucent\Http\Exceptions\ExceptionsServiceProvider;
 use Lucent\Http\Exceptions\HttpException;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
@@ -27,6 +35,8 @@ use Lucent\Model\Model;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\SimpleCache\CacheInterface;
 use ReflectionClass;
 use ReflectionException;
 use ReflectionMethod;
@@ -90,6 +100,28 @@ class Application
      * @var Container
      */
     private Container $container;
+
+    /**
+     * The application's cache store.
+     *
+     * Lazily built from the `CACHE_DRIVER` environment variable on first
+     * access, or replaced explicitly via {@see setCache()}.
+     *
+     * @var CacheInterface|null
+     */
+    private ?CacheInterface $cache = null;
+
+    /**
+     * The application's query cache store.
+     *
+     * A dedicated store, separate from the main cache, built lazily from the
+     * `QUERY_CACHE_DRIVER` / `QUERY_CACHE_PATH` environment variables on
+     * first access. Injected into {@see Database} as the query cache when
+     * `QUERY_CACHE` is enabled.
+     *
+     * @var CacheInterface|null
+     */
+    private ?CacheInterface $queryCache = null;
 
     /**
      * Environment variables loaded from .env file
@@ -180,10 +212,18 @@ class Application
     private array $globalMiddlewares = [];
 
     /**
+     * Registered service providers.
+     *
+     * @var array<int, ServiceProvider>
+     */
+    private array $providers = [];
+
+    /**
      * Initialize a new Application instance
      *
      * Sets up HTTP and CLI routers, ensures .env file exists,
-     * loads environment variables, and initializes a null logger.
+     * loads environment variables, registers core service providers,
+     * and initializes a null logger.
      */
     public function __construct()
     {
@@ -198,6 +238,11 @@ class Application
 
         $this->container = new Container();
         $this->loggers["blank"] = new NullChannel();
+
+        // Register core service providers (clock, event dispatcher,
+        // exceptions). Their register() methods bind the shared services
+        // onto the container.
+        $this->registerProviders();
     }
 
     /**
@@ -211,6 +256,217 @@ class Application
     public function container(): Container
     {
         return $this->container;
+    }
+
+    /**
+     * Register a service provider.
+     *
+     * The provider's {@see ServiceProvider::register()} is invoked immediately
+     * so its bindings are available before anything is resolved. Deferred
+     * providers are registered as usual, but their boot() is delayed until
+     * {@see bootProviders()}.
+     *
+     * @param ServiceProvider|class-string<ServiceProvider> $provider Provider instance or class name
+     * @return ServiceProvider The registered provider
+     */
+    public function register(ServiceProvider|string $provider): ServiceProvider
+    {
+        if (is_string($provider)) {
+            $provider = new $provider($this->container);
+        }
+
+        $this->providers[] = $provider;
+        $provider->register();
+
+        return $provider;
+    }
+
+    /**
+     * Register the application's core service providers.
+     *
+     * Called from the constructor after the container is created. Each core
+     * provider registers its subsystem's services on the container.
+     *
+     * @return void
+     */
+    private function registerProviders(): void
+    {
+        $this->register(ClockServiceProvider::class);
+        $this->register(EventDispatcherServiceProvider::class);
+        $this->register(ExceptionsServiceProvider::class);
+    }
+
+    /**
+     * Boot all registered service providers.
+     *
+     * Called at the start of {@see boot()}, after every provider has been
+     * registered, so providers can safely resolve services in boot().
+     *
+     * @return void
+     */
+    private function bootProviders(): void
+    {
+        foreach ($this->providers as $provider) {
+            $provider->boot();
+        }
+    }
+
+    /**
+     * Resolve a service from the container, autowiring its dependencies.
+     *
+     * Passthrough to {@see Container::make()}.
+     *
+     * @param string $abstract Identifier (class name or alias) to resolve
+     * @param array $parameters Explicit values keyed by constructor parameter name
+     * @return mixed The resolved entry
+     */
+    public function make(string $abstract, array $parameters = []): mixed
+    {
+        return $this->container->make($abstract, $parameters);
+    }
+
+    /**
+     * Invoke a callable, resolving its parameters from the container.
+     *
+     * Passthrough to {@see Container::call()}.
+     *
+     * @param callable|string|array $callback The callable to invoke
+     * @param array $parameters Explicit values keyed by parameter name
+     * @param string|null $defaultMethod Method to invoke when $callback is an invokable class string
+     * @return mixed The callable's return value
+     */
+    public function call(callable|string|array $callback, array $parameters = [], ?string $defaultMethod = null): mixed
+    {
+        return $this->container->call($callback, $parameters, $defaultMethod);
+    }
+
+    /**
+     * Resolve the shared exception manager from the container.
+     *
+     * The manager is registered as a lazy singleton, so it is instantiated on
+     * first use and the same instance is returned on every call.
+     *
+     * @return Exceptions The shared exception manager
+     */
+    public function exceptions(): Exceptions
+    {
+        return $this->container->get(Exceptions::class);
+    }
+
+    /**
+     * Register a listener for an event.
+     *
+     * Convenience passthrough to the container-registered listener provider.
+     *
+     * @param class-string $eventClass Event class (or parent class / interface) to listen for
+     * @param callable|string $listener Callable, or class-string of an invokable listener
+     * @param int $priority Higher priorities run first; defaults to 0
+     * @return void
+     */
+    public function listen(string $eventClass, callable|string $listener, int $priority = 0): void
+    {
+        $this->container->get(ListenerProvider::class)->listen($eventClass, $listener, $priority);
+    }
+
+    /**
+     * Dispatch an event to its registered listeners.
+     *
+     * Convenience passthrough to the container-registered event dispatcher.
+     *
+     * @param object $event The event to dispatch
+     * @return object The event, possibly modified by listeners
+     */
+    public function dispatch(object $event): object
+    {
+        return $this->container->get(EventDispatcherInterface::class)->dispatch($event);
+    }
+
+    /**
+     * Get the application's cache store.
+     *
+     * Builds the store lazily on first access from the `CACHE_DRIVER`
+     * environment variable (defaulting to `file`), then registers it on the
+     * container under {@see CacheInterface::class} so it can be resolved via
+     * dependency injection. The same instance is returned on subsequent calls.
+     *
+     * @return CacheInterface The cache store
+     */
+    public function cache(): CacheInterface
+    {
+        if ($this->cache === null) {
+            $driver = $this->env['CACHE_DRIVER'] ?? 'file';
+            $path = $this->env['CACHE_PATH'] ?? 'storage/cache';
+
+            $this->cache = CacheFactory::create($driver, $this->container, $path);
+
+            if ($this->cache instanceof Cache) {
+                $defaultTtl = $this->env['CACHE_DEFAULT_TTL'] ?? null;
+                $this->cache->setDefaultTtl($defaultTtl === null ? null : (int) $defaultTtl);
+            }
+
+            $this->container->instance(CacheInterface::class, $this->cache);
+        }
+
+        return $this->cache;
+    }
+
+    /**
+     * Replace the application's cache store.
+     *
+     * This is the injection point for third-party cache implementations: any
+     * object implementing {@see CacheInterface} can be supplied here. The
+     * replacement is also registered on the container under
+     * {@see CacheInterface::class}, so dependency-injected consumers resolve
+     * the new store.
+     *
+     * @param CacheInterface $cache The cache store to use
+     * @return void
+     */
+    public function setCache(CacheInterface $cache): void
+    {
+        $this->cache = $cache;
+        $this->container->instance(CacheInterface::class, $cache);
+    }
+
+    /**
+     * Get the application's query cache store.
+     *
+     * Builds a dedicated store lazily on first access from the
+     * `QUERY_CACHE_DRIVER` environment variable (defaulting to `array`) and
+     * `QUERY_CACHE_PATH` (defaulting to `storage/cache`). Kept separate from
+     * the main cache so each can use a different driver. The same instance is
+     * returned on subsequent calls.
+     *
+     * @return CacheInterface The query cache store
+     */
+    public function queryCache(): CacheInterface
+    {
+        if ($this->queryCache === null) {
+            $driver = $this->env['QUERY_CACHE_DRIVER'] ?? 'array';
+            $path = $this->env['QUERY_CACHE_PATH'] ?? 'storage/cache';
+
+            $this->queryCache = CacheFactory::create($driver, $this->container, $path);
+        }
+
+        return $this->queryCache;
+    }
+
+    /**
+     * Inject the application's query cache store into the database, when
+     * query caching is enabled.
+     *
+     * Query caching is opt-in via the `QUERY_CACHE` environment variable. When
+     * it is truthy, the dedicated query cache store is passed to
+     * {@see Database::setQueryCache()} so SELECT results are cached. When it
+     * is falsy, any previously injected query cache is cleared.
+     *
+     * @return void
+     */
+    private function injectQueryCache(): void
+    {
+        $enabled = filter_var($this->env['QUERY_CACHE'] ?? false, FILTER_VALIDATE_BOOL);
+
+        Database::setQueryCache($enabled ? $this->queryCache() : null);
     }
 
     /**
@@ -269,6 +525,10 @@ class Application
         }
         $this->booted = true;
 
+        // Boot registered service providers now that every provider has been
+        // registered, so they can safely resolve services.
+        $this->bootProviders();
+
         // Auto-discover route files from the project's routes/ directory.
         if ($autoLoadRoutes) {
             $routesDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR . 'routes' . DIRECTORY_SEPARATOR;
@@ -300,6 +560,11 @@ class Application
         }
 
         Database::setLogger(Log::channel("lucent.db"));
+
+        // Wire up the query cache from the environment (QUERY_CACHE) so it is
+        // active before any queries run. The store itself stays lazy — it is
+        // only built here when QUERY_CACHE is truthy.
+        $this->injectQueryCache();
     }
 
     /**
@@ -356,7 +621,8 @@ class Application
      */
     public function executeHttpRequest(): string
     {
-        $response = $this->handleHttpRequest(ServerRequest::fromGlobals());
+        $request = ServerRequest::capture();
+        $response = $this->handleHttpRequest($request);
 
         http_response_code($response->getStatusCode());
         $this->setHeaders($response->getHeaders());
@@ -406,31 +672,47 @@ class Application
 
             // Fallback handler: route lookup + dispatch + error conversion all
             // happen INSIDE the pipeline so global middleware wraps the errors too.
-            $fallback = new CallbackRequestHandler(function (ServerRequestInterface $request): ResponseInterface {
+            $fallback = new CallbackRequestHandler(function (ServerRequestInterface $req): ResponseInterface {
                 try {
-                    return $this->dispatchRoute($request);
-                } catch (HttpException $e) {
-                    Log::channel('lucent.routing')->warning($e->getMessage());
-                    return $this->responseWithError($e->getStatus(), $e);
+                    // dispatchRoute() attaches route attributes (routeInfo,
+                    // urlVars) to the request passed down the pipeline.
+                    return $this->dispatchRoute($req);
                 } catch (Throwable $throwable) {
-                    Log::channel('lucent.routing')->warning($throwable->getMessage());
-                    return $this->responseWithError(HttpStatus::SERVER_ERROR, $throwable);
+                    $this->exceptions()->reportException($throwable, $req);
+
+                    $response = $this->exceptions()->renderException($throwable, $req);
+                    if ($response instanceof ResponseInterface) {
+                        return $response;
+                    }
+
+                    // Preserve the 4xx status for HttpException, else 500.
+                    $status = $throwable instanceof HttpException
+                        ? $throwable->getStatus()
+                        : HttpStatus::SERVER_ERROR;
+
+                    return $this->responseWithError($status, $throwable);
                 }
             });
 
             $pipeline = new MiddlewarePipeline($middlewareList, $fallback);
 
             return $pipeline->handle($request);
-        } catch (HttpException $e) {
-            // An HttpException thrown by global middleware itself (e.g. a 401
-            // auth middleware) keeps its status rather than becoming a 500.
-            Log::channel('lucent.routing')->warning($e->getMessage());
-            return $this->responseWithError($e->getStatus(), $e);
         } catch (Throwable $throwable) {
             // Exceptions thrown by global middleware itself still produce a
             // 500 response rather than escaping the request handler.
-            Log::channel('lucent.routing')->warning($throwable->getMessage());
-            return $this->responseWithError(HttpStatus::SERVER_ERROR, $throwable);
+            $this->exceptions()->reportException($throwable, $request);
+
+            $response = $this->exceptions()->renderException($throwable, $request);
+            if ($response instanceof ResponseInterface) {
+                return $response;
+            }
+
+            // Preserve the 4xx status for HttpException, else 500.
+            $status = $throwable instanceof HttpException
+                ? $throwable->getStatus()
+                : HttpStatus::SERVER_ERROR;
+
+            return $this->responseWithError($status, $throwable);
         }
     }
 
@@ -455,8 +737,7 @@ class Application
             $request->getMethod()
         );
 
-        $controllerReflection = new ReflectionClass($routeData["controller"]);
-        $parameters = $this->resolveConstructorParameters($controllerReflection);
+        $controller = $this->container->make($routeData["controller"]);
 
         // Store route info and URL vars as PSR-7 attributes
         $routeInfo = new RouteInfo(
@@ -470,7 +751,7 @@ class Application
             ->withAttribute('routeInfo', $routeInfo)
             ->withAttribute('urlVars', $routeData["variables"]);
 
-        $method = $controllerReflection->getMethod($routeData["method"]);
+        $method = new ReflectionMethod($routeData["controller"], $routeData["method"]);
 
         // Build route-scoped middleware pipeline
         $middlewareList = [];
@@ -480,12 +761,11 @@ class Application
 
         // Build controller dispatch callback
         $dispatchCallback = function (ServerRequestInterface $request) use (
-            $controllerReflection,
             $method,
             $routeData,
-            $parameters
+            $controller
         ): ResponseInterface {
-            return $this->dispatchController($request, $controllerReflection, $method, $routeData, $parameters);
+            return $this->dispatchController($request,  $method, $routeData, $controller);
         };
 
         // Wrap dispatch callback as a PSR-15 RequestHandlerInterface
@@ -515,78 +795,25 @@ class Application
     }
 
     /**
-     * Resolve controller constructor parameters from the service container.
-     *
-     * @param ReflectionClass $controllerReflection Controller reflection
-     * @return array<string, mixed> Parameter name => resolved value
-     */
-    private function resolveConstructorParameters(ReflectionClass $controllerReflection): array
-    {
-        $controllerConstructor = $controllerReflection->getConstructor();
-        $parameters = [];
-
-        if ($controllerConstructor !== null && $controllerConstructor->getNumberOfRequiredParameters() !== 0) {
-            foreach ($controllerConstructor->getParameters() as $parameter) {
-                $parameterType = $parameter->getType();
-
-                if ($parameterType === null || !($parameterType instanceof ReflectionNamedType)) {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            "Constructor parameter '%s' in controller '%s' must have a named type hint to be resolved from the service container.",
-                            $parameter->getName(),
-                            $controllerReflection->getName()
-                        )
-                    );
-                }
-
-                if ($this->container->has($parameterType->getName())) {
-                    $parameters[$parameter->getName()] = $this->container->get($parameterType->getName());
-                } else if ($parameter->isDefaultValueAvailable()) {
-                    $parameters[$parameter->getName()] = $parameter->getDefaultValue();
-                } else {
-                    throw new InvalidArgumentException(
-                        sprintf(
-                            "No service registered for required constructor parameter '%s' of type '%s' in controller '%s'.",
-                            $parameter->getName(),
-                            $parameterType->getName(),
-                            $controllerReflection->getName()
-                        )
-                    );
-                }
-            }
-        }
-
-        return $parameters;
-    }
-
-    /**
      * Dispatch a matched route to its controller method.
      *
-     * Instantiates the controller, injects the PSR-7 request and services,
-     * applies model binding for route parameters, invokes the method, and
-     * validates the returned ResponseInterface.
+     * The controller is resolved from the container (constructor injection),
+     * the PSR-7 request and services are injected, model binding is applied
+     * for route parameters, the method is invoked via the container's
+     * {@see call()}, and the returned ResponseInterface is validated.
      *
      * @param ServerRequestInterface $request The PSR-7 request
-     * @param ReflectionClass $controllerReflection Controller reflection
      * @param ReflectionMethod $method Controller method to invoke
      * @param array $routeData Matched route data
-     * @param array $parameters Resolved constructor parameters
+     * @param object $controller The container-resolved controller instance
      * @return ResponseInterface
      */
     private function dispatchController(
         ServerRequestInterface $request,
-        ReflectionClass $controllerReflection,
         ReflectionMethod $method,
         array $routeData,
-        array $parameters
+        object $controller
     ): ResponseInterface {
-        // Resolve controller
-        if ($parameters !== []) {
-            $controller = $controllerReflection->newInstanceArgs($parameters);
-        } else {
-            $controller = $controllerReflection->newInstance();
-        }
-
         // Check if method requires a PSR-7 request parameter
         $psr7Injection = $this->requiresPsr7Request($method);
 
@@ -618,13 +845,7 @@ class Application
 
             $typeName = $type->getName();
 
-            // Service Injection
-            if ($this->container->has($typeName)) {
-                $variables[$name] = $this->container->get($typeName);
-                continue;
-            }
-
-            // Skip non-model types
+            // Skip non-model types (services are resolved by call())
             if (!is_subclass_of($typeName, Model::class)) {
                 continue;
             }
@@ -652,7 +873,7 @@ class Application
             $variables[$name] = $instance;
         }
 
-        $result = $method->invokeArgs($controller, $variables);
+        $result = $this->container->call([$controller, $method->getName()], $variables);
 
         if ($result instanceof ResponseInterface) {
             return $result;
@@ -767,6 +988,7 @@ class Application
 
         $this->env = $merge ? array_merge($this->env, $normalised) : $normalised;
         Database::configure($this->env);
+        $this->injectQueryCache();
     }
 
     /**
@@ -795,6 +1017,7 @@ class Application
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
         CommandLine::register(DeploymentController::$command_rollback, "rollback", DeploymentController::class, "Rolls back to the most recent backup");
+        CommandLine::register(ClearCacheCommand::$command, "clear", ClearCacheCommand::class, "Clears the application cache");
         if ($args === []) {
             $args = array_slice($_SERVER["argv"], 1);
             $args = str_replace("\n", "", $args);

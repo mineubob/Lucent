@@ -84,4 +84,54 @@ class App
     {
         return Application::getInstance()->container();
     }
+
+    /**
+     * Resolve a service from the container, autowiring its dependencies.
+     *
+     * ```php
+     * $service = App::make(MyService::class);
+     * ```
+     *
+     * @param string $abstract Identifier (class name or alias) to resolve
+     * @param array $parameters Explicit values keyed by constructor parameter name
+     * @return mixed The resolved entry
+     */
+    public static function make(string $abstract, array $parameters = []): mixed
+    {
+        return Application::getInstance()->make($abstract, $parameters);
+    }
+
+    /**
+     * Invoke a callable, resolving its parameters from the container.
+     *
+     * ```php
+     * $result = App::call([$controller, 'show'], ['id' => 5]);
+     * ```
+     *
+     * @param callable|string|array $callback The callable to invoke
+     * @param array $parameters Explicit values keyed by parameter name
+     * @param string|null $defaultMethod Method to invoke when $callback is an invokable class string
+     * @return mixed The callable's return value
+     */
+    public static function call(callable|string|array $callback, array $parameters = [], ?string $defaultMethod = null): mixed
+    {
+        return Application::getInstance()->call($callback, $parameters, $defaultMethod);
+    }
+
+    /**
+     * Get the shared exception manager.
+     *
+     * ```php
+     * App::exceptions()->render(function (HttpException $e) {
+     *     // Return a Response for any HttpException, or null to fall through.
+     *     return null;
+     * });
+     * ```
+     *
+     * @return \Lucent\Http\Exceptions\Exceptions The shared exception manager
+     */
+    public static function exceptions(): \Lucent\Http\Exceptions\Exceptions
+    {
+        return Application::getInstance()->exceptions();
+    }
 }

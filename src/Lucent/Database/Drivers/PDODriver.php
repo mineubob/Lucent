@@ -4,9 +4,7 @@ namespace Lucent\Database\Drivers;
 
 use Lucent\Database;
 use Lucent\Database\DatabaseInterface;
-use Lucent\Database\Schema;
 use Lucent\Facades\FileSystem;
-use Lucent\Filesystem\File;
 use PDO;
 
 class PDODriver extends DatabaseInterface
@@ -99,6 +97,12 @@ class PDODriver extends DatabaseInterface
         switch ($driver_name) {
             case "sqlite":
                 $path = Database::env('DB_DATABASE');
+
+                // In-memory SQLite database: no file I/O, isolated per connection.
+                if ($path === ':memory:') {
+                    $this->connection = new PDO('sqlite::memory:');
+                    break;
+                }
 
                 if(str_starts_with($path, DIRECTORY_SEPARATOR)) {
                     $path = ltrim($path, DIRECTORY_SEPARATOR);

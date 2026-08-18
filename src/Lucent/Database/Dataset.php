@@ -11,6 +11,13 @@ class Dataset
         $this->data = $data;
     }
 
+    /**
+     * Read a value from the dataset.
+     *
+     * @param string $key The dataset key
+     * @param mixed $default Default value if the key is not set
+     * @return mixed The stored value, or $default on a miss
+     */
     public function get(string $key, $default = null): mixed
     {
         return array_key_exists($key, $this->data) ? $this->data[$key] : $default;

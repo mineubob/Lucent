@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Lucent\Facades\Faker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
+use Tests\Support\TestDataBuilder;
 
 /**
  * Database-driven validation tests (the `unique` / `!unique` rules).
@@ -24,7 +24,7 @@ class RuleDatabaseTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "unique-test@email.com");
         $request->setInput("full_name", "John Doe");
         $request->reInitializeRequestData();
@@ -44,7 +44,7 @@ class RuleDatabaseTest extends TestCase
 
         $this->assertTrue($user->create());
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "unique-test@email.com");
         $request->setInput("full_name", "John Doe");
         $request->reInitializeRequestData();
@@ -64,7 +64,7 @@ class RuleDatabaseTest extends TestCase
 
         $this->assertTrue($user->create());
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "not-unique-test@email.com");
         $request->setInput("full_name", "John Doe");
         $request->reInitializeRequestData();
@@ -80,7 +80,7 @@ class RuleDatabaseTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "not-unique-test@email.com");
         $request->setInput("full_name", "John Doe");
         $request->reInitializeRequestData();

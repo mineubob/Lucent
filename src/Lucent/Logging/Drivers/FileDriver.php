@@ -25,10 +25,9 @@ class FileDriver extends Driver
         $logPath = $logDir . DIRECTORY_SEPARATOR . $this->path;
 
         // Try to open file and handle any errors.
-        // This is the "sink itself failed" case (cf. Monolog's
-        // FallbackGroupHandler): we cannot report the failure through the
-        // logging system without risking recursion, so PHP's error_log is
-        // the intentional last-resort destination.
+        // This is the "sink itself failed" case — we cannot report the
+        // failure through the logging system without risking recursion, so
+        // PHP's error_log is the intentional last-resort destination.
         $file = fopen($logPath, "a");
         if ($file === false) {
             error_log("Failed to open log file: " . $logPath);

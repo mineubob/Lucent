@@ -3,16 +3,19 @@
 namespace Tests\Unit;
 
 use App\Rules\ArrayRule;
+use App\Rules\ContextRule;
 use App\Rules\CustomRegexRule;
 use App\Rules\CustomRule;
 use App\Rules\DynamicRule;
 use App\Rules\NumRule;
 use App\Rules\OverrideMessageRule;
 use Lucent\Application;
-use Lucent\Facades\Faker;
 use Lucent\Facades\Regex;
+use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Rule;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
+use Tests\Support\TestDataBuilder;
 
 class RuleTest extends TestCase
 {
@@ -29,13 +32,14 @@ class RuleTest extends TestCase
         FixtureLoader::copyRule('ArrayRule.php');
         FixtureLoader::copyRule('CustomRule.php');
         FixtureLoader::copyRule('CustomRegexRule.php');
+        FixtureLoader::copyRule('ContextRule.php');
     }
 
     public function test_num_rule_is_valid(): void
     {
         $rule = new NumRule();
 
-        $test_data = Faker::request()->passing(NumRule::class)->all();
+        $test_data = new TestDataBuilder()->passing(NumRule::class)->all();
 
         $this->assertTrue($rule->validate_bool($test_data));
     }
@@ -44,14 +48,14 @@ class RuleTest extends TestCase
     {
         $rule = new NumRule();
 
-        $test_data = Faker::request()->failing(NumRule::class)->all();
+        $test_data = new TestDataBuilder()->failing(NumRule::class)->all();
 
         $this->assertFalse($rule->validate_bool($test_data));
     }
 
     public function test_dynamic_rule_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "Jack");
         $request->setInput("last_name", "Harris");
         $request->setInput("email", "notvalid.com");
@@ -64,7 +68,7 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "Jack");
         $request->setInput("last_name", 1);
 
@@ -76,7 +80,7 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_only_validates_present_fields(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "Jack");
 
         // Create a rule that only validates first_name
@@ -92,7 +96,7 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_with_null_fields_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("first_name", "Jack");
         $request->setInput("last_name", "Harris");
@@ -112,7 +116,7 @@ class RuleTest extends TestCase
 
     public function test_dynamic_rule_with_null_fields_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("first_name", "Jack");
         $request->setInput("last_name", "Harris");
@@ -131,7 +135,7 @@ class RuleTest extends TestCase
     public function test_custom_rule_passing(): void
     {
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("post_code", "3934");
 
         $request->reInitializeRequestData();
@@ -143,7 +147,7 @@ class RuleTest extends TestCase
     public function test_custom_rule_failing(): void
     {
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("post_code", "393");
 
         $request->reInitializeRequestData();
@@ -155,7 +159,7 @@ class RuleTest extends TestCase
 
     public function test_same_rule_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("password", "Pa55w0rd");
         $request->setInput("confirm_password", "Pa55w0rd");
@@ -173,7 +177,7 @@ class RuleTest extends TestCase
 
     public function test_same_rule_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("password", "Pa55w0rd");
         $request->setInput("confirm_password", "Pa55w0rd1");
@@ -191,7 +195,7 @@ class RuleTest extends TestCase
 
     public function test_regex_email_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "st_tuff@me.com");
 
         $request->reInitializeRequestData();
@@ -202,7 +206,7 @@ class RuleTest extends TestCase
 
     public function test_regex_email_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "st_tuffme.com");
 
         $request->reInitializeRequestData();
@@ -213,7 +217,7 @@ class RuleTest extends TestCase
 
     public function test_regex_password_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("password", "Password1");
 
         $request->reInitializeRequestData();
@@ -224,7 +228,7 @@ class RuleTest extends TestCase
 
     public function test_regex_password_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("password", "pass");
 
         $request->reInitializeRequestData();
@@ -235,7 +239,7 @@ class RuleTest extends TestCase
 
     public function test_regex_invalid_rule(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("email", "st_tuff@me.com");
         $request->reInitializeRequestData();
 
@@ -256,7 +260,7 @@ class RuleTest extends TestCase
 
     public function test_custom_local_regex_rule_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("test", "abc123");
 
         $request->reInitializeRequestData();
@@ -268,7 +272,7 @@ class RuleTest extends TestCase
 
     public function test_custom_local_regex_rule_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("test", "abc12");
 
         $request->reInitializeRequestData();
@@ -284,7 +288,7 @@ class RuleTest extends TestCase
 
         Regex::set("global_custom", '/^\S+\s+\S+$/');
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("test", "abc 123");
         $request->reInitializeRequestData();
 
@@ -299,7 +303,7 @@ class RuleTest extends TestCase
 
         Regex::set("global_custom", '/^\S+\s+\S+$/');
 
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("test", "abc123");
         $request->reInitializeRequestData();
 
@@ -309,7 +313,7 @@ class RuleTest extends TestCase
 
     public function test_request_errors(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("email", "testemail.com");
         $request->setInput("password", "pass");
@@ -320,7 +324,7 @@ class RuleTest extends TestCase
 
     public function test_nullable_passing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("full_name", "John Doe");
         $request->setInput("last_name", "");
@@ -335,7 +339,7 @@ class RuleTest extends TestCase
 
     public function test_nullable_failing(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("full_name", "John Doe");
         $request->setInput("last_name", "1234");
@@ -350,7 +354,7 @@ class RuleTest extends TestCase
 
     public function test_message_translator(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("min_test", "John");
         $request->setInput("max_test", "123456789123456789");
@@ -377,7 +381,7 @@ class RuleTest extends TestCase
 
     public function test_error_message_overriding_local(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "John");
 
         $request->reInitializeRequestData();
@@ -389,7 +393,7 @@ class RuleTest extends TestCase
 
     public function test_error_message_overriding_global(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "John");
         $request->reInitializeRequestData();
 
@@ -404,7 +408,7 @@ class RuleTest extends TestCase
 
     public function test_nullable_with_failing_value(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "John");
         $request->reInitializeRequestData();
 
@@ -420,7 +424,7 @@ class RuleTest extends TestCase
 
     public function test_nullable_with_passing_value(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->setInput("first_name", "John Smith");
 
         $request->reInitializeRequestData();
@@ -433,7 +437,7 @@ class RuleTest extends TestCase
 
     public function test_nullable_with_null(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
         $request->reInitializeRequestData();
 
         $this->assertTrue($request->validate([
@@ -443,7 +447,7 @@ class RuleTest extends TestCase
 
     public function test_array_with_invalid_dataset(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("values", ["f1rstname"=>"John","l2stname"=>"Smith"]);
 
@@ -453,7 +457,7 @@ class RuleTest extends TestCase
 
     public function test_array_with_valid_dataset(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("values", ["first_name"=>"John","last_name"=>"Smith"]);
 
@@ -462,11 +466,69 @@ class RuleTest extends TestCase
 
     public function test_array_with_mixed_dataset(): void
     {
-        $request = Faker::request();
+        $request = new TestDataBuilder();
 
         $request->setInput("values", ["first_name"=>"John","last_name"=>"Smith","username"=>"John Smith"]);
 
         $this->assertFalse($request->validate(ArrayRule::class));
+    }
+
+    public function test_context_rule_passing(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        $errors = Rule::validateRequest($request, ContextRule::class);
+
+        $this->assertEmpty($errors);
+        // The rule stored 'name' into the request context during validation.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_failing(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'Jane',
+        ]);
+
+        $errors = Rule::validateRequest($request, ContextRule::class);
+
+        $this->assertCount(1, $errors);
+        $this->assertArrayHasKey('confirm', $errors);
+        // Even on failure, the earlier rule's context write is preserved.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_edits_request_by_reference(): void
+    {
+        $request = ServerRequest::create('POST', '/submit', body: [
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        Rule::validateRequest($request, ContextRule::class);
+
+        // setCallingRequest() binds by reference, so the caller's variable
+        // must reflect the context written during validation.
+        $this->assertSame('John', $request->getContext('name'));
+    }
+
+    public function test_context_rule_without_request_returns_default(): void
+    {
+        // No request is attached, so getContext() must fall back to its default.
+        $rule = new ContextRule();
+
+        $errors = $rule->validate([
+            'name' => 'John',
+            'confirm' => 'John',
+        ]);
+
+        // 'confirm' reads a missing context key -> default null, so it fails.
+        $this->assertCount(1, $errors);
+        $this->assertArrayHasKey('confirm', $errors);
     }
 
 }

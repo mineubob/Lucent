@@ -6,6 +6,7 @@ use Exception;
 use Lucent\Database\DatabaseInterface;
 use Lucent\Database\Drivers\PDODriver;
 use Psr\Log\LoggerInterface;
+use Psr\SimpleCache\CacheInterface;
 
 class Database
 {
@@ -48,6 +49,17 @@ class Database
 
     private static ?LoggerInterface $logger = null;
 
+    /**
+     * The query cache store, or null when query caching is disabled.
+     *
+     * When set, SELECT results are cached and re-hydrated on subsequent
+     * identical queries. Owned by the application and injected here so the
+     * ORM never constructs a cache driver itself.
+     *
+     * @var CacheInterface|null
+     */
+    private static ?CacheInterface $queryCache = null;
+
 
     /**
      * Configure the database layer with environment variables.
@@ -63,6 +75,13 @@ class Database
         self::$env = $env;
     }
 
+    /**
+     * Read a value from the configured environment.
+     *
+     * @param string $key The environment key
+     * @param mixed $default Default value if the key is not set
+     * @return mixed The environment value, or $default on a miss
+     */
     public static function env(string $key, mixed $default = null): mixed
     {
         return isset(self::$env[$key]) ? trim(self::$env[$key]) : $default;
@@ -326,6 +345,26 @@ class Database
      */
     public static function select(string $query, bool $fetchAll = true, array $args = []): ?array
     {
+        // Query caching is opt-in: when no store is set, run the query
+        // directly. When a store is set, cache the raw result rows keyed by
+        // the query, bindings and fetch mode, and re-hydrate on a hit.
+        $cache = self::$queryCache;
+        if ($cache !== null) {
+            // PSR-16 keys are limited to 64 chars, so hash the full key.
+            $key = hash('sha256', $query . '|' . json_encode($args) . '|' . ($fetchAll ? 'all' : 'one'));
+
+            // Treat "key exists" as a hit, even when the cached value is
+            // null (a query with no results), so we don't re-run the query.
+            if ($cache->has($key)) {
+                return $cache->get($key);
+            }
+
+            $result = self::getInstance()->select($query, $fetchAll, $args);
+            $cache->set($key, $result);
+
+            return $result;
+        }
+
         return self::getInstance()->select($query, $fetchAll, $args);
     }
 
@@ -445,6 +484,7 @@ class Database
 
         self::$connections = [];
         self::$activeConnection = 'default';
+        self::$queryCache = null;
     }
 
     public static function registerDatabaseDriver(string $key, string $driverClass): void
@@ -455,6 +495,30 @@ class Database
     public static function setLogger(LoggerInterface $logger): void
     {
         self::$logger = $logger;
+    }
+
+    /**
+     * Set the query cache store.
+     *
+     * When a store is provided, SELECT results are cached and re-hydrated on
+     * subsequent identical queries. Pass null to disable query caching.
+     *
+     * @param CacheInterface|null $cache The query cache store, or null to disable
+     * @return void
+     */
+    public static function setQueryCache(?CacheInterface $cache): void
+    {
+        self::$queryCache = $cache;
+    }
+
+    /**
+     * Get the query cache store, or null when query caching is disabled.
+     *
+     * @return CacheInterface|null The query cache store, or null when disabled
+     */
+    public static function queryCache(): ?CacheInterface
+    {
+        return self::$queryCache;
     }
 
     public static function log(string $level, string|\Stringable $message, array $context = []): void

@@ -57,7 +57,103 @@ To run these commands, use the `vendor/bin/lucent` binary in your project root:
 vendor/bin/lucent migration make App/Models/User
 ```
 
-## Creating Custom Commands
+### The `serve` Command
+
+`serve` starts the PHP built-in development server. It uses a **router script** so every request is forwarded through Lucent — meaning routes like `/users` work instead of returning a 404 — while existing static files are still served directly.
+
+```bash
+vendor/bin/lucent serve
+```
+
+All values are configurable. Precedence is **CLI option > env var > default**:
+
+| CLI option | Env var | Default | Description |
+|------------|---------|---------|-------------|
+| `--port` | `SERVER_PORT` | `8080` | Port to bind |
+| `--host` | `SERVER_HOST` | `127.0.0.1` | Host/interface to bind |
+| `--docroot` | `SERVER_DOCROOT` | `public` | Document root (relative to project root) |
+| `--router` | `SERVER_ROUTER` | *(bundled)* | Router script path (relative to project root) |
+| `--tries` | `SERVER_TRIES` | `10` | Max ports to try if the requested one is busy |
+| `--no-restart` | `SERVER_NO_RESTART` | `false` | Disable auto-restart when `.env` changes |
+
+```bash
+# CLI options
+vendor/bin/lucent serve --port=9000 --host=127.0.0.1
+vendor/bin/lucent serve --no-restart
+
+# Or via .env
+# SERVER_PORT=9000
+# SERVER_HOST=127.0.0.1
+# SERVER_NO_RESTART=true
+```
+
+### The router script
+
+`serve` uses a router script to decide how each request is handled. The router is selected in this order:
+
+1. **A `server.php` in your project root**, if present — this is the recommended way to customise routing (e.g. SPA-shell fallback).
+2. **The `--router` option / `SERVER_ROUTER` env var**, if set.
+3. **The bundled router shipped with Lucent** — the default.
+
+The bundled router serves existing static files directly (returning `false` hands control back to the server) and forwards everything else to your `public/index.php`:
+
+```php
+<?php
+$publicPath = getcwd(); // the document root (serve runs with CWD = docroot)
+$uri = urldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/');
+
+if ($uri !== '/' && file_exists($publicPath . $uri)) {
+    return false; // serve the static file directly
+}
+
+// PHP's built-in server only logs requests it serves itself (static files).
+// Requests handled by the router are logged here so framework routes are
+// visible in the terminal.
+$formattedDateTime = date('D M j H:i:s Y');
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$remoteAddress = ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1') . ':' . ($_SERVER['REMOTE_PORT'] ?? '');
+file_put_contents('php://stdout', "[$formattedDateTime] $remoteAddress [$requestMethod] URI: $uri\n");
+
+require_once $publicPath . '/index.php'; // forward everything else to Lucent
+```
+
+### Request logging
+
+`serve` logs every request to the terminal. Static files are logged by PHP's built-in server (e.g. `[200]: GET /style.css`), and framework routes are logged by the router (e.g. `[GET] URI: /users`).
+
+### Customising the router (e.g. SPA-shell fallback)
+
+If your app needs custom routing — such as serving an SPA shell for non-API routes — you have two options:
+
+- **Publish a `server.php`** to your project root. It runs with the document root as its working directory, so use `getcwd()` to resolve paths. For example, an SPA shell:
+
+  ```php
+  <?php
+  $publicPath = getcwd();
+  $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
+
+  if (!str_starts_with($path, '/api')) {
+      $file = $publicPath . $path;
+      if (is_file($file)) return false; // serve the real file
+
+      // No file → serve the SPA shell so client-side routing works
+      header('Content-Type: text/html');
+      readfile($publicPath . '/index.html');
+      return true; // tell cli-server to use our output
+  }
+
+  require_once $publicPath . '/index.php';
+  ```
+
+- **Or pass `--router=public/index.php`** (or set `SERVER_ROUTER`) to use your front controller as the router, with your SPA logic at the top of `index.php`.
+
+### Auto-restart on `.env` changes
+
+By default, `serve` watches `.env` and **restarts the server automatically** when it changes, so new environment values take effect without you manually restarting. This mirrors Laravel's behavior. Disable it with `--no-restart` (or `SERVER_NO_RESTART=true`).
+
+### Port auto-increment
+
+If the requested port is already in use, `serve` automatically tries the next port up to `--tries` times (default 10), mirroring Laravel. This only applies when the port wasn't explicitly set.
 
 ### Command Structure
 

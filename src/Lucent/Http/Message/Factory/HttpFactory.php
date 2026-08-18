@@ -70,7 +70,11 @@ final class HttpFactory implements
      */
     public function createServerRequest(string $method, $uri, array $serverParams = []): ServerRequestInterface
     {
-        return new ServerRequest($method, $uri instanceof UriInterface ? $uri : Uri::fromString((string) $uri), $serverParams);
+        return ServerRequest::create(
+            $method,
+            $uri instanceof UriInterface ? $uri : (string) $uri,
+            server: $serverParams
+        );
     }
 
     // ─── StreamFactoryInterface ─────────────────────────────────────────

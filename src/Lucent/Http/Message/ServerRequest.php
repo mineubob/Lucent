@@ -15,11 +15,11 @@ use Psr\Http\Message\UriInterface;
  * Lucent-specific data (routeInfo, urlVars, context) is stored as
  * attributes, which is the PSR-7-sanctioned extension mechanism.
  *
- * Factory: ServerRequest::fromGlobals() replaces the old Request::__construct().
+ * Factory: ServerRequest::capture() reads from PHP superglobals (production).
+ * ServerRequest::create() builds from explicit values (testing/fabrication).
  *
- * @final This class should not be extended in production code.
- *        Use PSR-7 attributes for extension instead. For testing, a
- *        FakeServerRequest subclass is available in Lucent\Faker.
+ * @final This class should not be extended. Use ServerRequest::create()
+ *        for testing/fabrication and ServerRequest::capture() for production.
  */
 class ServerRequest extends AbstractMessage implements ServerRequestInterface
 {
@@ -50,7 +50,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /** @var string|null Request target */
     private ?string $requestTarget = null;
 
-    public function __construct(
+    private function __construct(
         string $method = 'GET',
         ?UriInterface $uri = null,
         array $serverParams = [],
@@ -72,63 +72,133 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     // ─── Static Factory ─────────────────────────────────────────────────
 
     /**
-     * Create a ServerRequest from PHP superglobals.
+     * Capture the incoming HTTP request from PHP superglobals.
      *
-     * Replaces the logic in old Lucent\Http\Request::__construct().
+     * This is the production entry point — reads from $_SERVER, $_GET,
+     * $_POST, $_COOKIE, $_FILES, and php://input. Takes no arguments.
      *
-     * @param array|null $server $_SERVER (defaults to $_SERVER)
-     * @param array|null $query $_GET (defaults to $_GET)
-     * @param array|null $body $_POST (defaults to $_POST)
-     * @param array|null $cookies $_COOKIE (defaults to $_COOKIE)
-     * @param array|null $files $_FILES (defaults to $_FILES, converted to UploadedFileInterface[])
+     * For tests, use {@see create()} to build a request from explicit
+     * values instead of relying on global state.
+     *
+     * @return self
      */
-    public static function fromGlobals(
-        ?array $server = null,
-        ?array $query = null,
-        ?array $body = null,
-        ?array $cookies = null,
-        ?array $files = null,
-    ): self {
-        $server = $server ?? $_SERVER;
-        $method = strtoupper($server['REQUEST_METHOD'] ?? 'GET');
-        $uri = Uri::fromGlobals($server);
+    public static function capture(): self
+    {
+        $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+        $uri = Uri::fromServer($_SERVER);
 
-        $request = new self($method, $uri, $server);
+        $request = new self($method, $uri, $_SERVER);
 
-        // Query params
-        $request->queryParams = $query ?? $_GET;
+        $request->queryParams = $_GET;
+        $request->cookieParams = $_COOKIE;
+        $request->uploadedFiles = self::normalizeUploadedFiles($_FILES);
+        $request->setHeaders(self::extractHeaders($_SERVER));
 
-        // Cookie params
-        $request->cookieParams = $cookies ?? $_COOKIE;
+        // One mutable context bag per request, shared by every copy of the
+        // request (see getContext()/withContext()).
+        $request->attributes['context'] = new RequestContext();
 
-        // Uploaded files — convert $_FILES to UploadedFileInterface[]
-        $request->uploadedFiles = self::normalizeUploadedFiles($files ?? $_FILES);
-
-        // Headers
-        $request->setHeaders(self::extractHeaders($server));
-
-        // Body — read php://input once
+        // Body — read php://input once (only meaningful in a real request)
         $rawBody = file_get_contents('php://input');
         $request->setBody(Stream::fromString($rawBody !== false ? $rawBody : ''));
 
-        $contentType = $server['CONTENT_TYPE'] ?? '';
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
         if (str_contains($contentType, 'application/json') && $rawBody !== false && $rawBody !== '') {
             $decoded = json_decode($rawBody, true);
             if (is_array($decoded)) {
                 $request->parsedBody = $decoded;
             }
-        } elseif ($body !== null) {
-            $request->parsedBody = $body;
         } else {
             $request->parsedBody = $_POST;
         }
 
-        // Protocol version
-        if (isset($server['SERVER_PROTOCOL'])) {
-            $version = $server['SERVER_PROTOCOL'];
+        if (isset($_SERVER['SERVER_PROTOCOL'])) {
+            $version = $_SERVER['SERVER_PROTOCOL'];
             if (preg_match('#^HTTP/(\d+\.\d+)$#', $version, $matches)) {
                 $request->withProtocolVersionInternal($matches[1]);
             }
+        }
+
+        return $request;
+    }
+
+    /**
+     * Create a ServerRequest from explicit values.
+     *
+     * Builds a request from a method, URI, and
+     * optional parameters without touching global
+     * state.
+     *
+     * The URI should be the path only (e.g. '/users/42'). If a query string
+     * is included in the URI (e.g. '/search?q=test'), it is parsed and
+     * merged with the $query parameter.
+     *
+     * @param string $method       HTTP method (GET, POST, etc.)
+     * @param string|UriInterface $uri  URI path string or object (defaults to '/')
+     * @param array $query         Query string parameters
+     * @param array $body          Parsed body parameters
+     * @param array $cookies       Cookie parameters
+     * @param array $files         Uploaded files as $_FILES-style array
+     * @param array $headers       Headers as [name => value, ...] or [name => [value, ...]]
+     * @param array $server        Server parameters ($_SERVER-style)
+     * @return self
+     */
+    public static function create(
+        string $method = 'GET',
+        string|UriInterface $uri = '/',
+        array $query = [],
+        array $body = [],
+        array $cookies = [],
+        array $files = [],
+        array $headers = [],
+        array $server = [],
+    ): self {
+        $method = strtoupper($method);
+        $uriObject = $uri instanceof UriInterface ? $uri : Uri::fromString($uri);
+
+        // If the URI has a query string, parse it and merge with $query
+        // (explicit $query params take precedence)
+        $uriQuery = $uriObject->getQuery();
+        if ($uriQuery !== '') {
+            parse_str($uriQuery, $parsedQuery);
+            $query = array_merge($parsedQuery, $query);
+            // Strip the query from the URI so getRequestTarget() uses
+            // queryParams consistently
+            $uriObject = $uriObject->withQuery('');
+        }
+
+        // Build minimal $_SERVER-style array if not provided
+        $server = array_merge([
+            'REQUEST_METHOD' => $method,
+            'REQUEST_URI' => $uriObject->getPath() ?: '/',
+            'SERVER_PROTOCOL' => 'HTTP/1.1',
+            'HTTP_HOST' => $uriObject->getHost() ?: 'localhost',
+        ], $server);
+
+        $request = new self($method, $uriObject, $server);
+
+        $request->queryParams = $query;
+        $request->cookieParams = $cookies;
+        $request->uploadedFiles = self::normalizeUploadedFiles($files);
+
+        // One mutable context bag per request, shared by every copy of the
+        // request (see getContext()/withContext()).
+        $request->attributes['context'] = new RequestContext();
+
+        // Apply explicit headers (overrides anything extracted from $server)
+        $request->setHeaders(self::extractHeaders($server));
+        foreach ($headers as $name => $value) {
+            $request->withHeaderInternal($name, is_array($value) ? $value : [$value]);
+        }
+
+        // Body — no php://input in tests, use $body directly
+        // null when no body provided (matches PSR-7 convention for "no body")
+        $request->parsedBody = $body !== [] ? $body : null;
+
+        // Set Content-Type if body is present and no Content-Type was given
+        // (header names are case-insensitive, so use hasHeader())
+        if ($body !== [] && !$request->hasHeader('Content-Type')) {
+            $request->withHeaderInternal('Content-Type', ['application/x-www-form-urlencoded']);
         }
 
         return $request;
@@ -310,6 +380,13 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         return $this->attributes;
     }
 
+    /**
+     * Get a single PSR-7 attribute by name.
+     *
+     * @param string $name The attribute name
+     * @param mixed $default Default value if the attribute is not set
+     * @return mixed The attribute value, or $default on a miss
+     */
     public function getAttribute(string $name, $default = null): mixed
     {
         return array_key_exists($name, $this->attributes) ? $this->attributes[$name] : $default;
@@ -372,8 +449,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /**
      * Get a value from the request context.
      *
-     * Context is stored as a PSR-7 attribute (array) and can be set
-     * by validation rules (via withContext()) or middleware.
+     * Context lives in a mutable {@see RequestContext} bag attached to the
+     * request, so it can be written by validation rules (via withContext())
+     * or middleware and read back anywhere that holds the same request.
      *
      * @param string $key The context key
      * @param mixed $default Default value if key not found
@@ -381,15 +459,16 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      */
     public function getContext(string $key, mixed $default = null): mixed
     {
-        $context = $this->getAttribute('context', []);
-        return $context[$key] ?? $default;
+        $context = RequestContext::fromRequest($this);
+        return $context !== null ? $context->get($key, $default) : $default;
     }
 
     /**
      * Set a value in the request context.
      *
-     * Context is stored as a PSR-7 attribute (array) and can be read
-     * back via getContext(). Returns a new instance (PSR-7 immutable).
+     * Mutates the shared {@see RequestContext} bag in place, so the write is
+     * visible to every copy of the request (no clone needed). Returns $this
+     * for chaining.
      *
      * @param string $key The context key
      * @param mixed $value The value to store
@@ -397,9 +476,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      */
     public function withContext(string $key, mixed $value): static
     {
-        $context = $this->getAttribute('context', []);
-        $context[$key] = $value;
-        return $this->withAttribute('context', $context);
+        RequestContext::fromRequest($this)?->set($key, $value);
+        return $this;
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────

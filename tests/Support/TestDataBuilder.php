@@ -1,71 +1,24 @@
 <?php
 
-namespace Lucent\Faker;
+namespace Tests\Support;
 
-use Lucent\Http\Message\ServerRequest;
-use Psr\Http\Message\UriInterface;
+use Lucent\Validation\Rule;
 
 /**
- * Fake PSR-7 ServerRequest for testing and documentation generation.
+ * Builds test data for validation tests.
  *
- * Wraps ServerRequest with a mutable fake data layer,
- * mirroring the pattern of FakeRequest for the new PSR-7 API.
- *
- * @method FakeServerRequest setInput(string $key, mixed $value)
- * @method array all()
+ * Replaces the old FakeServerRequest's validation-specific methods
+ * (setInput, all, input, validate, getValidationErrors, passing, failing).
+ * This is a pure data builder — it does not extend ServerRequest.
+ * For request fabrication in tests, use ServerRequest::create().
  */
-final class FakeServerRequest extends ServerRequest
+class TestDataBuilder
 {
-    private array $fakeData = [];
+    /** @var array<string, mixed> */
+    private array $data = [];
 
-    /**
-     * Create a new FakeServerRequest.
-     *
-     * @param string $method  HTTP method
-     * @param string|UriInterface|null $uri  URI string or object
-     * @param array $serverParams  Server parameters
-     * @param array $queryParams  Query parameters
-     * @param array $body  Parsed body parameters
-     * @param array $cookies  Cookie parameters
-     * @param array $headers  Headers as [name => value, ...]
-     */
-    public function __construct(
-        string $method = 'GET',
-        UriInterface|string|null $uri = null,
-        array $serverParams = [],
-        array $queryParams = [],
-        array $body = [],
-        array $cookies = [],
-        array $headers = [],
-    ) {
-        $uriString = is_string($uri) ? $uri : null;
-        $uriObject = $uri instanceof UriInterface ? $uri : null;
-        parent::__construct($method, $uriObject ?? \Lucent\Http\Message\Uri::fromString($uriString ?? '/'), $serverParams);
-
-        $this->fakeData = $body;
-
-        if ($queryParams !== []) {
-            $this->queryParams = $queryParams;
-        }
-
-        if ($cookies !== []) {
-            $this->cookieParams = $cookies;
-        }
-
-        foreach ($headers as $name => $value) {
-            $this->withHeaderInternal($name, is_array($value) ? $value : [$value]);
-        }
-    }
-
-    /**
-     * Get all input data (fake data, then parsed body, then query params).
-     *
-     * @return array
-     */
-    public function all(): array
-    {
-        return $this->fakeData ?: ($this->getParsedBody() ?? $this->getQueryParams());
-    }
+    /** @var array<string, string> Validation errors from the most recent validation */
+    private array $validationErrors = [];
 
     /**
      * Set a single input value.
@@ -76,8 +29,18 @@ final class FakeServerRequest extends ServerRequest
      */
     public function setInput(string $key, mixed $value): self
     {
-        $this->fakeData[$key] = $value;
+        $this->data[$key] = $value;
         return $this;
+    }
+
+    /**
+     * Get all input data.
+     *
+     * @return array<string, mixed>
+     */
+    public function all(): array
+    {
+        return $this->data;
     }
 
     /**
@@ -89,7 +52,7 @@ final class FakeServerRequest extends ServerRequest
      */
     public function input(string $key, mixed $default = null): mixed
     {
-        return $this->fakeData[$key] ?? $default;
+        return $this->data[$key] ?? $default;
     }
 
     /**
@@ -102,38 +65,31 @@ final class FakeServerRequest extends ServerRequest
     }
 
     /**
-     * Validation errors from the most recent validation.
+     * Validate the data against rules.
      *
-     * @var array<string, string>
-     */
-    private array $validationErrors = [];
-
-    /**
-     * Validate the fake data against rules.
-     *
-     * @param \Lucent\Validation\Rule|string|array $rules
+     * @param Rule|string|array $rules
      * @return bool
      */
-    public function validate(\Lucent\Validation\Rule|string|array $rules): bool
+    public function validate(Rule|string|array $rules): bool
     {
-        $this->validationErrors = \Lucent\Validation\Rule::validateData($this->fakeData, $rules);
+        $this->validationErrors = Rule::validateData($this->data, $rules);
         return $this->validationErrors === [];
     }
 
     /**
      * Get validation errors from the most recent validation.
      *
-     * @return array
+     * @return array<string, string>
      */
     public function getValidationErrors(): array
     {
         return $this->validationErrors;
     }
 
-    // ─── FakeRequest-compatible API ─────────────────────────────────────
+    // ─── Auto-generated test data ───────────────────────────────────────
 
     /**
-     * Generate passing validation data.
+     * Generate passing validation data for a rule class.
      *
      * @param string $ruleClass
      * @return $this
@@ -141,21 +97,21 @@ final class FakeServerRequest extends ServerRequest
     public function passing(string $ruleClass): self
     {
         $ruleInstance = new $ruleClass();
-        $this->fakeData = [];
+        $this->data = [];
 
         $rules = $ruleInstance->setup();
 
         // First pass: handle all non-dependent fields
         foreach ($rules as $field => $fieldRules) {
             if (!$this->hasDependentRule((array) $fieldRules)) {
-                $this->fakeData[$field] = $this->generateValidValue($field, (array) $fieldRules);
+                $this->data[$field] = $this->generateValidValue($field, (array) $fieldRules);
             }
         }
 
         // Second pass: handle dependent rules like 'same'
         foreach ($rules as $field => $fieldRules) {
             if ($this->hasDependentRule((array) $fieldRules)) {
-                $this->fakeData[$field] = $this->handleDependentRules($field, (array) $fieldRules);
+                $this->data[$field] = $this->handleDependentRules($field, (array) $fieldRules);
             }
         }
 
@@ -163,7 +119,7 @@ final class FakeServerRequest extends ServerRequest
     }
 
     /**
-     * Generate failing validation data.
+     * Generate failing validation data for a rule class.
      *
      * @param string $ruleClass
      * @return $this
@@ -171,18 +127,18 @@ final class FakeServerRequest extends ServerRequest
     public function failing(string $ruleClass): self
     {
         $ruleInstance = new $ruleClass();
-        $this->fakeData = [];
+        $this->data = [];
 
         $rules = $ruleInstance->setup();
 
         foreach ($rules as $field => $fieldRules) {
-            $this->fakeData[$field] = $this->generateInvalidValue($field, (array) $fieldRules);
+            $this->data[$field] = $this->generateInvalidValue($field, (array) $fieldRules);
         }
 
         return $this;
     }
 
-    // ─── Internal helpers (mirrored from FakeRequest) ───────────────────
+    // ─── Internal helpers ───────────────────────────────────────────────
 
     private function hasDependentRule(array $rules): bool
     {
@@ -209,7 +165,7 @@ final class FakeServerRequest extends ServerRequest
             [$ruleName, $param] = array_pad(explode(':', $rule), 2, '');
 
             if ($ruleName === 'same') {
-                return $this->fakeData[$param] ?? '';
+                return $this->data[$param] ?? '';
             }
         }
         return '';

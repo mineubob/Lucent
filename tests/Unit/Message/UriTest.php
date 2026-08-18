@@ -158,7 +158,7 @@ class UriTest extends TestCase
             'REQUEST_URI' => '/path?q=1',
         ];
 
-        $uri = Uri::fromGlobals($server);
+        $uri = Uri::fromServer($server);
         $this->assertSame('https', $uri->getScheme());
         $this->assertSame('example.com', $uri->getHost());
         $this->assertSame('/path', $uri->getPath());
@@ -173,14 +173,14 @@ class UriTest extends TestCase
             'REQUEST_URI' => '/',
         ];
 
-        $uri = Uri::fromGlobals($server);
+        $uri = Uri::fromServer($server);
         $this->assertSame('http', $uri->getScheme());
         $this->assertSame('', $uri->getQuery());
     }
 
     public function test_from_globals_handles_no_host(): void
     {
-        $uri = Uri::fromGlobals([]);
+        $uri = Uri::fromServer([]);
         $this->assertSame('', $uri->getHost());
         $this->assertSame('/', $uri->getPath());
         $this->assertSame('', $uri->getQuery());

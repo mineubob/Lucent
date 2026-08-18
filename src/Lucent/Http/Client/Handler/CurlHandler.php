@@ -6,16 +6,17 @@ use Lucent\Facades\Log;
 use Lucent\Http\Client\Exception\NetworkException;
 use Lucent\Http\Client\Exception\RequestException;
 use Lucent\Http\Client\Handler\Concerns\HandlesResponseBodies;
+use Lucent\Http\Client\Client;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * cURL-backed transport handler — the default handler for HttpClient.
+ * cURL-backed transport handler — the default handler for Client.
  *
  * This handler uses cURL and buffers the full response body before returning
  * (via a WRITEFUNCTION into a sink). It accepts the `stream => true` option
  * but does NOT stream incrementally — the body is still fully downloaded
- * before send() returns (like Guzzle's cURL handler). Use the StreamHandler
+ * before send() returns. Use the StreamHandler
  * for true incremental streaming.
  */
 final class CurlHandler implements HandlerInterface
@@ -70,7 +71,7 @@ final class CurlHandler implements HandlerInterface
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 10,
             CURLOPT_TIMEOUT => $options['timeout'] ?? 30,
-            CURLOPT_USERAGENT => $options['user_agent'],
+            CURLOPT_USERAGENT => $options['user_agent'] ?? Client::defaultUserAgent(),
             CURLOPT_SSL_VERIFYPEER => $options['verify_ssl'] ?? true,
             CURLOPT_SSL_VERIFYHOST => ($options['verify_ssl'] ?? true) ? 2 : 0,
         ];

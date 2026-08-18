@@ -2,7 +2,7 @@
 
 # Error Handling
 
-Lucent provides a layered error handling system that covers HTTP errors, debug information, custom error pages, and fallback responses.
+Lucent provides a layered error handling system that covers HTTP errors, debug information, exception render callbacks, custom error pages, and fallback responses.
 
 ## How Errors Are Handled
 
@@ -38,6 +38,22 @@ When debug is enabled and an error occurs, the response will include an `errors.
 ```
 
 In production (`DEBUG` unset or `false`), the `errors` block is omitted entirely and only the safe generic message is returned.
+
+## Exception Render Callbacks
+
+For programmatic, type-driven error handling you can register render callbacks on the shared exception manager. Each callback is dispatched by the type-hint of its first parameter, and the first callback to return a `ResponseInterface` wins. A callback that returns `null` falls through to the next callback, then to the framework default.
+
+```php
+use Lucent\Facades\App;
+use Lucent\Http\Exceptions\HttpException;
+
+App::exceptions()->render(function (HttpException $e) {
+    // Return a Response for any HttpException, or null to fall through.
+    return null;
+});
+```
+
+Render callbacks take priority over every other error mechanism below.
 
 ## Custom Error Pages
 
@@ -94,9 +110,10 @@ The fallback only applies to 404 (route not found) responses. It does not affect
 
 When an error occurs, Lucent resolves the response in this order:
 
-1. **Registered error page** — `Route::error($code, $response)` for the matching status code
-2. **Fallback response** — `Route::fallback($response)` for 404s only
-3. **Default JSON response** — with debug info if `DEBUG=true`, otherwise the generic message
+1. **Exception render callback** — the first `Exceptions::render()` callback whose type-hint matches the thrown exception and returns a `ResponseInterface`
+2. **Registered error page** — `Route::error($code, $response)` for the matching status code
+3. **Fallback response** — `Route::fallback($response)` for 404s only
+4. **Default JSON response** — with debug info if `DEBUG=true`, otherwise the generic message
 
 ## Throwing HTTP Exceptions
 

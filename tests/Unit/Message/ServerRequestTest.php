@@ -10,7 +10,7 @@ class ServerRequestTest extends TestCase
 {
     public function test_default_constructor(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertSame('GET', $request->getMethod());
         $this->assertSame('/', $request->getRequestTarget());
         $this->assertSame('1.1', $request->getProtocolVersion());
@@ -18,8 +18,7 @@ class ServerRequestTest extends TestCase
 
     public function test_constructor_with_method_and_uri(): void
     {
-        $uri = Uri::fromString('https://example.com/test');
-        $request = new ServerRequest('POST', $uri);
+        $request = ServerRequest::create('POST', 'https://example.com/test');
 
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('/test', $request->getRequestTarget());
@@ -27,13 +26,13 @@ class ServerRequestTest extends TestCase
 
     public function test_get_server_params(): void
     {
-        $request = new ServerRequest('GET', null, ['REQUEST_METHOD' => 'GET']);
-        $this->assertSame(['REQUEST_METHOD' => 'GET'], $request->getServerParams());
+        $request = ServerRequest::create('GET', '/', server: ['REQUEST_METHOD' => 'GET']);
+        $this->assertSame(['REQUEST_METHOD' => 'GET', 'REQUEST_URI' => '/', 'SERVER_PROTOCOL' => 'HTTP/1.1', 'HTTP_HOST' => 'localhost'], $request->getServerParams());
     }
 
     public function test_with_method(): void
     {
-        $request = new ServerRequest('GET');
+        $request = ServerRequest::create('GET');
         $new = $request->withMethod('POST');
 
         $this->assertSame('GET', $request->getMethod());
@@ -42,7 +41,7 @@ class ServerRequestTest extends TestCase
 
     public function test_with_uri(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $uri = Uri::fromString('https://example.com/new');
         $new = $request->withUri($uri);
 
@@ -53,14 +52,14 @@ class ServerRequestTest extends TestCase
     public function test_with_uri_updates_host_header(): void
     {
         $uri = Uri::fromString('https://example.com/path');
-        $request = (new ServerRequest())->withUri($uri);
+        $request = ServerRequest::create()->withUri($uri);
 
         $this->assertSame('example.com', $request->getHeaderLine('Host'));
     }
 
     public function test_cookie_params(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $new = $request->withCookieParams(['session' => 'abc123']);
 
         $this->assertSame([], $request->getCookieParams());
@@ -69,7 +68,7 @@ class ServerRequestTest extends TestCase
 
     public function test_query_params(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $new = $request->withQueryParams(['page' => '1']);
 
         $this->assertSame([], $request->getQueryParams());
@@ -78,7 +77,7 @@ class ServerRequestTest extends TestCase
 
     public function test_parsed_body(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $new = $request->withParsedBody(['field' => 'value']);
 
         $this->assertNull($request->getParsedBody());
@@ -88,18 +87,18 @@ class ServerRequestTest extends TestCase
     public function test_parsed_body_rejects_invalid_type(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        (new ServerRequest())->withParsedBody('invalid string');
+        ServerRequest::create()->withParsedBody('invalid string');
     }
 
     public function test_uploaded_files(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertSame([], $request->getUploadedFiles());
     }
 
     public function test_attributes(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $new = $request->withAttribute('key', 'value');
 
         $this->assertNull($request->getAttribute('key'));
@@ -108,13 +107,13 @@ class ServerRequestTest extends TestCase
 
     public function test_get_attribute_default(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertSame('default', $request->getAttribute('nonexistent', 'default'));
     }
 
     public function test_without_attribute(): void
     {
-        $request = (new ServerRequest())->withAttribute('key', 'value');
+        $request = ServerRequest::create()->withAttribute('key', 'value');
         $new = $request->withoutAttribute('key');
 
         $this->assertSame('value', $request->getAttribute('key'));
@@ -123,38 +122,53 @@ class ServerRequestTest extends TestCase
 
     public function test_get_request_target_defaults_to_slash(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertSame('/', $request->getRequestTarget());
     }
 
     public function test_with_request_target(): void
     {
-        $request = (new ServerRequest())->withRequestTarget('*');
+        $request = ServerRequest::create()->withRequestTarget('*');
         $this->assertSame('*', $request->getRequestTarget());
     }
 
-    public function test_from_globals_creates_request(): void
+    public function test_create_builds_request_from_explicit_values(): void
     {
-        $server = [
-            'REQUEST_METHOD' => 'POST',
-            'HTTP_HOST' => 'example.com',
-            'SERVER_PORT' => '80',
-            'REQUEST_URI' => '/submit?q=1',
-            'CONTENT_TYPE' => 'application/json',
-        ];
-
-        $request = ServerRequest::fromGlobals($server, ['q' => '1'], ['field' => 'value']);
+        $request = ServerRequest::create(
+            'POST',
+            '/submit',
+            query: ['q' => '1'],
+            body: ['field' => 'value'],
+            headers: ['Host' => 'example.com'],
+        );
 
         $this->assertSame('POST', $request->getMethod());
         $this->assertSame('example.com', $request->getHeaderLine('Host'));
-        $this->assertSame('/submit?q=1', $request->getRequestTarget());
+        $this->assertSame('/submit', $request->getRequestTarget());
         $this->assertSame(['field' => 'value'], $request->getParsedBody());
         $this->assertSame(['q' => '1'], $request->getQueryParams());
     }
 
+    public function test_create_parses_query_string_from_uri(): void
+    {
+        // If a query string is in the URI, it's parsed and merged with $query
+        $request = ServerRequest::create('GET', '/search?q=test&page=1');
+
+        $this->assertSame('/search', $request->getRequestTarget());
+        $this->assertSame(['q' => 'test', 'page' => '1'], $request->getQueryParams());
+    }
+
+    public function test_create_explicit_query_overrides_uri_query(): void
+    {
+        // Explicit $query params take precedence over URI query string
+        $request = ServerRequest::create('GET', '/search?q=from_uri', query: ['q' => 'from_param']);
+
+        $this->assertSame(['q' => 'from_param'], $request->getQueryParams());
+    }
+
     public function test_get_uri_returns_uri_interface(): void
     {
-        $request = new ServerRequest();
+        $request = ServerRequest::create();
         $this->assertInstanceOf(\Psr\Http\Message\UriInterface::class, $request->getUri());
     }
 }
