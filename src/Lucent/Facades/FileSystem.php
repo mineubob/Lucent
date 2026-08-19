@@ -71,6 +71,66 @@ class FileSystem
     }
 
     /**
+     * Normalize a path lexically, resolving `.` and `..` segments.
+     *
+     * This is a pure string operation — it does not touch the filesystem, so
+     * it works for paths that do not exist yet. It preserves the leading
+     * separator for absolute paths, Windows drive-letter prefixes, and keeps
+     * leading `..` segments for relative paths.
+     *
+     * @param string $path The path to normalize
+     * @return string The normalized path
+     */
+    public static function normalizePath(string $path): string
+    {
+        if ($path === '') {
+            return '';
+        }
+
+        // Preserve a Windows drive-letter prefix (e.g. "C:").
+        $prefix = '';
+        if (preg_match('/^[A-Za-z]:/', $path)) {
+            $prefix = substr($path, 0, 2);
+            $path = substr($path, 2);
+        }
+
+        // Preserve whether the path is absolute.
+        $isAbsolute = str_starts_with($path, '/') || str_starts_with($path, '\\');
+        if ($isAbsolute) {
+            $path = ltrim($path, '/\\');
+        }
+
+        $segments = preg_split('/[\/\\\\]+/', $path);
+        $stack = [];
+
+        foreach ($segments as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                if (!empty($stack) && end($stack) !== '..') {
+                    array_pop($stack);
+                } elseif (!$isAbsolute) {
+                    // Preserve leading ".." for relative paths.
+                    $stack[] = '..';
+                }
+                continue;
+            }
+
+            $stack[] = $segment;
+        }
+
+        $result = implode(DIRECTORY_SEPARATOR, $stack);
+
+        if ($isAbsolute) {
+            $result = DIRECTORY_SEPARATOR . $result;
+        }
+
+        return $prefix . $result;
+    }
+
+    /**
      * Determine whether a path is contained within the configured root path.
      *
      * Resolves the path (handling `..` segments and symlinks) and checks it
@@ -82,6 +142,8 @@ class FileSystem
      */
     public static function isWithinRoot(string $path): bool
     {
+        $path = self::normalizePath($path);
+
         $root = realpath(self::$root_path);
         if ($root === false) {
             // Root doesn't exist yet; fall back to a lexical comparison.
@@ -130,7 +192,7 @@ class FileSystem
             $directoryPath = self::rootPath();
         } else {
             $cleanDir = ltrim($directory, DIRECTORY_SEPARATOR);
-            $directoryPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanDir;
+            $directoryPath = self::normalizePath(self::$root_path . DIRECTORY_SEPARATOR . $cleanDir);
         }
 
         // Normalize extensions to array and lowercase if provided
@@ -180,7 +242,7 @@ class FileSystem
         try {
             // Clean the path
             $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
-            $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
+            $fullPath = self::normalizePath(self::$root_path . DIRECTORY_SEPARATOR . $cleanPath);
 
             // Containment guard: reject paths that escape the root.
             if (!self::isWithinRoot($fullPath)) {
@@ -212,7 +274,7 @@ class FileSystem
     {
         // Clean the path
         $cleanPath = ltrim($path, DIRECTORY_SEPARATOR);
-        $fullPath = self::$root_path . DIRECTORY_SEPARATOR . $cleanPath;
+        $fullPath = self::normalizePath(self::$root_path . DIRECTORY_SEPARATOR . $cleanPath);
 
         // Containment guard: reject paths that escape the root.
         if (!self::isWithinRoot($fullPath)) {

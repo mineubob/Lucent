@@ -14,6 +14,7 @@ The Lucent Framework provides a powerful and intuitive API for working with file
     - [Getting Files](#getting-files)
     - [Retrieving a File](#retrieving-a-file)
     - [Creating Files](#creating-files)
+    - [Normalizing Paths](#normalizing-paths)
     - [Formatting File Sizes](#formatting-file-sizes)
 - [The File Class](#the-file-class)
     - [File Properties](#file-properties)
@@ -117,6 +118,24 @@ $file = FileSystem::create('storage/app/data.json', '{"status": "active"}');
 ```
 
 The `create()` method automatically creates any required directories in the path and returns a `File` object for further operations.
+
+### Normalizing Paths
+
+To normalize a path lexically — resolving `.` and `..` segments without touching the filesystem:
+
+```php
+use Lucent\Facades\FileSystem;
+
+// Resolves ".." and collapses "." segments
+$path = FileSystem::normalizePath('/storage/file_test/../test.txt');
+// '/storage/test.txt'
+
+// Works for paths that don't exist yet
+$path = FileSystem::normalizePath('/storage/does/not/exist/../exist/test.txt');
+// '/storage/does/not/exist/test.txt'
+```
+
+`normalizePath()` is a pure string operation, so it works on non-existent paths (unlike `realpath()`). It preserves the leading separator for absolute paths, Windows drive-letter prefixes, and keeps leading `..` segments for relative paths.
 
 ### Formatting File Sizes
 

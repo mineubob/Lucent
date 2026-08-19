@@ -108,7 +108,7 @@ class PDODriver extends DatabaseInterface
                     $path = ltrim($path, DIRECTORY_SEPARATOR);
                 }
 
-                $path = rtrim(FileSystem::rootPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path;
+                $path = FileSystem::normalizePath(rtrim(FileSystem::rootPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path);
 
                 if (!file_exists($path)) {
                     touch($path);

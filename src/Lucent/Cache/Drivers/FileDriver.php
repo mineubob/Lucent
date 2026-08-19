@@ -30,9 +30,11 @@ class FileDriver extends Cache
      */
     public function __construct(string $directory = 'storage/cache')
     {
-        $this->directory = FileSystem::isAbsolute($directory)
-            ? $directory
-            : FileSystem::rootPath() . DIRECTORY_SEPARATOR . $directory;
+        $this->directory = FileSystem::normalizePath(
+            FileSystem::isAbsolute($directory)
+                ? $directory
+                : FileSystem::rootPath() . DIRECTORY_SEPARATOR . $directory
+        );
     }
 
     /**
