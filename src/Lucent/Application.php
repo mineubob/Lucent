@@ -828,6 +828,16 @@ class Application
         }
 
         // Apply model binding for route parameters
+        //
+        // Auto-binding is DISABLED by default: a Model type-hint is not
+        // resolved from the URL, forcing controllers to perform explicit,
+        // scoped lookups. Implicit binding is an unscoped primary-key lookup
+        // with no ownership/tenant check (an IDOR risk), so it must be
+        // opted back in explicitly with MODEL_BINDING=implicit. The rewrite
+        // replaces this with an opt-in #[Bind] attribute
+        // (see docs/restructure-plan.md §15).
+        $autoBind = App::env('MODEL_BINDING', 'explicit') === 'implicit';
+
         foreach ($method->getParameters() as $parameter) {
             $type = $parameter->getType();
             $name = $parameter->getName();
@@ -851,6 +861,12 @@ class Application
 
             // Skip non-model types (services are resolved by call())
             if (!is_subclass_of($typeName, Model::class)) {
+                continue;
+            }
+
+            // In explicit mode, do not auto-bind — leave the Model parameter
+            // for the container to resolve (or the controller to fetch).
+            if (!$autoBind) {
                 continue;
             }
 

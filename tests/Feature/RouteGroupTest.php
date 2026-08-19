@@ -166,6 +166,10 @@ class RouteGroupTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
+        // These tests exercise implicit binding, which is opt-in since the
+        // default flipped to explicit (MODEL_BINDING defaults to explicit).
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
+
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
@@ -184,6 +188,8 @@ class RouteGroupTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
+
         $response = $this->get('/user/object/100');
 
         $this->assertEquals(404, $response->getStatusCode());
@@ -198,6 +204,8 @@ class RouteGroupTest extends TestCase
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
+
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
         $this->assertTrue($user->create());
@@ -208,6 +216,28 @@ class RouteGroupTest extends TestCase
         $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_binding_explicit_mode_disables_auto_binding($driver, $config): void
+    {
+        // Regression test: explicit binding is the DEFAULT. A Model type-hint
+        // is NOT auto-resolved from the URL (no unscoped PK lookup), so the
+        // controller never receives an auto-bound row unless the app opts
+        // back into implicit mode.
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $this->assertTrue($user->create());
+
+        $response = $this->get('/user/object/1');
+        $body = (string) $response->getBody();
+
+        // The auto-bound user must NOT be present. The container cannot
+        // resolve TestUser from the route variable, so the response should
+        // not contain the user's name.
+        $this->assertStringNotContainsString('John Doe', $body);
     }
 
     public function test_invalid_route_file(): void
