@@ -701,7 +701,13 @@ class Container implements ContainerInterface
             \mkdir($dir, 0777, true);
         }
 
-        \file_put_contents($path, '<?php return ' . \var_export($plans, true) . ';');
+        // A marker header lets loadCachedPlans() verify the file was written
+        // by cachePlans() before `require`-ing it, so a tampered or
+        // attacker-written file in the cache dir cannot execute arbitrary PHP.
+        \file_put_contents(
+            $path,
+            '<?php /* lucent-container-plans v1 */ return ' . \var_export($plans, true) . ';'
+        );
     }
 
     /**
@@ -713,6 +719,19 @@ class Container implements ContainerInterface
     public function loadCachedPlans(string $path): void
     {
         if (!\file_exists($path)) {
+            return;
+        }
+
+        // Only load plans written by cachePlans() (identified by the marker
+        // header) and confined to the project root. `require` executes the
+        // file, so a tampered or attacker-written file in the cache dir must
+        // never reach it.
+        $contents = \file_get_contents($path);
+        if ($contents === false || !\str_starts_with($contents, '<?php /* lucent-container-plans v1 */')) {
+            return;
+        }
+
+        if (!\Lucent\Facades\FileSystem::isWithinRoot($path)) {
             return;
         }
 

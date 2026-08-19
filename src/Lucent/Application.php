@@ -464,9 +464,13 @@ class Application
      */
     private function injectQueryCache(): void
     {
-        $enabled = filter_var($this->env['QUERY_CACHE'] ?? false, FILTER_VALIDATE_BOOL);
-
-        Database::setQueryCache($enabled ? $this->queryCache() : null);
+        // Query caching is DISABLED pending the ORM rebuild.
+        // The previous implementation cached raw result rows keyed
+        // only by connection+query, which leaked data
+        // across tenants sharing a connection and had no invalidation. It
+        // will return as an opt-in `->remember($ttl)` on the new Query
+        // Builder. Until then, never auto-enable it from the environment.
+        Database::setQueryCache(null);
     }
 
     /**

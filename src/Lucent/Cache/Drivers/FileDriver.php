@@ -85,7 +85,21 @@ class FileDriver extends Cache
             return $default;
         }
 
-        return unserialize(substr($contents, $separator + 1));
+        // Restrict object instantiation to prevent PHP object injection
+        // (POP-chain RCE) from a tampered or attacker-influenced cache file.
+        // `allowed_classes => false` returns __PHP_Incomplete_Class for any
+        // object in the payload instead of instantiating it, which is safe
+        // for the scalar/array values this cache stores.
+        $value = unserialize(substr($contents, $separator + 1), ['allowed_classes' => false]);
+
+        // A value that unserialized to an incomplete class is untrusted —
+        // treat it as a cache miss rather than returning a broken object.
+        if ($value instanceof \__PHP_Incomplete_Class) {
+            $file->delete();
+            return $default;
+        }
+
+        return $value;
     }
 
     /**

@@ -529,4 +529,40 @@ class ClientTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $client->get('/echo', [], ['progress' => 'not-a-callable']);
     }
+
+    public function test_rejects_non_http_scheme(): void
+    {
+        // Regression test for SSRF: file:// and other schemes must be
+        // rejected at the client boundary.
+        $client = $this->client();
+
+        $this->expectException(\Lucent\Http\Client\Exception\RequestException::class);
+        $client->get('file:///etc/passwd');
+    }
+
+    public function test_rejects_crlf_in_header_option(): void
+    {
+        // Regression test for CRLF header injection via the `headers`
+        // option, which bypasses PSR-7 sanitization.
+        $client = $this->client();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $client->get(self::$baseUrl . '/echo', [], [
+            'headers' => ['X-Foo' => "value\r\nX-Injected: 1"],
+        ]);
+    }
+
+    public function test_rejects_crlf_in_config_headers(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new Client(['headers' => ['X-Foo' => "a\r\nb"]]);
+    }
+
+    public function test_rejects_invalid_max_response_size(): void
+    {
+        $client = $this->client();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $client->get(self::$baseUrl . '/echo', [], ['max_response_size' => 0]);
+    }
 }

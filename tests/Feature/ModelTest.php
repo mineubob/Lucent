@@ -488,6 +488,29 @@ class ModelTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
+    public function test_unknown_column_throws($driver, $config): void
+    {
+        // Regression test: column names are interpolated into SQL verbatim,
+        // so unknown columns must be rejected rather than concatenated
+        // (SQL injection via the column-name position).
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        \App\Models\TestUser::where("id = 1 OR 1=1", "x")->get();
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unknown_order_by_column_throws($driver, $config): void
+    {
+        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        \App\Models\TestUser::orderBy("id; DROP TABLE users; --")->get();
+    }
+
+    #[DataProvider('databaseDriverProvider')]
     public function test_numeric_string_bug($driver, $config): void
     {
         $this->assertTrue(FixtureLoader::copyModel('TestCustomer.php')->exists());
@@ -685,24 +708,26 @@ class ModelTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_query_cache_hit_returns_cached_rows($driver, $config): void
+    public function test_query_cache_disabled_pending_orm_rebuild($driver, $config): void
     {
         $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        // Enable query caching via the env flag; Application auto-injects its
-        // dedicated query cache store into Database.
+        // Query caching is disabled pending the ORM rebuild (see
+        // docs/restructure-plan.md). Even with QUERY_CACHE=true, no store is
+        // injected, so queries always hit the database.
         $app = Application::getInstance();
         $app->setEnv(['QUERY_CACHE' => 'true']);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
         $this->assertTrue($user->create());
 
-        // First call populates the query cache.
+        $this->assertNull(\Lucent\Database::queryCache());
+
         $first = \App\Models\TestUser::where("email", "john@doe.com")->get();
         $this->assertCount(1, $first);
 
-        // Second call should hit the query cache and return the same rows.
+        // Second call still returns the row (from the DB, not a cache).
         $second = \App\Models\TestUser::where("email", "john@doe.com")->get();
         $this->assertCount(1, $second);
         $this->assertEquals($first[0]->getFullName(), $second[0]->getFullName());
@@ -715,7 +740,8 @@ class ModelTest extends TestCase
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $app = Application::getInstance();
-        // Main cache uses file, query cache uses array.
+        // Main cache uses file; query cache is disabled pending the ORM
+        // rebuild, so no dedicated store is injected regardless of env.
         $app->setEnv([
             'CACHE_DRIVER' => 'file',
             'QUERY_CACHE' => 'true',
@@ -727,15 +753,11 @@ class ModelTest extends TestCase
 
         \App\Models\TestUser::where("email", "john@doe.com")->get();
 
-        // The query cache is a dedicated store, separate from the main cache.
+        // The main cache is a file driver; the query cache is not injected.
         $this->assertInstanceOf(
             \Lucent\Cache\Drivers\FileDriver::class,
             $app->cache()
         );
-        $this->assertInstanceOf(
-            \Lucent\Cache\Drivers\ArrayDriver::class,
-            $app->queryCache()
-        );
-        $this->assertSame($app->queryCache(), \Lucent\Database::queryCache());
+        $this->assertNull(\Lucent\Database::queryCache());
     }
 }

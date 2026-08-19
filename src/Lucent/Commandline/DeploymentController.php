@@ -70,7 +70,10 @@ class DeploymentController
         $client = new Client([
             'timeout'     => 120,
             'curl_options'=> [
-                CURLOPT_UNRESTRICTED_AUTH => true,
+                // CURLOPT_UNRESTRICTED_AUTH is deliberately NOT set: with it
+                // unset, libcurl strips the Authorization header on
+                // cross-host redirects, so the deploy token is not leaked to
+                // a redirect target.
                 CURLOPT_FOLLOWLOCATION    => true,
             ],
         ]);
@@ -227,6 +230,8 @@ class DeploymentController
             $prefix = $first;
         }
 
+        $realRoot = realpath($root);
+
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $name = $zip->getNameIndex($i);
 
@@ -242,18 +247,49 @@ class DeploymentController
                 }
             }
 
+            // Zip-slip guard: reject any entry that escapes the project root.
+            // A crafted zip can name entries `../evil.php` or `../../etc/x`;
+            // without this check they would be written outside the root.
+            if (
+                str_contains($relative, '..')
+                || str_starts_with($relative, '/')
+                || str_contains($relative, '\\')
+                || preg_match('/^[a-zA-Z]:/', $relative)
+            ) {
+                $zip->close();
+                return "Refusing to extract entry with unsafe path: $relative" . PHP_EOL;
+            }
+
             $target = $root . '/' . $relative;
 
+            // Create the parent directory (or the directory entry itself)
+            // before the containment check, so realpath() can resolve it.
             if (str_ends_with($name, '/')) {
                 if (!is_dir($target)) {
                     mkdir($target, 0755, true);
                 }
-                continue;
+            } else {
+                $dir = dirname($target);
+                if (!is_dir($dir)) {
+                    mkdir($dir, 0755, true);
+                }
             }
 
-            $dir = dirname($target);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
+            // Resolve the target's parent and assert it stays inside the root.
+            // This is defense-in-depth on top of the lexical guard above: it
+            // catches symlinked parents that resolve outside the root.
+            $realTarget = realpath(dirname($target));
+            if (
+                $realRoot === false
+                || $realTarget === false
+                || !str_starts_with($realTarget, $realRoot . DIRECTORY_SEPARATOR)
+            ) {
+                $zip->close();
+                return "Refusing to extract entry outside project root: $relative" . PHP_EOL;
+            }
+
+            if (str_ends_with($name, '/')) {
+                continue;
             }
 
             file_put_contents($target, $zip->getFromIndex($i));

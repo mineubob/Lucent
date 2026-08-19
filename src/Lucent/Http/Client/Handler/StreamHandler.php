@@ -4,6 +4,7 @@ namespace Lucent\Http\Client\Handler;
 
 use Lucent\Facades\Log;
 use Lucent\Http\Client\Exception\NetworkException;
+use Lucent\Http\Client\Exception\RequestException;
 use Lucent\Http\Client\Handler\Concerns\HandlesResponseBodies;
 use Lucent\Http\Client\Client;
 use Lucent\Http\Message\Stream;
@@ -68,7 +69,7 @@ final class StreamHandler implements HandlerInterface
             $body = Stream::fromResource($resource);
         } else {
             $sink = $this->prepareSink($options['sink'] ?? null);
-            $this->drain($resource, $sink);
+            $this->drain($resource, $sink, $options['max_response_size'] ?? null, $request);
             fclose($resource);
             if ($sink->isSeekable()) {
                 $sink->rewind();
@@ -127,13 +128,19 @@ final class StreamHandler implements HandlerInterface
             $headerLines[] = 'Authorization: Basic ' . base64_encode($basicAuth[0] . ':' . $basicAuth[1]);
         }
 
+        // The PHP stream wrapper forwards the configured `header` lines on
+        // redirects without host-based stripping, so with basic_auth set it
+        // would replay the credentials to a cross-host redirect target.
+        // Disable redirect-following in that case to avoid leaking them.
+        $followLocation = $basicAuth === null ? 1 : 0;
+
         $context = [
             'http' => [
                 'method' => $request->getMethod(),
                 'protocol_version' => $request->getProtocolVersion(),
                 'ignore_errors' => true,
-                'follow_location' => 1,
-                'max_redirects' => 10,
+                'follow_location' => $followLocation,
+                'max_redirects' => $basicAuth === null ? 10 : 0,
                 'timeout' => (float) ($options['timeout'] ?? 30),
                 'user_agent' => $options['user_agent'] ?? Client::defaultUserAgent(),
                 'header' => $headerLines,
@@ -226,12 +233,22 @@ final class StreamHandler implements HandlerInterface
         return $headers;
     }
 
-    private function drain($resource, StreamInterface $sink): void
+    private function drain($resource, StreamInterface $sink, ?int $maxResponseSize, RequestInterface $request): void
     {
+        $received = 0;
         while (!feof($resource)) {
             $chunk = fread($resource, 8192);
             if ($chunk === false || $chunk === '') {
                 break;
+            }
+            if ($maxResponseSize !== null) {
+                $received += strlen($chunk);
+                if ($received > $maxResponseSize) {
+                    throw new RequestException(
+                        "Response exceeded max_response_size of {$maxResponseSize} bytes",
+                        $request
+                    );
+                }
             }
             $sink->write($chunk);
         }
