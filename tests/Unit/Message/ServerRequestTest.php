@@ -87,6 +87,7 @@ class ServerRequestTest extends TestCase
     public function test_parsed_body_rejects_invalid_type(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Parsed body must be null, an array, or an object');
         ServerRequest::create()->withParsedBody('invalid string');
     }
 

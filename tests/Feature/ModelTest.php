@@ -497,6 +497,7 @@ class ModelTest extends TestCase
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
         \App\Models\TestUser::where("id = 1 OR 1=1", "x")->get();
     }
 
@@ -507,6 +508,7 @@ class ModelTest extends TestCase
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
         \App\Models\TestUser::orderBy("id; DROP TABLE users; --")->get();
     }
 

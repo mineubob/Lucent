@@ -243,18 +243,12 @@ class RuleTest extends TestCase
         $request->setInput("email", "st_tuff@me.com");
         $request->reInitializeRequestData();
 
-        $exceptionCaught = false;
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Regex emai does not exists');
 
-        try {
-            $request->validate([
-                "email" => "regex:emai"
-            ]);
-        } catch (\InvalidArgumentException $e) {
-            $exceptionCaught = true;
-            $this->assertStringContainsString("Regex emai does not exists", $e->getMessage());
-        }
-
-        $this->assertTrue($exceptionCaught, "Expected exception was not thrown");
+        $request->validate([
+            "email" => "regex:emai"
+        ]);
     }
 
 

@@ -303,6 +303,7 @@ class ClientTest extends TestCase
         $request = (new HttpFactory())->createRequest('GET', "http://127.0.0.1:{$port}/");
 
         $this->expectException(NetworkException::class);
+        $this->expectExceptionMessageMatches('/cURL error \d+/');
         $this->client()->sendRequest($request);
     }
 
@@ -326,6 +327,7 @@ class ClientTest extends TestCase
     public function test_sink_option_rejects_conflicting_curl_options(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl_options must not override');
         $this->client(['curl_options' => [CURLOPT_RETURNTRANSFER => true]]);
     }
 
@@ -334,6 +336,7 @@ class ClientTest extends TestCase
         $client = $this->client(['base_uri' => self::$baseUrl]);
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl must not override');
         $client->get('/echo', [], ['curl' => [CURLOPT_WRITEFUNCTION => 'foo']]);
     }
 
@@ -343,6 +346,7 @@ class ClientTest extends TestCase
 
         // XFERINFOFUNCTION conflicts with the progress option.
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl must not override');
         $client->get('/echo', [], ['curl' => [CURLOPT_XFERINFOFUNCTION => 'foo']]);
     }
 
@@ -352,6 +356,7 @@ class ClientTest extends TestCase
 
         // READFUNCTION conflicts with the client's body streaming.
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl must not override');
         $client->get('/echo', [], ['curl' => [CURLOPT_READFUNCTION => 'foo']]);
     }
 
@@ -359,6 +364,7 @@ class ClientTest extends TestCase
     {
         // NOPROGRESS is managed by the progress option.
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl_options must not override');
         $this->client(['curl_options' => [CURLOPT_NOPROGRESS => false]]);
     }
 
@@ -367,6 +373,7 @@ class ClientTest extends TestCase
         $client = $this->client(['base_uri' => self::$baseUrl]);
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown Client request option');
         $client->get('/echo', [], ['bogus_option' => true]);
     }
 
@@ -376,6 +383,7 @@ class ClientTest extends TestCase
 
         // A resource cannot be JSON-encoded — a request-level failure.
         $this->expectException(\Lucent\Http\Client\Exception\RequestException::class);
+        $this->expectExceptionMessage('Unable to JSON-encode request body');
         $client->post('/echo', ['bad' => fopen('php://temp', 'r')]);
     }
 
@@ -425,18 +433,21 @@ class ClientTest extends TestCase
     public function test_unknown_config_key_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown Client config key');
         $this->client(['baseUrl' => 'http://example.com']);
     }
 
     public function test_wrong_config_type_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('timeout must be a positive integer');
         $this->client(['timeout' => '30']);
     }
 
     public function test_invalid_base_uri_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unable to parse URI');
         $this->client(['base_uri' => 'http://']);
     }
 
@@ -527,6 +538,7 @@ class ClientTest extends TestCase
         $client = new Client(['base_uri' => self::$baseUrl], $handler);
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('MockHandler rejects option: progress');
         $client->get('/echo', [], ['progress' => 'not-a-callable']);
     }
 
@@ -537,6 +549,7 @@ class ClientTest extends TestCase
         $client = $this->client();
 
         $this->expectException(\Lucent\Http\Client\Exception\RequestException::class);
+        $this->expectExceptionMessage('Unsupported URL scheme');
         $client->get('file:///etc/passwd');
     }
 
@@ -547,6 +560,7 @@ class ClientTest extends TestCase
         $client = $this->client();
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not contain CR/LF');
         $client->get(self::$baseUrl . '/echo', [], [
             'headers' => ['X-Foo' => "value\r\nX-Injected: 1"],
         ]);
@@ -555,6 +569,7 @@ class ClientTest extends TestCase
     public function test_rejects_crlf_in_config_headers(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must not contain CR/LF');
         new Client(['headers' => ['X-Foo' => "a\r\nb"]]);
     }
 
@@ -563,6 +578,7 @@ class ClientTest extends TestCase
         $client = $this->client();
 
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('max_response_size must be a positive integer');
         $client->get(self::$baseUrl . '/echo', [], ['max_response_size' => 0]);
     }
 }

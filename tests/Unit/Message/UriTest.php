@@ -191,12 +191,14 @@ class UriTest extends TestCase
         // Per PSR-7, implementations MUST raise an exception for ports
         // outside the established TCP and UDP port ranges (0-65535).
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid port');
         Uri::fromString('http://example.com')->withPort(99999);
     }
 
     public function test_with_port_throws_for_negative_port(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid port');
         Uri::fromString('http://example.com')->withPort(-1);
     }
 }

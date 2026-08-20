@@ -80,6 +80,7 @@ class CurlHandlerTest extends TestCase
     public function test_rejects_conflicting_curl_option(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('curl must not override');
         $this->handler->validateOptions([
             'curl' => [CURLOPT_WRITEFUNCTION => 'foo'],
         ]);
@@ -88,6 +89,7 @@ class CurlHandlerTest extends TestCase
     public function test_validate_options_rejects_non_callable_progress(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('progress must be a callable');
         $this->handler->validateOptions(['progress' => 'not-a-callable']);
     }
 
@@ -112,6 +114,7 @@ class CurlHandlerTest extends TestCase
         $request = $this->factory->createRequest('GET', "http://127.0.0.1:{$port}/");
 
         $this->expectException(NetworkException::class);
+        $this->expectExceptionMessageMatches('/cURL error \d+/');
         $this->handler->send($request, []);
     }
 }

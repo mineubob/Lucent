@@ -86,6 +86,7 @@ class StreamHandlerTest extends TestCase
     public function test_rejects_curl_option(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Passing the "curl" request option to the stream handler');
         $this->handler->validateOptions([
             'curl' => [CURLOPT_FOLLOWLOCATION => true],
         ]);
@@ -94,6 +95,7 @@ class StreamHandlerTest extends TestCase
     public function test_validate_options_rejects_progress(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Passing the "progress" request option to the stream handler');
         $this->handler->validateOptions(['progress' => function () {}]);
     }
 
@@ -117,6 +119,7 @@ class StreamHandlerTest extends TestCase
         $request = $this->factory->createRequest('GET', "http://127.0.0.1:{$port}/");
 
         $this->expectException(NetworkException::class);
+        $this->expectExceptionMessage('Unable to open stream');
         $this->handler->send($request, []);
     }
 }

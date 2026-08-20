@@ -185,6 +185,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->get('invalid key');
     }
 
@@ -192,6 +193,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid{key}');
         $cache->set('invalid{key}', 'value');
     }
 
@@ -199,6 +201,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid/key');
         $cache->delete('invalid/key');
     }
 
@@ -206,6 +209,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid@key');
         $cache->has('invalid@key');
     }
 
@@ -213,6 +217,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->getMultiple(['valid', 'invalid key']);
     }
 

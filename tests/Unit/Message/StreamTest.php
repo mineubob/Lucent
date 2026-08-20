@@ -70,6 +70,7 @@ class StreamTest extends TestCase
     public function test_write_throws_for_string_backed_stream(): void
     {
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('String-backed streams are not writable');
         $stream = Stream::fromString('Hello');
         $stream->write('test');
     }

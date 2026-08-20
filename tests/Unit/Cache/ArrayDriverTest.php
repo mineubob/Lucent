@@ -133,6 +133,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->get('invalid key');
     }
 
@@ -140,6 +141,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid{key}');
         $cache->set('invalid{key}', 'value');
     }
 
@@ -147,6 +149,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid/key');
         $cache->delete('invalid/key');
     }
 
@@ -154,6 +157,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid@key');
         $cache->has('invalid@key');
     }
 
@@ -168,6 +172,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage(str_repeat('a', 65));
         $cache->get(str_repeat('a', 65));
     }
 
@@ -175,6 +180,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->getMultiple(['valid', 'invalid key']);
     }
 
@@ -182,6 +188,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->setMultiple(['valid' => 1, 'invalid key' => 2]);
     }
 
@@ -189,6 +196,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->deleteMultiple(['valid', 'invalid key']);
     }
 
@@ -196,6 +204,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('42');
         $cache->getMultiple(['valid', 42]);
     }
 
@@ -203,6 +212,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('42');
         $cache->setMultiple([42 => 'value']);
     }
 
@@ -210,6 +220,7 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('42');
         $cache->deleteMultiple(['valid', 42]);
     }
 

@@ -55,18 +55,21 @@ class PsrComplianceTest extends TestCase
     public function test_uri_with_port_throws_outside_tcp_udp_range(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid port');
         Uri::fromString('http://example.com')->withPort(65536);
     }
 
     public function test_uri_with_scheme_throws_for_unsupported_scheme(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported scheme');
         Uri::fromString('http://example.com')->withScheme('gopher');
     }
 
     public function test_uri_with_host_throws_for_invalid_hostname(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid host');
         Uri::fromString('http://example.com')->withHost('bad host!');
     }
 
@@ -82,6 +85,7 @@ class PsrComplianceTest extends TestCase
     public function test_uri_with_path_throws_on_control_characters(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('contains control characters');
         Uri::fromString('http://example.com')->withPath("/bad\0path");
     }
 
@@ -102,12 +106,14 @@ class PsrComplianceTest extends TestCase
     public function test_with_method_throws_for_invalid_method(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid HTTP method');
         (new Request())->withMethod("BAD\r\nMETHOD");
     }
 
     public function test_with_method_throws_for_empty_method(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid HTTP method');
         (new Request())->withMethod('');
     }
 
@@ -155,6 +161,7 @@ class PsrComplianceTest extends TestCase
     public function test_with_uploaded_files_rejects_invalid_nested_structure(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Uploaded files must be an array tree');
         ServerRequest::create()->withUploadedFiles(['avatar' => ['not-a-file']]);
     }
 
@@ -163,6 +170,7 @@ class PsrComplianceTest extends TestCase
     public function test_uploaded_file_rejects_invalid_error_code(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid upload error code');
         new UploadedFile(Stream::fromString('x'), 1, 999);
     }
 
@@ -170,6 +178,7 @@ class PsrComplianceTest extends TestCase
     {
         $stream = $this->createNonReadableStream();
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('must be readable');
         new UploadedFile($stream);
     }
 
@@ -183,6 +192,7 @@ class PsrComplianceTest extends TestCase
     public function test_uploaded_file_move_to_rejects_empty_target(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Target path must be a non-empty string');
         (new UploadedFile(Stream::fromString('x'), 1))->moveTo('');
     }
 
@@ -198,6 +208,7 @@ class PsrComplianceTest extends TestCase
 
         // Subsequent calls MUST raise an exception.
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('File has already been moved');
         try {
             $file->moveTo($target);
         } finally {
@@ -210,6 +221,7 @@ class PsrComplianceTest extends TestCase
     public function test_factory_create_uploaded_file_throws_for_non_readable_stream(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Uploaded file stream must be readable');
         (new HttpFactory())->createUploadedFile($this->createNonReadableStream());
     }
 
@@ -304,12 +316,14 @@ class PsrComplianceTest extends TestCase
     public function test_string_stream_seek_out_of_range_throws(): void
     {
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Unable to seek to position');
         Stream::fromString('abc')->seek(100);
     }
 
     public function test_from_resource_rejects_non_resource(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Stream resource must be a valid PHP resource');
         Stream::fromResource('not-a-resource');
     }
 
@@ -318,6 +332,7 @@ class PsrComplianceTest extends TestCase
     public function test_response_json_rejects_invalid_status(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid status code');
         Response::json(['a' => 1], 99);
     }
 

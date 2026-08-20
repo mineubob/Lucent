@@ -38,12 +38,14 @@ class ResponseTest extends TestCase
     public function test_with_status_invalid_code_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid status code');
         (new Response())->withStatus(99);
     }
 
     public function test_with_status_too_high_throws(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid status code');
         (new Response())->withStatus(600);
     }
 
