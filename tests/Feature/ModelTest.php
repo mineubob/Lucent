@@ -7,20 +7,25 @@ use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Model\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CapturesCommandOutput;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
 
 class ModelTest extends TestCase
 {
+    use CapturesCommandOutput;
+    use CopiesFixtures;
     use DatabaseTesting;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        FixtureLoader::copyModel('Admin.php');
-        FixtureLoader::copyModel('TestUser.php');
+        self::copyFixtures([
+            'Model' => ['Admin.php', 'TestUser.php'],
+        ]);
     }
 
     protected function setUp(): void
@@ -29,7 +34,7 @@ class ModelTest extends TestCase
         // CommandLine::execute() only returns the command output when capture
         // mode is on. This is a static flag that other tests may toggle, so
         // set it explicitly here to make these tests order-independent.
-        CommandLine::captureOutput();
+        $this->captureCommandOutput();
     }
 
     #[DataProvider('databaseDriverProvider')]

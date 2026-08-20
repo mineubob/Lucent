@@ -13,26 +13,32 @@ use Lucent\Application;
 use Lucent\Facades\Regex;
 use Lucent\Http\Message\ServerRequest;
 use Lucent\Validation\Rule;
-use Tests\Support\FixtureLoader;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\TestCase;
 use Tests\Support\TestDataBuilder;
 
 class RuleTest extends TestCase
 {
+    use CopiesFixtures;
+
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
         // Copy the rule stubs into temp_install/App/Rules/ so the App\ PSR-4
         // autoloader can resolve them.
-        FixtureLoader::copyRule('TestRule.php');
-        FixtureLoader::copyRule('NumRule.php');
-        FixtureLoader::copyRule('OverrideMessageRule.php');
-        FixtureLoader::copyRule('DynamicRule.php');
-        FixtureLoader::copyRule('ArrayRule.php');
-        FixtureLoader::copyRule('CustomRule.php');
-        FixtureLoader::copyRule('CustomRegexRule.php');
-        FixtureLoader::copyRule('ContextRule.php');
+        self::copyFixtures([
+            'Rule' => [
+                'TestRule.php',
+                'NumRule.php',
+                'OverrideMessageRule.php',
+                'DynamicRule.php',
+                'ArrayRule.php',
+                'CustomRule.php',
+                'CustomRegexRule.php',
+                'ContextRule.php',
+            ],
+        ]);
     }
 
     public function test_num_rule_is_valid(): void

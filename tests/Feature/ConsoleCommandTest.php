@@ -6,19 +6,21 @@ use App\Commands\TestCommand;
 use Lucent\Facades\CommandLine;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\Concerns\CapturesCommandOutput;
-use Tests\Support\FixtureLoader;
+use Tests\Support\Concerns\CopiesFixtures;
 
 class ConsoleCommandTest extends TestCase
 {
     use CapturesCommandOutput;
+    use CopiesFixtures;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        FixtureLoader::copyCommand('TestCommand.php');
-        FixtureLoader::copyCliTemplate();
-
+        self::copyFixtures([
+            'Command' => 'TestCommand.php',
+            'Cli'     => null,
+        ]);
     }
 
     protected function setUp(): void

@@ -5,13 +5,14 @@ namespace Tests\Feature;
 use Lucent\Application;
 use Lucent\Facades\App;
 use Psr\Http\Message\ResponseInterface;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
-use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
 
 class GlobalMiddlewareTest extends TestCase
 {
+    use CopiesFixtures;
     use MakeRequest;
     use RefreshApplication;
 
@@ -19,19 +20,21 @@ class GlobalMiddlewareTest extends TestCase
     {
         parent::setUpBeforeClass();
 
-        FixtureLoader::copyController('GlobalMiddlewareTestingController.php');
-        FixtureLoader::copyMiddleware('GlobalHeaderMiddleware.php');
-        FixtureLoader::copyMiddleware('GlobalShortCircuitMiddleware.php');
-        FixtureLoader::copyMiddleware('GlobalThrowingMiddleware.php');
-        FixtureLoader::copyMiddleware('GlobalAuthMiddleware.php');
-        FixtureLoader::copyMiddleware('AuthMiddleware.php');
-
-        FixtureLoader::copyRoutes('globalMiddleware.php');
+        self::copyFixtures([
+            'Controller' => 'GlobalMiddlewareTestingController.php',
+            'Middleware' => [
+                'GlobalHeaderMiddleware.php',
+                'GlobalShortCircuitMiddleware.php',
+                'GlobalThrowingMiddleware.php',
+                'GlobalAuthMiddleware.php',
+                'AuthMiddleware.php',
+            ],
+            'Route' => 'globalMiddleware.php',
+        ]);
 
         // Boot once. Route files are loaded via require_once, so a second
         // boot() in the same process would register no routes.
-        self::refreshApplication();
-        Application::getInstance()->boot();
+        self::refreshAndBootApplication();
     }
 
     protected function setUp(): void

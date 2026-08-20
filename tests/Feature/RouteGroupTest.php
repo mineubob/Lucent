@@ -7,6 +7,7 @@ use Lucent\Application;
 use Lucent\Facades\App;
 use Lucent\Http\HttpStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
@@ -15,6 +16,7 @@ use Tests\Support\TestCase;
 
 class RouteGroupTest extends TestCase
 {
+    use CopiesFixtures;
     use DatabaseTesting;
     use MakeRequest;
     use RefreshApplication;
@@ -22,16 +24,18 @@ class RouteGroupTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        // Register routes
-        self::refreshApplication();
 
-        FixtureLoader::copyController('RouteGroupTestingController.php');
-        FixtureLoader::copyController('SecondRestController.php');
-        FixtureLoader::copyController('UserController.php');
-        FixtureLoader::copyMiddleware('AuthMiddleware.php');
+        self::copyFixtures([
+            'Controller' => [
+                'RouteGroupTestingController.php',
+                'SecondRestController.php',
+                'UserController.php',
+            ],
+            'Middleware' => 'AuthMiddleware.php',
+            'Route'      => 'web.php',
+        ]);
 
-        FixtureLoader::copyRoutes('web.php');
-        Application::getInstance()->boot();
+        self::refreshAndBootApplication();
     }
 
     public function test_404(): void
