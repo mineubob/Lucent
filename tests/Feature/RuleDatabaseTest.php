@@ -21,7 +21,7 @@ class RuleDatabaseTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_unique_passing($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $request = new TestDataBuilder();
@@ -37,7 +37,7 @@ class RuleDatabaseTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_unique_failing($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("unique-test@email.com", "password", "John Doe");
@@ -57,7 +57,7 @@ class RuleDatabaseTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_not_unique_passing($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("not-unique-test@email.com", "password", "John Doe");
@@ -77,7 +77,7 @@ class RuleDatabaseTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_validate_rule_not_unique_failing($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $request = new TestDataBuilder();

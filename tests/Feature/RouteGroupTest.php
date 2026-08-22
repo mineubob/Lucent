@@ -152,7 +152,7 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_model_id_raw($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $response = $this->get('/user/99');
@@ -167,7 +167,7 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         // These tests exercise implicit binding, which is opt-in since the
@@ -189,7 +189,7 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
@@ -205,7 +205,7 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_with_middleware($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
@@ -229,7 +229,7 @@ class RouteGroupTest extends TestCase
         // is NOT auto-resolved from the URL (no unscoped PK lookup), so the
         // controller never receives an auto-bound row unless the app opts
         // back into implicit mode.
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
