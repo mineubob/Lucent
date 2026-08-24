@@ -412,7 +412,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         return $new;
     }
 
-    // ─── Lucent-Specific Getters (convenience wrappers around attributes) ─
+    // ─── Lucent-Specific Getters (convenience wrappers) ───
 
     /**
      * Get the RouteInfo stored as a PSR-7 attribute.
@@ -478,6 +478,44 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     {
         RequestContext::fromRequest($this)?->set($key, $value);
         return $this;
+    }
+
+    /**
+     * Get a single value from the parsed body by key.
+     *
+     * Convenience wrapper around {@see getParsedBody()} for the common case
+     * of reading one field (e.g. a form or JSON payload value) without
+     * null-checking the whole body first.
+     *
+     * @param string $key The body key to look up
+     * @param mixed $default Default value if the key is missing or the body is null
+     * @return mixed The body value, or $default on a miss
+     */
+    public function getParsedBodyValue(string $key, mixed $default = null): mixed
+    {
+        if ($this->parsedBody === null) {
+            return $default;
+        }
+        return array_key_exists($key, $this->parsedBody) ? $this->parsedBody[$key] : $default;
+    }
+
+    /**
+     * Get a single uploaded file by key.
+     *
+     * Convenience wrapper around {@see getUploadedFiles()} for the common
+     * case of reading one file field. Only returns a top-level file; for
+     * nested (array-of-inputs) uploads use {@see getUploadedFiles()}.
+     *
+     * @param string $key The file field key to look up
+     * @return UploadedFile|null The uploaded file, or null if the key is
+     *                           missing or no files were uploaded
+     */
+    public function getUploadedFile(string $key): ?UploadedFile
+    {
+        if ($this->uploadedFiles === null) {
+            return null;
+        }
+        return array_key_exists($key, $this->uploadedFiles) ? $this->uploadedFiles[$key] : null;
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────
