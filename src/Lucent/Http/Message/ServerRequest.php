@@ -488,10 +488,10 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      * (e.g. `?tags[]=a&tags[]=b`), so the return type is mixed.
      *
      * @param string $key The query key to look up
-     * @param mixed $default Default value if the key is missing
+     * @param array<string, string|array>|string|null $default Default value if the key is missing
      * @return array<string, string|array>|string|null The query value, or $default on a miss
      */
-    public function getQueryParam(string $key, mixed $default = null): array|string|null
+    public function getQueryParam(string $key, array|string|null $default = null): array|string|null
     {
         return array_key_exists($key, $this->queryParams) ? $this->queryParams[$key] : $default;
     }
@@ -503,10 +503,10 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      * of reading one cookie value.
      *
      * @param string $key The cookie key to look up
-     * @param mixed $default Default value if the key is missing
+     * @param array<string, string|array>|string|null $default Default value if the key is missing
      * @return array<string, string|array>|string|null The cookie value, or $default on a miss
      */
-    public function getCookie(string $key, mixed $default = null): array|string|null
+    public function getCookie(string $key, array|string|null $default = null): array|string|null
     {
         return array_key_exists($key, $this->cookieParams) ? $this->cookieParams[$key] : $default;
     }
