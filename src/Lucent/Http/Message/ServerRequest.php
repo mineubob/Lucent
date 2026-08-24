@@ -439,9 +439,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      *
      * @param string $name The variable name
      * @param mixed $default Default value if not found
-     * @return mixed
+     * @return string|null
      */
-    public function getUrlVar(string $name, mixed $default = null): mixed
+    public function getUrlVar(string $name, mixed $default = null): ?string
     {
         return $this->getUrlVars()[$name] ?? $default;
     }
@@ -478,6 +478,52 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     {
         RequestContext::fromRequest($this)?->set($key, $value);
         return $this;
+    }
+
+    /**
+     * Get a single query parameter by key.
+     *
+     * Convenience wrapper around {@see getQueryParams()} for the common case
+     * of reading one query value. Query values may be strings or arrays
+     * (e.g. `?tags[]=a&tags[]=b`), so the return type is mixed.
+     *
+     * @param string $key The query key to look up
+     * @param mixed $default Default value if the key is missing
+     * @return array<string, string|array>|string|null The query value, or $default on a miss
+     */
+    public function getQueryParam(string $key, mixed $default = null): array|string|null
+    {
+        return array_key_exists($key, $this->queryParams) ? $this->queryParams[$key] : $default;
+    }
+
+    /**
+     * Get a single cookie by key.
+     *
+     * Convenience wrapper around {@see getCookieParams()} for the common case
+     * of reading one cookie value.
+     *
+     * @param string $key The cookie key to look up
+     * @param mixed $default Default value if the key is missing
+     * @return array<string, string|array>|string|null The cookie value, or $default on a miss
+     */
+    public function getCookie(string $key, mixed $default = null): array|string|null
+    {
+        return array_key_exists($key, $this->cookieParams) ? $this->cookieParams[$key] : $default;
+    }
+
+    /**
+     * Get a single server parameter by key.
+     *
+     * Convenience wrapper around {@see getServerParams()} for the common case
+     * of reading one $_SERVER value (e.g. REQUEST_METHOD, REMOTE_ADDR).
+     *
+     * @param string $key The server key to look up
+     * @param mixed $default Default value if the key is missing
+     * @return mixed The server value, or $default on a miss
+     */
+    public function getServerParam(string $key, mixed $default = null): mixed
+    {
+        return array_key_exists($key, $this->serverParams) ? $this->serverParams[$key] : $default;
     }
 
     /**
