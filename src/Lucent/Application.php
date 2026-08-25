@@ -12,7 +12,6 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Date\ClockServiceProvider;
 use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
@@ -291,7 +290,6 @@ class Application
      */
     private function registerProviders(): void
     {
-        $this->register(ClockServiceProvider::class);
         $this->register(EventDispatcherServiceProvider::class);
         $this->register(ExceptionsServiceProvider::class);
     }

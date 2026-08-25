@@ -27,16 +27,16 @@
     "ext-mysqli": "*",
     "ext-pdo": "*",
     "ext-zip": "*",
-    "psr/clock": "^1.0",
+    "nesbot/carbon": "^3.13",
     "psr/container": "^2.0",
+    "psr/event-dispatcher": "^1.0",
     "psr/http-client": "^1.0",
     "psr/http-factory": "^1.1",
     "psr/http-message": "^2.0",
     "psr/http-server-handler": "^1.0",
     "psr/http-server-middleware": "^1.0",
     "psr/log": "^3.0",
-    "psr/simple-cache": "^3.0",
-    "psr/event-dispatcher": "^1.0"
+    "psr/simple-cache": "^3.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^12.0"

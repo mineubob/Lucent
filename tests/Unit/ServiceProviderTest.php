@@ -4,13 +4,10 @@ namespace Tests\Unit;
 
 use Lucent\Container\Container;
 use Lucent\Container\ServiceProvider;
-use Lucent\Date\Clock;
-use Lucent\Date\ClockServiceProvider;
 use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\Http\Exceptions\Exceptions;
 use Lucent\Http\Exceptions\ExceptionsServiceProvider;
 use PHPUnit\Framework\TestCase;
-use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
 
@@ -19,30 +16,6 @@ use Psr\EventDispatcher\ListenerProviderInterface;
  */
 class ServiceProviderTest extends TestCase
 {
-    public function test_implements_service_provider_contract(): void
-    {
-        $provider = new ClockServiceProvider(new Container());
-
-        $this->assertInstanceOf(ServiceProvider::class, $provider);
-        $this->assertFalse($provider->isDeferred());
-    }
-
-    public function test_clock_provider_registers_clock_instances(): void
-    {
-        $container = new Container();
-        $provider = new ClockServiceProvider($container);
-
-        $provider->register();
-
-        $this->assertInstanceOf(ClockInterface::class, $container->get(ClockInterface::class));
-        $this->assertInstanceOf(Clock::class, $container->get(Clock::class));
-        $this->assertSame(
-            $container->get(ClockInterface::class),
-            $container->get(Clock::class),
-            'The interface and concrete should resolve to the same shared clock'
-        );
-    }
-
     public function test_event_dispatcher_provider_registers_dispatcher_and_provider(): void
     {
         $container = new Container();
