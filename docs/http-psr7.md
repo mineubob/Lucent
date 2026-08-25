@@ -377,6 +377,37 @@ The streaming-aware emitter in `Application::executeHttpRequest()` reads the bod
 
 ---
 
+## URI Validation
+
+`Uri::isValid()` validates a URI string without throwing. By default it accepts
+relative references such as `/users/123`, `?page=2`, or `#top`. Combine the
+`VALIDATE_*` flags to narrow the check:
+
+```php
+use Lucent\Http\Message\Uri;
+
+Uri::isValid('https://example.com/path');                                  // true
+Uri::isValid('/users/123');                                                // true (relative)
+Uri::isValid('/users/123', Uri::VALIDATE_ABSOLUTE);                        // false (no scheme)
+Uri::isValid('https://example.com', Uri::VALIDATE_ABSOLUTE | Uri::VALIDATE_HOST); // true
+Uri::isValid('ftp://example.com', Uri::VALIDATE_STRICT);                   // false (non-http/https)
+```
+
+Available flags:
+
+| Flag | Meaning |
+|------|---------|
+| `Uri::VALIDATE_RELATIVE` | Accept path-only / relative references (default) |
+| `Uri::VALIDATE_ABSOLUTE` | Require a scheme (e.g. `http:`, `https:`) |
+| `Uri::VALIDATE_HOST` | Require a non-empty host |
+| `Uri::VALIDATE_STRICT` | Reject non-standard forms (only `http`/`https`, host required) |
+| `Uri::VALIDATE_DEFAULT` | `VALIDATE_HOST \| VALIDATE_ABSOLUTE` — full absolute URL |
+
+`Uri::fromString()` uses the same validation internally and throws an
+`InvalidArgumentException` when the URI is not well-formed.
+
+---
+
 ## PSR-17 Factories
 
 ### HttpFactory (PSR-17 standard)
@@ -421,21 +452,6 @@ use Lucent\Http\Message\ServerRequest;
 
 $request = ServerRequest::create('POST', '/users', body: ['name' => 'John'], headers: ['X-Auth' => 'token']);
 $body = $request->getParsedBody(); // ['name' => 'John']
-```
-
-### TestDataBuilder
-
-For validation tests, use `Tests\Support\TestDataBuilder` to build test
-data with `setInput()`, `all()`, `validate()`, `passing()`, `failing()`:
-
-```php
-use Tests\Support\TestDataBuilder;
-
-$data = new TestDataBuilder();
-$data->setInput('email', 'test@example.com');
-$data->setInput('password', 'Pa55w0rd');
-$isValid = $data->validate(MyRule::class);
-$errors = $data->getValidationErrors();
 ```
 
 ### Unit Tests
