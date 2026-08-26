@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Validation;
 
-use Lucent\Http\Message\ServerRequest;
 use Lucent\Validation\Combinators\All;
 use Lucent\Validation\Combinators\Any;
 use Lucent\Validation\Combinators\Each;
@@ -31,7 +30,7 @@ class CombinatorsTest extends TestCase
             'value' => All::of(new Required(), new Length(min: 2)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'ab']));
+        $result = $validator->validate(['value' => 'ab']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -42,7 +41,7 @@ class CombinatorsTest extends TestCase
         $second = new CountingConstraint(true);
 
         $validator = new Validator(['value' => All::of($first, $second)]);
-        $validator->validate($this->request(['value' => 'x']));
+        $validator->validate(['value' => 'x']);
 
         $this->assertSame(1, $first->calls);
         $this->assertSame(0, $second->calls);
@@ -54,7 +53,7 @@ class CombinatorsTest extends TestCase
             'value' => All::of(new Required(), new Email()),
         ]);
 
-        $result = $validator->validate($this->request(['value' => '']));
+        $result = $validator->validate(['value' => '']);
 
         $this->assertSame(['The value is required.'], $result->errors()['value']);
     }
@@ -63,7 +62,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['value' => All::of()]);
 
-        $result = $validator->validate($this->request(['value' => 'anything']));
+        $result = $validator->validate(['value' => 'anything']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -71,8 +70,7 @@ class CombinatorsTest extends TestCase
     public function test_all_message_returns_null_when_no_constraint_failed(): void
     {
         $all = All::of(new Required());
-        $request = ServerRequest::create('POST', '/');
-        $ctx = new FieldContext('value', 'x', true, $request, new \Lucent\Validation\Result(), null, null);
+        $ctx = new FieldContext('value', 'x', true, new \Lucent\Validation\Result(), null, null);
 
         // All passes, so no constraint failed -> defaultMessage returns null.
         $this->assertTrue($all->validate($ctx));
@@ -88,7 +86,7 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 2)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'ab']));
+        $result = $validator->validate(['value' => 'ab']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -99,7 +97,7 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 5)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'ab']));
+        $result = $validator->validate(['value' => 'ab']);
 
         $this->assertTrue($result->hasErrors());
     }
@@ -110,7 +108,7 @@ class CombinatorsTest extends TestCase
         $second = new CountingConstraint(false);
 
         $validator = new Validator(['value' => Any::of($first, $second)]);
-        $validator->validate($this->request(['value' => 'x']));
+        $validator->validate(['value' => 'x']);
 
         $this->assertSame(1, $first->calls);
         $this->assertSame(0, $second->calls);
@@ -126,7 +124,7 @@ class CombinatorsTest extends TestCase
             ),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'ab']));
+        $result = $validator->validate(['value' => 'ab']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -137,7 +135,7 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 5), new Length(min: 10)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'x']));
+        $result = $validator->validate(['value' => 'x']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertCount(2, $result->errors()['value']);
@@ -149,7 +147,7 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 5)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'x']));
+        $result = $validator->validate(['value' => 'x']);
 
         // Only the alternative's message is present.
         $this->assertSame(
@@ -162,7 +160,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['value' => Any::of()]);
 
-        $result = $validator->validate($this->request(['value' => 'x']));
+        $result = $validator->validate(['value' => 'x']);
 
         // Any::of() with zero constraints returns false from validate(), but
         // records no error (defaultMessage is null), so hasErrors() is false.
@@ -181,7 +179,7 @@ class CombinatorsTest extends TestCase
             ),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'abc']));
+        $result = $validator->validate(['value' => 'abc']);
 
         $this->assertTrue($result->hasErrors());
         // Numeric failed but the value was not normalized (abc is not numeric).
@@ -199,7 +197,7 @@ class CombinatorsTest extends TestCase
             ),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'ok']));
+        $result = $validator->validate(['value' => 'ok']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -213,7 +211,7 @@ class CombinatorsTest extends TestCase
             ),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'x']));
+        $result = $validator->validate(['value' => 'x']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('value', $result->errors());
@@ -227,10 +225,10 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 2), new Length(min: 5)),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'name'  => '',
             'value' => 'ok',
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('name', $result->errors());
@@ -243,7 +241,7 @@ class CombinatorsTest extends TestCase
             'value' => Any::of(new Length(min: 5), new Length(min: 10)),
         ]);
 
-        $result = $validator->validate($this->request(['value' => 'x']));
+        $result = $validator->validate(['value' => 'x']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertCount(2, $result->errors()['value']);
@@ -255,7 +253,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['name' => new Optional(new Required())]);
 
-        $result = $validator->validate($this->request([]));
+        $result = $validator->validate([]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -264,7 +262,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['name' => new Optional(new Required())]);
 
-        $result = $validator->validate($this->request(['name' => null]));
+        $result = $validator->validate(['name' => null]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -273,7 +271,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['name' => new Optional(new Required())]);
 
-        $result = $validator->validate($this->request(['name' => '']));
+        $result = $validator->validate(['name' => '']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -282,7 +280,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['name' => new Optional(new Required())]);
 
-        $result = $validator->validate($this->request(['name' => []]));
+        $result = $validator->validate(['name' => []]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -291,7 +289,7 @@ class CombinatorsTest extends TestCase
     {
         foreach ([0, '0', false, '0.0'] as $value) {
             $validator = new Validator(['name' => new Optional(new Required())]);
-            $result = $validator->validate($this->request(['name' => $value]));
+            $result = $validator->validate(['name' => $value]);
             $this->assertFalse($result->hasErrors(), "Expected pass for " . var_export($value, true));
         }
     }
@@ -306,7 +304,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['name' => new Optional(new Required())]);
 
-        $result = $validator->validate($this->request(['name' => '']));
+        $result = $validator->validate(['name' => '']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertNull($result->value('name'));
@@ -318,7 +316,7 @@ class CombinatorsTest extends TestCase
         // the inner constraint can fail on a non-empty value.
         $validator = new Validator(['name' => new Optional(new Length(min: 5))]);
 
-        $result = $validator->validate($this->request(['name' => 'ab']));
+        $result = $validator->validate(['name' => 'ab']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertSame(
@@ -331,7 +329,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['email' => new Optional(new Email())]);
 
-        $result = $validator->validate($this->request(['email' => 'not-an-email']));
+        $result = $validator->validate(['email' => 'not-an-email']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertSame(
@@ -348,7 +346,7 @@ class CombinatorsTest extends TestCase
             'pair' => Shape::tuple(new Numeric(), new Length(min: 2)),
         ]);
 
-        $result = $validator->validate($this->request(['pair' => (object) ['a', 'b']]));
+        $result = $validator->validate(['pair' => (object) ['a', 'b']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('pair', $result->errors());
@@ -364,7 +362,7 @@ class CombinatorsTest extends TestCase
             'pair' => Shape::tuple(new Numeric(), new Length(min: 2)),
         ]);
 
-        $result = $validator->validate($this->request(['pair' => ['a' => '42', 'b' => 'ab']]));
+        $result = $validator->validate(['pair' => ['a' => '42', 'b' => 'ab']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('pair', $result->errors());
@@ -376,7 +374,7 @@ class CombinatorsTest extends TestCase
             'pair' => Shape::tuple(new Numeric(), new Length(min: 2)),
         ]);
 
-        $result = $validator->validate($this->request(['pair' => ['42']]));
+        $result = $validator->validate(['pair' => ['42']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('pair', $result->errors());
@@ -388,7 +386,7 @@ class CombinatorsTest extends TestCase
             'pair' => Shape::tuple(new Required(), new Required()),
         ]);
 
-        $result = $validator->validate($this->request(['pair' => [null, 'x']]));
+        $result = $validator->validate(['pair' => [null, 'x']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('pair.0', $result->errors());
@@ -400,7 +398,7 @@ class CombinatorsTest extends TestCase
             'pair' => Shape::tuple(new Numeric()),
         ]);
 
-        $result = $validator->validate($this->request(['pair' => ['1', '2']]));
+        $result = $validator->validate(['pair' => ['1', '2']]);
 
         $this->assertSame(
             ['The pair must be an array with exactly 1 elements.'],
@@ -414,7 +412,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => 'not-an-object']));
+        $result = $validator->validate(['user' => 'not-an-object']);
 
         $this->assertSame(['The user must be an object.'], $result->errors()['user']);
     }
@@ -428,12 +426,12 @@ class CombinatorsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => [
                 'name'  => '',
                 'email' => 'bad',
             ],
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user.name', $result->errors());
@@ -449,12 +447,12 @@ class CombinatorsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => [
                 'name'  => 'Ada',
                 'email' => 'ada@example.com',
             ],
-        ]));
+        ]);
 
         $this->assertSame('Ada', $result->value('user.name'));
         $this->assertSame('ada@example.com', $result->value('user.email'));
@@ -470,9 +468,9 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => (object) ['name' => 'Ada'],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('user.name'));
@@ -484,7 +482,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => 'not-an-object']));
+        $result = $validator->validate(['user' => 'not-an-object']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user', $result->errors());
@@ -498,7 +496,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => ['name' => 'Ada', 'extra' => 'ignored']]));
+        $result = $validator->validate(['user' => ['name' => 'Ada', 'extra' => 'ignored']]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(['name' => 'Ada'], $result->value('user'));
@@ -513,9 +511,9 @@ class CombinatorsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => ['address' => ['city' => 'Sydney', 'extra' => 'ignored']],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(['city' => 'Sydney'], $result->value('user.address'));
@@ -528,12 +526,12 @@ class CombinatorsTest extends TestCase
             'users' => new Each(Shape::object(['name' => new Required()])),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'users' => [
                 ['name' => 'Ada', 'extra' => 'ignored'],
                 ['name' => 'Grace'],
             ],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(['name' => 'Ada'], $result->value('users.0'));
@@ -549,9 +547,9 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['tags' => new Each(new PassingConstraint())]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => ['tags' => ['a', 'b']],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertTrue($result->hasValue('user.tags'));
@@ -566,9 +564,9 @@ class CombinatorsTest extends TestCase
             'users' => new Each(Shape::object(['name' => new PassingConstraint()])),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'users' => [['name' => 'Ada']],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertTrue($result->hasValue('users.0'));
@@ -583,9 +581,9 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => (object) ['name' => 'Ada', 'extra' => 'ignored'],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(['name' => 'Ada'], $result->value('user'));
@@ -597,9 +595,9 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['tags' => new Each(new Numeric())]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => (object) ['tags' => ['1', '2']],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame([1, 2], $result->value('user.tags'));
@@ -613,9 +611,9 @@ class CombinatorsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => (object) ['address' => (object) ['city' => 'Sydney']],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Sydney', $result->value('user.address.city'));
@@ -630,7 +628,7 @@ class CombinatorsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => ['name' => 'Ada']]));
+        $result = $validator->validate(['user' => ['name' => 'Ada']]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertFalse($result->hasValue('user.nickname'));
@@ -640,7 +638,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['user' => Shape::object([])]);
 
-        $result = $validator->validate($this->request(['user' => ['anything' => 'x']]));
+        $result = $validator->validate(['user' => ['anything' => 'x']]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -649,7 +647,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['pair' => Shape::tuple()]);
 
-        $result = $validator->validate($this->request(['pair' => []]));
+        $result = $validator->validate(['pair' => []]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -660,7 +658,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['0' => new Numeric()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => ['0' => '42']]));
+        $result = $validator->validate(['user' => ['0' => '42']]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(42, $result->value('user.0'));
@@ -672,7 +670,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => ['name' => null]]));
+        $result = $validator->validate(['user' => ['name' => null]]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user.name', $result->errors());
@@ -684,7 +682,7 @@ class CombinatorsTest extends TestCase
             'user' => Shape::object(['name' => new Required()]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => ['name' => '']]));
+        $result = $validator->validate(['user' => ['name' => '']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user.name', $result->errors());
@@ -697,7 +695,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric())]);
 
-        $result = $validator->validate($this->request(['items' => []]));
+        $result = $validator->validate(['items' => []]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame([], $result->value('items'));
@@ -707,7 +705,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric())]);
 
-        $result = $validator->validate($this->request(['items' => ['1', '2']]));
+        $result = $validator->validate(['items' => ['1', '2']]);
 
         $this->assertSame([1, 2], $result->value('items'));
     }
@@ -719,7 +717,7 @@ class CombinatorsTest extends TestCase
         // elements are not lost from the result.
         $validator = new Validator(['items' => new Each(new PassingConstraint())]);
 
-        $result = $validator->validate($this->request(['items' => ['ab', 'cd']]));
+        $result = $validator->validate(['items' => ['ab', 'cd']]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(['ab', 'cd'], $result->value('items'));
@@ -729,7 +727,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric())]);
 
-        $result = $validator->validate($this->request(['items' => ['a' => '1', 'b' => '2']]));
+        $result = $validator->validate(['items' => ['a' => '1', 'b' => '2']]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(1, $result->value('items.a'));
@@ -742,7 +740,7 @@ class CombinatorsTest extends TestCase
             'items' => new Each(Shape::object(['name' => new Required()])),
         ]);
 
-        $result = $validator->validate($this->request(['items' => ['not-an-array']]));
+        $result = $validator->validate(['items' => ['not-an-array']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('items.0', $result->errors());
@@ -756,12 +754,12 @@ class CombinatorsTest extends TestCase
             ])),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'users' => [
                 ['name' => 'Ada'],
                 ['name' => 'Grace'],
             ],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('users.0.name'));
@@ -776,12 +774,12 @@ class CombinatorsTest extends TestCase
             ])),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'users' => [
                 ['name' => 'Ada'],
                 ['name' => ''],
             ],
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('users.1.name', $result->errors());
@@ -791,7 +789,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Required())]);
 
-        $result = $validator->validate($this->request(['items' => ['x', null, 'y']]));
+        $result = $validator->validate(['items' => ['x', null, 'y']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('items.1', $result->errors());
@@ -801,7 +799,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric())]);
 
-        $result = $validator->validate($this->request(['items' => ['1', 'abc']]));
+        $result = $validator->validate(['items' => ['1', 'abc']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('items.1', $result->errors());
@@ -812,7 +810,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric(), maxItems: 3)]);
 
-        $result = $validator->validate($this->request(['items' => ['1', '2']]));
+        $result = $validator->validate(['items' => ['1', '2']]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -821,7 +819,7 @@ class CombinatorsTest extends TestCase
     {
         $validator = new Validator(['items' => new Each(new Numeric(), maxItems: 2)]);
 
-        $result = $validator->validate($this->request(['items' => ['1', '2', '3']]));
+        $result = $validator->validate(['items' => ['1', '2', '3']]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertSame(
@@ -841,13 +839,13 @@ class CombinatorsTest extends TestCase
         $validator = new Validator(['user' => $shape]);
 
         // First validation: child fails -> generic error suppressed.
-        $first = $validator->validate($this->request(['user' => ['name' => '']]));
+        $first = $validator->validate(['user' => ['name' => '']]);
         $this->assertTrue($first->hasErrors());
         $this->assertArrayHasKey('user.name', $first->errors());
         $this->assertArrayNotHasKey('user', $first->errors());
 
         // Second validation: value is not an object -> generic error present.
-        $second = $validator->validate($this->request(['user' => 'not-an-object']));
+        $second = $validator->validate(['user' => 'not-an-object']);
         $this->assertTrue($second->hasErrors());
         $this->assertArrayHasKey('user', $second->errors());
     }
@@ -858,13 +856,13 @@ class CombinatorsTest extends TestCase
         $validator = new Validator(['items' => $each]);
 
         // First validation: element fails -> generic error suppressed.
-        $first = $validator->validate($this->request(['items' => ['1', 'abc']]));
+        $first = $validator->validate(['items' => ['1', 'abc']]);
         $this->assertTrue($first->hasErrors());
         $this->assertArrayHasKey('items.1', $first->errors());
         $this->assertArrayNotHasKey('items', $first->errors());
 
         // Second validation: value is not an array -> generic error present.
-        $second = $validator->validate($this->request(['items' => 'not-an-array']));
+        $second = $validator->validate(['items' => 'not-an-array']);
         $this->assertTrue($second->hasErrors());
         $this->assertArrayHasKey('items', $second->errors());
     }
@@ -875,11 +873,11 @@ class CombinatorsTest extends TestCase
         $validator = new Validator(['value' => $all]);
 
         // First validation: Required fails -> its message is used.
-        $first = $validator->validate($this->request(['value' => '']));
+        $first = $validator->validate(['value' => '']);
         $this->assertSame(['The value is required.'], $first->errors()['value']);
 
         // Second validation: Required passes, Email fails -> Email's message.
-        $second = $validator->validate($this->request(['value' => 'not-an-email']));
+        $second = $validator->validate(['value' => 'not-an-email']);
         $this->assertSame(['The value must be a valid email address.'], $second->errors()['value']);
     }
 }

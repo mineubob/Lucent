@@ -5,24 +5,23 @@ declare(strict_types=1);
 namespace Lucent\Validation;
 
 use Lucent\Validation\Concerns\ResolvesPaths;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
 
 /**
  * Provides the runtime context for a single field being validated.
  *
  * A FieldContext is created by the {@see Validator} for each constraint and
- * exposes the field's dotted path, its raw value, the request being validated,
- * and the shared {@see Result}. It also offers helpers for reading uploaded
- * files, reading other fields' values, and normalizing the current value.
+ * exposes the field's dotted path, its raw value, and the shared
+ * {@see Result}. It also offers helpers for reading uploaded files, reading
+ * other fields' values, and normalizing the current value.
  *
  * Nested constraints ({@see \Lucent\Validation\Combinators\Shape} and
  * {@see \Lucent\Validation\Combinators\Each}) derive child contexts via
  * {@see child()}, which extends the dotted path so errors and normalized
  * values are namespaced (e.g. `user.name`).
  *
- * The context exposes the full {@see ServerRequestInterface} to custom-message
- * closures and constraints. Treat all request fields as **untrusted** — never
+ * The context is decoupled from HTTP: it validates plain data and never
+ * exposes a request object. Treat all field values as **untrusted** — never
  * interpolate them into SQL, commands, or file paths without validation.
  */
 final class FieldContext
@@ -34,11 +33,10 @@ final class FieldContext
      *
      * @param string $field The dotted path of the field being validated (e.g. `user.name`).
      * @param mixed $value The raw value of the field.
-     * @param bool $present Whether the field key was present in the request body.
-     * @param ServerRequestInterface $request The request being validated.
+     * @param bool $present Whether the field key was present in the data.
      * @param Result $result The result object that collects errors and normalized values.
-     * @param array<string, UploadedFileInterface>|null $files The uploaded files from the request, or null if none.
-     * @param mixed $body The parsed request body, or null if none.
+     * @param array<string, UploadedFileInterface>|null $files The uploaded files, or null if none.
+     * @param mixed $body The data payload being validated, or null if none.
      * @param string $name The leaf field name, used for file lookups. Defaults to $field.
      */
     /**
@@ -75,7 +73,6 @@ final class FieldContext
         public readonly string $field,
         public private(set) mixed $value,
         public readonly bool $present,
-        public readonly ServerRequestInterface $request,
         public readonly Result $result,
         private readonly array|null $files,
         private readonly mixed $body,
@@ -110,7 +107,6 @@ final class FieldContext
             $path,
             $value,
             $present,
-            $this->request,
             $this->result,
             $this->files,
             $this->body,

@@ -2,7 +2,7 @@
 
 # Lucent Framework Validation Guide
 
-Lucent provides a constraint-based validation system built around the `Constraint` class and the `Validator`. Constraints are small, composable objects that each validate a single field of an incoming PSR-7 request. When validation fails, meaningful error messages are generated automatically.
+Lucent provides a constraint-based validation system built around the `Constraint` class and the `Validator`. Constraints are small, composable objects that each validate a single field of a data payload (typically a parsed HTTP request body). When validation fails, meaningful error messages are generated automatically.
 
 ## Table of Contents
 
@@ -37,9 +37,9 @@ The validation system is built around the abstract `Constraint` class. Each cons
 ## Basic Concepts
 
 - **Constraint** — a single validation rule applied to one field.
-- **Validator** — applies a set of constraints to a request and returns a `Result`.
+- **Validator** — applies a set of constraints to a data payload and returns a `Result`.
 - **Result** — holds the validation errors and any normalized values.
-- **FieldContext** — passed to each constraint; exposes the field name, value, request, and helpers.
+- **FieldContext** — passed to each constraint; exposes the field name, value, optional originating request, and helpers.
 
 ## The Validator
 
@@ -60,14 +60,32 @@ $validator = new Validator([
 ]);
 ```
 
-Validate a PSR-7 request:
+The `Validator` is decoupled from HTTP — it validates plain arrays (and an
+optional map of uploaded files), so the same constraints work for CLI args,
+config, or API payloads:
 
 ```php
-$result = $validator->validate($request);
+$result = $validator->validate([
+    'name'     => 'Ada',
+    'username' => 'ada',
+    'email'    => 'ada@example.com',
+]);
 
 if ($result->hasErrors()) {
     // handle errors
 }
+```
+
+When validating an HTTP request, use the convenience wrapper on
+`ServerRequest::validate()`, which passes the parsed body and uploaded files
+through unchanged (so object bodies and a null body are preserved):
+
+```php
+$result = $request->validate([
+    'name'     => new Required(),
+    'username' => new Length(min: 3, max: 40),
+    'email'    => new Email(),
+]);
 ```
 
 Every present field's raw value is stored in the result, so validated-but-not-
@@ -206,7 +224,7 @@ new Date('d/m/Y');          // DD/MM/YYYY
 ```
 
 ```php
-$result = $validator->validate($request);
+$result = $validator->validate(['birthdate' => '2026-01-15']);
 $date = $result->value('birthdate');  // a Carbon instance
 $date->format('d/m/Y');
 ```
@@ -234,7 +252,7 @@ new Uri(MessageUri::VALIDATE_STRICT);     // http/https only
 ```
 
 ```php
-$result = $validator->validate($request);
+$result = $validator->validate(['website' => 'https://example.com']);
 $uri = $result->value('website');  // a Uri instance
 $host = $uri->getHost();
 ```
@@ -336,7 +354,9 @@ $validator = new Validator([
     ]),
 ]);
 
-$result = $validator->validate($request);
+$result = $validator->validate([
+    'user' => ['name' => 'Ada', 'email' => 'ada@example.com'],
+]);
 
 $result->value('user.name');   // 'Ada'
 $result->value('user');        // ['name' => 'Ada', 'email' => 'ada@example.com']
@@ -361,7 +381,7 @@ $validator = new Validator([
     'pair' => Shape::tuple(new Numeric(), new Length(min: 2)),
 ]);
 
-$result = $validator->validate($request);
+$result = $validator->validate(['pair' => ['42', 'abc']]);
 $result->value('pair.0');   // 42 (normalized)
 ```
 
@@ -391,7 +411,7 @@ $validator = new Validator([
     'items' => new Each(new Numeric()),
 ]);
 
-$result = $validator->validate($request);
+$result = $validator->validate(['items' => ['1', '2', '3']]);
 $result->value('items');   // [1, 2, 3] (normalized)
 ```
 
@@ -490,6 +510,7 @@ The `Result` returned by `Validator::validate()` exposes:
 - `hasErrors()` — whether any errors occurred
 - `values()` — validated values as a nested array
 - `value($path, $default)` — a single value by dotted path
+- `valueAs($path, $type, $default)` — a value cast to a given type
 - `hasValue($path)` — whether a value exists at a path
 
 Every present field is seeded with its raw value, so validated-but-not-
@@ -497,7 +518,10 @@ normalized fields are retrievable. Normalizers overwrite the raw value with
 the transformed one. Nested fields are addressed by dotted path.
 
 ```php
-$result = $validator->validate($request);
+$result = $validator->validate([
+    'email' => 'ada@example.com',
+    'user'  => ['name' => 'Ada'],
+]);
 
 if ($result->hasErrors()) {
     foreach ($result->errors() as $field => $messages) {
@@ -510,6 +534,19 @@ if ($result->hasErrors()) {
 $email = $result->value('email');        // 'ada@example.com'
 $name  = $result->value('user.name');    // 'Ada'
 $user  = $result->value('user');         // ['name' => 'Ada', 'email' => 'ada@example.com']
+```
+
+### Typed getter
+
+`valueAs()` casts a value to a given type. Scalar types are passed as string
+literals (`'int'`, `'string'`, `'bool'`, `'float'`, `'array'`); userland
+classes use `::class`. It falls back to the default when the path is absent or
+the value cannot be cast.
+
+```php
+$age  = $result->valueAs('age', 'int');          // (int) value
+$name = $result->valueAs('name', 'string');      // (string) value
+$user = $result->valueAs('user', User::class);   // value, or $default
 ```
 
 ## Real-world Example
@@ -541,5 +578,12 @@ $validator = new Validator([
     'scores'                => new Each(new Numeric()),
 ]);
 
-$result = $validator->validate($request);
+$result = $validator->validate([
+    'name'                  => 'Ada',
+    'email'                 => 'ada@example.com',
+    'password'              => 'secret123',
+    'password_confirmation' => 'secret123',
+    'address'               => ['street' => '1 Main St', 'city' => 'Sydney'],
+    'scores'                => ['1', '2', '3'],
+]);
 ```

@@ -2,42 +2,42 @@
 
 namespace Tests\Support\Concerns;
 
-use Lucent\Http\Message\ServerRequest;
+use Lucent\Http\Message\UploadedFile;
 use Lucent\Validation\Constraint;
 use Lucent\Validation\Result;
 use Lucent\Validation\Validator;
 
 /**
- * Builds PSR-7 requests and runs validation for unit tests of the
+ * Runs validation against raw data for unit tests of the
  * Lucent\Validation namespace.
  *
- * The constraint tests all follow the same shape: build a POST request with a
- * parsed body, wrap a constraint in a Validator, and validate. This trait
- * centralises that so each test class only declares the field name it uses.
+ * The constraint tests all follow the same shape: wrap a constraint in a
+ * Validator and validate a raw data array. This trait centralises that so
+ * each test class only declares the field name it uses.
  */
 trait BuildsValidationRequests
 {
     /**
-     * Build a POST request with the given parsed body.
-     *
-     * @param array $body The parsed request body.
-     * @return ServerRequest
-     */
-    protected function request(array $body): ServerRequest
-    {
-        return ServerRequest::create('POST', '/')->withParsedBody($body);
-    }
-
-    /**
      * Validate a single field against a constraint.
      *
      * @param string $field The field name to validate.
-     * @param array $body The parsed request body.
+     * @param array $body The data payload to validate.
      * @param Constraint $constraint The constraint to apply to the field.
      * @return Result The validation result.
      */
     protected function validateField(string $field, array $body, Constraint $constraint): Result
     {
-        return (new Validator([$field => $constraint]))->validate($this->request($body));
+        return (new Validator([$field => $constraint]))->validate($body);
+    }
+
+    /**
+     * Build an uploaded file for file-constraint tests.
+     *
+     * @param int $error The upload error code (defaults to UPLOAD_ERR_OK).
+     * @return UploadedFile A successfully-uploaded file by default.
+     */
+    protected function file(int $error = UPLOAD_ERR_OK): UploadedFile
+    {
+        return new UploadedFile('path/to/file.txt', 10, $error, 'file.txt');
     }
 }

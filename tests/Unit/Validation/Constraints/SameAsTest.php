@@ -20,10 +20,10 @@ class SameAsTest extends TestCase
             'password' => new SameAs('password_confirmation'),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'password' => 'secret',
             'password_confirmation' => 'secret',
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -34,10 +34,10 @@ class SameAsTest extends TestCase
             'password' => new SameAs('password_confirmation'),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'password' => 'secret',
             'password_confirmation' => 'different',
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
     }
@@ -50,8 +50,8 @@ class SameAsTest extends TestCase
             'a' => new SameAs('b'),
         ]);
 
-        $this->assertTrue($validator->validate($this->request(['a' => 0, 'b' => '0']))->hasErrors());
-        $this->assertTrue($validator->validate($this->request(['a' => true, 'b' => '1']))->hasErrors());
+        $this->assertTrue($validator->validate(['a' => 0, 'b' => '0'])->hasErrors());
+        $this->assertTrue($validator->validate(['a' => true, 'b' => '1'])->hasErrors());
     }
 
     // ─── sibling resolution ────────────────────────────────────────────────
@@ -64,12 +64,12 @@ class SameAsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => [
                 'password' => 'secret',
                 'password_confirmation' => 'secret',
             ],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -82,12 +82,12 @@ class SameAsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => [
                 'password' => 'secret',
                 'password_confirmation' => 'different',
             ],
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user.password', $result->errors());
@@ -107,12 +107,12 @@ class SameAsTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'user' => [
                 'password' => 'secret',
                 'password_confirmation' => 'secret',
             ],
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -126,9 +126,9 @@ class SameAsTest extends TestCase
         ]);
 
         // b absent -> valueOf returns null; 'x' !== null -> fails.
-        $this->assertTrue($validator->validate($this->request(['a' => 'x']))->hasErrors());
+        $this->assertTrue($validator->validate(['a' => 'x'])->hasErrors());
         // a null and b absent -> null === null -> passes.
-        $this->assertFalse($validator->validate($this->request(['a' => null]))->hasErrors());
+        $this->assertFalse($validator->validate(['a' => null])->hasErrors());
     }
 
     // ─── empty string ──────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ class SameAsTest extends TestCase
             'a' => new SameAs('b'),
         ]);
 
-        $this->assertFalse($validator->validate($this->request(['a' => '', 'b' => '']))->hasErrors());
+        $this->assertFalse($validator->validate(['a' => '', 'b' => ''])->hasErrors());
     }
 
     public function test_empty_string_mismatch_fails(): void
@@ -148,7 +148,7 @@ class SameAsTest extends TestCase
             'a' => new SameAs('b'),
         ]);
 
-        $this->assertTrue($validator->validate($this->request(['a' => '', 'b' => 'x']))->hasErrors());
+        $this->assertTrue($validator->validate(['a' => '', 'b' => 'x'])->hasErrors());
     }
 
     // ─── message ───────────────────────────────────────────────────────────
@@ -159,10 +159,10 @@ class SameAsTest extends TestCase
             'password' => new SameAs('password_confirmation'),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'password' => 'secret',
             'password_confirmation' => 'different',
-        ]));
+        ]);
 
         $this->assertSame(
             ['password must match the value of password_confirmation'],

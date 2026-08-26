@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Validation;
 
-use Lucent\Http\Message\ServerRequest;
 use Lucent\Validation\Combinators\Each;
 use Lucent\Validation\Combinators\Shape;
 use Lucent\Validation\Constraints\Email;
@@ -23,7 +22,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator(new Each(new Numeric()));
 
-        $result = $validator->validate($this->request(['1', '2']));
+        $result = $validator->validate(['1', '2']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame([1, 2], $result->values());
@@ -38,10 +37,10 @@ class ValidatorTest extends TestCase
             'email' => new Email(),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'name'  => 'Ada',
             'email' => 'ada@example.com',
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('name'));
@@ -55,10 +54,10 @@ class ValidatorTest extends TestCase
             'email' => new Email(),
         ]);
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'name'  => '',
             'email' => 'not-an-email',
-        ]));
+        ]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('name', $result->errors());
@@ -69,7 +68,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator(['name' => new Required()]);
 
-        $result = $validator->validate($this->request([]));
+        $result = $validator->validate([]);
 
         $this->assertFalse($result->hasValue('name'));
     }
@@ -83,10 +82,10 @@ class ValidatorTest extends TestCase
             'email' => new Email(),
         ]));
 
-        $result = $validator->validate($this->request([
+        $result = $validator->validate([
             'name'  => 'Ada',
             'email' => 'ada@example.com',
-        ]));
+        ]);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('name'));
@@ -98,7 +97,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator(new Each(new Numeric()));
 
-        $result = $validator->validate($this->request(['1', '2', '3']));
+        $result = $validator->validate(['1', '2', '3']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame([1, 2, 3], $result->values());
@@ -110,7 +109,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator(Shape::tuple(new Numeric(), new Length(min: 2)));
 
-        $result = $validator->validate($this->request(['42', 'ab']));
+        $result = $validator->validate(['42', 'ab']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame(42, $result->value('0'));
@@ -122,7 +121,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator([]);
 
-        $result = $validator->validate($this->request(['anything' => 'x']));
+        $result = $validator->validate(['anything' => 'x']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -138,14 +137,14 @@ class ValidatorTest extends TestCase
 
     // ─── GET request (null body) ───────────────────────────────────────────
 
-    public function test_get_request_null_body_shape_fails_gracefully(): void
+    public function test_empty_body_shape_fails_gracefully(): void
     {
         $validator = new Validator(Shape::object(['name' => new Required()]));
 
-        $result = $validator->validate(ServerRequest::create('GET', '/'));
+        $result = $validator->validate([]);
 
         $this->assertTrue($result->hasErrors());
-        $this->assertArrayHasKey('', $result->errors());
+        $this->assertArrayHasKey('name', $result->errors());
     }
 
     // ─── top-level tuple rejects object body ───────────────────────────────
@@ -154,7 +153,7 @@ class ValidatorTest extends TestCase
     {
         $validator = new Validator(Shape::tuple(new Numeric(), new Numeric()));
 
-        $result = $validator->validate($this->request(['a' => '1', 'b' => '2']));
+        $result = $validator->validate(['a' => '1', 'b' => '2']);
 
         $this->assertTrue($result->hasErrors());
     }

@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Validation;
 
-use Lucent\Http\Message\ServerRequest;
 use Lucent\Validation\Combinators\All;
 use Lucent\Validation\Constraints\Required;
 use Lucent\Validation\Normalizers\Trim;
@@ -20,7 +19,7 @@ class NormalizersTest extends TestCase
     {
         $validator = new Validator(['name' => new Trim()]);
 
-        $result = $validator->validate($this->request(['name' => '  Ada  ']));
+        $result = $validator->validate(['name' => '  Ada  ']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('name'));
@@ -30,7 +29,7 @@ class NormalizersTest extends TestCase
     {
         $validator = new Validator(['name' => new Trim()]);
 
-        $result = $validator->validate($this->request(['name' => '   ']));
+        $result = $validator->validate(['name' => '   ']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('', $result->value('name'));
@@ -40,7 +39,7 @@ class NormalizersTest extends TestCase
     {
         $validator = new Validator(['name' => new Trim()]);
 
-        $result = $validator->validate($this->request(['name' => '']));
+        $result = $validator->validate(['name' => '']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('', $result->value('name'));
@@ -50,7 +49,7 @@ class NormalizersTest extends TestCase
     {
         foreach ([42, 3.14, ['a'], null, true] as $value) {
             $validator = new Validator(['name' => new Trim()]);
-            $result = $validator->validate($this->request(['name' => $value]));
+            $result = $validator->validate(['name' => $value]);
             $this->assertFalse($result->hasErrors(), "Expected pass for " . var_export($value, true));
             $this->assertSame($value, $result->value('name'));
         }
@@ -60,7 +59,7 @@ class NormalizersTest extends TestCase
     {
         $validator = new Validator(['name' => new Trim()]);
 
-        $result = $validator->validate($this->request(['name' => '  x  ']));
+        $result = $validator->validate(['name' => '  x  ']);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -72,7 +71,7 @@ class NormalizersTest extends TestCase
             'name' => All::of(new Trim(), new Required()),
         ]);
 
-        $result = $validator->validate($this->request(['name' => '  Ada  ']));
+        $result = $validator->validate(['name' => '  Ada  ']);
 
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('name'));
@@ -85,7 +84,7 @@ class NormalizersTest extends TestCase
             'name' => All::of(new Trim(), new Required()),
         ]);
 
-        $result = $validator->validate($this->request(['name' => '   ']));
+        $result = $validator->validate(['name' => '   ']);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('name', $result->errors());
@@ -96,8 +95,7 @@ class NormalizersTest extends TestCase
     public function test_default_message_returns_null(): void
     {
         $trim = new Trim();
-        $request = ServerRequest::create('POST', '/');
-        $ctx = new \Lucent\Validation\FieldContext('name', 'x', true, $request, new \Lucent\Validation\Result(), null, null);
+        $ctx = new \Lucent\Validation\FieldContext('name', 'x', true, new \Lucent\Validation\Result(), null, null);
 
         // A normalizer always passes, so its message is never requested in
         // normal flow. Requesting it must return null (no error), not throw.

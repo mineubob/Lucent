@@ -4,6 +4,9 @@ namespace Lucent\Http\Message;
 
 use Lucent\Http\Message\UploadedFile;
 use Lucent\Http\RouteInfo;
+use Lucent\Validation\Constraint;
+use Lucent\Validation\Result;
+use Lucent\Validation\Validator;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
@@ -41,8 +44,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /** @var array Uploaded files ($_FILES) */
     private array $uploadedFiles = [];
 
-    /** @var array|null Parsed body ($_POST or parsed JSON) */
-    protected array|null $parsedBody = null;
+    /** @var array|object|null Parsed body ($_POST or parsed JSON) */
+    protected array|object|null $parsedBody = null;
 
     /** @var array Attributes (PSR-7 extension mechanism — stores routeInfo, urlVars, context) */
     private array $attributes = [];
@@ -542,7 +545,12 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         if ($this->parsedBody === null) {
             return $default;
         }
-        return array_key_exists($key, $this->parsedBody) ? $this->parsedBody[$key] : $default;
+
+        if (is_array($this->parsedBody)) {
+            return array_key_exists($key, $this->parsedBody) ? $this->parsedBody[$key] : $default;
+        }
+
+        return property_exists($this->parsedBody, $key) ? $this->parsedBody->{$key} : $default;
     }
 
     /**
@@ -562,6 +570,25 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
             return null;
         }
         return array_key_exists($key, $this->uploadedFiles) ? $this->uploadedFiles[$key] : null;
+    }
+
+    /**
+     * Validate this request's parsed body against a set of constraints.
+     *
+     * Convenience wrapper around {@see \Lucent\Validation\Validator} that
+     * passes the parsed body and uploaded files through unchanged, so object
+     * bodies (e.g. decoded JSON) and a null body are preserved.
+     *
+     * @param \Lucent\Validation\Constraint|array<string, \Lucent\Validation\Constraint> $constraints
+     *        A single top-level constraint, or a map of constraints keyed by field name.
+     * @return Result The validation result containing errors and validated values.
+     */
+    public function validate(Constraint|array $constraints): Result
+    {
+        return (new Validator($constraints))->validate(
+            $this->parsedBody,
+            $this->uploadedFiles,
+        );
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────

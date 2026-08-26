@@ -64,7 +64,7 @@ class PresentTest extends TestCase
             ]),
         ]);
 
-        $result = $validator->validate($this->request(['user' => []]));
+        $result = $validator->validate(['user' => []]);
 
         $this->assertTrue($result->hasErrors());
         $this->assertArrayHasKey('user.name', $result->errors());
@@ -76,7 +76,7 @@ class PresentTest extends TestCase
     {
         $present = $this->validate(['field' => ''], new Present());
         $required = (new Validator(['field' => new Required()]))
-            ->validate($this->request(['field' => '']));
+            ->validate(['field' => '']);
 
         $this->assertFalse($present->hasErrors());
         $this->assertTrue($required->hasErrors());

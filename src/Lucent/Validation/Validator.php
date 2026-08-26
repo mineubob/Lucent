@@ -6,24 +6,28 @@ namespace Lucent\Validation;
 
 use Lucent\Validation\Combinators\Shape;
 use Lucent\Validation\Concerns\RecordsConstraintFailure;
-use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * Applies a set of constraints to a PSR-7 request.
+ * Applies a set of constraints to a raw data payload.
  *
  * The Validator is constructed with either a single top-level constraint
  * (typically a {@see Shape} for an object body or an {@see \Lucent\Validation\Combinators\Each}
  * for an array body) or a flat map of constraints keyed by field name, which
  * is sugar for a top-level {@see Shape}. Calling {@see validate()} runs the
- * constraint(s) against the request body and returns a {@see Result}
- * containing any errors and validated values.
+ * constraint(s) against the data and returns a {@see Result} containing any
+ * errors and validated values.
+ *
+ * The Validator is decoupled from HTTP: it validates plain arrays, objects,
+ * or null (and an optional map of uploaded files). HTTP callers use the
+ * convenience wrapper on {@see \Lucent\Http\Message\ServerRequest::validate()},
+ * which passes the parsed body and uploaded files through unchanged.
  */
 final class Validator
 {
     use RecordsConstraintFailure;
 
     /**
-     * The top-level constraint applied to the request body.
+     * The top-level constraint applied to the data payload.
      */
     private readonly Constraint $constraint;
 
@@ -51,26 +55,25 @@ final class Validator
     }
 
     /**
-     * Validate a request against the configured constraints.
+     * Validate a data payload against the configured constraints.
      *
-     * The top-level constraint is applied to the request body. Failed
-     * constraints record an error message on the result; successful
-     * constraints may normalize the value, which is stored on the result.
+     * The top-level constraint is applied to the data. Failed constraints
+     * record an error message on the result; successful constraints may
+     * normalize the value, which is stored on the result.
      *
-     * @param ServerRequestInterface $request The request to validate.
+     * @param array|object|null $body The data to validate (e.g. a parsed request body).
+     * @param array<string, \Psr\Http\Message\UploadedFileInterface> $files Optional
+     *        uploaded files keyed by field name, for file constraints.
      * @return Result The validation result containing errors and validated values.
      */
-    public function validate(ServerRequestInterface $request): Result
+    public function validate(array|object|null $body, array $files = []): Result
     {
         $result = new Result();
-        $files = $request->getUploadedFiles();
-        $body = $request->getParsedBody();
 
         $ctx = new FieldContext(
             '',
             $body,
             true,
-            $request,
             $result,
             $files,
             $body,

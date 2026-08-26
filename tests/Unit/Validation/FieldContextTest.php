@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Validation;
 
-use Lucent\Http\Message\ServerRequest;
 use Lucent\Http\Message\UploadedFile;
 use Lucent\Validation\FieldContext;
 use Lucent\Validation\Result;
@@ -19,9 +18,7 @@ class FieldContextTest extends TestCase
         mixed $body = null,
         string $name = '',
     ): FieldContext {
-        $request = ServerRequest::create('POST', '/');
-
-        return new FieldContext($field, $value, $present, $request, new Result(), $files, $body, $name);
+        return new FieldContext($field, $value, $present, new Result(), $files, $body, $name);
     }
 
     // ─── readonly properties ───────────────────────────────────────────────
@@ -37,14 +34,6 @@ class FieldContextTest extends TestCase
     {
         $this->assertTrue($this->context(present: true)->present);
         $this->assertFalse($this->context(present: false)->present);
-    }
-
-    public function test_exposes_request_property(): void
-    {
-        $request = ServerRequest::create('POST', '/');
-        $ctx = new FieldContext('name', 'Ada', true, $request, new Result(), null, null);
-
-        $this->assertSame($request, $ctx->request);
     }
 
     // ─── name defaulting ───────────────────────────────────────────────────

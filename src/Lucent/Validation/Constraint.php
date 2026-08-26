@@ -8,12 +8,12 @@ namespace Lucent\Validation;
  * Base class for all validation constraints.
  *
  * A constraint is a single, composable validation rule applied to one field
- * of an incoming request. Subclasses implement {@see validate()} to decide
+ * of a data payload. Subclasses implement {@see validate()} to decide
  * whether a value is acceptable, and {@see defaultMessage()} to provide a
  * human-readable error message when validation fails.
  *
- * Constraints are passed to a {@see Validator}, which applies them to a PSR-7
- * request and collects the results into a {@see Result}.
+ * Constraints are passed to a {@see Validator}, which applies them to a data
+ * payload and collects the results into a {@see Result}.
  */
 abstract class Constraint
 {

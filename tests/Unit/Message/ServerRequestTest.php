@@ -172,4 +172,45 @@ class ServerRequestTest extends TestCase
         $request = ServerRequest::create();
         $this->assertInstanceOf(\Psr\Http\Message\UriInterface::class, $request->getUri());
     }
+
+    // ─── validate() ────────────────────────────────────────────────────────
+
+    public function test_validate_passes_valid_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => 'Ada']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_validate_reports_invalid_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('name', $result->errors());
+    }
+
+    public function test_validate_handles_null_body(): void
+    {
+        $request = ServerRequest::create('GET', '/');
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_validate_preserves_object_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => 'Ada']);
+        $request = $request->withParsedBody((object) ['name' => 'Ada']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame('Ada', $result->value('name'));
+    }
 }

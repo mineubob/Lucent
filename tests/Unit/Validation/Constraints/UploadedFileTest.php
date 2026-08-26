@@ -2,8 +2,6 @@
 
 namespace Tests\Unit\Validation\Constraints;
 
-use Lucent\Http\Message\ServerRequest;
-use Lucent\Http\Message\UploadedFile;
 use Lucent\Validation\Combinators\Shape;
 use Lucent\Validation\Constraints\UploadedFile as UploadedFileConstraint;
 use Lucent\Validation\Validator;
@@ -14,23 +12,13 @@ class UploadedFileTest extends TestCase
 {
     use BuildsValidationRequests;
 
-    private function request(array $body = [], array $files = []): ServerRequest
-    {
-        return ServerRequest::create('POST', '/')->withParsedBody($body)->withUploadedFiles($files);
-    }
-
-    private function file(int $error = UPLOAD_ERR_OK): UploadedFile
-    {
-        return new UploadedFile('path/to/file.txt', 10, $error, 'file.txt');
-    }
-
     // ─── valid upload ──────────────────────────────────────────────────────
 
     public function test_valid_upload_passes(): void
     {
         $validator = new Validator(['avatar' => new UploadedFileConstraint()]);
 
-        $result = $validator->validate($this->request([], ['avatar' => $this->file(UPLOAD_ERR_OK)]));
+        $result = $validator->validate([], ['avatar' => $this->file(UPLOAD_ERR_OK)]);
 
         $this->assertFalse($result->hasErrors());
     }
@@ -41,7 +29,7 @@ class UploadedFileTest extends TestCase
     {
         foreach ([UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_PARTIAL, UPLOAD_ERR_NO_FILE, UPLOAD_ERR_EXTENSION] as $code) {
             $validator = new Validator(['avatar' => new UploadedFileConstraint()]);
-            $result = $validator->validate($this->request([], ['avatar' => $this->file($code)]));
+            $result = $validator->validate([], ['avatar' => $this->file($code)]);
             $this->assertTrue($result->hasErrors(), "Expected fail for error code $code");
         }
     }
@@ -52,7 +40,7 @@ class UploadedFileTest extends TestCase
     {
         $validator = new Validator(['avatar' => new UploadedFileConstraint()]);
 
-        $result = $validator->validate($this->request());
+        $result = $validator->validate([]);
 
         $this->assertTrue($result->hasErrors());
     }
@@ -61,7 +49,7 @@ class UploadedFileTest extends TestCase
     {
         $validator = new Validator(['avatar' => new UploadedFileConstraint()]);
 
-        $result = $validator->validate($this->request(['avatar' => 'not-a-file']));
+        $result = $validator->validate(['avatar' => 'not-a-file']);
 
         $this->assertTrue($result->hasErrors());
     }
@@ -77,7 +65,8 @@ class UploadedFileTest extends TestCase
         ]);
 
         $result = $validator->validate(
-            $this->request(['user' => []], ['avatar' => $this->file(UPLOAD_ERR_OK)]),
+            ['user' => []],
+            ['avatar' => $this->file(UPLOAD_ERR_OK)],
         );
 
         $this->assertFalse($result->hasErrors());
@@ -89,7 +78,7 @@ class UploadedFileTest extends TestCase
     {
         $validator = new Validator(['avatar' => new UploadedFileConstraint()]);
 
-        $result = $validator->validate($this->request());
+        $result = $validator->validate([]);
 
         $this->assertSame(
             ['The avatar must be a valid file.'],

@@ -7,7 +7,7 @@ namespace Lucent\Validation;
 use Lucent\Validation\Concerns\ResolvesPaths;
 
 /**
- * Collects the outcome of validating a request.
+ * Collects the outcome of validating a data payload.
  *
  * A Result holds any validation errors (keyed by dotted field path) and the
  * values produced by validation. Every present field is seeded with its raw
@@ -238,6 +238,46 @@ final class Result
         [$found, $value] = $this->tryValue($path);
 
         return $found ? $value : $default;
+    }
+
+    /**
+     * Get a value at a dotted path cast to a given type.
+     *
+     * A typed getter: the type is given as a class-string, so userland
+     * classes work via `User::class`. Built-in scalar types are passed as
+     * string literals (`'int'`, `'string'`, `'bool'`, `'float'`, `'array'`) —
+     * `int::class` is not valid PHP. The stored value is cast to the
+     * requested type, falling back to the default when the path is absent or
+     * the value cannot be cast.
+     *
+     * ```php
+     * $age = $result->valueAs('age', 'int');          // (int) value
+     * $name = $result->valueAs('name', 'string');     // (string) value
+     * $user = $result->valueAs('user', User::class);  // value, or $default
+     * ```
+     *
+     * @param string $path The dotted path of the field.
+     * @param class-string $type The type to cast to (e.g. `'int'` or `User::class`).
+     * @param mixed $default The value to return when the path is absent or the
+     *        value cannot be cast to the requested type.
+     * @return mixed The value cast to the requested type, or $default.
+     */
+    public function valueAs(string $path, string $type, mixed $default = null): mixed
+    {
+        $value = $this->value($path, $default);
+
+        if ($value === $default) {
+            return $default;
+        }
+
+        return match ($type) {
+            'int'    => (int) $value,
+            'string' => (string) $value,
+            'bool'   => (bool) $value,
+            'float'  => (float) $value,
+            'array'  => is_array($value) ? $value : $default,
+            default  => $value instanceof $type ? $value : $default,
+        };
     }
 
     /**

@@ -273,4 +273,77 @@ class ResultTest extends TestCase
         $this->assertSame(['a' => ['a error']], $result->errors());
         $this->assertArrayNotHasKey('b', $result->errors());
     }
+
+    // ─── valueAs() typed getter ────────────────────────────────────────────
+
+    public function test_as_casts_to_int(): void
+    {
+        $result = new Result();
+        $result->set('age', '42');
+
+        $this->assertSame(42, $result->valueAs('age', 'int'));
+    }
+
+    public function test_as_casts_to_string(): void
+    {
+        $result = new Result();
+        $result->set('age', 42);
+
+        $this->assertSame('42', $result->valueAs('age', 'string'));
+    }
+
+    public function test_as_casts_to_bool(): void
+    {
+        $result = new Result();
+        $result->set('active', '1');
+
+        $this->assertTrue($result->valueAs('active', 'bool'));
+    }
+
+    public function test_as_casts_to_float(): void
+    {
+        $result = new Result();
+        $result->set('price', '9.99');
+
+        $this->assertSame(9.99, $result->valueAs('price', 'float'));
+    }
+
+    public function test_as_returns_default_when_path_absent(): void
+    {
+        $result = new Result();
+
+        $this->assertSame(0, $result->valueAs('missing', 'int', 0));
+    }
+
+    public function test_as_array_returns_default_when_not_array(): void
+    {
+        $result = new Result();
+        $result->set('user', 'not-an-array');
+
+        $this->assertNull($result->valueAs('user', 'array'));
+    }
+
+    public function test_as_array_returns_array_value(): void
+    {
+        $result = new Result();
+        $result->set('user', ['name' => 'Ada']);
+
+        $this->assertSame(['name' => 'Ada'], $result->valueAs('user', 'array'));
+    }
+
+    public function test_as_class_returns_instance_when_matching(): void
+    {
+        $result = new Result();
+        $result->set('user', new \stdClass());
+
+        $this->assertInstanceOf(\stdClass::class, $result->valueAs('user', \stdClass::class));
+    }
+
+    public function test_as_class_returns_default_when_not_matching(): void
+    {
+        $result = new Result();
+        $result->set('user', 'not-an-object');
+
+        $this->assertNull($result->valueAs('user', \stdClass::class));
+    }
 }

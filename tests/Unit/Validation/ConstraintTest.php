@@ -4,7 +4,6 @@ namespace Tests\Unit\Validation;
 
 use Lucent\Validation\FieldContext;
 use Lucent\Validation\Result;
-use Lucent\Http\Message\ServerRequest;
 use PHPUnit\Framework\TestCase;
 use Tests\Support\Stubs\FailingConstraint;
 use Tests\Support\Stubs\PassingConstraint;
@@ -13,9 +12,7 @@ class ConstraintTest extends TestCase
 {
     private function context(string $field = 'name', mixed $value = 'Ada'): FieldContext
     {
-        $request = ServerRequest::create('POST', '/');
-
-        return new FieldContext($field, $value, true, $request, new Result(), null, null);
+        return new FieldContext($field, $value, true, new Result(), null, null);
     }
 
     // ─── withMessage(string) ───────────────────────────────────────────────
