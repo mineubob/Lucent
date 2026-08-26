@@ -24,6 +24,7 @@
     "php": ">=8.4",
     "ext-curl": "*",
     "ext-fileinfo": "*",
+    "ext-mbstring": "*",
     "ext-mysqli": "*",
     "ext-pdo": "*",
     "ext-zip": "*",

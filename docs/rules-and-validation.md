@@ -2,806 +2,544 @@
 
 # Lucent Framework Validation Guide
 
-The Lucent Framework provides a powerful and flexible validation system through its `Rule` classes. This guide will help you understand how to implement validation in your application to ensure data integrity and security.
+Lucent provides a constraint-based validation system built around the `Constraint` class and the `Validator`. Constraints are small, composable objects that each validate a single field of an incoming PSR-7 request. When validation fails, meaningful error messages are generated automatically.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Basic Concepts](#basic-concepts)
-- [Creating Validation Rules](#creating-validation-rules)
-- [Using Validation Rules](#using-validation-rules)
-- [Available Validation Rules](#available-validation-rules)
-- [Negated Rules](#negated-rules)
-- [Nullable Fields](#nullable-fields)
-- [Custom Regex Patterns](#custom-regex-patterns)
-- [Validation Messages](#validation-messages)
-    - [Default Messages](#default-messages)
-    - [Message Parameters](#message-parameters)
-    - [Overriding Messages](#overriding-messages)
-    - [Local Message Overrides](#local-message-overrides)
-    - [Global Message Overrides](#global-message-overrides)
-- [Advanced Usage](#advanced-usage)
-- [Real-world Example: Contact Form](#real-world-example-contact-form)
-- [Real-world Example: Article Creation](#real-world-example-article-creation)
-- [Best Practices](#best-practices)
+- [The Validator](#the-validator)
+- [Built-in Constraints](#built-in-constraints)
+    - [Required](#required)
+    - [Present](#present)
+    - [Length](#length)
+    - [Numeric](#numeric)
+    - [Range](#range)
+    - [SameAs](#sameas)
+    - [Matches](#matches)
+- [Combinators](#combinators)
+    - [All](#all)
+    - [Any](#any)
+    - [Optional](#optional)
+    - [Shape](#shape)
+    - [Each](#each)
+- [Nested Validation](#nested-validation)
+- [Normalizers](#normalizers)
+- [Custom Messages](#custom-messages)
+- [Custom Constraints](#custom-constraints)
+- [Accessing Results](#accessing-results)
+- [Real-world Example](#real-world-example)
 
 ## Overview
 
-The validation system in Lucent Framework is built around the abstract `Rule` class and works by defining sets of constraints that incoming data must satisfy. When validation fails, meaningful error messages are automatically generated to help users correct their input.
+The validation system is built around the abstract `Constraint` class. Each constraint validates a single field and produces an error message when the value does not satisfy its rule. Constraints are passed to a `Validator`, which applies them to a PSR-7 `ServerRequestInterface` and collects the results.
 
 ## Basic Concepts
 
-### The Rule Class
+- **Constraint** — a single validation rule applied to one field.
+- **Validator** — applies a set of constraints to a request and returns a `Result`.
+- **Result** — holds the validation errors and any normalized values.
+- **FieldContext** — passed to each constraint; exposes the field name, value, request, and helpers.
 
-At the core of the validation system is the abstract `Rule` class which all your rule definitions should extend. Each rule class defines:
+## The Validator
 
-- A set of fields to validate
-- Constraints to apply to each field
-- Error messages to return when validation fails
-
-### Validation Process
-
-The standard validation flow is:
-
-1. Create a Rule class with validation criteria
-2. Apply the Rule to incoming request data
-3. Check if validation passed or failed
-4. Access any validation errors if needed
-
-## Creating Validation Rules
-
-### Basic Rule Structure
-
-To create a validation rule, extend the `Rule` class and implement the `setup()` method:
+The `Validator` takes either a single top-level constraint or an associative
+array of constraints keyed by field name. Each value must be a `Constraint`
+instance. A flat array is sugar for a top-level `Shape` (see below).
 
 ```php
-<?php
+use Lucent\Validation\Validator;
+use Lucent\Validation\Constraints\Required;
+use Lucent\Validation\Constraints\Length;
+use Lucent\Validation\Constraints\Email;
 
-namespace App\Validation;
+$validator = new Validator([
+    'name'     => new Required(),
+    'username' => new Length(min: 3, max: 40),
+    'email'    => new Email(),
+]);
+```
 
-use Lucent\Validation\Rule;
+Validate a PSR-7 request:
 
-class UserRule extends Rule
+```php
+$result = $validator->validate($request);
+
+if ($result->hasErrors()) {
+    // handle errors
+}
+```
+
+Every present field's raw value is stored in the result, so validated-but-not-
+normalized fields are still retrievable via `$result->value('email')`.
+Constraints that normalize (e.g. `Numeric`) overwrite the raw value with the
+transformed one.
+
+## Built-in Constraints
+
+### Required
+
+Ensures the field is present. Treats `null`, an empty string, and an empty
+array as missing. Values like `'0'`, `0`, `false`, and whitespace-only strings
+are considered present.
+
+```php
+use Lucent\Validation\Constraints\Required;
+
+new Required();
+```
+
+### Present
+
+Checks only that the field key was present in the request body. Unlike
+`Required`, the value may be `null`, an empty string, or `false` and still
+pass. This is useful for booleans and checkboxes where an explicit `false` or
+`0` is a valid submission but the key must still be supplied.
+
+```php
+use Lucent\Validation\Constraints\Present;
+
+new Present();
+```
+
+### Length
+
+Validates the length of a string (characters) or array (items). Requires at least one of `$min` or `$max`.
+
+```php
+use Lucent\Validation\Constraints\Length;
+
+new Length(min: 3);          // at least 3 characters
+new Length(max: 100);        // at most 100 characters
+new Length(min: 3, max: 100); // between 3 and 100
+```
+
+### Numeric
+
+Ensures the value is numeric. Numeric strings are normalized to a number.
+
+```php
+use Lucent\Validation\Constraints\Numeric;
+
+new Numeric();
+```
+
+### Range
+
+Validates a numeric value against a minimum and/or maximum. Requires at least one of `$min` or `$max`. Accepts `int`, `float`, and numeric strings (which are normalized to numbers).
+
+```php
+use Lucent\Validation\Constraints\Range;
+
+new Range(min: 18);          // at least 18
+new Range(max: 120);         // at most 120
+new Range(min: 18, max: 120); // between 18 and 120
+```
+
+### SameAs
+
+Ensures the field matches the value of another field.
+
+```php
+use Lucent\Validation\Constraints\SameAs;
+
+new SameAs('password'); // e.g. for a password_confirmation field
+```
+
+### Matches
+
+Validates a string against a regular expression. Use the constructor for a custom pattern, or one of the built-in factories for common formats.
+
+```php
+use Lucent\Validation\Constraints\Matches;
+
+new Matches('/^[a-z0-9]+$/');   // custom pattern
+Matches::mobile();              // E.164 international phone
+Matches::password();            // lowercase + uppercase + min 8
+Matches::alpha();               // letters only
+Matches::alphanumeric();        // letters and numbers
+Matches::hexColor();            // #FFF or #FFFFFF
+```
+
+> **ReDoS warning:** the pattern is applied to attacker-controlled input via
+> `preg_match`. A pattern with catastrophic backtracking (e.g. `/(a+)+$/`)
+> applied to a long adversarial string can consume significant CPU. Patterns
+> must be **developer-controlled and pre-validated** — never derived from user
+> input. For patterns that may come from an untrusted source, use
+> `Matches::safePattern($pattern)`, which rejects patterns containing nested
+> quantifiers.
+
+### Email
+
+Validates an email address using PHP's `FILTER_VALIDATE_EMAIL`.
+
+```php
+use Lucent\Validation\Constraints\Email;
+
+new Email();
+```
+
+### Ip
+
+Validates an IP address using PHP's `FILTER_VALIDATE_IP`. Accepts IPv4 and
+IPv6 by default; pass `Ip::IPV4` or `Ip::IPV6` to restrict.
+
+```php
+use Lucent\Validation\Constraints\Ip;
+
+new Ip();            // IPv4 or IPv6
+new Ip(Ip::IPV4);    // IPv4 only
+new Ip(Ip::IPV6);    // IPv6 only
+```
+
+### Date
+
+Validates a date string against a format (default `Y-m-d`) using Carbon.
+Rejects rollovers (e.g. `2023-13-31`) and non-strict input (e.g. `2023-1-1`).
+On success the value is normalized to a `Carbon` instance.
+
+```php
+use Lucent\Validation\Constraints\Date;
+
+new Date();                 // YYYY-MM-DD
+new Date('d/m/Y');          // DD/MM/YYYY
+```
+
+```php
+$result = $validator->validate($request);
+$date = $result->value('birthdate');  // a Carbon instance
+$date->format('d/m/Y');
+```
+
+### Uri
+
+Validates a string as a well-formed URI using `Lucent\Http\Message\Uri::isValid()`.
+On success the value is normalized to a `Uri` instance, so downstream code can
+access the parsed components (scheme, host, path, etc.) from the result.
+
+```php
+use Lucent\Validation\Constraints\Uri;
+
+new Uri();  // default: requires a scheme and host (VALIDATE_DEFAULT)
+```
+
+Pass `Uri::VALIDATE_*` flags to change the requirements:
+
+```php
+use Lucent\Validation\Constraints\Uri;
+use Lucent\Http\Message\Uri as MessageUri;
+
+new Uri(MessageUri::VALIDATE_RELATIVE);   // accept relative references
+new Uri(MessageUri::VALIDATE_STRICT);     // http/https only
+```
+
+```php
+$result = $validator->validate($request);
+$uri = $result->value('website');  // a Uri instance
+$host = $uri->getHost();
+```
+
+### Uuid
+
+Validates a string as a UUID using `Lucent\Facades\UUID::isValid()`. Accepts
+versions 1–7 by default, and supports version-specific validation.
+
+```php
+use Lucent\Validation\Constraints\Uuid;
+
+new Uuid();        // any version (1-7)
+new Uuid(4);       // version 4 only
+new Uuid(7);       // version 7 only
+```
+
+### UploadedFile
+
+Validates that the field contains a successfully uploaded file. Reads the
+uploaded files from the request and passes when the file's error code is
+`UPLOAD_ERR_OK`.
+
+```php
+use Lucent\Validation\Constraints\UploadedFile;
+
+new UploadedFile();
+```
+
+## Combinators
+
+Combinators wrap other constraints to express more complex logic.
+
+### All
+
+Requires every wrapped constraint to pass. Fails on the first failing constraint.
+
+```php
+use Lucent\Validation\Combinators\All;
+use Lucent\Validation\Constraints\Length;
+use Lucent\Validation\Constraints\Matches;
+
+All::of(new Length(min: 8), Matches::password());
+```
+
+### Any
+
+Passes if any wrapped constraint passes.
+
+```php
+use Lucent\Validation\Combinators\Any;
+use Lucent\Validation\Constraints\Matches;
+
+Any::of(Matches::alpha(), Matches::mobile());
+```
+
+### Optional
+
+Skips validation when the field was not present in the request body, or when
+its value is null, an empty string, or an empty array. A present-but-empty
+value is normalized to null; an absent field is left untouched so it does not
+appear in the result.
+
+```php
+use Lucent\Validation\Combinators\Optional;
+use Lucent\Validation\Constraints\Length;
+
+new Optional(new Length(min: 3, max: 100));
+```
+
+### Shape
+
+Validates an array value as an **object** or a **tuple**, selected by factory.
+
+#### `Shape::object(...)` — named sub-fields
+
+Validates a map of named sub-fields, each with its own constraint. Sub-field
+errors and values are namespaced under the parent field's dotted path
+(`user.name`). Accepts arrays and objects (via `get_object_vars`).
+
+```php
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Required;
+use Lucent\Validation\Constraints\Email;
+
+Shape::object([
+    'name'  => new Required(),
+    'email' => new Email(),
+]);
+```
+
+Nested inside a validator:
+
+```php
+$validator = new Validator([
+    'user' => Shape::object([
+        'name'  => new Required(),
+        'email' => new Email(),
+    ]),
+]);
+
+$result = $validator->validate($request);
+
+$result->value('user.name');   // 'Ada'
+$result->value('user');        // ['name' => 'Ada', 'email' => 'ada@example.com']
+```
+
+#### `Shape::tuple(...)` — fixed-length positional list
+
+Validates a fixed-length, positional list where each position has its own
+constraint. The tuple has exactly as many positions as constraints. Element
+errors and values are namespaced by index (`pair.0`).
+
+```php
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Numeric;
+use Lucent\Validation\Constraints\Length;
+
+Shape::tuple(new Numeric(), new Length(min: 2));   // [number, string]
+```
+
+```php
+$validator = new Validator([
+    'pair' => Shape::tuple(new Numeric(), new Length(min: 2)),
+]);
+
+$result = $validator->validate($request);
+$result->value('pair.0');   // 42 (normalized)
+```
+
+A tuple rejects values with the wrong number of elements, and each position is
+validated by its own constraint, so the types may differ freely.
+
+When a sub-field or position fails, `Shape` returns `false` (so it composes
+correctly with `All`/`Any`/`Optional`) but reports no generic error of its own
+— the specific child error is already recorded at its dotted path.
+
+### Each
+
+Validates every element of an array value against a single constraint. Element
+errors and values are namespaced under the parent field's dotted path with the
+element index (`items.0`). Works on both lists and associative arrays.
+
+```php
+use Lucent\Validation\Combinators\Each;
+use Lucent\Validation\Constraints\Numeric;
+
+new Each(new Numeric());   // array of numbers
+new Each(new Numeric(), maxItems: 100);  // bound the array size
+```
+
+```php
+$validator = new Validator([
+    'items' => new Each(new Numeric()),
+]);
+
+$result = $validator->validate($request);
+$result->value('items');   // [1, 2, 3] (normalized)
+```
+
+## Nested Validation
+
+`Shape` and `Each` compose to validate arbitrarily nested structures.
+
+```php
+use Lucent\Validation\Combinators\Each;
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Required;
+
+$validator = new Validator([
+    'users' => new Each(Shape::object([
+        'name' => new Required(),
+    ])),
+]);
+```
+
+Errors are namespaced by path, so `users.1.name` pinpoints the failing field.
+
+The `Validator` also accepts a single top-level constraint, so an array body
+can be validated directly:
+
+```php
+use Lucent\Validation\Combinators\Each;
+use Lucent\Validation\Constraints\Numeric;
+
+$validator = new Validator(new Each(new Numeric()));  // body is an array of numbers
+```
+
+## Normalizers
+
+Normalizers transform a value during validation. They always pass and write the normalized value back into the result.
+
+### Trim
+
+Trims whitespace from string values.
+
+```php
+use Lucent\Validation\Normalizers\Trim;
+
+new Trim();
+```
+
+## Custom Messages
+
+Override the default message for any constraint with `withMessage()`. The message can be a string or a closure receiving the `FieldContext`.
+
+```php
+use Lucent\Validation\Constraints\Matches;
+
+Matches::email()->withMessage('Please provide a valid email address.');
+```
+
+```php
+use Lucent\Validation\Constraints\Length;
+
+(new Length(min: 8))->withMessage(fn($ctx) => "The {$ctx->field} must be at least 8 characters.");
+```
+
+## Custom Constraints
+
+Extend the abstract `Constraint` class and implement `validate()` and `defaultMessage()`.
+
+```php
+use Closure;
+use Lucent\Validation\Constraint;
+use Lucent\Validation\FieldContext;
+
+class ZipCode extends Constraint
 {
-    public function setup(): array
+    protected function defaultMessage(): string|Closure|null
     {
-        return [
-            'name' => [
-                'min:2',
-                'max:50'
-            ],
-            'email' => [
-                'regex:email'
-            ],
-            'password' => [
-                'min:8',
-                'regex:password'
-            ]
-        ];
+        return fn($ctx) => "The {$ctx->field} must be a valid ZIP code.";
+    }
+
+    public function validate(FieldContext $ctx): bool
+    {
+        return is_string($ctx->value) && preg_match('/^\d{5}(-\d{4})?$/', $ctx->value) === 1;
     }
 }
 ```
 
-The `setup()` method should return an associative array where:
-- Keys are the field names to validate
-- Values are arrays of validation constraints
+`defaultMessage()` may return a string, a closure producing a string, or
+`null`. Returning `null` signals that no message should be reported — used by
+combinators whose child constraints already recorded their specific errors on
+the result. When a constraint returns `false` from `validate()` but `null`
+from `message()`, the parent skips adding a redundant generic error.
 
-## Using Validation Rules
+## Accessing Results
 
-### In Controllers
+The `Result` returned by `Validator::validate()` exposes:
 
-To validate incoming requests in your controllers:
+- `errors()` — associative array of dotted field path => array of messages
+- `hasErrors()` — whether any errors occurred
+- `values()` — validated values as a nested array
+- `value($path, $default)` — a single value by dotted path
+- `hasValue($path)` — whether a value exists at a path
+
+Every present field is seeded with its raw value, so validated-but-not-
+normalized fields are retrievable. Normalizers overwrite the raw value with
+the transformed one. Nested fields are addressed by dotted path.
 
 ```php
-<?php
+$result = $validator->validate($request);
 
-namespace App\Controllers;
-
-use App\Validation\UserRule;
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-use Lucent\Validation\Rule;
-
-class UserController
-{
-    public function register(ServerRequest $request): Response
-    {
-        // Validate the request data
-        $errors = Rule::validateRequest($request, UserRule::class);
-        
-        if ($errors !== []) {
-            return Response::json(['errors' => $errors], 400);
+if ($result->hasErrors()) {
+    foreach ($result->errors() as $field => $messages) {
+        foreach ($messages as $message) {
+            // ...
         }
-        
-        // If validation passed, continue with registration...
-        // ...
-        
-        return Response::json(['message' => "User registered successfully"], 200);
     }
 }
+
+$email = $result->value('email');        // 'ada@example.com'
+$name  = $result->value('user.name');    // 'Ada'
+$user  = $result->value('user');         // ['name' => 'Ada', 'email' => 'ada@example.com']
 ```
 
-## Available Validation Rules
-
-The Lucent Framework provides these built-in validation rules:
-
-> **Important Note**: For the `unique` and `!unique` validation rules, the framework automatically uses the input field name as the column name in the database table. For example, if you validate a field named `email` with `unique:users`, it will check if the submitted value exists in the `email` column of the `users` table.
-
-| Rule | Description | Example |
-|------|-------------|---------|
-| `min:{value}` | Ensures a string's length is at least the specified value | `'min:2'` |
-| `max:{value}` | Ensures a string's length is at most the specified value | `'max:100'` |
-| `min_num:{value}` | Ensures a numeric value is at least the specified value | `'min_num:1'` |
-| `max_num:{value}` | Ensures a numeric value is at most the specified value | `'max_num:100'` |
-| `regex:{pattern}` | Validates using a registered regex pattern | `'regex:email'` |
-| `same:{field}` | Ensures the value matches another field's value | `'same:@password'` |
-| `unique:{table}` | Ensures the value doesn't exist in the specified table column | `'unique:users'` |
-| `!unique:{table}` | Ensures the value does exist in the specified table column | `'!unique:users'` |
-| `nullable` | Allows a field to be empty or null | `'nullable'` |
-
-## Negated Rules
-
-You can negate any validation rule by prefixing it with `!`. This inverts the expected outcome of the validation.
+## Real-world Example
 
 ```php
-// Validation passes if the value is NOT an email format
-'email' => ['!regex:email']
+use Lucent\Validation\Validator;
+use Lucent\Validation\Combinators\All;
+use Lucent\Validation\Combinators\Each;
+use Lucent\Validation\Combinators\Optional;
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Email;
+use Lucent\Validation\Constraints\Length;
+use Lucent\Validation\Constraints\Matches;
+use Lucent\Validation\Constraints\Numeric;
+use Lucent\Validation\Constraints\Required;
+use Lucent\Validation\Constraints\SameAs;
+use Lucent\Validation\Normalizers\Trim;
 
-// Validation passes if the length is NOT at least 8 characters
-'password' => ['!min:8']
+$validator = new Validator([
+    'name'                  => All::of(new Required(), new Length(max: 100), new Trim()),
+    'email'                 => new Email(),
+    'password'              => All::of(new Length(min: 8), Matches::password()),
+    'password_confirmation' => new SameAs('password'),
+    'phone'                 => new Optional(Matches::mobile()),
+    'address'               => Shape::object([
+        'street' => new Required(),
+        'city'   => new Required(),
+    ]),
+    'scores'                => new Each(new Numeric()),
+]);
 
-// Validation passes if the value does NOT match the other field
-'password_confirm' => ['!same:password']
+$result = $validator->validate($request);
 ```
-
-Note that `!unique` is a special case that was already documented separately since it's a common use case.
-
-## Nullable Fields
-
-The `nullable` rule allows a field to be empty or null without failing validation. When combined with other rules, the field becomes optional - if a value is provided, it must meet the other rules, but empty values will pass validation.
-
-```php
-// Optional email that must be valid if provided
-'email' => ['nullable', 'regex:email']
-
-// Optional name with length constraints if provided
-'name' => ['nullable', 'min:2', 'max:50']
-
-// Optional birthdate with date format validation if provided
-'birthdate' => ['nullable', 'regex:date']
-```
-
-The `nullable` rule can be placed anywhere in the rules array - it doesn't have to be first. If a field is both nullable and empty, all other validation rules for that field will be skipped.
-
-## Custom Regex Patterns
-
-### Local Regex Patterns
-
-You can define custom regex patterns within your rule class:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ProductRule extends Rule
-{
-    public function setup(): array
-    {
-        // Add a custom regex pattern for SKU validation
-        $this->addRegexPattern(
-            "sku_format",
-            '/^[A-Z]{3}-\d{4}$/', 
-            "SKU must be in format XXX-0000"
-        );
-        
-        return [
-            'sku' => [
-                'regex:sku_format'
-            ],
-            'name' => [
-                'min:3',
-                'max:100'
-            ]
-        ];
-    }
-}
-```
-
-The `addRegexPattern` method takes three parameters:
-1. Pattern name - Used to reference the pattern in rules
-2. Regex pattern - The actual regular expression
-3. Error message (optional) - Custom error message when validation fails
-
-### Global Regex Patterns
-
-For patterns you need to use across multiple rule classes, you can define global patterns using the `Regex` facade:
-
-```php
-<?php
-
-use Lucent\Facades\Regex;
-
-// In a service provider or bootstrap file
-Regex::set("phone_number", '/^\+?[1-9]\d{1,14}$/');
-```
-
-These global patterns can then be used in any rule class:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ContactRule extends Rule
-{
-    public function setup(): array
-    {
-        return [
-            'phone' => [
-                'regex:phone_number'
-            ]
-        ];
-    }
-}
-```
-
-### Built-in Regex Patterns
-
-The framework includes these built-in regex patterns:
-
-| Pattern Name | Validates | Format Example |
-|--------------|-----------|----------------|
-| `email` | Email addresses | test@example.com |
-| `password` | Password complexity (requires one lowercase, one uppercase, min 8 chars) | Password123 |
-| `date` | Date in YYYY-MM-DD format | 2023-12-31 |
-| `url` | Web addresses | https://example.com |
-| `phone` | International phone numbers | +1234567890 |
-| `ip` | IPv4 addresses | 192.168.0.1 |
-| `hex_color` | HEX color codes | #FFF or #FFFFFF |
-| `uuid` | UUID v1-v5 format | 123e4567-e89b-12d3-a456-426614174000 |
-| `alpha` | Letters only | AbCdEf |
-| `alphanumeric` | Letters and numbers only | Abc123 |
-
-## Validation Messages
-
-### Default Messages
-
-The framework provides default error messages for built-in validation rules. These messages use placeholders that are automatically replaced with actual values when validation fails.
-
-### Message Parameters
-
-Validation messages support placeholders that are replaced with actual field names and rule parameters. The available placeholders depend on the validation rule:
-
-| Rule | Available Placeholders | Example Message |
-|------|------------------------|-----------------|
-| `min` | `:attribute`, `:min` | "username must be at least 5 characters" |
-| `max` | `:attribute`, `:max` | "username may not be greater than 20 characters" |
-| `min_num` | `:attribute`, `:min` | "age must be greater than 18" |
-| `max_num` | `:attribute`, `:max` | "age may not be less than 120" |
-| `same` | `:attribute`, `:second` | "password_confirmation and password must match" |
-| `regex` | `:attribute` | "email does not match the required format" |
-
-The `:attribute` placeholder is automatically replaced with the field name being validated, and rule-specific placeholders (like `:min`, `:max`, etc.) are replaced with the corresponding parameter values.
-
-For the `same` rule, when referencing another field with `@`, the field name (not its value) will be used in the error message for security reasons.
-
-### Overriding Messages
-
-Lucent allows you to override the default validation messages at both the local (rule class) level and the global (application) level.
-
-### Local Message Overrides
-
-To override messages within a specific rule class, use the `overrideRuleMessage` method:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class UserRule extends Rule
-{
-    public function setup(): array
-    {
-        // Override the min rule message for this rule class only
-        $this->overrideRuleMessage("min", "The :attribute field needs at least :min characters");
-        
-        // Override the regex message for email validation
-        $this->overrideRuleMessage("regex", "Please provide a valid :attribute address");
-        
-        return [
-            'username' => [
-                'min:5',
-                'max:20'
-            ],
-            'email' => [
-                'regex:email'
-            ]
-        ];
-    }
-}
-```
-
-### Global Message Overrides
-
-For application-wide message overrides, use the `Rule` facade:
-
-```php
-<?php
-
-use Lucent\Facades\Rule;
-
-// In a service provider or bootstrap file
-Rule::overrideMessage("min", "The :attribute field must have at least :min characters");
-Rule::overrideMessage("max", "The :attribute field cannot exceed :max characters");
-Rule::overrideMessage("same", "The :attribute field must match :first");
-```
-
-Global message overrides apply to all validation rules across your application unless overridden at the local level.
-
-**Priority Order:**
-1. Local message overrides (highest priority)
-2. Global message overrides
-3. Default framework messages (lowest priority)
-
-## Advanced Usage
-
-### Custom Validation Methods
-
-For more complex validation needs, you can create custom validation methods. This allows you to implement application-specific validation logic beyond the built-in rules.
-
-#### Creating Custom Validation Methods
-
-To create a custom validation method:
-
-1. Extend the `Rule` class
-2. Add a protected method with your validation logic
-3. The method should accept the value to validate as its parameter
-4. Return a boolean: `true` if validation passes, `false` if it fails
-5. Use the method name directly in your validation rules
-
-Here's how to implement a ZIP code validator:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class AddressRule extends Rule
-{
-    public function setup(): array
-    {
-        // You can override the message for your custom validation rule
-        $this->overrideRuleMessage("zip_code", "The :attribute must be a valid ZIP code");
-        
-        return [
-            'address_line1' => ['min:5', 'max:100'],
-            'city' => ['min:2', 'max:50'],
-            'zip_code' => ['zip_code']
-        ];
-    }
-    
-    /**
-     * Validates a US ZIP code
-     * 
-     * @param mixed $value The value to validate
-     * @return bool Whether the validation passes
-     */
-    protected function zip_code($value): bool
-    {
-        // US zip code validation logic (5 digits, optionally followed by hyphen and 4 more digits)
-        return preg_match('/^\d{5}(-\d{4})?$/', $value);
-    }
-}
-```
-
-#### Custom Validation with Parameters
-
-You can also create custom validation methods that accept parameters:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ProductRule extends Rule
-{
-    public function setup(): array
-    {
-        // Custom message with parameter replacement
-        $this->overrideRuleMessage(
-            "in_range", 
-            "The :attribute must be between :min and :max"
-        );
-        
-        return [
-            'name' => ['min:3', 'max:100'],
-            'price' => ['in_range:10:1000'], // Must be between $10 and $1000
-            'stock' => ['in_range:1:500']    // Must be between 1 and 500 units
-        ];
-    }
-    
-    /**
-     * Validates that a value is within a specified numeric range
-     * 
-     * @param int $min The minimum allowed value
-     * @param int $max The maximum allowed value
-     * @param mixed $value The value to validate
-     * @return bool Whether the validation passes
-     */
-    protected function in_range(int $min, int $max, $value): bool
-    {
-        if (!is_numeric($value)) {
-            return false;
-        }
-        
-        $numericValue = floatval($value);
-        return ($numericValue >= $min && $numericValue <= $max);
-    }
-}
-```
-
-#### Using Custom Validation with Related Data
-
-You can create validation methods that check related fields or more complex conditions:
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ShippingRule extends Rule
-{
-    public function setup(): array
-    {
-        $this->overrideRuleMessage(
-            "shipping_available", 
-            "We don't ship to :attribute for orders under $100"
-        );
-        
-        return [
-            'country' => ['min:2', 'max:2'],  // Country code
-            'total' => ['min_num:0'],         // Order total
-            'shipping_address' => ['shipping_available:@country:@total']
-        ];
-    }
-    
-    /**
-     * Validates shipping availability based on country and order total
-     * 
-     * @param string $country The country code
-     * @param float $total The order total
-     * @param string $address The shipping address
-     * @return bool Whether shipping is available
-     */
-    protected function shipping_available(string $country, float $total, string $address): bool
-    {
-        // List of countries that require a minimum order total for shipping
-        $restrictedCountries = ['AU', 'NZ', 'JP'];
-        
-        // For restricted countries, require a minimum order total of $100
-        if (in_array($country, $restrictedCountries) && $total < 100) {
-            return false;
-        }
-        
-        return true;
-    }
-}
-```
-
-#### Using Custom Validation in Inline Rules
-
-You can also use your custom validation methods in inline rules, not just in dedicated rule classes:
-
-```php
-<?php
-
-namespace App\Controllers;
-
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-use Lucent\Validation\Rule;
-
-class OrderController extends Rule
-{
-    // Custom validation method in the controller
-    protected function payment_method($value): bool
-    {
-        $validMethods = ['credit_card', 'paypal', 'bank_transfer'];
-        return in_array($value, $validMethods);
-    }
-    
-    public function createOrder(ServerRequest $request): Response
-    {
-        // Using the custom validation method with inline rules
-        $errors = Rule::validateRequest($request, [
-            'items' => ['min:1'],
-            'payment_method' => ['payment_method']
-        ]);
-        
-        if ($errors !== []) {
-            return Response::json(['errors' => $errors], 400);
-        }
-        
-        // Process the order...
-    }
-}
-```
-
-## Real-world Example: Contact Form
-
-Let's build a complete example for a contact form with validation:
-
-### 1. Define the Validation Rule
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ContactFormRule extends Rule
-{
-    public function setup(): array
-    {
-        // Override messages for more user-friendly errors
-        $this->overrideRuleMessage("min", "Your :attribute must be at least :min characters");
-        $this->overrideRuleMessage("regex", "Please enter a valid :attribute");
-        
-        return [
-            'name' => [
-                'min:2',
-                'max:100'
-            ],
-            'email' => [
-                'regex:email'
-            ],
-            'phone' => [
-                'nullable',
-                'min:10',
-                'max:15'
-            ],
-            'subject' => [
-                'min:5',
-                'max:200'
-            ],
-            'message' => [
-                'min:20',
-                'max:2000'
-            ]
-        ];
-    }
-}
-```
-
-### 2. Implement the Controller
-
-```php
-<?php
-
-namespace App\Controllers;
-
-use App\Validation\ContactFormRule;
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-use Lucent\Validation\Rule;
-use App\Models\ContactMessage;
-
-class ContactController
-{
-    public function submit(ServerRequest $request): Response
-    {
-        // Validate the form input
-        $errors = Rule::validateRequest($request, ContactFormRule::class);
-        
-        if ($errors !== []) {
-            return Response::json(['errors' => $errors], 400);
-        }
-        
-        // Create a new contact message
-        $data = $request->getParsedBody();
-        $message = new ContactMessage($data);
-        $message->create();
-        
-        // Return success response
-        return Response::json(['message' => "Thank you for your message."], 200);
-    }
-}
-```
-
-### 3. Define Routes
-
-```php
-<?php
-// routes.php
-
-use Lucent\Facades\Route;
-use App\Controllers\ContactController;
-
-Route::rest()->group('api')
-    ->defaultController(ContactController::class)
-    ->post('contact', 'submit');
-```
-
-## Real-world Example: Article Creation
-
-Let's build another example for validating article creation in a content management system:
-
-### 1. Define the Validation Rule
-
-```php
-<?php
-
-namespace App\Validation;
-
-use Lucent\Validation\Rule;
-
-class ArticleRule extends Rule
-{
-    public function setup(): array
-    {
-        // Define custom regex for slugs
-        $this->addRegexPattern(
-            "slug_format", 
-            '/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-            "Slug must contain only lowercase letters, numbers, and hyphens"
-        );
-        
-        // Override validation messages
-        $this->overrideRuleMessage("min", "The :attribute needs to be at least :min characters");
-        $this->overrideRuleMessage("unique", "This :attribute is already taken, please choose another");
-        
-        return [
-            'title' => [
-                'min:5',
-                'max:200'
-            ],
-            'slug' => [
-                'min:3',
-                'max:100',
-                'regex:slug_format',
-                'unique:articles'  // Ensures the slug is unique in the articles table
-            ],
-            'content' => [
-                'min:100',  // Require at least 100 characters of content
-            ],
-            'category_id' => [
-                '!unique:categories'  // Ensure the category exists in the categories table
-            ],
-            'tags' => [
-                'nullable',
-                'min:2',  // At least 2 characters for tags if provided
-                'max:255'  // Maximum length for all tags if provided
-            ],
-            'status' => [
-                'validate_status'  // Custom validation method for status
-            ]
-        ];
-    }
-    
-    // Custom validation method for article status
-    protected function validate_status($value): bool
-    {
-        // Valid statuses are: draft, published, archived
-        $validStatuses = ['draft', 'published', 'archived'];
-        return in_array(strtolower($value), $validStatuses);
-    }
-}
-```
-
-### 2. Implement the Controller
-
-```php
-<?php
-
-namespace App\Controllers;
-
-use App\Validation\ArticleRule;
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-use Lucent\Validation\Rule;
-use App\Models\Article;
-
-class ArticleController
-{
-    public function create(ServerRequest $request): Response
-    {
-        // Validate the article data
-        $errors = Rule::validateRequest($request, ArticleRule::class);
-        
-        if ($errors !== []) {
-            return Response::json(['errors' => $errors], 400);
-        }
-        
-        // If we get here, validation passed
-        $data = $request->getParsedBody();
-        $authorId = $request->getUrlVar('user_id');
-        
-        // Create the article
-        $article = new Article($data);
-        
-        // Save the article
-        if (!$article->create()) {
-            return (new Response())->withStatus(500);
-        }
-        
-        // Return success response with the created article
-        return Response::json([
-            'article' => [
-                'id' => $article->id,
-                'title' => $article->title,
-                'slug' => $article->slug,
-                'status' => $article->status
-            ]
-        ], 200);
-    }
-}
-```
-
-### 3. Define Routes
-
-```php
-<?php
-// routes.php
-
-use Lucent\Facades\Route;
-use App\Controllers\ArticleController;
-
-Route::rest()->group('api')
-    ->defaultController(ArticleController::class)
-    ->post('users/{user_id}/articles', 'create');
-```
-
-This example demonstrates several important validation features:
-
-1. Using a custom regex pattern for slug validation
-2. Using `unique` validation to ensure article slugs don't conflict
-3. Using `!unique` validation to verify a category exists
-4. Using `nullable` to make tags optional
-5. Implementing a custom validation method (`validate_status`)
-6. Customizing error messages with parameter replacement
-7. Combining URL variables with validated form input
-8. Returning different responses based on validation outcome
-
-## Best Practices
-
-1. **Separate Concerns**: Create different rule classes for different aspects of your application, rather than a single large validation class.
-
-2. **Descriptive Names**: Give your validation rules clear, descriptive names that indicate their purpose (e.g., `UserRegistrationRule`, `ProductCreationRule`).
-
-3. **Reuse Rules**: Avoid duplicating validation logic by creating shared rule classes that can be extended.
-
-4. **Document Your Rules**: Create clear documentation explaining your validation requirements, especially for complex custom rules.
-
-5. **Security First**: Always validate data on the server-side, even if you have client-side validation.
-
-6. **Customize Error Messages**: Use message overrides to provide clear, user-friendly guidance when validation fails. Keep them specific to your application's context and audience.
-
-7. **Use Nullable Properly**: Use the `nullable` rule for optional fields rather than adding complex conditional logic.
-
-8. **Field References**: When referencing other fields (like in the `same` rule), use the `@` prefix (e.g., `same:@password`).
-
-9. **Centralize Regex Patterns**: Store frequently used regex patterns in a central location using the Regex facade.
-
-10. **Validation Strategy**: Use negated rules (`!`) when checking for the absence of a condition is more logical than checking for its presence.
-
-11. **Message Consistency**: Maintain a consistent tone and style in your validation messages across the application.
-
-12. **Global vs. Local Overrides**: Use global message overrides for application-wide consistency, and local overrides when specific contexts need different wording.
-
----
-
-With this guide, you should be well-equipped to implement robust validation in your Lucent Framework application. Validation is a crucial part of building secure, reliable web applications, and Lucent's validation system gives you the tools you need to ensure your data is always clean and correct.

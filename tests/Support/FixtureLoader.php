@@ -99,17 +99,6 @@ class FixtureLoader
     }
 
     /**
-     * Copy a rule fixture into temp_install/App/Rules/.
-     *
-     * @param string $name Filename, e.g. 'SignupRule.php'
-     * @return File
-     */
-    public static function copyRule(string $name): File
-    {
-        return self::copy('Rules', $name, 'App/Rules');
-    }
-
-    /**
      * Copy a middleware fixture into temp_install/App/Middleware/.
      *
      * @param string $name Filename, e.g. 'AuthMiddleware.php'

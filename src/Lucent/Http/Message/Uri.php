@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Lucent\Http\Message;
 
 use Psr\Http\Message\UriInterface;
@@ -146,16 +148,15 @@ final class Uri implements UriInterface
      */
     public static function isValid(string $uri, int $flags = 0): bool
     {
-        $parts = parse_url($uri);
-        if ($parts === false) {
+        // Reject control characters in the raw URI. parse_url() silently
+        // converts them to '_', so they must be checked before parsing.
+        if (preg_match('/[\x00-\x1F\x7F]/', $uri)) {
             return false;
         }
 
-        // Reject control characters in any component.
-        foreach (['path', 'query', 'fragment', 'user', 'pass'] as $component) {
-            if (isset($parts[$component]) && preg_match('/[\x00-\x1F\x7F]/', $parts[$component])) {
-                return false;
-            }
+        $parts = parse_url($uri);
+        if ($parts === false) {
+            return false;
         }
 
         // Validate the port range when present.

@@ -16,7 +16,6 @@ class ApiGenerationTest extends TestCase
         $docsController = new GenerateDocumentationCommand();
 
         self::copyFixtures([
-            'Rule'       => 'SignupRule.php',
             'Controller' => 'RegistrationController.php',
         ]);
 
@@ -28,7 +27,6 @@ class ApiGenerationTest extends TestCase
     public function test_api_endpoint_detection(): void
     {
         self::copyFixtures([
-            'Rule'       => 'SignupRule.php',
             'Controller' => 'RegistrationController.php',
         ]);
 

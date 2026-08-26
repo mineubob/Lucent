@@ -39,7 +39,7 @@ class GenerateDocumentationCommand
         );
 
         // Save to file
-        $outputPath = FileSystem::rootPath().DIRECTORY_SEPARATOR."storage" .DIRECTORY_SEPARATOR. 'documentation' . DIRECTORY_SEPARATOR;
+        $outputPath = FileSystem::rootPath() . DIRECTORY_SEPARATOR . "storage" . DIRECTORY_SEPARATOR . 'documentation' . DIRECTORY_SEPARATOR;
         if (!file_exists($outputPath)) {
             mkdir($outputPath, 0755, true);
         }
@@ -61,10 +61,9 @@ class GenerateDocumentationCommand
 
         foreach ($app->getFiles(true) as $file) {
 
-            if($file->getExtension() == ".php") {
+            if ($file->getExtension() == ".php") {
                 $this->scanPhpFile($file, $documentation);
             }
-
         }
 
         Log::channel("lucent.commandline")->info("Scan complete. Found " . count($documentation) . " endpoints");
@@ -104,7 +103,6 @@ class GenerateDocumentationCommand
 
                 $documentation[] = $this->processEndpoint($endpoint, $responses);
             }
-
         } catch (\ReflectionException $e) {
             Log::channel("lucent.commandline")->critical("ReflectionException " . $e->getMessage());
         }
@@ -134,25 +132,6 @@ class GenerateDocumentationCommand
     {
         $examples = [];
         $validationRules = null;
-
-        // Process validation rules if they exist
-        if ($endpoint->rule) {
-            $ruleInstance = new $endpoint->rule;
-            $validationRules = $ruleInstance->setup();
-
-            // Generate failing validation data for the 400 example
-            $failData = $this->generateFailingData($ruleInstance, $validationRules);
-            $errors = \Lucent\Validation\Rule::validateData($failData, $endpoint->rule);
-            if ($errors !== []) {
-                $examples['400'] = [
-                    'message' => 'Validation failed',
-                    'outcome' => false,
-                    'status' => 400,
-                    'content' => [],
-                    'errors' => $errors,
-                ];
-            }
-        }
 
         // Process API responses
         foreach ($responses as $response) {
@@ -292,7 +271,7 @@ class GenerateDocumentationCommand
 
     private function getResponseType(int $status): string
     {
-        return match(true) {
+        return match (true) {
             $status >= 200 && $status < 300 => 'Success',
             $status === 400 => 'Validation Error',
             $status === 401 => 'Unauthorized',
@@ -302,26 +281,5 @@ class GenerateDocumentationCommand
             $status >= 500 => 'Server Error',
             default => 'Unknown'
         };
-    }
-
-    /**
-     * Generate failing validation data for a rule's fields.
-     *
-     * Produces intentionally invalid values for each field so the 400
-     * example in the docs shows validation errors.
-     *
-     * @param object $ruleInstance The rule instance (has setup())
-     * @param array $rules The rules from setup()
-     * @return array<string, string>
-     */
-    private function generateFailingData(object $ruleInstance, array $rules): array
-    {
-        $data = [];
-
-        foreach ($rules as $field => $fieldRules) {
-            $data[$field] = '';
-        }
-
-        return $data;
     }
 }

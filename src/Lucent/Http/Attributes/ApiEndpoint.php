@@ -10,7 +10,6 @@ class ApiEndpoint
     public function __construct(
         public string $description,
         public string $path,
-        public ?string $rule = null,
         public string $method = 'POST',
         public array $pathParams = []
     ) {}

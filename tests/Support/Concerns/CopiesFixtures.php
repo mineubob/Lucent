@@ -27,7 +27,6 @@ trait CopiesFixtures
         'Model'      => 'copyModel',
         'Controller' => 'copyController',
         'Command'    => 'copyCommand',
-        'Rule'       => 'copyRule',
         'Middleware' => 'copyMiddleware',
         'Service'    => 'copyService',
         'Route'      => 'copyRoutes',
