@@ -16,9 +16,10 @@ class FieldContextTest extends TestCase
         bool $present = true,
         array|null $files = null,
         mixed $body = null,
+        array $context = [],
         string $name = '',
     ): FieldContext {
-        return new FieldContext($field, $value, $present, new Result(), $files, $body, $name);
+        return new FieldContext($field, $value, $present, new Result(), $files, $body, $context, $name);
     }
 
     // ─── readonly properties ───────────────────────────────────────────────
@@ -231,5 +232,46 @@ class FieldContextTest extends TestCase
 
         $this->assertSame(5, $ctx->value);
         $this->assertSame(5, $ctx->result->value('age'));
+    }
+
+    // ─── context bag ───────────────────────────────────────────────────────
+
+    public function test_context_returns_default_when_key_absent(): void
+    {
+        $ctx = $this->context();
+
+        $this->assertNull($ctx->context('missing', 'int'));
+        $this->assertSame(0, $ctx->context('missing', 'int', 0));
+    }
+
+    public function test_context_casts_scalar_types(): void
+    {
+        $ctx = $this->context(context: ['age' => '42']);
+
+        $this->assertSame(42, $ctx->context('age', 'int'));
+        $this->assertSame('42', $ctx->context('age', 'string'));
+    }
+
+    public function test_context_returns_class_instance_when_matching(): void
+    {
+        $request = new \stdClass();
+        $ctx = $this->context(context: ['request' => $request]);
+
+        $this->assertSame($request, $ctx->context('request', \stdClass::class));
+    }
+
+    public function test_context_returns_default_when_class_not_matching(): void
+    {
+        $ctx = $this->context(context: ['request' => 'not-an-object']);
+
+        $this->assertNull($ctx->context('request', \stdClass::class));
+    }
+
+    public function test_child_propagates_context_bag(): void
+    {
+        $ctx = $this->context(field: 'user', context: ['user_id' => 42]);
+        $child = $ctx->child('name', 'Ada', true);
+
+        $this->assertSame(42, $child->context('user_id', 'int'));
     }
 }

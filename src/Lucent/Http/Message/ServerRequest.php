@@ -577,17 +577,26 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      *
      * Convenience wrapper around {@see \Lucent\Validation\Validator} that
      * passes the parsed body and uploaded files through unchanged, so object
-     * bodies (e.g. decoded JSON) and a null body are preserved.
+     * bodies (e.g. decoded JSON) and a null body are preserved. The request
+     * itself is seeded into the validation context under the `request` key,
+     * alongside any user-provided context values, so custom constraints can
+     * read them via
+     * {@see \Lucent\Validation\FieldContext::context('request', ServerRequestInterface::class)}.
      *
      * @param \Lucent\Validation\Constraint|array<string, \Lucent\Validation\Constraint> $constraints
      *        A single top-level constraint, or a map of constraints keyed by field name.
+     * @param array<string, mixed> $context Optional per-validation values (e.g.
+     *        the authenticated user) exposed to constraints via
+     *        {@see \Lucent\Validation\FieldContext::get()}. The request is always
+     *        seeded under the `request` key; user values take precedence on a clash.
      * @return Result The validation result containing errors and validated values.
      */
-    public function validate(Constraint|array $constraints): Result
+    public function validate(Constraint|array $constraints, array $context = []): Result
     {
         return (new Validator($constraints))->validate(
             $this->parsedBody,
             $this->uploadedFiles,
+            ['request' => $this, ...$context],
         );
     }
 

@@ -213,4 +213,36 @@ class ServerRequestTest extends TestCase
         $this->assertFalse($result->hasErrors());
         $this->assertSame('Ada', $result->value('name'));
     }
+
+    public function test_validate_seeds_request_into_context(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $seen = null;
+        $request->validate([
+            'name' => (new \Lucent\Validation\Constraints\Required())
+                ->withMessage(function (\Lucent\Validation\FieldContext $ctx) use (&$seen) {
+                    $seen = $ctx->context('request', \Psr\Http\Message\ServerRequestInterface::class);
+                    return 'x';
+                }),
+        ]);
+
+        $this->assertSame($request, $seen);
+    }
+
+    public function test_validate_merges_user_context_with_request(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $seen = null;
+        $request->validate([
+            'name' => (new \Lucent\Validation\Constraints\Required())
+                ->withMessage(function (\Lucent\Validation\FieldContext $ctx) use (&$seen) {
+                    $seen = $ctx->context('user_id', 'int');
+                    return 'x';
+                }),
+        ], ['user_id' => 42]);
+
+        $this->assertSame(42, $seen);
+    }
 }

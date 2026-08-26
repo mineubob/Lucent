@@ -64,9 +64,12 @@ final class Validator
      * @param array|object|null $body The data to validate (e.g. a parsed request body).
      * @param array<string, \Psr\Http\Message\UploadedFileInterface> $files Optional
      *        uploaded files keyed by field name, for file constraints.
+     * @param array<string, mixed> $context Optional per-validation values (e.g.
+     *        the originating ServerRequest, the authenticated user) exposed to
+     *        constraints via {@see FieldContext::get()}.
      * @return Result The validation result containing errors and validated values.
      */
-    public function validate(array|object|null $body, array $files = []): Result
+    public function validate(array|object|null $body, array $files = [], array $context = []): Result
     {
         $result = new Result();
 
@@ -77,6 +80,7 @@ final class Validator
             $result,
             $files,
             $body,
+            $context,
         );
 
         $this->recordConstraintFailure($this->constraint, $ctx);

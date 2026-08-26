@@ -157,4 +157,19 @@ class ValidatorTest extends TestCase
 
         $this->assertTrue($result->hasErrors());
     }
+
+    // ─── context bag ───────────────────────────────────────────────────────
+
+    public function test_validate_seeds_context_into_field_context(): void
+    {
+        $validator = new Validator([
+            'name' => (new Required())->withMessage(function (\Lucent\Validation\FieldContext $ctx) {
+                return $ctx->context('user_id', 'int') === 42 ? 'ok' : 'wrong user';
+            }),
+        ]);
+
+        $result = $validator->validate(['name' => ''], [], ['user_id' => 42]);
+
+        $this->assertSame(['ok'], $result->errors()['name']);
+    }
 }

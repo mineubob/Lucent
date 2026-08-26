@@ -23,10 +23,27 @@ use Psr\Http\Message\UploadedFileInterface;
  * The context is decoupled from HTTP: it validates plain data and never
  * exposes a request object. Treat all field values as **untrusted** — never
  * interpolate them into SQL, commands, or file paths without validation.
+ *
+ * Per-request values (e.g. the originating ServerRequest, the authenticated
+ * user, a tenant id) can be passed in via the context bag — see {@see context()}.
+ * The bag is resolved once at construction and is immutable for the lifetime
+ * of the context, which is created fresh for every validation call, so it is
+ * coroutine-safe and never bleeds across requests.
  */
 final class FieldContext
 {
     use ResolvesPaths;
+
+    /**
+     * Arbitrary per-validation values keyed by name.
+     *
+     * Resolved once at construction and read via {@see context()}. Stored on the
+     * context — created fresh per validation call — so it is coroutine-safe
+     * and never shared across requests.
+     *
+     * @var array<string, mixed>
+     */
+    private readonly array $context;
 
     /**
      * Create a new field context.
@@ -37,6 +54,8 @@ final class FieldContext
      * @param Result $result The result object that collects errors and normalized values.
      * @param array<string, UploadedFileInterface>|null $files The uploaded files, or null if none.
      * @param mixed $body The data payload being validated, or null if none.
+     * @param array<string, mixed> $context Per-validation values (e.g. the originating
+     *        ServerRequest, the authenticated user) exposed to constraints via {@see get()}.
      * @param string $name The leaf field name, used for file lookups. Defaults to $field.
      */
     /**
@@ -76,8 +95,11 @@ final class FieldContext
         public readonly Result $result,
         private readonly array|null $files,
         private readonly mixed $body,
+        array $context = [],
         public string $name = '',
     ) {
+        $this->context = $context;
+
         if ($this->name === '') {
             $this->name = $this->field;
         }
@@ -110,6 +132,7 @@ final class FieldContext
             $this->result,
             $this->files,
             $this->body,
+            $this->context,
             $name,
         );
 
@@ -121,6 +144,43 @@ final class FieldContext
         $child->segments = [...$this->segments, ...$this->segments($name)];
 
         return $child;
+    }
+
+    /**
+     * Get a value from the context bag, cast to a given type.
+     *
+     * A typed getter mirroring {@see Result::valueAs()}: scalar types are
+     * passed as string literals (`'int'`, `'string'`, `'bool'`, `'float'`,
+     * `'array'`), userland classes via `::class`. Falls back to the default
+     * when the key is absent or the value cannot be cast.
+     *
+     * ```php
+     * $request = $ctx->context('request', ServerRequestInterface::class);
+     * $userId  = $ctx->context('user_id', 'int');
+     * ```
+     *
+     * @param string $key The name of the value.
+     * @param class-string $type The type to cast to (e.g. `'int'` or `User::class`).
+     * @param mixed $default The value to return when the key is absent or the
+     *        value cannot be cast to the requested type.
+     * @return mixed The value cast to the requested type, or $default.
+     */
+    public function context(string $key, string $type, mixed $default = null): mixed
+    {
+        $value = $this->context[$key] ?? $default;
+
+        if ($value === $default) {
+            return $default;
+        }
+
+        return match ($type) {
+            'int'    => (int) $value,
+            'string' => (string) $value,
+            'bool'   => (bool) $value,
+            'float'  => (float) $value,
+            'array'  => is_array($value) ? $value : $default,
+            default  => $value instanceof $type ? $value : $default,
+        };
     }
 
     /**

@@ -25,6 +25,7 @@ Lucent provides a constraint-based validation system built around the `Constrain
     - [Each](#each)
 - [Nested Validation](#nested-validation)
 - [Normalizers](#normalizers)
+- [Context Bag](#context-bag)
 - [Custom Messages](#custom-messages)
 - [Custom Constraints](#custom-constraints)
 - [Accessing Results](#accessing-results)
@@ -32,7 +33,7 @@ Lucent provides a constraint-based validation system built around the `Constrain
 
 ## Overview
 
-The validation system is built around the abstract `Constraint` class. Each constraint validates a single field and produces an error message when the value does not satisfy its rule. Constraints are passed to a `Validator`, which applies them to a PSR-7 `ServerRequestInterface` and collects the results.
+The validation system is built around the abstract `Constraint` class. Each constraint validates a single field and produces an error message when the value does not satisfy its rule. Constraints are passed to a `Validator`, which applies them to a data payload and collects the results.
 
 ## Basic Concepts
 
@@ -92,6 +93,50 @@ Every present field's raw value is stored in the result, so validated-but-not-
 normalized fields are still retrievable via `$result->value('email')`.
 Constraints that normalize (e.g. `Numeric`) overwrite the raw value with the
 transformed one.
+
+## Context Bag
+
+Per-request values (e.g. the originating `ServerRequest`, the authenticated
+user, a tenant id) can be passed into validation and read by constraints via
+the context bag. The bag is resolved once when the `FieldContext` is created
+and is immutable for the lifetime of the validation call, so it is
+coroutine-safe and never bleeds across requests.
+
+Pass values to the `Validator` directly:
+
+```php
+$result = $validator->validate($body, $files, [
+    'user_id' => $user->id,
+    'tenant'  => $tenant,
+]);
+```
+
+`ServerRequest::validate()` automatically seeds the request itself under the
+`request` key, and accepts additional user-provided values alongside it:
+
+```php
+$result = $request->validate([
+    'email' => new UniqueEmail(),
+], [
+    'user_id' => $user->id,
+]);
+```
+
+A constraint reads values via `FieldContext::context()`, a typed getter
+mirroring `Result::valueAs()` — scalar types as string literals, classes via
+`::class`:
+
+```php
+public function validate(FieldContext $ctx): bool
+{
+    $request = $ctx->context('request', ServerRequestInterface::class);
+    $userId  = $ctx->context('user_id', 'int');
+    // ...
+}
+```
+
+Static configuration (min lengths, regexes, table names) belongs in the
+constraint constructor; the context bag is for values that vary per request.
 
 ## Built-in Constraints
 
