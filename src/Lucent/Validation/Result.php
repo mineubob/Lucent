@@ -35,14 +35,17 @@ final class Result
     private array $errors = [];
 
     /**
-     * Validated values as a nested array.
+     * Validated values.
      *
      * Seeded with each present field's raw value and overwritten by any
-     * normalization that occurs during validation.
+     * normalization that occurs during validation. Usually a nested array
+     * keyed by field name, but a top-level scalar constraint (e.g.
+     * `new Validator(new Length(min: 3))->validate('abc')`) stores a scalar
+     * at the root.
      *
-     * @var array<string, mixed>
+     * @var mixed
      */
-    private array $values = [];
+    private mixed $values = [];
 
     /**
      * Record a validation error for a field.
@@ -202,11 +205,13 @@ final class Result
     }
 
     /**
-     * Get all validated values as a nested array.
+     * Get all validated values.
      *
-     * @return array<string, mixed> Values keyed by top-level field name.
+     * @return mixed The validated values. Usually a nested array keyed by
+     *         top-level field name, but a scalar when a top-level scalar
+     *         constraint normalized a plain value.
      */
-    public function values(): array
+    public function values(): mixed
     {
         return $this->values;
     }

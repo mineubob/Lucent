@@ -28,6 +28,28 @@ class ValidatorTest extends TestCase
         $this->assertSame([1, 2], $result->values());
     }
 
+    public function test_validate_value_helper_passes_value_straight_to_validator(): void
+    {
+        // The BuildsValidationRequests helper passes a raw value as the whole
+        // payload to a top-level constraint.
+        $result = $this->validateValue(['1', '2'], new Each(new Numeric()));
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame([1, 2], $result->values());
+    }
+
+    public function test_validate_accepts_mixed_scalar_value(): void
+    {
+        // A top-level scalar constraint can validate a plain value directly.
+        $validator = new Validator(new Length(min: 3));
+
+        $pass = $validator->validate('abc');
+        $fail = $validator->validate('ab');
+
+        $this->assertFalse($pass->hasErrors());
+        $this->assertTrue($fail->hasErrors());
+    }
+
     // ─── flat map (sugar for Shape) ────────────────────────────────────────
 
     public function test_flat_map_validates_fields(): void

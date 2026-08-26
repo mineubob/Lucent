@@ -12,6 +12,13 @@ Lucent provides a constraint-based validation system built around the `Constrain
 - [Built-in Constraints](#built-in-constraints)
     - [Required](#required)
     - [Present](#present)
+    - [Str](#str)
+    - [Boolean](#boolean)
+    - [Integer](#integer)
+    - [Number](#number)
+    - [Enum](#enum)
+    - [Distinct](#distinct)
+    - [NotIn](#notin)
     - [Length](#length)
     - [Numeric](#numeric)
     - [Range](#range)
@@ -20,6 +27,8 @@ Lucent provides a constraint-based validation system built around the `Constrain
 - [Combinators](#combinators)
     - [All](#all)
     - [Any](#any)
+    - [None](#none)
+    - [AllOrNothing](#allornothing)
     - [Optional](#optional)
     - [Shape](#shape)
     - [Each](#each)
@@ -163,6 +172,133 @@ pass. This is useful for booleans and checkboxes where an explicit `false` or
 use Lucent\Validation\Constraints\Present;
 
 new Present();
+```
+
+### Str
+
+Validates that the value is a string. An explicit type check that composes
+with `Optional` and `All`. Unlike `Length`, which implicitly requires a
+string, `Str` gives a clear, dedicated error message when the value is not a
+string.
+
+```php
+use Lucent\Validation\Constraints\Str;
+
+new Str();
+```
+
+### Boolean
+
+Validates and normalizes a boolean value. Accepts real booleans as well as
+the common string/numeric representations `'true'`, `'false'`, `'1'`, `'0'`,
+`1`, and `0`. The word forms are case-insensitive (`'TRUE'`, `'True'`). On
+success the value is normalized to a real `bool`.
+
+```php
+use Lucent\Validation\Constraints\Boolean;
+
+new Boolean();
+```
+
+```php
+$result = $validator->validate(['active' => 'true']);
+$active = $result->value('active');  // true (a real bool)
+```
+
+### Integer
+
+Validates that the value is an integer. An explicit type check that
+complements `Numeric`, which coerces numeric strings to a number. `Integer`
+rejects floats and numeric strings, requiring a genuine `int`.
+
+```php
+use Lucent\Validation\Constraints\Integer;
+
+new Integer();
+```
+
+### Number
+
+Validates that the value is a number (integer or float). An explicit type
+check that complements `Numeric`, which coerces numeric strings to a number.
+`Number` rejects numeric strings, requiring a genuine `int` or `float`.
+
+```php
+use Lucent\Validation\Constraints\Number;
+
+new Number();
+```
+
+### Enum
+
+Validates a value against the cases of a PHP enum. Accepts a backed enum's
+backing value (string or int) or the enum instance itself, and normalizes the
+value to the matching enum case on success. For a pure (non-backed) enum, the
+enum instance or its case name is accepted.
+
+```php
+use Lucent\Validation\Constraints\Enum;
+
+new Enum(ChallengeMethod::class);
+```
+
+```php
+$result = $validator->validate(['method' => 'email']);
+$method = $result->value('method');  // ChallengeMethod::Email
+```
+
+### Distinct
+
+Validates that every element of an array value is unique. Useful for lists of
+tags, ids, or other values that must not repeat. Comparison is strict, so
+`1` and `'1'` are treated as distinct.
+
+```php
+use Lucent\Validation\Constraints\Distinct;
+
+new Distinct();
+```
+
+### Unique
+
+Validates that a value does not already exist in a data store. The constraint
+is decoupled from any storage backend: it takes a callable that answers
+whether a conflicting row exists for the value. Empty values (null, empty
+string, empty array) always pass — presence is the responsibility of
+`Required`.
+
+```php
+use Lucent\Validation\Constraints\Unique;
+
+new Unique(fn (mixed $value) => User::where('email', $value)->count() > 0);
+```
+
+For model-backed uniqueness, prefer the `Model::uniqueConstraint()` factory,
+which builds the callable from a model and column. Pass the current record's
+primary key as the second argument to exclude it from the check when updating
+an existing row:
+
+```php
+// Create: reject an email already in use.
+$request->validate([
+    'email' => User::uniqueConstraint('email'),
+]);
+
+// Update: allow the user to keep their own email.
+$request->validate([
+    'email' => User::uniqueConstraint('email', $user->id),
+]);
+```
+
+### NotIn
+
+Validates that a value is not one of a set of forbidden values. The
+complement of a hypothetical `In` constraint. Comparison is strict.
+
+```php
+use Lucent\Validation\Constraints\NotIn;
+
+new NotIn(['admin', 'root']);
 ```
 
 ### Length
@@ -354,6 +490,56 @@ use Lucent\Validation\Constraints\Matches;
 Any::of(Matches::alpha(), Matches::mobile());
 ```
 
+### None
+
+Passes only when none of the wrapped constraints pass. The inverse of `Any`:
+the field is valid only when every wrapped constraint fails. Useful for "must
+not be any of these" rules. When a constraint matches, a generic "must not
+match" message is recorded first, followed by the matched constraint's
+message, so the user sees which rule the value matched (and therefore must
+not match).
+
+```php
+use Lucent\Validation\Combinators\None;
+use Lucent\Validation\Constraints\Matches;
+
+None::of(Matches::alpha(), Matches::mobile());
+```
+
+### AllOrNothing
+
+Requires a group of fields to be provided together. Either every field in the
+group is present, or none are. When all are present, each is validated by its
+own constraint; when none are present, the group passes and is normalized to
+`null` (mirroring `Optional`). A partial group (some fields present, some
+absent) fails.
+
+This is useful for a set of related optional fields that must be supplied as a
+unit — for example a `billing_address` group where all sub-fields are required
+together.
+
+```php
+use Lucent\Validation\Combinators\AllOrNothing;
+use Lucent\Validation\Constraints\Required;
+
+AllOrNothing::of([
+    'street' => new Required(),
+    'city'   => new Required(),
+]);
+```
+
+```php
+$validator = new Validator([
+    'billing' => AllOrNothing::of([
+        'street' => new Required(),
+        'city'   => new Required(),
+    ]),
+]);
+
+$result = $validator->validate(['billing' => []]);            // passes, value is null
+$result = $validator->validate(['billing' => ['street' => '1 Main St']]);  // fails (partial)
+```
+
 ### Optional
 
 Skips validation when the field was not present in the request body, or when
@@ -486,6 +672,16 @@ use Lucent\Validation\Combinators\Each;
 use Lucent\Validation\Constraints\Numeric;
 
 $validator = new Validator(new Each(new Numeric()));  // body is an array of numbers
+```
+
+`validate()` accepts any value, so a top-level scalar constraint can validate
+a plain value directly:
+
+```php
+use Lucent\Validation\Constraints\Length;
+
+$validator = new Validator(new Length(min: 3));
+$result = $validator->validate('abc');   // passes
 ```
 
 ## Normalizers

@@ -31,6 +31,24 @@ trait BuildsValidationRequests
     }
 
     /**
+     * Validate a raw value against a top-level constraint.
+     *
+     * Passes the value straight to the {@see Validator} as the whole payload,
+     * for constraints that operate on the body itself (e.g. a top-level
+     * {@see \Lucent\Validation\Combinators\Each} or
+     * {@see \Lucent\Validation\Combinators\Shape}, or a scalar constraint
+     * over a plain value).
+     *
+     * @param mixed $value The raw value to validate.
+     * @param Constraint $constraint The top-level constraint to apply.
+     * @return Result The validation result.
+     */
+    protected function validateValue(mixed $value, Constraint $constraint): Result
+    {
+        return (new Validator($constraint))->validate($value);
+    }
+
+    /**
      * Build an uploaded file for file-constraint tests.
      *
      * @param int $error The upload error code (defaults to UPLOAD_ERR_OK).

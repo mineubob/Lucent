@@ -3,8 +3,10 @@
 namespace Tests\Unit\Validation;
 
 use Lucent\Validation\Combinators\All;
+use Lucent\Validation\Combinators\AllOrNothing;
 use Lucent\Validation\Combinators\Any;
 use Lucent\Validation\Combinators\Each;
+use Lucent\Validation\Combinators\None;
 use Lucent\Validation\Combinators\Optional;
 use Lucent\Validation\Combinators\Shape;
 use Lucent\Validation\Constraints\Email;
@@ -879,5 +881,209 @@ class CombinatorsTest extends TestCase
         // Second validation: Required passes, Email fails -> Email's message.
         $second = $validator->validate(['value' => 'not-an-email']);
         $this->assertSame(['The value must be a valid email address.'], $second->errors()['value']);
+    }
+
+    // ─── None ──────────────────────────────────────────────────────────────
+
+    public function test_none_passes_when_no_constraint_passes(): void
+    {
+        $validator = new Validator([
+            'value' => None::of(new Length(min: 5), new Length(min: 10)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_none_fails_when_a_constraint_passes(): void
+    {
+        $validator = new Validator([
+            'value' => None::of(new Length(min: 2)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_none_stops_at_first_passing_constraint(): void
+    {
+        $first = new CountingConstraint(true);
+        $second = new CountingConstraint(false);
+
+        $validator = new Validator(['value' => None::of($first, $second)]);
+        $validator->validate(['value' => 'x']);
+
+        $this->assertSame(1, $first->calls);
+        $this->assertSame(0, $second->calls);
+    }
+
+    public function test_none_rolls_back_errors_from_passing_constraint(): void
+    {
+        // The first alternative (a Shape) fails and records user.name; the
+        // second (a plain string) passes. None must discard the failed
+        // branch's errors and report the matched constraint's message.
+        $validator = new Validator([
+            'value' => None::of(
+                Shape::object(['name' => new Required()]),
+                new Length(min: 2),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => 'ok']);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayNotHasKey('value.name', $result->errors());
+        $this->assertArrayHasKey('value', $result->errors());
+    }
+
+    public function test_none_keeps_errors_from_prior_fields(): void
+    {
+        // A failing field before the None must not be rolled back by None.
+        $validator = new Validator([
+            'name'  => new Required(),
+            'value' => None::of(new Length(min: 2)),
+        ]);
+
+        $result = $validator->validate([
+            'name'  => '',
+            'value' => 'ab',
+        ]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('name', $result->errors());
+        $this->assertArrayHasKey('value', $result->errors());
+    }
+
+    public function test_none_reports_matched_constraint_message(): void
+    {
+        // When a constraint matches, the generic framing message is recorded
+        // first, then the matched constraint's message so the user sees which
+        // rule the value matched (and therefore must not match).
+        $validator = new Validator([
+            'value' => None::of(new Length(min: 2)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertSame(
+            [
+                'The value must not match any of the given rules.',
+                'The value field must be at least 2 characters long.',
+            ],
+            $result->errors()['value'],
+        );
+    }
+
+    // ─── AllOrNothing ──────────────────────────────────────────────────────
+
+    public function test_all_or_nothing_all_present_passes(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+                'city'   => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate([
+            'billing' => ['street' => '1 Main St', 'city' => 'Sydney'],
+        ]);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_all_or_nothing_all_absent_passes_and_normalizes_to_null(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+                'city'   => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate(['billing' => []]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertNull($result->value('billing'));
+    }
+
+    public function test_all_or_nothing_partial_group_fails(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+                'city'   => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate(['billing' => ['street' => '1 Main St']]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('billing', $result->errors());
+    }
+
+    public function test_all_or_nothing_non_array_fails(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate(['billing' => 'not-an-array']);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('billing', $result->errors());
+    }
+
+    public function test_all_or_nothing_child_failure_suppresses_generic_error(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+                'city'   => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate([
+            'billing' => ['street' => '', 'city' => 'Sydney'],
+        ]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('billing.street', $result->errors());
+        $this->assertArrayNotHasKey('billing', $result->errors());
+    }
+
+    public function test_all_or_nothing_stores_normalized_child_values(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'postcode' => new Numeric(),
+            ]),
+        ]);
+
+        $result = $validator->validate(['billing' => ['postcode' => '2000']]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(2000, $result->value('billing.postcode'));
+    }
+
+    public function test_all_or_nothing_error_message(): void
+    {
+        $validator = new Validator([
+            'billing' => AllOrNothing::of([
+                'street' => new Required(),
+                'city'   => new Required(),
+            ]),
+        ]);
+
+        $result = $validator->validate(['billing' => ['street' => '1 Main St']]);
+
+        $this->assertSame(
+            ['The billing fields must be provided together.'],
+            $result->errors()['billing'],
+        );
     }
 }

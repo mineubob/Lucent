@@ -61,7 +61,11 @@ final class Validator
      * record an error message on the result; successful constraints may
      * normalize the value, which is stored on the result.
      *
-     * @param array|object|null $body The data to validate (e.g. a parsed request body).
+     * Accepts any value, so a top-level scalar constraint can validate a
+     * plain value directly (e.g. `new Validator(new Length(min: 3))->validate('abc')`).
+     *
+     * @param mixed $body The data to validate (e.g. a parsed request body, or
+     *        a plain scalar for a top-level constraint).
      * @param array<string, \Psr\Http\Message\UploadedFileInterface> $files Optional
      *        uploaded files keyed by field name, for file constraints.
      * @param array<string, mixed> $context Optional per-validation values (e.g.
@@ -69,7 +73,7 @@ final class Validator
      *        constraints via {@see FieldContext::get()}.
      * @return Result The validation result containing errors and validated values.
      */
-    public function validate(array|object|null $body, array $files = [], array $context = []): Result
+    public function validate(mixed $body, array $files = [], array $context = []): Result
     {
         $result = new Result();
 

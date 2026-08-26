@@ -17,7 +17,9 @@
  */
 
 use Lucent\Application;
+use Lucent\Database;
 use Lucent\Facades\FileSystem;
+use Lucent\Facades\Log;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Drivers\CliDriver;
 use Lucent\Logging\Drivers\FileDriver;
@@ -97,6 +99,13 @@ if ($isMainProcess) {
     $app->addLoggingChannel(new Channel('lucent.filesystem', new TeeDriver(new CliDriver(), new FileDriver('filesystem.log'))));
     $app->addLoggingChannel(new Channel('lucent.http', new TeeDriver(new CliDriver(), new FileDriver('http.log'))));
     $app->addLoggingChannel(new Channel('lucent.commandline', new TeeDriver(new CliDriver(), new FileDriver('commandline.log'))));
+
+    // Wire the database logger to the lucent.db channel. Application::boot()
+    // does this in production, but tests that use DatabaseTesting never call
+    // boot(), so without this the DB logger stays null and Database::log()
+    // silently drops every query. Database::reset() does not clear the logger,
+    // so this persists across all setupDatabase() calls.
+    Database::setLogger(Log::channel("lucent.db"));
 }
 
 // Register a PSR-4 autoloader for the user's App\ namespace pointing at the

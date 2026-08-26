@@ -588,6 +588,77 @@ class ModelTest extends TestCase
         $this->assertEquals($id,$new_id);
     }
 
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_passes_for_unused_value($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("unique@test.com", "password", "Unique Test");
+        $this->assertTrue($user->create());
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email');
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'fresh@test.com']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_fails_for_duplicate_value($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("dup@test.com", "password", "Dup Test");
+        $this->assertTrue($user->create());
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email');
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'dup@test.com']);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(
+            ['The email has already been taken.'],
+            $result->errors()['email'],
+        );
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_ignores_current_row_on_update($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("keep@test.com", "password", "Keep Test");
+        $this->assertTrue($user->create());
+
+        // Updating the same row: its own email must not count as a duplicate.
+        $constraint = \App\Models\TestUser::uniqueConstraint('email', $user->id);
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'keep@test.com']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_unknown_column_throws($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email; DROP TABLE users; --');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
+
+        (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'x@test.com']);
+    }
+
     /**
      * Assert that two structures are equal, ignoring specific paths.
      *
