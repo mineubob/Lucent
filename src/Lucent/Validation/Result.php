@@ -266,7 +266,8 @@ final class Result
      * @param class-string<T>|string $type The type to cast to (e.g. `'int'` or `User::class`).
      * @param T|null $default The value to return when the path is absent or the
      *        value cannot be cast to the requested type.
-     * @return T|null The value cast to the requested type, or $default.
+     * @return ($default is null ? T|null : T) The value cast to the requested
+     *         type, or $default. When $default is non-null the return is always T.
      */
     public function valueAs(string $path, string $type, mixed $default = null): mixed
     {

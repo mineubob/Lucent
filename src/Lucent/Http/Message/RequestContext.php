@@ -84,7 +84,8 @@ class RequestContext
      *                                     value (class name or builtin type)
      * @param T|null $default Default value if the key is not set or holds a
      *                        value that does not match $type
-     * @return T|null
+     * @return ($default is null ? T|null : T) The stored value when it matches
+     *         $type, otherwise $default. When $default is non-null the return is always T.
      */
     public function getTyped(string $key, string $type, mixed $default = null): mixed
     {
