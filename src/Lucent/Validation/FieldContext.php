@@ -159,11 +159,12 @@ final class FieldContext
      * $userId  = $ctx->context('user_id', 'int');
      * ```
      *
+     * @template T
      * @param string $key The name of the value.
-     * @param class-string $type The type to cast to (e.g. `'int'` or `User::class`).
-     * @param mixed $default The value to return when the key is absent or the
+     * @param class-string<T>|string $type The type to cast to (e.g. `'int'` or `User::class`).
+     * @param T|null $default The value to return when the key is absent or the
      *        value cannot be cast to the requested type.
-     * @return mixed The value cast to the requested type, or $default.
+     * @return T|null The value cast to the requested type, or $default.
      */
     public function context(string $key, string $type, mixed $default = null): mixed
     {
