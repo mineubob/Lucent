@@ -28,6 +28,7 @@ Lucent provides a constraint-based validation system built around the `Constrain
     - [All](#all)
     - [Any](#any)
     - [None](#none)
+    - [One](#one)
     - [AllOrNothing](#allornothing)
     - [Optional](#optional)
     - [Shape](#shape)
@@ -504,6 +505,22 @@ use Lucent\Validation\Combinators\None;
 use Lucent\Validation\Constraints\Matches;
 
 None::of(Matches::alpha(), Matches::mobile());
+```
+
+### One
+
+Passes only when exactly one of the wrapped constraints passes — the
+exclusive-or of `Any` and `None`. If none match, the field fails and every
+failed alternative's message is recorded so the caller sees all acceptable
+options. If more than one matches, the field also fails, and a generic "must
+match exactly one" message is reported instead. Useful for mutually exclusive
+alternatives, e.g. "either a phone number or an email, but not both".
+
+```php
+use Lucent\Validation\Combinators\One;
+use Lucent\Validation\Constraints\Matches;
+
+One::of(Matches::email(), Matches::mobile());
 ```
 
 ### AllOrNothing

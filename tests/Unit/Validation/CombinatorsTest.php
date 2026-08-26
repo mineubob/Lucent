@@ -7,6 +7,7 @@ use Lucent\Validation\Combinators\AllOrNothing;
 use Lucent\Validation\Combinators\Any;
 use Lucent\Validation\Combinators\Each;
 use Lucent\Validation\Combinators\None;
+use Lucent\Validation\Combinators\One;
 use Lucent\Validation\Combinators\Optional;
 use Lucent\Validation\Combinators\Shape;
 use Lucent\Validation\Constraints\Email;
@@ -973,6 +974,179 @@ class CombinatorsTest extends TestCase
                 'The value field must be at least 2 characters long.',
             ],
             $result->errors()['value'],
+        );
+    }
+
+    // ─── One ───────────────────────────────────────────────────────────────
+
+    public function test_one_passes_when_exactly_one_constraint_passes(): void
+    {
+        $validator = new Validator([
+            'value' => One::of(new Length(min: 5), new Length(min: 2)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_one_fails_when_no_constraint_passes(): void
+    {
+        $validator = new Validator([
+            'value' => One::of(new Length(min: 5), new Length(min: 10)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_one_fails_when_more_than_one_constraint_passes(): void
+    {
+        $validator = new Validator([
+            'value' => One::of(new Length(min: 2), new Length(min: 3)),
+        ]);
+
+        $result = $validator->validate(['value' => 'abc']);
+
+        $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_one_reports_generic_message_when_too_many_match(): void
+    {
+        // When more than one alternative matches, the failed alternatives'
+        // errors are rolled back and a generic "exactly one" message is
+        // reported first, followed by each matched constraint's message so
+        // the user sees which rules the value matched.
+        $validator = new Validator([
+            'value' => One::of(new Length(min: 2), new Length(min: 3)),
+        ]);
+
+        $result = $validator->validate(['value' => 'abc']);
+
+        $this->assertSame(
+            [
+                'The value must match exactly one of the given rules.',
+                'The value field must be at least 2 characters long.',
+                'The value field must be at least 3 characters long.',
+            ],
+            $result->errors()['value'],
+        );
+    }
+
+    public function test_one_records_all_failed_alternative_messages_when_none_match(): void
+    {
+        // When no alternative matches, every failed alternative's message is
+        // left on the result so the caller sees all acceptable options.
+        $validator = new Validator([
+            'value' => One::of(new Length(min: 5), new Length(min: 10)),
+        ]);
+
+        $result = $validator->validate(['value' => 'ab']);
+
+        $this->assertCount(2, $result->errors()['value']);
+    }
+
+    public function test_one_rolls_back_failed_alternative_errors_on_success(): void
+    {
+        // The first alternative (a Shape) fails and records user.name; the
+        // second (a plain string) passes. One must discard the failed
+        // branch's errors.
+        $validator = new Validator([
+            'value' => One::of(
+                Shape::object(['name' => new Required()]),
+                new Length(min: 2),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => 'ok']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_one_rolls_back_errors_from_later_failing_alternative_on_success(): void
+    {
+        // The first alternative passes; a later alternative fails and records
+        // an error. One must discard the later failed branch's errors so the
+        // result is clean when exactly one constraint passes.
+        $validator = new Validator([
+            'value' => One::of(
+                new Length(min: 2),
+                Shape::object(['name' => new Required()]),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => 'ok']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_one_rolls_back_failed_alternative_errors_when_too_many_match(): void
+    {
+        // The first alternative (a Shape) fails and records user.name; the
+        // second and third pass. One must discard the failed branch's errors
+        // and report the generic "exactly one" message first, followed by the
+        // matched constraints' messages.
+        $validator = new Validator([
+            'value' => One::of(
+                Shape::object(['name' => new Required()]),
+                new Length(min: 2),
+                new Length(min: 3),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => 'okay']);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayNotHasKey('value.name', $result->errors());
+        $this->assertSame(
+            [
+                'The value must match exactly one of the given rules.',
+                'The value field must be at least 2 characters long.',
+                'The value field must be at least 3 characters long.',
+            ],
+            $result->errors()['value'],
+        );
+    }
+
+    public function test_one_keeps_errors_from_prior_fields(): void
+    {
+        // A failing field before the One must not be rolled back by One.
+        $validator = new Validator([
+            'name'  => new Required(),
+            'value' => One::of(new Length(min: 5), new Length(min: 2)),
+        ]);
+
+        $result = $validator->validate([
+            'name'  => '',
+            'value' => 'ab',
+        ]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('name', $result->errors());
+        $this->assertArrayNotHasKey('value', $result->errors());
+    }
+
+    public function test_one_reused_across_validations_does_not_leak_state(): void
+    {
+        $one = One::of(new Length(min: 5), new Length(min: 2));
+        $validator = new Validator(['value' => $one]);
+
+        // First validation: exactly one matches -> passes.
+        $first = $validator->validate(['value' => 'ab']);
+        $this->assertFalse($first->hasErrors());
+
+        // Second validation: both match -> fails with the generic message
+        // first, followed by the matched constraints' messages.
+        $second = $validator->validate(['value' => 'abcdef']);
+        $this->assertTrue($second->hasErrors());
+        $this->assertSame(
+            [
+                'The value must match exactly one of the given rules.',
+                'The value field must be at least 5 characters long.',
+                'The value field must be at least 2 characters long.',
+            ],
+            $second->errors()['value'],
         );
     }
 
