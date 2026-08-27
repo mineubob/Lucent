@@ -205,6 +205,28 @@ class CombinatorsTest extends TestCase
         $this->assertFalse($result->hasErrors());
     }
 
+    public function test_any_does_not_leak_losing_branch_values_on_success(): void
+    {
+        // The first alternative fails but its Shape still seeds role; the
+        // second passes and normalizes remove_member. Any must commit only
+        // the winning branch's values, so the losing branch's value never
+        // leaks into the result.
+        $validator = new Validator([
+            'value' => Any::of(
+                Shape::object(['role' => new Required()]),
+                Shape::object(['remove_member' => new Required()]),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => ['role' => '', 'remove_member' => 'x']]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(
+            ['remove_member' => 'x'],
+            $result->value('value'),
+        );
+    }
+
     public function test_any_reports_error_when_all_alternatives_fail(): void
     {
         $validator = new Validator([
@@ -1089,6 +1111,28 @@ class CombinatorsTest extends TestCase
         $result = $validator->validate(['value' => 'ok']);
 
         $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_one_does_not_leak_losing_branch_values_on_success(): void
+    {
+        // The first alternative passes and normalizes role; the second fails
+        // but its Shape still seeds remove_member. One must commit only the
+        // winning branch's values, so the losing branch's value never leaks
+        // into the result.
+        $validator = new Validator([
+            'value' => One::of(
+                Shape::object(['role' => new Required()]),
+                Shape::object(['remove_member' => new Required()]),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => ['role' => 'admin', 'remove_member' => '']]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame(
+            ['role' => 'admin'],
+            $result->value('value'),
+        );
     }
 
     public function test_one_rolls_back_errors_from_later_failing_alternative_on_success(): void

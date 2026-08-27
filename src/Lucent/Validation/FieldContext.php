@@ -147,6 +147,37 @@ final class FieldContext
     }
 
     /**
+     * Derive a copy of this context that writes to a different result.
+     *
+     * Returns a context with the same field, value, presence, files, body,
+     * and context bag, but a fresh {@see Result}. Used by combinators such as
+     * {@see \Lucent\Validation\Combinators\One} to validate each alternative
+     * in isolation against a throwaway result, then commit only the winning
+     * branch via {@see Result::merge()} — so a losing branch's errors *and*
+     * values never leak into the final result.
+     *
+     * @param Result $result The result the new context should write to.
+     * @return self A new context sharing everything but the result.
+     */
+    public function withResult(Result $result): self
+    {
+        $copy = new self(
+            $this->field,
+            $this->value,
+            $this->present,
+            $result,
+            $this->files,
+            $this->body,
+            $this->context,
+            $this->name,
+        );
+
+        $copy->segments = $this->segments;
+
+        return $copy;
+    }
+
+    /**
      * Get a value from the context bag, cast to a given type.
      *
      * A typed getter mirroring {@see Result::valueAs()}: scalar types are

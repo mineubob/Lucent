@@ -482,7 +482,11 @@ All::of(new Length(min: 8), Matches::password());
 
 ### Any
 
-Passes if any wrapped constraint passes.
+Passes if any wrapped constraint passes. Each alternative is validated in
+isolation against a throwaway result, so a losing branch's errors *and*
+values never leak onto the final result; the winning branch's result is
+committed in full. If none pass, every failed alternative's message is
+recorded so the caller sees all acceptable options.
 
 ```php
 use Lucent\Validation\Combinators\Any;
@@ -510,8 +514,9 @@ None::of(Matches::alpha(), Matches::mobile());
 ### One
 
 Passes only when exactly one of the wrapped constraints passes — the
-exclusive-or of `Any` and `None`. Each alternative is validated in isolation,
-so a failed branch's errors are rolled back and never leak onto the result.
+exclusive-or of `Any` and `None`. Each alternative is validated in isolation
+against a throwaway result, so a losing branch's errors *and* values never
+leak onto the final result; the winning branch's result is committed in full.
 If none match, the field fails with a single generic "must match exactly one"
 message. If more than one matches, the field also fails, and the generic
 message is reported first, followed by each matched constraint's message so

@@ -7,6 +7,7 @@ namespace Lucent\Validation\Combinators;
 use Closure;
 use Lucent\Validation\Constraint;
 use Lucent\Validation\FieldContext;
+use Lucent\Validation\Result;
 use Override;
 
 /**
@@ -52,15 +53,15 @@ final class One extends Constraint
     /**
      * Validate that exactly one wrapped constraint passes.
      *
-     * Each alternative is validated in isolation against a snapshot of the
-     * error state, so a failed branch's errors are rolled back before the
-     * next alternative runs. If exactly one passes, the field passes and no
-     * errors are recorded. If more than one passes, the generic "must match
-     * exactly one" message is recorded first, followed by each matched
-     * constraint's message, so the user sees which rules the value matched
-     * (and therefore must not both match). If none pass, a single generic
-     * message is recorded so the caller sees one clear error rather than a
-     * pile-up of every failed alternative's errors.
+     * Each alternative is validated in isolation against a fresh, throwaway
+     * {@see Result}, so a losing branch's errors *and* values never leak into
+     * the final result. If exactly one passes, its result is committed via
+     * {@see Result::merge()} and the field passes. If more than one passes,
+     * the generic "must match exactly one" message is recorded first,
+     * followed by each matched constraint's message, so the user sees which
+     * rules the value matched (and therefore must not both match). If none
+     * pass, a single generic message is recorded so the caller sees one clear
+     * error rather than a pile-up of every failed alternative's errors.
      *
      * @param FieldContext $ctx The context of the field being validated.
      * @return bool True if exactly one constraint passes, false otherwise.
@@ -69,20 +70,22 @@ final class One extends Constraint
     public function validate(FieldContext $ctx): bool
     {
         $matched = [];
-        $snapshot = $ctx->result->snapshotErrors();
+        $branchResults = [];
 
         foreach ($this->constraints as $constraint) {
-            if ($constraint->validate($ctx)) {
-                $matched[] = $constraint;
-            }
+            $branch = new Result();
+            $branchCtx = $ctx->withResult($branch);
 
-            // Roll back this branch's errors so a failed alternative never
-            // leaks its errors into the result. The next alternative starts
-            // from a clean slate.
-            $ctx->result->restoreErrors($snapshot);
+            if ($constraint->validate($branchCtx)) {
+                $matched[] = $constraint;
+                $branchResults[] = $branch;
+            }
         }
 
         if (count($matched) === 1) {
+            // Exactly one alternative passed — commit its result so the
+            // winning branch's normalized values are preserved.
+            $ctx->result->merge($branchResults[0]);
             return true;
         }
 

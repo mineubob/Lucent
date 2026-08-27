@@ -20,8 +20,9 @@ use Lucent\Validation\Concerns\ResolvesPaths;
  * A Result is **not coroutine-safe**: it is created fresh for every
  * {@see Validator::validate()} call and must never be shared across
  * concurrent coroutines (e.g. under Octane/Swoole). The combinators snapshot
- * and restore its error state during validation, so sharing one instance
- * across coroutines would corrupt each other's errors.
+ * and restore its error state, or validate branches against throwaway
+ * results and merge the winner in, so sharing one instance across coroutines
+ * would corrupt each other's errors.
  */
 final class Result
 {
@@ -192,6 +193,60 @@ final class Result
     public function restoreErrors(array $errors): void
     {
         $this->errors = $errors;
+    }
+
+    /**
+     * Merge another result's errors and values into this one.
+     *
+     * Commits the errors and validated values of a branch result into this
+     * result. Used by combinators such as
+     * {@see \Lucent\Validation\Combinators\One} to validate each alternative
+     * against a fresh, throwaway {@see Result} and then commit only the
+     * winning branch — so a losing branch's errors *and* values never leak
+     * into the final result.
+     *
+     * Errors are appended to any existing errors at the same field path.
+     * Values are merged recursively: nested arrays are merged key-by-key, and
+     * scalar values overwrite whatever is currently stored at that path.
+     *
+     * @param Result $other The branch result to commit into this one.
+     * @return void
+     */
+    public function merge(Result $other): void
+    {
+        foreach ($other->errors as $field => $messages) {
+            $this->errors[$field] ??= [];
+            foreach ($messages as $message) {
+                $this->errors[$field][] = $message;
+            }
+        }
+
+        $this->values = $this->mergeValues($this->values, $other->values);
+    }
+
+    /**
+     * Recursively merge two value trees.
+     *
+     * When both sides are arrays, the result is a key-by-key merge (the
+     * right-hand side wins on scalar conflicts). Otherwise the right-hand
+     * value replaces the left-hand value.
+     *
+     * @param mixed $left The current value tree.
+     * @param mixed $right The branch value tree to merge in.
+     * @return mixed The merged value tree.
+     */
+    private function mergeValues(mixed $left, mixed $right): mixed
+    {
+        if (is_array($left) && is_array($right)) {
+            foreach ($right as $key => $value) {
+                $left[$key] = array_key_exists($key, $left)
+                    ? $this->mergeValues($left[$key], $value)
+                    : $value;
+            }
+            return $left;
+        }
+
+        return $right;
     }
 
     /**
