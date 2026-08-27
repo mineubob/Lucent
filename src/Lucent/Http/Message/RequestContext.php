@@ -95,6 +95,47 @@ class RequestContext
     }
 
     /**
+     * Read a value from the context, guaranteed to match a given type, or
+     * throw if it is missing or of the wrong type.
+     *
+     * This is the fail-fast counterpart to {@see getTyped()}: it is intended
+     * for values the code genuinely cannot proceed without (an authenticated
+     * user, a session, a request id). Instead of returning a default and
+     * forcing the caller to null-check, it throws a descriptive
+     * {@see \RuntimeException} so the failure surfaces at the point of use
+     * with a clear message rather than as a confusing "call to member
+     * function on null" deeper in the stack.
+     *
+     * The type may be a class or interface name (checked with instanceof) or
+     * a builtin type name: string, int, float, bool, array, object, callable,
+     * iterable, numeric, scalar, resource, or null.
+     *
+     * @template T
+     * @param string $key The context key
+     * @param class-string<T>|string $type The expected type of the stored
+     *                                     value (class name or builtin type)
+     * @return T The stored value, guaranteed to match $type
+     * @throws \RuntimeException When the key is not set or holds a value that
+     *         does not match $type
+     */
+    public function requireTyped(string $key, string $type): mixed
+    {
+        $value = $this->getTyped($key, $type);
+
+        if ($value === null && !$this->matchesType(null, $type)) {
+            throw new \RuntimeException(
+                sprintf(
+                    'Context key "%s" is missing or does not hold a value of type "%s".',
+                    $key,
+                    $type
+                )
+            );
+        }
+
+        return $value;
+    }
+
+    /**
      * Determine whether a value matches a class name or builtin type.
      *
      * @param mixed $value The value to check

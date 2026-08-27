@@ -85,4 +85,61 @@ class RequestContextTest extends TestCase
         // A subclass is an instance of the parent class.
         $this->assertSame($child, $context->getTyped('user', \stdClass::class));
     }
+
+    public function test_require_typed_returns_value_when_matching(): void
+    {
+        $context = new RequestContext();
+        $user = new \stdClass();
+        $context->set('user', $user);
+
+        $this->assertSame($user, $context->requireTyped('user', \stdClass::class));
+    }
+
+    public function test_require_typed_returns_scalar_when_matching(): void
+    {
+        $context = new RequestContext();
+        $context->set('age', 30);
+
+        $this->assertSame(30, $context->requireTyped('age', 'int'));
+    }
+
+    public function test_require_typed_throws_when_key_missing(): void
+    {
+        $context = new RequestContext();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context key "user" is missing or does not hold a value of type "stdClass".');
+
+        $context->requireTyped('user', \stdClass::class);
+    }
+
+    public function test_require_typed_throws_when_value_is_wrong_type(): void
+    {
+        $context = new RequestContext();
+        $context->set('user', 'not-an-object');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context key "user" is missing or does not hold a value of type "stdClass".');
+
+        $context->requireTyped('user', \stdClass::class);
+    }
+
+    public function test_require_typed_throws_when_value_is_null(): void
+    {
+        $context = new RequestContext();
+        $context->set('user', null);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context key "user" is missing or does not hold a value of type "stdClass".');
+
+        $context->requireTyped('user', \stdClass::class);
+    }
+
+    public function test_require_typed_allows_null_when_type_is_null(): void
+    {
+        $context = new RequestContext();
+        $context->set('maybe', null);
+
+        $this->assertNull($context->requireTyped('maybe', 'null'));
+    }
 }

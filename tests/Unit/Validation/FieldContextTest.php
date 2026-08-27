@@ -274,4 +274,51 @@ class FieldContextTest extends TestCase
 
         $this->assertSame(42, $child->context('user_id', 'int'));
     }
+
+    // ─── requireContext() fail-fast typed getter ──────────────────────────
+
+    public function test_require_context_casts_scalar_types(): void
+    {
+        $ctx = $this->context(context: ['age' => '42']);
+
+        $this->assertSame(42, $ctx->requireContext('age', 'int'));
+    }
+
+    public function test_require_context_returns_class_instance_when_matching(): void
+    {
+        $request = new \stdClass();
+        $ctx = $this->context(context: ['request' => $request]);
+
+        $this->assertSame($request, $ctx->requireContext('request', \stdClass::class));
+    }
+
+    public function test_require_context_throws_when_key_absent(): void
+    {
+        $ctx = $this->context();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context key "user_id" is missing.');
+
+        $ctx->requireContext('user_id', 'int');
+    }
+
+    public function test_require_context_throws_when_class_not_matching(): void
+    {
+        $ctx = $this->context(context: ['request' => 'not-an-object']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context value "request" cannot be cast to type "stdClass".');
+
+        $ctx->requireContext('request', \stdClass::class);
+    }
+
+    public function test_require_context_throws_when_array_not_matching(): void
+    {
+        $ctx = $this->context(context: ['request' => 'not-an-array']);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Context value "request" cannot be cast to type "array".');
+
+        $ctx->requireContext('request', 'array');
+    }
 }

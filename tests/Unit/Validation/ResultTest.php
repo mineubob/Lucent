@@ -346,4 +346,55 @@ class ResultTest extends TestCase
 
         $this->assertNull($result->valueAs('user', \stdClass::class));
     }
+
+    // ─── requireValueAs() fail-fast typed getter ──────────────────────────
+
+    public function test_require_as_casts_to_int(): void
+    {
+        $result = new Result();
+        $result->set('age', '42');
+
+        $this->assertSame(42, $result->requireValueAs('age', 'int'));
+    }
+
+    public function test_require_as_returns_class_instance_when_matching(): void
+    {
+        $result = new Result();
+        $user = new \stdClass();
+        $result->set('user', $user);
+
+        $this->assertSame($user, $result->requireValueAs('user', \stdClass::class));
+    }
+
+    public function test_require_as_throws_when_path_absent(): void
+    {
+        $result = new Result();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Result has no value at path "age".');
+
+        $result->requireValueAs('age', 'int');
+    }
+
+    public function test_require_as_throws_when_class_not_matching(): void
+    {
+        $result = new Result();
+        $result->set('user', 'not-an-object');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Result value at path "user" cannot be cast to type "stdClass".');
+
+        $result->requireValueAs('user', \stdClass::class);
+    }
+
+    public function test_require_as_throws_when_array_not_matching(): void
+    {
+        $result = new Result();
+        $result->set('user', 'not-an-array');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Result value at path "user" cannot be cast to type "array".');
+
+        $result->requireValueAs('user', 'array');
+    }
 }

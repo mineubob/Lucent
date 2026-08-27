@@ -343,6 +343,45 @@ final class Result
     }
 
     /**
+     * Get a value at a dotted path cast to a given type, or throw if absent.
+     *
+     * The fail-fast counterpart to {@see valueAs()}: intended for values the
+     * caller genuinely cannot proceed without. Instead of returning a default
+     * and forcing a null-check, it throws a descriptive
+     * {@see \RuntimeException} so a missing or wrongly-typed value surfaces at
+     * the point of use with a clear message.
+     *
+     * Scalar casts always succeed, so this throws only when the path is
+     * absent or the value cannot satisfy a class/array type. It does not
+     * throw on a scalar cast (e.g. `(int) 'abc'` → `0`).
+     *
+     * @template T
+     * @param string $path The dotted path of the field.
+     * @param class-string<T>|string $type The type to cast to (e.g. `'int'` or `User::class`).
+     * @return T The value cast to the requested type.
+     * @throws \RuntimeException When the path is absent or the value cannot
+     *         satisfy the requested class/array type.
+     */
+    public function requireValueAs(string $path, string $type): mixed
+    {
+        if (!$this->hasValue($path)) {
+            throw new \RuntimeException(
+                sprintf('Result has no value at path "%s".', $path)
+            );
+        }
+
+        $value = $this->valueAs($path, $type);
+
+        if ($value === null && !in_array($type, ['int', 'string', 'bool', 'float'], true)) {
+            throw new \RuntimeException(
+                sprintf('Result value at path "%s" cannot be cast to type "%s".', $path, $type)
+            );
+        }
+
+        return $value;
+    }
+
+    /**
      * Get the value at a dotted path in a single traversal.
      *
      * Distinguishes a key that is present with a `null` value from a key that

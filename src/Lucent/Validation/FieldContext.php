@@ -250,6 +250,46 @@ final class FieldContext
     }
 
     /**
+     * Get a value from the context bag cast to a given type, or throw if absent.
+     *
+     * The fail-fast counterpart to {@see context()}: intended for values the
+     * constraint genuinely cannot run without (the originating request, the
+     * authenticated user, a tenant id). Instead of returning a default and
+     * forcing a null-check, it throws a descriptive {@see \RuntimeException}
+     * so a missing or wrongly-typed context value surfaces at the point of
+     * use with a clear message.
+     *
+     * Scalar casts always succeed, so this throws only when the key is absent
+     * or the value cannot satisfy a class/array type. It does not throw on a
+     * scalar cast (e.g. `(int) 'abc'` → `0`).
+     *
+     * @template T
+     * @param string $key The name of the value.
+     * @param class-string<T>|string $type The type to cast to (e.g. `'int'` or `User::class`).
+     * @return T The value cast to the requested type.
+     * @throws \RuntimeException When the key is absent or the value cannot
+     *         satisfy the requested class/array type.
+     */
+    public function requireContext(string $key, string $type): mixed
+    {
+        if (!array_key_exists($key, $this->context)) {
+            throw new \RuntimeException(
+                sprintf('Context key "%s" is missing.', $key)
+            );
+        }
+
+        $value = $this->context($key, $type);
+
+        if ($value === null && !in_array($type, ['int', 'string', 'bool', 'float'], true)) {
+            throw new \RuntimeException(
+                sprintf('Context value "%s" cannot be cast to type "%s".', $key, $type)
+            );
+        }
+
+        return $value;
+    }
+
+    /**
      * Get the uploaded file for the current field, if any.
      *
      * @return UploadedFileInterface|null The uploaded file, or null if the
