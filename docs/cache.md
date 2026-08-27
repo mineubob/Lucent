@@ -19,6 +19,12 @@ variable:
 | `array` | In-memory store, cleared when the process ends (useful for tests)           |
 | `null`  | Every read is a miss and every write is a no-op (disables caching)          |
 
+> **Note:** the `file` driver hashes each key with SHA-256 and stores the
+> value at a sharded path such as `storage/cache/ab/cd/<sha256>.cache`. The
+> hash and sharding are internal — keys are always passed to and returned
+> from the cache interface unmodified. Don't rely on the on-disk filenames;
+> use the cache API to read and write values.
+
 Any other driver name is resolved from the application container, so you can
 register your own driver class and select it via `CACHE_DRIVER`.
 
@@ -33,6 +39,18 @@ register your own driver class and select it via `CACHE_DRIVER`.
 | `CACHE_DRIVER`       | `file`           | The driver to use (`file`, `apcu`, `array`, `null`, or a container identifier) |
 | `CACHE_PATH`         | `storage/cache`  | Directory used by the `file` driver (relative to root) |
 | `CACHE_DEFAULT_TTL`  | *(none)*         | Optional default TTL in seconds applied when a `set()` call omits one |
+
+## Keys
+
+Cache keys must be non-empty strings of at most 512 characters drawn from
+`[A-Za-z0-9_.]`. The reserved characters `{}()/\@:` are rejected and throw a
+`Lucent\Cache\InvalidArgumentException`.
+
+These rules follow [PSR-16](https://www.php-fig.org/psr/psr-16/): the spec
+requires supporting at least 64 characters and the `[A-Za-z0-9_.]` character
+set; Lucent supports up to 512 characters. Keys are returned to the caller
+unmodified — any internal transformation (such as hashing for the `file`
+driver) is invisible through the cache interface.
 
 ## Query Cache
 

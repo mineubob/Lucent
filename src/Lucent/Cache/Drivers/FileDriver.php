@@ -6,6 +6,7 @@ use DateInterval;
 use Lucent\Cache\Cache;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
+use Lucent\Filesystem\Folder;
 
 /**
  * File-based cache driver.
@@ -171,73 +172,10 @@ class FileDriver extends Cache
             return true;
         }
 
-        $success = true;
-
-        foreach ($this->cacheFiles() as $path) {
-            if (!unlink($path)) {
-                $success = false;
-            }
-        }
-
-        $this->pruneEmptyDirectories($this->directory);
-
-        return $success;
-    }
-
-    /**
-     * Recursively yield every cache file under the cache directory.
-     *
-     * @return \Generator<string> Absolute paths to `.cache` files
-     */
-    private function cacheFiles(): \Generator
-    {
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->directory, \FilesystemIterator::SKIP_DOTS)
-        );
-
-        foreach ($iterator as $file) {
-            if ($file->isFile() && str_ends_with($file->getFilename(), '.cache')) {
-                yield $file->getPathname();
-            }
-        }
-    }
-
-    /**
-     * Remove empty shard directories after a clear.
-     *
-     * Walks the tree bottom-up and removes any directory that no longer
-     * contains files or subdirectories.
-     *
-     * @param string $directory Directory to prune
-     * @return void
-     */
-    private function pruneEmptyDirectories(string $directory): void
-    {
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::CHILD_FIRST
-        );
-
-        foreach ($iterator as $item) {
-            if ($item->isDir() && !$this->directoryHasEntries($item->getPathname())) {
-                @rmdir($item->getPathname());
-            }
-        }
-    }
-
-    /**
-     * Determine whether a directory contains any files or subdirectories.
-     *
-     * @param string $directory Directory to inspect
-     * @return bool True when the directory is not empty
-     */
-    private function directoryHasEntries(string $directory): bool
-    {
-        foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $entry) {
-            return true;
-        }
-
-        return false;
+        // Delete the entire cache tree, including the root directory and any
+        // shard subdirectories. The directory is recreated lazily on the next
+        // write via {@see ensureDirectory()}.
+        return (new Folder($this->directory, true))->delete();
     }
 
     /**
