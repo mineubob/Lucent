@@ -6,17 +6,24 @@ use DateInterval;
 use Lucent\Cache\Cache;
 use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
+use Lucent\Filesystem\Folder;
 
 /**
  * File-based cache driver.
  *
  * Persists each value as its own file under the configured cache directory
- * (default `storage/cache`). Keys are used directly as filenames — they are
- * already restricted to the filesystem-safe characters `[A-Za-z0-9_.]` — so
- * there is no hashing and no collision risk. Each file stores the absolute
- * expiry timestamp followed by the serialized value.
+ * (default `storage/cache`). Keys are hashed with SHA-256 for the filename
+ * so the supported key length is not bounded by the filesystem's 255-byte
+ * filename component limit. The hash is deterministic and collision-free in
+ * practice; the original key is not stored on disk.
  *
- * Values must be serializable via PHP's native `serialize()`.
+ * Files are sharded into two levels of 2-character subdirectories derived
+ * from the hash (e.g. `storage/cache/ab/cd/<sha256>.cache`). This keeps the
+ * number of files per directory bounded so the store scales to large cache
+ * populations.
+ *
+ * Each file stores the absolute expiry timestamp followed by the serialized
+ * value. Values must be serializable via PHP's native `serialize()`.
  */
 class FileDriver extends Cache
 {
@@ -30,33 +37,43 @@ class FileDriver extends Cache
      */
     public function __construct(string $directory = 'storage/cache')
     {
-        $this->directory = FileSystem::normalizePath(
-            FileSystem::isAbsolute($directory)
-                ? $directory
-                : FileSystem::rootPath() . DIRECTORY_SEPARATOR . $directory
-        );
+        $this->directory = FileSystem::normalizePath(FileSystem::absolutePath($directory));
     }
 
     /**
      * Resolve the absolute path for a cache key.
+     *
+     * The key is hashed with SHA-256 so the filename is a fixed 64 hex
+     * characters regardless of key length, keeping it well under the
+     * filesystem's 255-byte filename component limit. The first four hex
+     * characters form two levels of 2-character subdirectories, so files
+     * are spread across up to 65,536 directories.
      *
      * @param string $key The cache key
      * @return string Absolute file path
      */
     private function pathFor(string $key): string
     {
-        return $this->directory . DIRECTORY_SEPARATOR . $key . '.cache';
+        $hash = hash('sha256', $key);
+
+        return $this->directory
+            . DIRECTORY_SEPARATOR . substr($hash, 0, 2)
+            . DIRECTORY_SEPARATOR . substr($hash, 2, 2)
+            . DIRECTORY_SEPARATOR . $hash . '.cache';
     }
 
     /**
-     * Ensure the cache directory exists.
+     * Ensure the cache directory and shard subdirectories exist.
      *
+     * @param string $path The full path to the cache file
      * @return void
      */
-    private function ensureDirectory(): void
+    private function ensureDirectory(string $path): void
     {
-        if (!is_dir($this->directory)) {
-            mkdir($this->directory, 0755, true);
+        $directory = dirname($path);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
         }
     }
 
@@ -117,9 +134,9 @@ class FileDriver extends Cache
             return $this->delete($key);
         }
 
-        $this->ensureDirectory();
+        $this->ensureDirectory($path = $this->pathFor($key));
 
-        $file = new File($this->pathFor($key), null, true);
+        $file = new File($path, null, true);
 
         $payload = ($expires ?? 0) . '|' . serialize($value);
 
@@ -151,15 +168,10 @@ class FileDriver extends Cache
             return true;
         }
 
-        $success = true;
-
-        foreach (glob($this->directory . DIRECTORY_SEPARATOR . '*.cache') ?: [] as $path) {
-            if (!unlink($path)) {
-                $success = false;
-            }
-        }
-
-        return $success;
+        // Delete the entire cache tree, including the root directory and any
+        // shard subdirectories. The directory is recreated lazily on the next
+        // write via {@see ensureDirectory()}.
+        return (new Folder($this->directory, true))->delete();
     }
 
     /**

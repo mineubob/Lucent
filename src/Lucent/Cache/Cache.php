@@ -12,7 +12,7 @@ use Psr\SimpleCache\CacheInterface;
  * implementations for the multi-key operations built on top of the
  * single-key methods each driver implements.
  *
- * Keys must be non-empty strings of at most 64 characters drawn from
+ * Keys must be non-empty strings of at most 512 characters drawn from
  * `[A-Za-z0-9_.]`. The reserved characters `{}()/\@:` are rejected.
  *
  * TTL semantics:
@@ -75,13 +75,18 @@ abstract class Cache implements CacheInterface
      * Keys must be strings; anything else is rejected so callers get a
      * consistent {@see InvalidArgumentException} rather than a TypeError.
      *
+     * The 512-character cap is well above the PSR-16 minimum of 64 and is
+     * bounded to keep cache metadata from being abused. The character set
+     * `[A-Za-z0-9_.]` matches the PSR-16 required set; the reserved
+     * characters `{}()/\@:` are rejected.
+     *
      * @param mixed $key The key to validate
      * @return void
      * @throws InvalidArgumentException If the key is not a legal value
      */
     protected function validateKey(mixed $key): void
     {
-        if (!is_string($key) || preg_match('/^[A-Za-z0-9_.]{1,64}$/', $key) !== 1) {
+        if (!is_string($key) || preg_match('/^[A-Za-z0-9_.]{1,512}$/', $key) !== 1) {
             throw new InvalidArgumentException($key);
         }
     }

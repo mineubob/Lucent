@@ -172,8 +172,8 @@ class ArrayDriverTest extends TestCase
     {
         $cache = new ArrayDriver();
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage(str_repeat('a', 65));
-        $cache->get(str_repeat('a', 65));
+        $this->expectExceptionMessage(str_repeat('a', 513));
+        $cache->get(str_repeat('a', 513));
     }
 
     public function test_invalid_key_throws_on_get_multiple(): void

@@ -23,7 +23,7 @@ class File extends FileSystemObject
     public function __construct(string $path, mixed $content = null, bool $absolute = false)
     {
         if (!$absolute) {
-            $path = FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
+            $path = FileSystem::resolvePath($path);
         }
 
         // Normalize the path so `..`/`.` segments are resolved before the
