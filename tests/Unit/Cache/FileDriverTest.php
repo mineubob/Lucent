@@ -20,8 +20,17 @@ class FileDriverTest extends TestCase
 
         // Ensure a clean cache directory for each test.
         if (is_dir($this->cacheDir)) {
-            foreach (glob($this->cacheDir . DIRECTORY_SEPARATOR . '*.cache') ?: [] as $file) {
-                unlink($file);
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($this->cacheDir, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+
+            foreach ($iterator as $item) {
+                if ($item->isFile()) {
+                    unlink($item->getPathname());
+                } elseif ($item->isDir()) {
+                    rmdir($item->getPathname());
+                }
             }
         }
     }
@@ -56,7 +65,13 @@ class FileDriverTest extends TestCase
         $cache = new FileDriver();
         $cache->set('my.key', 'value');
 
-        $this->assertFileExists($this->cacheDir . DIRECTORY_SEPARATOR . hash('sha256', 'my.key') . '.cache');
+        $hash = hash('sha256', 'my.key');
+        $expected = $this->cacheDir
+            . DIRECTORY_SEPARATOR . substr($hash, 0, 2)
+            . DIRECTORY_SEPARATOR . substr($hash, 2, 2)
+            . DIRECTORY_SEPARATOR . $hash . '.cache';
+
+        $this->assertFileExists($expected);
     }
 
     public function test_accepts_absolute_cache_directory(): void
@@ -65,7 +80,13 @@ class FileDriverTest extends TestCase
         $cache = new FileDriver($absolute);
         $cache->set('key', 'value');
 
-        $this->assertFileExists($absolute . DIRECTORY_SEPARATOR . hash('sha256', 'key') . '.cache');
+        $hash = hash('sha256', 'key');
+        $expected = $absolute
+            . DIRECTORY_SEPARATOR . substr($hash, 0, 2)
+            . DIRECTORY_SEPARATOR . substr($hash, 2, 2)
+            . DIRECTORY_SEPARATOR . $hash . '.cache';
+
+        $this->assertFileExists($expected);
     }
 
     public function test_has_returns_true_for_stored_item(): void
@@ -231,7 +252,11 @@ class FileDriverTest extends TestCase
         $cache->set('key', 'value');
 
         // Overwrite the cache file with a serialized object payload.
-        $path = $this->cacheDir . DIRECTORY_SEPARATOR . hash('sha256', 'key') . '.cache';
+        $hash = hash('sha256', 'key');
+        $path = $this->cacheDir
+            . DIRECTORY_SEPARATOR . substr($hash, 0, 2)
+            . DIRECTORY_SEPARATOR . substr($hash, 2, 2)
+            . DIRECTORY_SEPARATOR . $hash . '.cache';
         $payload = '0|' . serialize(new \stdClass());
         file_put_contents($path, $payload);
 

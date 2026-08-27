@@ -16,6 +16,11 @@ use Lucent\Filesystem\File;
  * filename component limit. The hash is deterministic and collision-free in
  * practice; the original key is not stored on disk.
  *
+ * Files are sharded into two levels of 2-character subdirectories derived
+ * from the hash (e.g. `storage/cache/ab/cd/<sha256>.cache`). This keeps the
+ * number of files per directory bounded so the store scales to large cache
+ * populations.
+ *
  * Each file stores the absolute expiry timestamp followed by the serialized
  * value. Values must be serializable via PHP's native `serialize()`.
  */
@@ -43,25 +48,35 @@ class FileDriver extends Cache
      *
      * The key is hashed with SHA-256 so the filename is a fixed 64 hex
      * characters regardless of key length, keeping it well under the
-     * filesystem's 255-byte filename component limit.
+     * filesystem's 255-byte filename component limit. The first four hex
+     * characters form two levels of 2-character subdirectories, so files
+     * are spread across up to 65,536 directories.
      *
      * @param string $key The cache key
      * @return string Absolute file path
      */
     private function pathFor(string $key): string
     {
-        return $this->directory . DIRECTORY_SEPARATOR . hash('sha256', $key) . '.cache';
+        $hash = hash('sha256', $key);
+
+        return $this->directory
+            . DIRECTORY_SEPARATOR . substr($hash, 0, 2)
+            . DIRECTORY_SEPARATOR . substr($hash, 2, 2)
+            . DIRECTORY_SEPARATOR . $hash . '.cache';
     }
 
     /**
-     * Ensure the cache directory exists.
+     * Ensure the cache directory and shard subdirectories exist.
      *
+     * @param string $path The full path to the cache file
      * @return void
      */
-    private function ensureDirectory(): void
+    private function ensureDirectory(string $path): void
     {
-        if (!is_dir($this->directory)) {
-            mkdir($this->directory, 0755, true);
+        $directory = dirname($path);
+
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
         }
     }
 
@@ -122,9 +137,9 @@ class FileDriver extends Cache
             return $this->delete($key);
         }
 
-        $this->ensureDirectory();
+        $this->ensureDirectory($path = $this->pathFor($key));
 
-        $file = new File($this->pathFor($key), null, true);
+        $file = new File($path, null, true);
 
         $payload = ($expires ?? 0) . '|' . serialize($value);
 
@@ -158,13 +173,71 @@ class FileDriver extends Cache
 
         $success = true;
 
-        foreach (glob($this->directory . DIRECTORY_SEPARATOR . '*.cache') ?: [] as $path) {
+        foreach ($this->cacheFiles() as $path) {
             if (!unlink($path)) {
                 $success = false;
             }
         }
 
+        $this->pruneEmptyDirectories($this->directory);
+
         return $success;
+    }
+
+    /**
+     * Recursively yield every cache file under the cache directory.
+     *
+     * @return \Generator<string> Absolute paths to `.cache` files
+     */
+    private function cacheFiles(): \Generator
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($this->directory, \FilesystemIterator::SKIP_DOTS)
+        );
+
+        foreach ($iterator as $file) {
+            if ($file->isFile() && str_ends_with($file->getFilename(), '.cache')) {
+                yield $file->getPathname();
+            }
+        }
+    }
+
+    /**
+     * Remove empty shard directories after a clear.
+     *
+     * Walks the tree bottom-up and removes any directory that no longer
+     * contains files or subdirectories.
+     *
+     * @param string $directory Directory to prune
+     * @return void
+     */
+    private function pruneEmptyDirectories(string $directory): void
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            if ($item->isDir() && !$this->directoryHasEntries($item->getPathname())) {
+                @rmdir($item->getPathname());
+            }
+        }
+    }
+
+    /**
+     * Determine whether a directory contains any files or subdirectories.
+     *
+     * @param string $directory Directory to inspect
+     * @return bool True when the directory is not empty
+     */
+    private function directoryHasEntries(string $directory): bool
+    {
+        foreach (new \FilesystemIterator($directory, \FilesystemIterator::SKIP_DOTS) as $entry) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
