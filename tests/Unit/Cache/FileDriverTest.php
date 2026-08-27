@@ -185,6 +185,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->get('invalid key');
     }
 
@@ -192,6 +193,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid{key}');
         $cache->set('invalid{key}', 'value');
     }
 
@@ -199,6 +201,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid/key');
         $cache->delete('invalid/key');
     }
 
@@ -206,6 +209,7 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid@key');
         $cache->has('invalid@key');
     }
 
@@ -213,6 +217,25 @@ class FileDriverTest extends TestCase
     {
         $cache = new FileDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->getMultiple(['valid', 'invalid key']);
+    }
+
+    public function test_does_not_instantiate_objects_on_read(): void
+    {
+        // Regression test: a tampered cache file containing a serialized
+        // object must NOT be instantiated on read (POP-chain RCE
+        // prevention). With allowed_classes => false, the object is treated
+        // as a cache miss rather than being constructed.
+        $cache = new FileDriver();
+        $cache->set('key', 'value');
+
+        // Overwrite the cache file with a serialized object payload.
+        $path = $this->cacheDir . DIRECTORY_SEPARATOR . 'key.cache';
+        $payload = '0|' . serialize(new \stdClass());
+        file_put_contents($path, $payload);
+
+        // Reading must not return the object (and must not instantiate it).
+        $this->assertSame('fallback', $cache->get('key', 'fallback'));
     }
 }

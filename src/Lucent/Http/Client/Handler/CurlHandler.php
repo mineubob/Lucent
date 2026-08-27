@@ -120,7 +120,20 @@ final class CurlHandler implements HandlerInterface
         // configured sink (path/resource/stream) receives the body instead.
         // CURLOPT_RETURNTRANSFER is never used — it conflicts with streaming.
         $sink = $this->prepareSink($options['sink'] ?? null);
-        $curl[CURLOPT_WRITEFUNCTION] = function ($ch, string $data) use ($sink): int {
+
+        // Optional response-size cap (bytes). When exceeded, abort the
+        // transfer to prevent unbounded memory/disk exhaustion (zip-bomb /
+        // endless-body DoS). CURLOPT_MAXFILESIZE only limits the declared
+        // Content-Length, so we enforce the cap in the write callback too.
+        $maxResponseSize = $options['max_response_size'] ?? null;
+        $received = 0;
+        $curl[CURLOPT_WRITEFUNCTION] = function ($ch, string $data) use ($sink, &$received, $maxResponseSize): int {
+            if ($maxResponseSize !== null) {
+                $received += strlen($data);
+                if ($received > $maxResponseSize) {
+                    return 0; // signal abort to libcurl
+                }
+            }
             return $sink->write($data);
         };
 

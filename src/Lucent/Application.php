@@ -12,7 +12,6 @@ use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
-use Lucent\Date\ClockServiceProvider;
 use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
@@ -150,63 +149,6 @@ class Application
     public private(set) ?ResponseInterface $fallbackResponse;
 
     /**
-     * An array of globally accessible regex rules.
-     */
-    public private(set) array $regexRules = [
-        'password' => [
-            "pattern" => '/^(?=.*[a-z])(?=.*[A-Z]).{8,}$/',
-            "message" => "Password must contain at least one lowercase letter, one uppercase letter, and be at least 8 characters long.",
-        ],
-        'email' => [
-            "pattern" => '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',
-            "message" => "Email address must be a valid email address. (test@example.com)",
-        ],
-        'date' => [
-            "pattern" => '/^\d{4}-\d{2}-\d{2}$/',
-            "message" => "Date must be in YYYY-MM-DD format.",
-        ],
-        'url' => [
-            "pattern" => '/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/',
-            "message" => "URL must be a valid web address.",
-        ],
-        'phone' => [
-            "pattern" => '/^\+?[1-9]\d{1,14}$/',
-            "message" => "Phone number must be in a valid international format.",
-        ],
-        'ip' => [
-            "pattern" => '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/',
-            "message" => "Must be a valid IPv4 address.",
-        ],
-        'hex_color' => [
-            "pattern" => '/^#?([a-fA-F0-9]{6}|[a-fA-F0-9]{3})$/',
-            "message" => "Must be a valid HEX color code (e.g., #FFF or #FFFFFF).",
-        ],
-        'uuid' => [
-            "pattern" => '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
-            "message" => "Must be a valid UUID.",
-        ],
-        'alpha' => [
-            "pattern" => '/^[a-zA-Z]+$/',
-            "message" => "Must contain only letters.",
-        ],
-        'alphanumeric' => [
-            "pattern" => '/^[a-zA-Z0-9]+$/',
-            "message" => "Must contain only letters and numbers.",
-        ]
-    ];
-
-    /**
-     * An array of globally accessible failed message errors.
-     */
-    private array $ruleMessages = [
-        "min" => ":attribute must be at least :min characters",
-        "max" => ":attribute may not be greater than :max characters",
-        "min_num" => ":attribute must be greater than :min",
-        "max_num" => ":attribute may not be less than :max",
-        "same" => ":attribute and :second must match"
-    ];
-
-    /**
      * An array of globally applicable middleware thats ran for all requests.
      */
     private array $globalMiddlewares = [];
@@ -291,7 +233,6 @@ class Application
      */
     private function registerProviders(): void
     {
-        $this->register(ClockServiceProvider::class);
         $this->register(EventDispatcherServiceProvider::class);
         $this->register(ExceptionsServiceProvider::class);
     }
@@ -464,9 +405,13 @@ class Application
      */
     private function injectQueryCache(): void
     {
-        $enabled = filter_var($this->env['QUERY_CACHE'] ?? false, FILTER_VALIDATE_BOOL);
-
-        Database::setQueryCache($enabled ? $this->queryCache() : null);
+        // Query caching is DISABLED pending the ORM rebuild.
+        // The previous implementation cached raw result rows keyed
+        // only by connection+query, which leaked data
+        // across tenants sharing a connection and had no invalidation. It
+        // will return as an opt-in `->remember($ttl)` on the new Query
+        // Builder. Until then, never auto-enable it from the environment.
+        Database::setQueryCache(null);
     }
 
     /**
@@ -824,6 +769,16 @@ class Application
         }
 
         // Apply model binding for route parameters
+        //
+        // Auto-binding is DISABLED by default: a Model type-hint is not
+        // resolved from the URL, forcing controllers to perform explicit,
+        // scoped lookups. Implicit binding is an unscoped primary-key lookup
+        // with no ownership/tenant check (an IDOR risk), so it must be
+        // opted back in explicitly with MODEL_BINDING=implicit. The rewrite
+        // replaces this with an opt-in #[Bind] attribute
+        // (see docs/restructure-plan.md §15).
+        $autoBind = App::env('MODEL_BINDING', 'explicit') === 'implicit';
+
         foreach ($method->getParameters() as $parameter) {
             $type = $parameter->getType();
             $name = $parameter->getName();
@@ -847,6 +802,12 @@ class Application
 
             // Skip non-model types (services are resolved by call())
             if (!is_subclass_of($typeName, Model::class)) {
+                continue;
+            }
+
+            // In explicit mode, do not auto-bind — leave the Model parameter
+            // for the container to resolve (or the controller to fetch).
+            if (!$autoBind) {
                 continue;
             }
 
@@ -1193,26 +1154,6 @@ class Application
         if (!empty($loggers)) {
             Application::$instance->loggers = $loggers;
         }
-    }
-
-    public function addRegex(string $key, string $pattern, ?string $message = null): void
-    {
-        $this->regexRules[$key] = ["pattern" => $pattern, "message" => $message];
-    }
-
-    public function getRegexRules(): array
-    {
-        return $this->regexRules;
-    }
-
-    public function overrideValidationMessage(string $key, string $message): void
-    {
-        $this->ruleMessages[$key] = $message;
-    }
-
-    public function getValidationMessages(): array
-    {
-        return $this->ruleMessages;
     }
 
     /**

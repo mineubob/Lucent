@@ -77,6 +77,7 @@ class LoggingTest extends TestCase
     public function test_log_with_unknown_level_throws(): void
     {
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown log level: bogus');
 
         $this->channel->log('bogus', 'should throw');
     }

@@ -174,15 +174,26 @@ final class Collection
 
     private function formatColumnName(string $column): string
     {
-        if ($this->reflection->getParentClass()->getName() !== Model::class) {
-            if (!Model::hasDatabaseProperty($this->reflection, $column)) {
-                return "{$this->reflection->getParentClass()->getShortName()}.{$column}";
-            } else {
-                return "{$this->reflection->getShortName()}.{$column}";
+        $parent = $this->reflection->getParentClass();
+
+        // Extended model: the column may live on the parent class.
+        if ($parent->getName() !== Model::class) {
+            if (Model::hasDatabaseProperty($parent, $column)) {
+                return $parent->getShortName() . '.' . $column;
             }
+            if (Model::hasDatabaseProperty($this->reflection, $column)) {
+                return $this->reflection->getShortName() . '.' . $column;
+            }
+        } elseif (Model::hasDatabaseProperty($this->reflection, $column)) {
+            return $column;
         }
 
-        return $column;
+        // Column names are interpolated into SQL verbatim and cannot be bound,
+        // so they must be validated against the model's declared properties.
+        // Rejecting unknown columns prevents SQL injection via this position.
+        throw new \InvalidArgumentException(
+            "Column '{$column}' does not exist on model {$this->class}"
+        );
     }
 
     /**

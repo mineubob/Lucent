@@ -6,6 +6,7 @@ use Exception;
 use Lucent\Database;
 use Lucent\Database\Dataset;
 use Lucent\Helpers\Reflection\TypedProperty;
+use Lucent\Validation\Constraints\Unique;
 use ReflectionClass;
 
 class Model
@@ -437,6 +438,41 @@ class Model
     public static function where(string $column, string $value): Collection
     {
         return new Collection(static::class)->where($column, $value);
+    }
+
+    /**
+     * Build a {@see Unique} constraint that checks a column against the
+     * database for this model.
+     *
+     * The returned constraint fails when another row already holds the
+     * validated value in the given column. When an $ignoreId is supplied, the
+     * row with that primary key is excluded from the check — used when
+     * updating an existing record so its own value does not count as a
+     * duplicate.
+     *
+     * ```php
+     * $request->validate([
+     *     'email' => User::uniqueConstraint('email', $user->id),
+     * ]);
+     * ```
+     *
+     * @param string $column The column to check for uniqueness.
+     * @param mixed $ignoreId Optional primary key of the row to exclude from
+     *        the check (e.g. the current record being updated).
+     * @return Unique The unique constraint.
+     */
+    public static function uniqueConstraint(string $column, mixed $ignoreId = null): Unique
+    {
+        return new Unique(function (mixed $value) use ($column, $ignoreId): bool {
+            $query = new Collection(static::class)->where($column, (string) $value);
+
+            if ($ignoreId !== null) {
+                $pk = Model::getDatabasePrimaryKey(new ReflectionClass(static::class));
+                $query->compare($pk->name, '!=', (string) $ignoreId);
+            }
+
+            return $query->count() > 0;
+        });
     }
 
     /**

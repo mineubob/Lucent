@@ -76,6 +76,7 @@ class NullDriverTest extends TestCase
     {
         $cache = new NullDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid key');
         $cache->get('invalid key');
     }
 
@@ -83,6 +84,7 @@ class NullDriverTest extends TestCase
     {
         $cache = new NullDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid{key}');
         $cache->set('invalid{key}', 'value');
     }
 
@@ -90,6 +92,7 @@ class NullDriverTest extends TestCase
     {
         $cache = new NullDriver();
         $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('invalid@key');
         $cache->has('invalid@key');
     }
 }

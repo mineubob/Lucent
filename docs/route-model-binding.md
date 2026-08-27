@@ -204,3 +204,60 @@ This simpler example clearly shows the power of route model binding:
 3. **Performance**: Cache frequently accessed models in the request context
 4. **Security**: Use middleware to check user permissions before granting access to bound models
 5. **Error Messages**: Customize 404 messages for a better user experience
+
+## Security Considerations
+
+### Auto-binding is an unscoped primary-key lookup
+
+Auto route model binding resolves a model **by primary key only**, with
+no ownership or tenant scoping. A route like `GET /users/{id}` with a
+controller method `show(User $user)` would return the row for *any* id —
+including another user's or another tenant's — unless the controller
+independently verifies ownership. This is the classic broken object-level
+authorization (BOLA/IDOR) pattern.
+
+### Explicit binding is the default
+
+**Auto-binding is disabled by default.** A `Model` type-hint is **not**
+resolved from the URL. The framework leaves the parameter for the container
+to resolve, and the controller must fetch the model itself with an ownership
+check:
+
+```php
+public function show(ServerRequest $request, int $id): Response
+{
+    $user = User::where('id', $id)
+        ->where('tenant_id', $request->attribute('tenant_id'))
+        ->getFirst();
+
+    if ($user === null) {
+        throw new HttpException(HttpStatus::NOT_FOUND);
+    }
+
+    return (new Response())->withJsonEnvelope(['user' => $user], 'OK', true, 200);
+}
+```
+
+### Opting back into implicit binding: `MODEL_BINDING=implicit`
+
+Projects that relied on the previous auto-binding behaviour can restore it
+by setting the environment variable:
+
+```
+MODEL_BINDING=implicit
+```
+
+With `MODEL_BINDING=implicit`, a `Model` type-hint is resolved from the URL
+by primary key as before. **This restores the IDOR risk** — use it only for
+backward compatibility on existing applications, and ensure every
+model-bound controller verifies ownership.
+
+The framework rewrite replaces implicit binding with an opt-in `#[Bind]`
+attribute (see `docs/restructure-plan.md` §15).
+
+### Recommendation
+
+- Leave the default (`explicit`) in place for new applications and always
+  scope model lookups to the authenticated principal / tenant.
+- Never rely on auto-binding alone to enforce authorization — always verify
+  ownership, either in the controller or in middleware.

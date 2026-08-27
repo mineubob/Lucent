@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Lucent\Facades;
 
 use Random\RandomException;
@@ -46,7 +48,7 @@ class UUID
     public static function v7(): string
     {
         // Get current Unix timestamp in milliseconds (48 bits)
-        $timestamp = floor(microtime(true) * 1000);
+        $timestamp = (int) floor(microtime(true) * 1000);
         $time_hex = str_pad(dechex($timestamp), 12, '0', STR_PAD_LEFT);
 
         // Random bytes for remaining fields
@@ -94,6 +96,12 @@ class UUID
         }
 
         if ($version !== null) {
+            // Only standard UUID versions 1-7 are valid. Reject any other
+            // version (e.g. 9) rather than interpolating it into the regex.
+            if ($version < 1 || $version > 7) {
+                return false;
+            }
+
             // Validate specific version
             $pattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-' . $version . '[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i';
         } else {

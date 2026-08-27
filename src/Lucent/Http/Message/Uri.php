@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Lucent\Http\Message;
 
 use Psr\Http\Message\UriInterface;
@@ -25,6 +27,25 @@ final class Uri implements UriInterface
     ];
 
     /**
+     * Validation flags for isValid().
+     *
+     * By default (flags = 0) relative references such as "/users/123",
+     * "?page=2" or "#top" are accepted, matching how Uri represents URIs.
+     */
+    public const VALIDATE_RELATIVE = 0b0001; // accept path-only / relative references
+    public const VALIDATE_ABSOLUTE = 0b0010; // require a scheme (e.g. http:, https:)
+    public const VALIDATE_HOST     = 0b0100; // require a non-empty host
+    public const VALIDATE_STRICT   = 0b1000; // reject non-standard forms
+
+    /**
+     * Sensible default for validating a full absolute URL.
+     *
+     * Resolves to VALIDATE_HOST | VALIDATE_ABSOLUTE — requires a scheme and a
+     * non-empty host, but allows any scheme (http, https, ftp, mailto, ...).
+     */
+    public const VALIDATE_DEFAULT = self::VALIDATE_HOST | self::VALIDATE_ABSOLUTE;
+
+    /**
      * Unreserved characters (RFC 3986 §2.3) plus sub-delims (§2.2) that are
      * always allowed unencoded in path/query/fragment components.
      */
@@ -46,10 +67,11 @@ final class Uri implements UriInterface
      */
     public static function fromString(string $uri): self
     {
-        $parts = parse_url($uri);
-        if ($parts === false) {
+        if (!self::isValid($uri)) {
             throw new \InvalidArgumentException("Unable to parse URI: $uri");
         }
+
+        $parts = parse_url($uri);
 
         $instance = new self();
         $instance->scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : '';
@@ -109,6 +131,68 @@ final class Uri implements UriInterface
         $instance->port = $instance->filterPort($instance->port);
 
         return $instance;
+    }
+
+    /**
+     * Validate a URI string without throwing.
+     *
+     * By default (flags = 0) relative references such as "/users/123",
+     * "?page=2" or "#top" are accepted. Combine the VALIDATE_* flags to
+     * narrow the check:
+     *
+     *   Uri::isValid('https://example.com/path', Uri::VALIDATE_ABSOLUTE | Uri::VALIDATE_HOST)
+     *
+     * @param string $uri   The URI string to validate
+     * @param int    $flags Bitmask of VALIDATE_* constants
+     * @return bool Whether the URI is well-formed and satisfies the flags
+     */
+    public static function isValid(string $uri, int $flags = 0): bool
+    {
+        // Reject control characters in the raw URI. parse_url() silently
+        // converts them to '_', so they must be checked before parsing.
+        if (preg_match('/[\x00-\x1F\x7F]/', $uri)) {
+            return false;
+        }
+
+        $parts = parse_url($uri);
+        if ($parts === false) {
+            return false;
+        }
+
+        // Validate the port range when present.
+        if (isset($parts['port']) && ($parts['port'] < 0 || $parts['port'] > 65535)) {
+            return false;
+        }
+
+        // Validate the host when present.
+        if (isset($parts['host']) && !self::isValidHost($parts['host'])) {
+            return false;
+        }
+
+        // VALIDATE_ABSOLUTE: require a scheme.
+        if (($flags & self::VALIDATE_ABSOLUTE) && !isset($parts['scheme'])) {
+            return false;
+        }
+
+        // VALIDATE_HOST: require a non-empty host.
+        if (($flags & self::VALIDATE_HOST) && empty($parts['host'])) {
+            return false;
+        }
+
+        // VALIDATE_STRICT: reject non-standard forms.
+        if ($flags & self::VALIDATE_STRICT) {
+            // A scheme must be present and be http/https.
+            if (isset($parts['scheme']) && !in_array(strtolower($parts['scheme']), ['http', 'https'], true)) {
+                return false;
+            }
+
+            // A host must be present.
+            if (empty($parts['host'])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getScheme(): string

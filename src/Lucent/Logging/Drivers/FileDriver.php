@@ -16,13 +16,13 @@ class FileDriver extends Driver
 
     public function write(string $line): void
     {
-        $logDir = FileSystem::rootPath() . DIRECTORY_SEPARATOR ."logs";
+        $logDir = FileSystem::normalizePath(FileSystem::rootPath() . DIRECTORY_SEPARATOR ."logs");
 
         if (!is_dir($logDir)) {
             mkdir($logDir, 0755, true);
         }
 
-        $logPath = $logDir . DIRECTORY_SEPARATOR . $this->path;
+        $logPath = FileSystem::normalizePath($logDir . DIRECTORY_SEPARATOR . $this->path);
 
         // Try to open file and handle any errors.
         // This is the "sink itself failed" case — we cannot report the

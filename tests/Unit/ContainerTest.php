@@ -6,7 +6,6 @@ use Lucent\Container\Container;
 use Lucent\Container\ContainerException;
 use Lucent\Container\NotFoundException;
 use PHPUnit\Framework\TestCase;
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
 
@@ -252,14 +251,10 @@ class ContainerTest extends TestCase
 
         $container->singleton('bad', fn () => 'not-an-object');
 
-        $exception = null;
-        try {
-            $container->get('bad');
-        } catch (ContainerExceptionInterface $e) {
-            $exception = $e;
-        }
+        $this->expectException(ContainerException::class);
+        $this->expectExceptionMessage('must return an object');
 
-        $this->assertInstanceOf(ContainerException::class, $exception);
+        $container->get('bad');
     }
 
     public function test_get_is_reusable_after_not_found_for_different_ids(): void
@@ -483,6 +478,7 @@ class ContainerTest extends TestCase
         $container = new Container();
 
         $this->expectException(NotFoundException::class);
+        $this->expectExceptionMessage('No service is registered for identifier');
 
         $container->make(UnboundInterface::class);
     }
@@ -555,6 +551,7 @@ class ContainerTest extends TestCase
         $container = new Container();
 
         $this->expectException(ContainerException::class);
+        $this->expectExceptionMessage('Unable to resolve parameter');
 
         $container->call(fn (UnboundInterface $dep) => $dep);
     }

@@ -49,7 +49,7 @@ class Faker
         }
 
         // Create and return the file
-        return new File($dir->path . DIRECTORY_SEPARATOR . $filename, $content, true);
+        return new File(FileSystem::normalizePath($dir->path . DIRECTORY_SEPARATOR . $filename), $content, true);
     }
 
     /**
@@ -122,7 +122,7 @@ class Faker
             // Create the file
             $filename = $fileOptions['name'] . '.' . $extension;
             $content = self::generateContent($fileOptions['type'], $fileOptions['size'] ?? rand(1024, 10240));
-            $file = new File($dir->path . DIRECTORY_SEPARATOR . $filename, $content, true);
+            $file = new File(FileSystem::normalizePath($dir->path . DIRECTORY_SEPARATOR . $filename), $content, true);
 
             $files[] = $file;
         }

@@ -7,13 +7,14 @@ use App\Services\InjectionGreeterInterface;
 use Lucent\Application;
 use Lucent\Facades\App;
 use Psr\Http\Message\ResponseInterface;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
-use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
 
 class ContainerInjectionTest extends TestCase
 {
+    use CopiesFixtures;
     use MakeRequest;
     use RefreshApplication;
 
@@ -21,10 +22,11 @@ class ContainerInjectionTest extends TestCase
     {
         parent::setUpBeforeClass();
 
-        FixtureLoader::copyController('ContainerInjectionController.php');
-        FixtureLoader::copyService('InjectionGreeterInterface.php');
-        FixtureLoader::copyService('InjectionGreeter.php');
-        FixtureLoader::copyRoutes('containerInjection.php');
+        self::copyFixtures([
+            'Controller' => 'ContainerInjectionController.php',
+            'Service'    => ['InjectionGreeterInterface.php', 'InjectionGreeter.php'],
+            'Route'      => 'containerInjection.php',
+        ]);
 
         self::refreshApplication();
 

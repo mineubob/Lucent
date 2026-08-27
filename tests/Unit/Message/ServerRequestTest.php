@@ -87,6 +87,7 @@ class ServerRequestTest extends TestCase
     public function test_parsed_body_rejects_invalid_type(): void
     {
         $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Parsed body must be null, an array, or an object');
         ServerRequest::create()->withParsedBody('invalid string');
     }
 
@@ -170,5 +171,78 @@ class ServerRequestTest extends TestCase
     {
         $request = ServerRequest::create();
         $this->assertInstanceOf(\Psr\Http\Message\UriInterface::class, $request->getUri());
+    }
+
+    // ─── validate() ────────────────────────────────────────────────────────
+
+    public function test_validate_passes_valid_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => 'Ada']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    public function test_validate_reports_invalid_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayHasKey('name', $result->errors());
+    }
+
+    public function test_validate_handles_null_body(): void
+    {
+        $request = ServerRequest::create('GET', '/');
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_validate_preserves_object_body(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => 'Ada']);
+        $request = $request->withParsedBody((object) ['name' => 'Ada']);
+
+        $result = $request->validate(['name' => new \Lucent\Validation\Constraints\Required()]);
+
+        $this->assertFalse($result->hasErrors());
+        $this->assertSame('Ada', $result->value('name'));
+    }
+
+    public function test_validate_seeds_request_into_context(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $seen = null;
+        $request->validate([
+            'name' => (new \Lucent\Validation\Constraints\Required())
+                ->withMessage(function (\Lucent\Validation\FieldContext $ctx) use (&$seen) {
+                    $seen = $ctx->context('request', \Psr\Http\Message\ServerRequestInterface::class);
+                    return 'x';
+                }),
+        ]);
+
+        $this->assertSame($request, $seen);
+    }
+
+    public function test_validate_merges_user_context_with_request(): void
+    {
+        $request = ServerRequest::create('POST', '/', body: ['name' => '']);
+
+        $seen = null;
+        $request->validate([
+            'name' => (new \Lucent\Validation\Constraints\Required())
+                ->withMessage(function (\Lucent\Validation\FieldContext $ctx) use (&$seen) {
+                    $seen = $ctx->context('user_id', 'int');
+                    return 'x';
+                }),
+        ], ['user_id' => 42]);
+
+        $this->assertSame(42, $seen);
     }
 }

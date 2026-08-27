@@ -21,6 +21,14 @@ $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/'
 );
 
+// Path-traversal guard: reject any URI that escapes the document root.
+// urldecode of %2e%2e combined with file_exists could otherwise expose
+// files outside the docroot (e.g. .env, storage/, vendor/).
+if (str_contains($uri, '..') || str_contains($uri, '\\')) {
+    http_response_code(404);
+    return true;
+}
+
 // Serve real static files directly. Returning `false` hands control back to
 // the built-in server, which serves the file without invoking the framework.
 // PHP logs these requests itself (e.g. `[200]: GET /style.css`).

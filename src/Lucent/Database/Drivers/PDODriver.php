@@ -108,11 +108,14 @@ class PDODriver extends DatabaseInterface
                     $path = ltrim($path, DIRECTORY_SEPARATOR);
                 }
 
-                $path = rtrim(FileSystem::rootPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path;
+                $path = FileSystem::normalizePath(rtrim(FileSystem::rootPath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $path);
 
                 if (!file_exists($path)) {
                     touch($path);
-                    chmod($path, 0666);
+                    // Restrict to owner read/write — a world-writable (0666)
+                    // DB file lets any local user read or corrupt it on a
+                    // shared host.
+                    chmod($path, 0600);
                 }
 
                 // Verify file is writable
@@ -122,6 +125,7 @@ class PDODriver extends DatabaseInterface
                 }
 
                 $this->connection = new PDO("sqlite:$path");
+                $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 break;
             case "mysql":
                 $host = Database::env("DB_HOST");
@@ -132,6 +136,12 @@ class PDODriver extends DatabaseInterface
 
                 $dsn = "mysql:host={$host};port={$port};dbname={$database}";
                 $this->connection = new PDO($dsn, $username, $password);
+                // Use native prepared statements (not client-side emulation)
+                // and throw on errors. Emulated prepares interpolate bound
+                // values client-side, weakening injection protection and
+                // permitting stacked-query edge cases.
+                $this->connection->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+                $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
                 break;
             default:
                 Database::log("critical","[PDODriver] Unknown driver type provided: $driver_name");

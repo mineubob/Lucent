@@ -183,6 +183,18 @@ final class Client implements ClientInterface
             $request = $request->withUri($uri);
         }
 
+        // SSRF guard: only http/https are permitted. Rejecting other schemes
+        // (file://, gopher://, dict://, ftp://) at the client boundary stops
+        // local-file disclosure and protocol abuse when a caller passes a
+        // user-supplied URL into the client.
+        $scheme = strtolower($uri->getScheme());
+        if ($scheme !== '' && !in_array($scheme, ['http', 'https'], true)) {
+            throw new RequestException(
+                "Unsupported URL scheme '{$scheme}' — only http and https are allowed.",
+                $request
+            );
+        }
+
         $streaming = ($options['stream'] ?? false) === true;
 
         // Merge config defaults into the options (per-request wins). The
@@ -388,8 +400,11 @@ final class Client implements ClientInterface
             throw new \InvalidArgumentException('user_agent must be a string');
         }
 
-        if (array_key_exists('headers', $config) && !is_array($config['headers'])) {
-            throw new \InvalidArgumentException('headers must be an array');
+        if (array_key_exists('headers', $config)) {
+            if (!is_array($config['headers'])) {
+                throw new \InvalidArgumentException('headers must be an array');
+            }
+            $this->assertSafeHeaders($config['headers']);
         }
 
         if (array_key_exists('curl_options', $config) && !is_array($config['curl_options'])) {
@@ -418,7 +433,7 @@ final class Client implements ClientInterface
      */
     private function validateOptions(array $options): void
     {
-        $allowed = ['sink', 'timeout', 'verify_ssl', 'headers', 'curl', 'user_agent', 'basic_auth', 'query', 'progress', 'stream'];
+        $allowed = ['sink', 'timeout', 'verify_ssl', 'headers', 'curl', 'user_agent', 'basic_auth', 'query', 'progress', 'stream', 'max_response_size'];
 
         foreach ($options as $key => $value) {
             if (!in_array($key, $allowed, true)) {
@@ -438,12 +453,19 @@ final class Client implements ClientInterface
             throw new \InvalidArgumentException('verify_ssl must be a boolean');
         }
 
-        if (array_key_exists('headers', $options) && !is_array($options['headers'])) {
-            throw new \InvalidArgumentException('headers must be an array');
+        if (array_key_exists('headers', $options)) {
+            if (!is_array($options['headers'])) {
+                throw new \InvalidArgumentException('headers must be an array');
+            }
+            $this->assertSafeHeaders($options['headers']);
         }
 
         if (array_key_exists('curl', $options) && !is_array($options['curl'])) {
             throw new \InvalidArgumentException('curl must be an array');
+        }
+
+        if (array_key_exists('max_response_size', $options) && (!is_int($options['max_response_size']) || $options['max_response_size'] <= 0)) {
+            throw new \InvalidArgumentException('max_response_size must be a positive integer');
         }
 
         if (array_key_exists('basic_auth', $options) && $options['basic_auth'] !== null) {
@@ -453,6 +475,29 @@ final class Client implements ClientInterface
                 || !is_string($basicAuth[0] ?? null)
                 || !is_string($basicAuth[1] ?? null)) {
                 throw new \InvalidArgumentException('basic_auth must be an array of [username, password] strings');
+            }
+        }
+    }
+
+    /**
+     * Reject header names/values containing CR/LF, which would otherwise be
+     * concatenated verbatim into header lines and enable header injection.
+     *
+     * The PSR-7 request-header path is already sanitized by AbstractMessage;
+     * this closes the same hole for the `headers` config/option array, which
+     * bypasses that path.
+     *
+     * @param array<string, mixed> $headers
+     * @throws \InvalidArgumentException
+     */
+    private function assertSafeHeaders(array $headers): void
+    {
+        foreach ($headers as $name => $value) {
+            if (is_string($name) && preg_match('/[\r\n]/', $name)) {
+                throw new \InvalidArgumentException('Header name must not contain CR/LF');
+            }
+            if (is_string($value) && preg_match('/[\r\n]/', $value)) {
+                throw new \InvalidArgumentException("Header '{$name}' value must not contain CR/LF");
             }
         }
     }

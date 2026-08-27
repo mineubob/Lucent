@@ -107,6 +107,7 @@ class DatabaseConnectionTest extends TestCase
         self::setupDatabase($driver, $config, []);
 
         $this->expectException(Exception::class);
+        $this->expectExceptionMessage('[Database] Unknown database driver');
 
         Database::addConnection('bad', ['driver' => 'nonexistent_driver']);
     }
@@ -168,6 +169,7 @@ class DatabaseConnectionTest extends TestCase
         self::setupDatabase($driver, $config, []);
 
         $this->expectException(Exception::class);
+        $this->expectExceptionMessage('No connection registered with name');
 
         Database::switchTo('not_registered');
     }
@@ -246,6 +248,7 @@ class DatabaseConnectionTest extends TestCase
         self::setupDatabase($driver, $config, []);
 
         $this->expectException(Exception::class);
+        $this->expectExceptionMessage('No connection registered with name');
 
         Database::connection('not_registered');
     }
@@ -343,6 +346,7 @@ class DatabaseConnectionTest extends TestCase
         self::setupDatabase($driver, $config, []);
 
         $this->expectException(Exception::class);
+        $this->expectExceptionMessage('No connection registered with name');
 
         Database::usingConnection('not_registered', fn() => true);
     }

@@ -7,6 +7,7 @@ use Lucent\Application;
 use Lucent\Facades\App;
 use Lucent\Http\HttpStatus;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
@@ -15,6 +16,7 @@ use Tests\Support\TestCase;
 
 class RouteGroupTest extends TestCase
 {
+    use CopiesFixtures;
     use DatabaseTesting;
     use MakeRequest;
     use RefreshApplication;
@@ -22,16 +24,18 @@ class RouteGroupTest extends TestCase
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
-        // Register routes
-        self::refreshApplication();
 
-        FixtureLoader::copyController('RouteGroupTestingController.php');
-        FixtureLoader::copyController('SecondRestController.php');
-        FixtureLoader::copyController('UserController.php');
-        FixtureLoader::copyMiddleware('AuthMiddleware.php');
+        self::copyFixtures([
+            'Controller' => [
+                'RouteGroupTestingController.php',
+                'SecondRestController.php',
+                'UserController.php',
+            ],
+            'Middleware' => 'AuthMiddleware.php',
+            'Route'      => 'web.php',
+        ]);
 
-        FixtureLoader::copyRoutes('web.php');
-        Application::getInstance()->boot();
+        self::refreshAndBootApplication();
     }
 
     public function test_404(): void
@@ -148,7 +152,7 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_model_id_raw($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $response = $this->get('/user/99');
@@ -163,8 +167,12 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        // These tests exercise implicit binding, which is opt-in since the
+        // default flipped to explicit (MODEL_BINDING defaults to explicit).
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -181,8 +189,10 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_by_id_not_found($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
 
         $response = $this->get('/user/object/100');
 
@@ -195,8 +205,10 @@ class RouteGroupTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_route_get_user_model_with_middleware($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
 
@@ -208,6 +220,28 @@ class RouteGroupTest extends TestCase
         $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_model_binding_explicit_mode_disables_auto_binding($driver, $config): void
+    {
+        // Regression test: explicit binding is the DEFAULT. A Model type-hint
+        // is NOT auto-resolved from the URL (no unscoped PK lookup), so the
+        // controller never receives an auto-bound row unless the app opts
+        // back into implicit mode.
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $this->assertTrue($user->create());
+
+        $response = $this->get('/user/object/1');
+        $body = (string) $response->getBody();
+
+        // The auto-bound user must NOT be present. The container cannot
+        // resolve TestUser from the route variable, so the response should
+        // not contain the user's name.
+        $this->assertStringNotContainsString('John Doe', $body);
     }
 
     public function test_invalid_route_file(): void

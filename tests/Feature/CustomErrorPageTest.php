@@ -4,13 +4,14 @@ namespace Tests\Feature;
 
 use Lucent\Facades\App;
 use PHPUnit\Framework\TestCase;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\MakeRequest;
 use Tests\Support\Concerns\RefreshApplication;
-use Tests\Support\FixtureLoader;
 
 
 class CustomErrorPageTest extends TestCase
 {
+    use CopiesFixtures;
     use MakeRequest;
     use RefreshApplication;
 
@@ -26,8 +27,10 @@ class CustomErrorPageTest extends TestCase
             mkdir(VIEWS, 0755, true);
         }
 
-        FixtureLoader::copyView('404.html');
-        FixtureLoader::copyRoutes('customErrorPageRoutes.php');
+        self::copyFixtures([
+            'View'  => '404.html',
+            'Route' => 'customErrorPageRoutes.php',
+        ]);
 
         App::registerRoutes("/routes/customErrorPageRoutes.php");
     }

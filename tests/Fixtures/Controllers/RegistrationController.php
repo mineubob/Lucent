@@ -4,14 +4,12 @@ namespace App\Controllers;
 use Lucent\Http\Attributes\ApiEndpoint;
 use Lucent\Http\Attributes\ApiResponse;
 use Lucent\Http\Message\ServerRequest;
-use App\Rules\SignupRule;
 
 class RegistrationController
 {
     #[ApiEndpoint(
         description: 'New account registration',
         path: '/auth/register',
-        rule: SignupRule::class,
         method: 'POST'
     )]
     #[ApiResponse(

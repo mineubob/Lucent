@@ -4,6 +4,9 @@ namespace Lucent\Http\Message;
 
 use Lucent\Http\Message\UploadedFile;
 use Lucent\Http\RouteInfo;
+use Lucent\Validation\Constraint;
+use Lucent\Validation\Result;
+use Lucent\Validation\Validator;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
@@ -41,8 +44,8 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     /** @var array Uploaded files ($_FILES) */
     private array $uploadedFiles = [];
 
-    /** @var array|null Parsed body ($_POST or parsed JSON) */
-    protected array|null $parsedBody = null;
+    /** @var array|object|null Parsed body ($_POST or parsed JSON) */
+    protected array|object|null $parsedBody = null;
 
     /** @var array Attributes (PSR-7 extension mechanism — stores routeInfo, urlVars, context) */
     private array $attributes = [];
@@ -412,7 +415,7 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
         return $new;
     }
 
-    // ─── Lucent-Specific Getters (convenience wrappers around attributes) ─
+    // ─── Lucent-Specific Getters (convenience wrappers) ───
 
     /**
      * Get the RouteInfo stored as a PSR-7 attribute.
@@ -439,9 +442,9 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
      *
      * @param string $name The variable name
      * @param mixed $default Default value if not found
-     * @return mixed
+     * @return string|null
      */
-    public function getUrlVar(string $name, mixed $default = null): mixed
+    public function getUrlVar(string $name, mixed $default = null): ?string
     {
         return $this->getUrlVars()[$name] ?? $default;
     }
@@ -478,6 +481,123 @@ class ServerRequest extends AbstractMessage implements ServerRequestInterface
     {
         RequestContext::fromRequest($this)?->set($key, $value);
         return $this;
+    }
+
+    /**
+     * Get a single query parameter by key.
+     *
+     * Convenience wrapper around {@see getQueryParams()} for the common case
+     * of reading one query value. Query values may be strings or arrays
+     * (e.g. `?tags[]=a&tags[]=b`), so the return type is mixed.
+     *
+     * @param string $key The query key to look up
+     * @param array<string, string|array>|string|null $default Default value if the key is missing
+     * @return array<string, string|array>|string|null The query value, or $default on a miss
+     */
+    public function getQueryParam(string $key, array|string|null $default = null): array|string|null
+    {
+        return array_key_exists($key, $this->queryParams) ? $this->queryParams[$key] : $default;
+    }
+
+    /**
+     * Get a single cookie by key.
+     *
+     * Convenience wrapper around {@see getCookieParams()} for the common case
+     * of reading one cookie value.
+     *
+     * @param string $key The cookie key to look up
+     * @param array<string, string|array>|string|null $default Default value if the key is missing
+     * @return array<string, string|array>|string|null The cookie value, or $default on a miss
+     */
+    public function getCookie(string $key, array|string|null $default = null): array|string|null
+    {
+        return array_key_exists($key, $this->cookieParams) ? $this->cookieParams[$key] : $default;
+    }
+
+    /**
+     * Get a single server parameter by key.
+     *
+     * Convenience wrapper around {@see getServerParams()} for the common case
+     * of reading one $_SERVER value (e.g. REQUEST_METHOD, REMOTE_ADDR).
+     *
+     * @param string $key The server key to look up
+     * @param mixed $default Default value if the key is missing
+     * @return mixed The server value, or $default on a miss
+     */
+    public function getServerParam(string $key, mixed $default = null): mixed
+    {
+        return array_key_exists($key, $this->serverParams) ? $this->serverParams[$key] : $default;
+    }
+
+    /**
+     * Get a single value from the parsed body by key.
+     *
+     * Convenience wrapper around {@see getParsedBody()} for the common case
+     * of reading one field (e.g. a form or JSON payload value) without
+     * null-checking the whole body first.
+     *
+     * @param string $key The body key to look up
+     * @param mixed $default Default value if the key is missing or the body is null
+     * @return mixed The body value, or $default on a miss
+     */
+    public function getParsedBodyValue(string $key, mixed $default = null): mixed
+    {
+        if ($this->parsedBody === null) {
+            return $default;
+        }
+
+        if (is_array($this->parsedBody)) {
+            return array_key_exists($key, $this->parsedBody) ? $this->parsedBody[$key] : $default;
+        }
+
+        return property_exists($this->parsedBody, $key) ? $this->parsedBody->{$key} : $default;
+    }
+
+    /**
+     * Get a single uploaded file by key.
+     *
+     * Convenience wrapper around {@see getUploadedFiles()} for the common
+     * case of reading one file field. Only returns a top-level file; for
+     * nested (array-of-inputs) uploads use {@see getUploadedFiles()}.
+     *
+     * @param string $key The file field key to look up
+     * @return UploadedFile|null The uploaded file, or null if the key is
+     *                           missing or no files were uploaded
+     */
+    public function getUploadedFile(string $key): ?UploadedFile
+    {
+        if ($this->uploadedFiles === null) {
+            return null;
+        }
+        return array_key_exists($key, $this->uploadedFiles) ? $this->uploadedFiles[$key] : null;
+    }
+
+    /**
+     * Validate this request's parsed body against a set of constraints.
+     *
+     * Convenience wrapper around {@see \Lucent\Validation\Validator} that
+     * passes the parsed body and uploaded files through unchanged, so object
+     * bodies (e.g. decoded JSON) and a null body are preserved. The request
+     * itself is seeded into the validation context under the `request` key,
+     * alongside any user-provided context values, so custom constraints can
+     * read them via
+     * {@see \Lucent\Validation\FieldContext::context('request', ServerRequestInterface::class)}.
+     *
+     * @param \Lucent\Validation\Constraint|array<string, \Lucent\Validation\Constraint> $constraints
+     *        A single top-level constraint, or a map of constraints keyed by field name.
+     * @param array<string, mixed> $context Optional per-validation values (e.g.
+     *        the authenticated user) exposed to constraints via
+     *        {@see \Lucent\Validation\FieldContext::get()}. The request is always
+     *        seeded under the `request` key; user values take precedence on a clash.
+     * @return Result The validation result containing errors and validated values.
+     */
+    public function validate(Constraint|array $constraints, array $context = []): Result
+    {
+        return (new Validator($constraints))->validate(
+            $this->parsedBody,
+            $this->uploadedFiles,
+            ['request' => $this, ...$context],
+        );
     }
 
     // ─── Internal Helpers ───────────────────────────────────────────────

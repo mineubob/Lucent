@@ -7,20 +7,25 @@ use Lucent\Facades\CommandLine;
 use Lucent\Facades\Faker;
 use Lucent\Model\Collection;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CapturesCommandOutput;
+use Tests\Support\Concerns\CopiesFixtures;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\FixtureLoader;
 use Tests\Support\TestCase;
 
 class ModelTest extends TestCase
 {
+    use CapturesCommandOutput;
+    use CopiesFixtures;
     use DatabaseTesting;
 
     public static function setUpBeforeClass(): void
     {
         parent::setUpBeforeClass();
 
-        FixtureLoader::copyModel('Admin.php');
-        FixtureLoader::copyModel('TestUser.php');
+        self::copyFixtures([
+            'Model' => ['Admin.php', 'TestUser.php'],
+        ]);
     }
 
     protected function setUp(): void
@@ -29,7 +34,7 @@ class ModelTest extends TestCase
         // CommandLine::execute() only returns the command output when capture
         // mode is on. This is a static flag that other tests may toggle, so
         // set it explicitly here to make these tests order-independent.
-        CommandLine::captureOutput();
+        $this->captureCommandOutput();
     }
 
     #[DataProvider('databaseDriverProvider')]
@@ -240,7 +245,7 @@ class ModelTest extends TestCase
     {
         self::setupDatabase($driver, $config, []);
 
-        $this->assertTrue(FixtureLoader::copyModel('LongTextModel.php')->exists());
+        FixtureLoader::copyModel('LongTextModel.php');
 
         $output = CommandLine::execute("migration make App/Models/LongTextModel");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -251,8 +256,8 @@ class ModelTest extends TestCase
     {
         self::setupDatabase($driver, $config, []);
 
-        $this->assertTrue(FixtureLoader::copyModel('SoftDelete.php')->exists());
-        $this->assertTrue(FixtureLoader::copyModel('TestUserTwo.php')->exists());
+        FixtureLoader::copyModel('SoftDelete.php');
+        FixtureLoader::copyModel('TestUserTwo.php');
 
         $output = CommandLine::execute("migration make App/Models/TestUserTwo");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -261,8 +266,8 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_trait_use($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('SoftDelete.php')->exists());
-        $this->assertTrue(FixtureLoader::copyModel('TestUserTwo.php')->exists());
+        FixtureLoader::copyModel('SoftDelete.php');
+        FixtureLoader::copyModel('TestUserTwo.php');
 
         self::setupDatabase($driver, $config, [\App\Models\TestUserTwo::class]);
 
@@ -279,8 +284,8 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_trait_model_collection_hook($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('SoftDelete.php')->exists());
-        $this->assertTrue(FixtureLoader::copyModel('TestUserTwo.php')->exists());
+        FixtureLoader::copyModel('SoftDelete.php');
+        FixtureLoader::copyModel('TestUserTwo.php');
 
         self::setupDatabase($driver, $config, [\App\Models\TestUserTwo::class]);
 
@@ -310,7 +315,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_sum_of_column($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $transaction = new \App\Models\TransactionModel(25.5, 0);
@@ -338,7 +343,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_get_sum_of_column_with_subtraction($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $transaction = new \App\Models\TransactionModel(25.5, 0);
@@ -366,7 +371,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_sorting_asc($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
@@ -389,7 +394,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_sorting_dsc($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
@@ -412,7 +417,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_in($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
@@ -441,7 +446,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_in_with_where($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
@@ -470,7 +475,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_model_collection_where_greater_then($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TransactionModel.php')->exists());
+        FixtureLoader::copyModel('TransactionModel.php');
         self::setupDatabase($driver, $config, [\App\Models\TransactionModel::class]);
 
         $i = 0;
@@ -488,9 +493,34 @@ class ModelTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
+    public function test_unknown_column_throws($driver, $config): void
+    {
+        // Regression test: column names are interpolated into SQL verbatim,
+        // so unknown columns must be rejected rather than concatenated
+        // (SQL injection via the column-name position).
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
+        \App\Models\TestUser::where("id = 1 OR 1=1", "x")->get();
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unknown_order_by_column_throws($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
+        \App\Models\TestUser::orderBy("id; DROP TABLE users; --")->get();
+    }
+
+    #[DataProvider('databaseDriverProvider')]
     public function test_numeric_string_bug($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestCustomer.php')->exists());
+        FixtureLoader::copyModel('TestCustomer.php');
         self::setupDatabase($driver, $config, [\App\Models\TestCustomer::class]);
 
         $mobile = "0423235427";
@@ -506,7 +536,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_all_column_types_migration($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('AllTypes.php')->exists());
+        FixtureLoader::copyModel('AllTypes.php');
         self::setupDatabase($driver, $config, []);
 
         \App\Models\AllTypes::missingTypeCheck();
@@ -518,7 +548,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_all_column_types_create($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('AllTypes.php')->exists());
+        FixtureLoader::copyModel('AllTypes.php');
         self::setupDatabase($driver, $config, [\App\Models\AllTypes::class]);
 
         \App\Models\AllTypes::missingTypeCheck();
@@ -536,7 +566,7 @@ class ModelTest extends TestCase
     public function test_pk_creation_bug($driver, $config): void
     {
         self::setupDatabase($driver, $config, []);
-        $this->assertTrue(FixtureLoader::copyModel('TestUserPkBug.php')->exists());
+        FixtureLoader::copyModel('TestUserPkBug.php');
 
         $output = CommandLine::execute("migration make App/Models/TestUserPkBug");
         $this->assertEquals("Successfully performed database migration", $output);
@@ -556,6 +586,77 @@ class ModelTest extends TestCase
         $new_id = $test_user->id;
 
         $this->assertEquals($id,$new_id);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_passes_for_unused_value($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("unique@test.com", "password", "Unique Test");
+        $this->assertTrue($user->create());
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email');
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'fresh@test.com']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_fails_for_duplicate_value($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("dup@test.com", "password", "Dup Test");
+        $this->assertTrue($user->create());
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email');
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'dup@test.com']);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertSame(
+            ['The email has already been taken.'],
+            $result->errors()['email'],
+        );
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_ignores_current_row_on_update($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $user = new \App\Models\TestUser("keep@test.com", "password", "Keep Test");
+        $this->assertTrue($user->create());
+
+        // Updating the same row: its own email must not count as a duplicate.
+        $constraint = \App\Models\TestUser::uniqueConstraint('email', $user->id);
+
+        $result = (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'keep@test.com']);
+
+        $this->assertFalse($result->hasErrors());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_unique_constraint_unknown_column_throws($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+
+        $constraint = \App\Models\TestUser::uniqueConstraint('email; DROP TABLE users; --');
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('does not exist on model');
+
+        (new \Lucent\Validation\Validator(['email' => $constraint]))
+            ->validate(['email' => 'x@test.com']);
     }
 
     /**
@@ -668,7 +769,7 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_query_cache_disabled_by_default($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
@@ -685,24 +786,26 @@ class ModelTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_query_cache_hit_returns_cached_rows($driver, $config): void
+    public function test_query_cache_disabled_pending_orm_rebuild($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
-        // Enable query caching via the env flag; Application auto-injects its
-        // dedicated query cache store into Database.
+        // Query caching is disabled pending the ORM rebuild (see
+        // docs/restructure-plan.md). Even with QUERY_CACHE=true, no store is
+        // injected, so queries always hit the database.
         $app = Application::getInstance();
         $app->setEnv(['QUERY_CACHE' => 'true']);
 
         $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
         $this->assertTrue($user->create());
 
-        // First call populates the query cache.
+        $this->assertNull(\Lucent\Database::queryCache());
+
         $first = \App\Models\TestUser::where("email", "john@doe.com")->get();
         $this->assertCount(1, $first);
 
-        // Second call should hit the query cache and return the same rows.
+        // Second call still returns the row (from the DB, not a cache).
         $second = \App\Models\TestUser::where("email", "john@doe.com")->get();
         $this->assertCount(1, $second);
         $this->assertEquals($first[0]->getFullName(), $second[0]->getFullName());
@@ -711,11 +814,12 @@ class ModelTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_query_cache_uses_dedicated_store($driver, $config): void
     {
-        $this->assertTrue(FixtureLoader::copyModel('TestUser.php')->exists());
+        FixtureLoader::copyModel('TestUser.php');
         self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
 
         $app = Application::getInstance();
-        // Main cache uses file, query cache uses array.
+        // Main cache uses file; query cache is disabled pending the ORM
+        // rebuild, so no dedicated store is injected regardless of env.
         $app->setEnv([
             'CACHE_DRIVER' => 'file',
             'QUERY_CACHE' => 'true',
@@ -727,15 +831,11 @@ class ModelTest extends TestCase
 
         \App\Models\TestUser::where("email", "john@doe.com")->get();
 
-        // The query cache is a dedicated store, separate from the main cache.
+        // The main cache is a file driver; the query cache is not injected.
         $this->assertInstanceOf(
             \Lucent\Cache\Drivers\FileDriver::class,
             $app->cache()
         );
-        $this->assertInstanceOf(
-            \Lucent\Cache\Drivers\ArrayDriver::class,
-            $app->queryCache()
-        );
-        $this->assertSame($app->queryCache(), \Lucent\Database::queryCache());
+        $this->assertNull(\Lucent\Database::queryCache());
     }
 }

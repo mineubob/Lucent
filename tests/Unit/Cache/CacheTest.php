@@ -153,6 +153,7 @@ class CacheTest extends TestCase
         $container = Application::getInstance()->container();
 
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('requires the "apcu" extension');
         CacheFactory::create('apcu', $container);
     }
 
@@ -170,6 +171,7 @@ class CacheTest extends TestCase
         $container = Application::getInstance()->container();
 
         $this->expectException(CacheDriverException::class);
+        $this->expectExceptionMessage('Unable to resolve cache driver');
         CacheFactory::create('unknown-driver', $container);
     }
 
@@ -179,6 +181,7 @@ class CacheTest extends TestCase
         $container->instance('not-a-driver', new \stdClass());
 
         $this->expectException(CacheDriverException::class);
+        $this->expectExceptionMessage('Unable to resolve cache driver');
         CacheFactory::create('not-a-driver', $container);
     }
 }

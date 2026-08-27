@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use Lucent\Facades\Faker;
+use Lucent\Facades\FileSystem;
 use Lucent\Filesystem\File;
 use Lucent\Filesystem\FileSystemCollection;
 use Lucent\Filesystem\Folder;
@@ -10,6 +11,87 @@ use PHPUnit\Framework\TestCase;
 
 class FileSystemTest extends TestCase
 {
+
+    public function test_normalize_path_removes_dot_segments(): void
+    {
+        $this->assertEquals(
+            '/storage/file_test/test.txt',
+            FileSystem::normalizePath('/storage/file_test/./test.txt')
+        );
+    }
+
+    public function test_normalize_path_resolves_parent_segments(): void
+    {
+        $this->assertEquals(
+            '/storage/test.txt',
+            FileSystem::normalizePath('/storage/file_test/../test.txt')
+        );
+    }
+
+    public function test_normalize_path_resolves_multiple_parent_segments(): void
+    {
+        $this->assertEquals(
+            '/test.txt',
+            FileSystem::normalizePath('/storage/file_test/../../test.txt')
+        );
+    }
+
+    public function test_normalize_path_does_not_escape_absolute_root(): void
+    {
+        // Leading ".." on an absolute path cannot go above the filesystem root.
+        $this->assertEquals(
+            '/test.txt',
+            FileSystem::normalizePath('/../../test.txt')
+        );
+    }
+
+    public function test_normalize_path_preserves_leading_parents_for_relative(): void
+    {
+        $this->assertEquals(
+            '../test.txt',
+            FileSystem::normalizePath('../test.txt')
+        );
+    }
+
+    public function test_normalize_path_preserves_windows_drive_prefix(): void
+    {
+        $this->assertEquals(
+            'C:/storage/test.txt',
+            FileSystem::normalizePath('C:/storage/file_test/../test.txt')
+        );
+    }
+
+    public function test_normalize_path_handles_empty_and_dot_only(): void
+    {
+        $this->assertEquals('', FileSystem::normalizePath(''));
+        $this->assertEquals('', FileSystem::normalizePath('.'));
+        $this->assertEquals('', FileSystem::normalizePath('./'));
+    }
+
+    public function test_normalize_path_handles_trailing_separator(): void
+    {
+        $this->assertEquals(
+            '/storage/file_test',
+            FileSystem::normalizePath('/storage/file_test/')
+        );
+    }
+
+    public function test_normalize_path_handles_mixed_separators(): void
+    {
+        $this->assertEquals(
+            '/storage/file_test/test.txt',
+            FileSystem::normalizePath('/storage\\file_test/test.txt')
+        );
+    }
+
+    public function test_normalize_path_handles_non_existent_paths(): void
+    {
+        // Lexical normalization works even when the path does not exist yet.
+        $this->assertEquals(
+            '/storage/does/not/exist/test.txt',
+            FileSystem::normalizePath('/storage/does/not/exist/../exist/test.txt')
+        );
+    }
 
     public function test_folder_get_files() :void
     {
