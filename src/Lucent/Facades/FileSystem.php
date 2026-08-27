@@ -71,6 +71,43 @@ class FileSystem
     }
 
     /**
+     * Resolve a path against the configured root.
+     *
+     * The path is always treated as relative to the root: a leading
+     * separator is stripped and the root path is prepended. This matches
+     * the convention used by {@see File} and {@see Folder}, where a leading
+     * `/` means "relative to root" rather than an absolute filesystem path.
+     * The result is normalized but not checked against the containment
+     * guard — callers that construct {@see File} or {@see Folder} objects
+     * get that check from the constructor.
+     *
+     * @param string $path The path to resolve (relative to root)
+     * @return string The resolved absolute path
+     */
+    public static function resolvePath(string $path): string
+    {
+        return self::rootPath() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * Resolve a path to an absolute filesystem path.
+     *
+     * Absolute paths are returned unchanged; relative paths are resolved
+     * against the root via {@see resolvePath()}. Unlike {@see resolvePath()},
+     * a leading separator is treated as a filesystem-absolute path rather
+     * than root-relative.
+     *
+     * @param string $path The path to resolve (relative or absolute)
+     * @return string The resolved absolute path
+     */
+    public static function absolutePath(string $path): string
+    {
+        return self::isAbsolute($path)
+            ? $path
+            : self::resolvePath($path);
+    }
+
+    /**
      * Normalize a path lexically, resolving `.` and `..` segments.
      *
      * This is a pure string operation — it does not touch the filesystem, so

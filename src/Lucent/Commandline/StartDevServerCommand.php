@@ -35,7 +35,7 @@ class StartDevServerCommand
         echo ConsoleColors::FG_BLUE . str_repeat("─", 50) . ConsoleColors::RESET . "\n";
 
         // Resolve docroot and router against the project root.
-        $docRootPath = $this->resolvePath($docRoot);
+        $docRootPath = FileSystem::absolutePath($docRoot);
 
         // Router precedence:
         //   1. A project-root server.php, if present (user override).
@@ -45,7 +45,7 @@ class StartDevServerCommand
         if (is_file($projectServer)) {
             $routerPath = $projectServer;
         } elseif ($router !== null) {
-            $routerPath = $this->resolvePath($router);
+            $routerPath = FileSystem::absolutePath($router);
         } else {
             $routerPath = __DIR__ . DIRECTORY_SEPARATOR . 'resources' . DIRECTORY_SEPARATOR . 'server.php';
         }
@@ -159,16 +159,5 @@ class StartDevServerCommand
 
         echo "\n" . ConsoleColors::FG_YELLOW . "Server stopped" . ConsoleColors::RESET . "\n";
         return "";
-    }
-
-    /**
-     * Resolve a path against the project root unless it is already absolute.
-     */
-    private function resolvePath(string $path): string
-    {
-        if (FileSystem::isAbsolute($path)) {
-            return $path;
-        }
-        return FileSystem::rootPath() . DIRECTORY_SEPARATOR . ltrim($path, DIRECTORY_SEPARATOR);
     }
 }
