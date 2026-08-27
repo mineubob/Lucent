@@ -52,13 +52,15 @@ final class One extends Constraint
     /**
      * Validate that exactly one wrapped constraint passes.
      *
-     * Each alternative is validated in isolation. If exactly one passes, the
-     * field passes and no errors are recorded. If more than one passes, the
-     * generic "must match exactly one" message is recorded first, followed by
-     * each matched constraint's message, so the user sees which rules the
-     * value matched (and therefore must not both match). If none pass, every
-     * failed alternative's message is recorded so the caller sees all
-     * acceptable options.
+     * Each alternative is validated in isolation against a snapshot of the
+     * error state, so a failed branch's errors are rolled back before the
+     * next alternative runs. If exactly one passes, the field passes and no
+     * errors are recorded. If more than one passes, the generic "must match
+     * exactly one" message is recorded first, followed by each matched
+     * constraint's message, so the user sees which rules the value matched
+     * (and therefore must not both match). If none pass, a single generic
+     * message is recorded so the caller sees one clear error rather than a
+     * pile-up of every failed alternative's errors.
      *
      * @param FieldContext $ctx The context of the field being validated.
      * @return bool True if exactly one constraint passes, false otherwise.
@@ -67,14 +69,17 @@ final class One extends Constraint
     public function validate(FieldContext $ctx): bool
     {
         $matched = [];
-        $failed = [];
+        $snapshot = $ctx->result->snapshotErrors();
 
         foreach ($this->constraints as $constraint) {
             if ($constraint->validate($ctx)) {
                 $matched[] = $constraint;
-            } else {
-                $failed[] = $constraint;
             }
+
+            // Roll back this branch's errors so a failed alternative never
+            // leaks its errors into the result. The next alternative starts
+            // from a clean slate.
+            $ctx->result->restoreErrors($snapshot);
         }
 
         if (count($matched) === 1) {
@@ -96,14 +101,10 @@ final class One extends Constraint
             return false;
         }
 
-        // No alternative matched — record every failed alternative's message
-        // so the caller sees all acceptable options.
-        foreach ($failed as $constraint) {
-            $message = $constraint->message($ctx);
-            if ($message !== null) {
-                $ctx->result->addError($ctx->field, $message);
-            }
-        }
+        // No alternative matched — record a single generic message so the
+        // caller sees one clear error instead of every failed alternative's
+        // errors piling up on the result.
+        $ctx->result->addError($ctx->field, "The {$ctx->field} must match exactly one of the given rules.");
         return false;
     }
 }

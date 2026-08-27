@@ -510,11 +510,14 @@ None::of(Matches::alpha(), Matches::mobile());
 ### One
 
 Passes only when exactly one of the wrapped constraints passes — the
-exclusive-or of `Any` and `None`. If none match, the field fails and every
-failed alternative's message is recorded so the caller sees all acceptable
-options. If more than one matches, the field also fails, and a generic "must
-match exactly one" message is reported instead. Useful for mutually exclusive
-alternatives, e.g. "either a phone number or an email, but not both".
+exclusive-or of `Any` and `None`. Each alternative is validated in isolation,
+so a failed branch's errors are rolled back and never leak onto the result.
+If none match, the field fails with a single generic "must match exactly one"
+message. If more than one matches, the field also fails, and the generic
+message is reported first, followed by each matched constraint's message so
+the user sees which rules the value matched (and therefore must not both
+match). Useful for mutually exclusive alternatives, e.g. "either a phone
+number or an email, but not both".
 
 ```php
 use Lucent\Validation\Combinators\One;

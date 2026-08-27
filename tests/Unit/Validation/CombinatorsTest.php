@@ -1034,17 +1034,44 @@ class CombinatorsTest extends TestCase
         );
     }
 
-    public function test_one_records_all_failed_alternative_messages_when_none_match(): void
+    public function test_one_records_single_generic_message_when_none_match(): void
     {
-        // When no alternative matches, every failed alternative's message is
-        // left on the result so the caller sees all acceptable options.
+        // When no alternative matches, a single generic message is recorded
+        // so the caller sees one clear error rather than a pile-up of every
+        // failed alternative's messages.
         $validator = new Validator([
             'value' => One::of(new Length(min: 5), new Length(min: 10)),
         ]);
 
         $result = $validator->validate(['value' => 'ab']);
 
-        $this->assertCount(2, $result->errors()['value']);
+        $this->assertSame(
+            ['The value must match exactly one of the given rules.'],
+            $result->errors()['value'],
+        );
+    }
+
+    public function test_one_rolls_back_failed_alternative_errors_when_none_match(): void
+    {
+        // When no alternative matches, each failed branch's errors are rolled
+        // back so they never leak onto the result. Only the generic message
+        // remains.
+        $validator = new Validator([
+            'value' => One::of(
+                Shape::object(['role' => new Required()]),
+                Shape::object(['remove_member' => new Required()]),
+            ),
+        ]);
+
+        $result = $validator->validate(['value' => ['foo' => 'bar']]);
+
+        $this->assertTrue($result->hasErrors());
+        $this->assertArrayNotHasKey('value.role', $result->errors());
+        $this->assertArrayNotHasKey('value.remove_member', $result->errors());
+        $this->assertSame(
+            ['The value must match exactly one of the given rules.'],
+            $result->errors()['value'],
+        );
     }
 
     public function test_one_rolls_back_failed_alternative_errors_on_success(): void
