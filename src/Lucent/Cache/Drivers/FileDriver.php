@@ -11,12 +11,13 @@ use Lucent\Filesystem\File;
  * File-based cache driver.
  *
  * Persists each value as its own file under the configured cache directory
- * (default `storage/cache`). Keys are used directly as filenames — they are
- * already restricted to the filesystem-safe characters `[A-Za-z0-9_.]` — so
- * there is no hashing and no collision risk. Each file stores the absolute
- * expiry timestamp followed by the serialized value.
+ * (default `storage/cache`). Keys are hashed with SHA-256 for the filename
+ * so the supported key length is not bounded by the filesystem's 255-byte
+ * filename component limit. The hash is deterministic and collision-free in
+ * practice; the original key is not stored on disk.
  *
- * Values must be serializable via PHP's native `serialize()`.
+ * Each file stores the absolute expiry timestamp followed by the serialized
+ * value. Values must be serializable via PHP's native `serialize()`.
  */
 class FileDriver extends Cache
 {
@@ -40,12 +41,16 @@ class FileDriver extends Cache
     /**
      * Resolve the absolute path for a cache key.
      *
+     * The key is hashed with SHA-256 so the filename is a fixed 64 hex
+     * characters regardless of key length, keeping it well under the
+     * filesystem's 255-byte filename component limit.
+     *
      * @param string $key The cache key
      * @return string Absolute file path
      */
     private function pathFor(string $key): string
     {
-        return $this->directory . DIRECTORY_SEPARATOR . $key . '.cache';
+        return $this->directory . DIRECTORY_SEPARATOR . hash('sha256', $key) . '.cache';
     }
 
     /**

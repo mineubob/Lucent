@@ -51,12 +51,12 @@ class FileDriverTest extends TestCase
         $this->assertDirectoryExists($this->cacheDir);
     }
 
-    public function test_uses_key_directly_as_filename(): void
+    public function test_hashes_key_for_filename(): void
     {
         $cache = new FileDriver();
         $cache->set('my.key', 'value');
 
-        $this->assertFileExists($this->cacheDir . DIRECTORY_SEPARATOR . 'my.key.cache');
+        $this->assertFileExists($this->cacheDir . DIRECTORY_SEPARATOR . hash('sha256', 'my.key') . '.cache');
     }
 
     public function test_accepts_absolute_cache_directory(): void
@@ -65,7 +65,7 @@ class FileDriverTest extends TestCase
         $cache = new FileDriver($absolute);
         $cache->set('key', 'value');
 
-        $this->assertFileExists($absolute . DIRECTORY_SEPARATOR . 'key.cache');
+        $this->assertFileExists($absolute . DIRECTORY_SEPARATOR . hash('sha256', 'key') . '.cache');
     }
 
     public function test_has_returns_true_for_stored_item(): void
@@ -231,7 +231,7 @@ class FileDriverTest extends TestCase
         $cache->set('key', 'value');
 
         // Overwrite the cache file with a serialized object payload.
-        $path = $this->cacheDir . DIRECTORY_SEPARATOR . 'key.cache';
+        $path = $this->cacheDir . DIRECTORY_SEPARATOR . hash('sha256', 'key') . '.cache';
         $payload = '0|' . serialize(new \stdClass());
         file_put_contents($path, $payload);
 
