@@ -31,20 +31,12 @@ use Override;
 final class Unique extends Constraint
 {
     /**
-     * @var Closure(mixed): bool Returns true when a conflicting row exists.
-     */
-    private readonly Closure $exists;
-
-    /**
      * Create a unique constraint backed by an existence check.
      *
      * @param Closure(mixed): bool $exists A callable that receives the field
      *        value and returns true when a conflicting row already exists.
      */
-    public function __construct(Closure $exists)
-    {
-        $this->exists = $exists;
-    }
+    public function __construct(private readonly Closure $exists) {}
 
     /**
      * @return string|Closure(FieldContext): string The default error message.
