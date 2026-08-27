@@ -7,7 +7,6 @@ namespace Lucent\Validation\Combinators;
 use Closure;
 use Lucent\Validation\Constraint;
 use Lucent\Validation\FieldContext;
-use Lucent\Validation\Result;
 use Override;
 
 /**
@@ -65,10 +64,9 @@ final class Any extends Constraint
         $failed = [];
 
         foreach ($this->constraints as $constraint) {
-            $branch = new Result();
-            $branchCtx = $ctx->withResult($branch);
+            [$passed, $branch] = $ctx->branch($constraint);
 
-            if ($constraint->validate($branchCtx)) {
+            if ($passed) {
                 // This alternative passed — commit its result so the winning
                 // branch's normalized values are preserved, and discard the
                 // failed branches' errors.

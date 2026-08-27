@@ -768,6 +768,24 @@ combinators whose child constraints already recorded their specific errors on
 the result. When a constraint returns `false` from `validate()` but `null`
 from `message()`, the parent skips adding a redundant generic error.
 
+### Validating alternatives in isolation
+
+When writing a combinator that tries multiple alternatives and keeps only the
+winner (like `Any` or `One`), validate each alternative against a throwaway
+result so a losing branch's errors *and* values never leak into the final
+result. `FieldContext::branch()` encapsulates this: it runs a constraint
+against a fresh `Result` and returns `[passed, branch]`. Commit the winning
+branch with `Result::merge()`.
+
+```php
+[$passed, $branch] = $ctx->branch($constraint);
+
+if ($passed) {
+    $ctx->result->merge($branch); // commit the winner's values
+    return true;
+}
+```
+
 ## Accessing Results
 
 The `Result` returned by `Validator::validate()` exposes:

@@ -73,10 +73,9 @@ final class One extends Constraint
         $branchResults = [];
 
         foreach ($this->constraints as $constraint) {
-            $branch = new Result();
-            $branchCtx = $ctx->withResult($branch);
+            [$passed, $branch] = $ctx->branch($constraint);
 
-            if ($constraint->validate($branchCtx)) {
+            if ($passed) {
                 $matched[] = $constraint;
                 $branchResults[] = $branch;
             }

@@ -147,6 +147,39 @@ final class FieldContext
     }
 
     /**
+     * Validate a constraint in isolation against a throwaway result.
+     *
+     * Runs the constraint against a fresh {@see Result}, so its errors and
+     * normalized values are captured in isolation and never touch the shared
+     * result. Used by combinators such as {@see \Lucent\Validation\Combinators\One}
+     * and {@see \Lucent\Validation\Combinators\Any} to try each alternative
+     * independently, then commit only the winning branch via
+     * {@see Result::merge()} — so a losing branch's errors *and* values never
+     * leak into the final result.
+     *
+     * The pass/fail is the constraint's {@see Constraint::validate()} return
+     * value, not whether it recorded an error: most constraints return false
+     * without recording an error themselves (that is done by the caller via
+     * {@see Constraint::message()}). The branch result therefore holds the
+     * constraint's normalized values and any errors it recorded directly
+     * (e.g. child errors from a {@see \Lucent\Validation\Combinators\Shape}).
+     *
+     * @param Constraint $constraint The constraint to validate in isolation.
+     * @return array{0: bool, 1: Result} `[passed, branch]` where `passed` is
+     *         the constraint's validate() result and `branch` holds its
+     *         normalized values and recorded errors.
+     */
+    public function branch(Constraint $constraint): array
+    {
+        $branch = new Result();
+        $branchCtx = $this->withResult($branch);
+
+        $passed = $constraint->validate($branchCtx);
+
+        return [$passed, $branch];
+    }
+
+    /**
      * Derive a copy of this context that writes to a different result.
      *
      * Returns a context with the same field, value, presence, files, body,
