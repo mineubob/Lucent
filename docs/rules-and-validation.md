@@ -517,12 +517,14 @@ Passes only when exactly one of the wrapped constraints passes — the
 exclusive-or of `Any` and `None`. Each alternative is validated in isolation
 against a throwaway result, so a losing branch's errors *and* values never
 leak onto the final result; the winning branch's result is committed in full.
-If none match, the field fails with a single generic "must match exactly one"
-message. If more than one matches, the field also fails, and the generic
-message is reported first, followed by each matched constraint's message so
-the user sees which rules the value matched (and therefore must not both
-match). Useful for mutually exclusive alternatives, e.g. "either a phone
-number or an email, but not both".
+If none match, the field fails with a generic "must match exactly one"
+message first, followed by each failed alternative's message and any child
+errors, so the caller sees the specific rules that were expected. If more
+than one matches, the field also fails, and the generic message is reported
+first, followed by each matched constraint's message so the user sees which
+rules the value matched (and therefore must not both match). Useful for
+mutually exclusive alternatives, e.g. "either a phone number or an email, but
+not both".
 
 ```php
 use Lucent\Validation\Combinators\One;

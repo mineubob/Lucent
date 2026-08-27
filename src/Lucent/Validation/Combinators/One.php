@@ -71,6 +71,7 @@ final class One extends Constraint
     {
         $matched = [];
         $branchResults = [];
+        $failed = [];
 
         foreach ($this->constraints as $constraint) {
             [$passed, $branch] = $ctx->branch($constraint);
@@ -78,6 +79,8 @@ final class One extends Constraint
             if ($passed) {
                 $matched[] = $constraint;
                 $branchResults[] = $branch;
+            } else {
+                $failed[] = [$constraint, $branch];
             }
         }
 
@@ -103,10 +106,20 @@ final class One extends Constraint
             return false;
         }
 
-        // No alternative matched — record a single generic message so the
-        // caller sees one clear error instead of every failed alternative's
-        // errors piling up on the result.
+        // No alternative matched — record the generic framing message first,
+        // then surface each failed alternative's specific errors so the
+        // caller sees the rules that were expected. Simple constraints (e.g.
+        // Length) report their message at the field path; composite ones
+        // (e.g. Shape) record child errors at their dotted paths.
         $ctx->result->addError($ctx->field, "The {$ctx->field} must match exactly one of the given rules.");
+        foreach ($failed as [$constraint, $branch]) {
+            $ctx->result->merge($branch);
+
+            $message = $constraint->message($ctx);
+            if ($message !== null) {
+                $ctx->result->addError($ctx->field, $message);
+            }
+        }
         return false;
     }
 }

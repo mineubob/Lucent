@@ -1056,11 +1056,11 @@ class CombinatorsTest extends TestCase
         );
     }
 
-    public function test_one_records_single_generic_message_when_none_match(): void
+    public function test_one_records_generic_message_and_failed_alternative_errors_when_none_match(): void
     {
-        // When no alternative matches, a single generic message is recorded
-        // so the caller sees one clear error rather than a pile-up of every
-        // failed alternative's messages.
+        // When no alternative matches, the generic framing message is
+        // recorded first, followed by every failed alternative's message so
+        // the caller sees the specific rules that were expected.
         $validator = new Validator([
             'value' => One::of(new Length(min: 5), new Length(min: 10)),
         ]);
@@ -1068,16 +1068,20 @@ class CombinatorsTest extends TestCase
         $result = $validator->validate(['value' => 'ab']);
 
         $this->assertSame(
-            ['The value must match exactly one of the given rules.'],
+            [
+                'The value must match exactly one of the given rules.',
+                'The value field must be at least 5 characters long.',
+                'The value field must be at least 10 characters long.',
+            ],
             $result->errors()['value'],
         );
     }
 
-    public function test_one_rolls_back_failed_alternative_errors_when_none_match(): void
+    public function test_one_merges_failed_alternative_errors_when_none_match(): void
     {
-        // When no alternative matches, each failed branch's errors are rolled
-        // back so they never leak onto the result. Only the generic message
-        // remains.
+        // When no alternative matches, the generic framing message is
+        // recorded first, followed by each failed alternative's message and
+        // any child errors, so the caller sees the rules that were expected.
         $validator = new Validator([
             'value' => One::of(
                 Shape::object(['role' => new Required()]),
@@ -1088,11 +1092,21 @@ class CombinatorsTest extends TestCase
         $result = $validator->validate(['value' => ['foo' => 'bar']]);
 
         $this->assertTrue($result->hasErrors());
-        $this->assertArrayNotHasKey('value.role', $result->errors());
-        $this->assertArrayNotHasKey('value.remove_member', $result->errors());
         $this->assertSame(
-            ['The value must match exactly one of the given rules.'],
+            [
+                'The value must match exactly one of the given rules.',
+                'The value must be an object.',
+                'The value must be an object.',
+            ],
             $result->errors()['value'],
+        );
+        $this->assertSame(
+            ['The value.role is required.'],
+            $result->errors()['value.role'],
+        );
+        $this->assertSame(
+            ['The value.remove_member is required.'],
+            $result->errors()['value.remove_member'],
         );
     }
 
