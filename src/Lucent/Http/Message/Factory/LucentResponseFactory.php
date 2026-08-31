@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Lucent\Http\Message\Factory;
 
-use Generator;
 use Lucent\Http\Message\Response;
 use Psr\Http\Message\ResponseInterface;
 use Traversable;
@@ -67,10 +66,12 @@ final class LucentResponseFactory
     /**
      * Create an SSE (Server-Sent Events) response.
      *
-     * @param Generator $source A generator that yields SSE event payloads
+     * @param Traversable $source A lazy iterable (Generator, Iterator, or
+     *                            IteratorAggregate e.g. LazyCollection)that
+     *                            yields SSE event payloads
      * @return ResponseInterface
      */
-    public function createEventStreamResponse(Generator $source): ResponseInterface
+    public function createEventStreamResponse(Traversable $source): ResponseInterface
     {
         $response = new Response();
         return $response->withEventStream($source);

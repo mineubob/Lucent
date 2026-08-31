@@ -2,15 +2,15 @@
 
 namespace Tests\Unit\Message\Stream;
 
-use Lucent\Http\Message\Stream\CallbackStream;
+use Lucent\Http\Message\Stream\LazyStream;
 use PHPUnit\Framework\TestCase;
 
-class CallbackStreamTest extends TestCase
+class LazyStreamTest extends TestCase
 {
     public function test_callback_is_invoked_once_on_read(): void
     {
         $invocationCount = 0;
-        $stream = new CallbackStream(function () use (&$invocationCount) {
+        $stream = new LazyStream(function () use (&$invocationCount) {
             $invocationCount++;
             return 'Hello, Callback!';
         });
@@ -22,7 +22,7 @@ class CallbackStreamTest extends TestCase
     public function test_callback_is_invoked_once_on_get_contents(): void
     {
         $invocationCount = 0;
-        $stream = new CallbackStream(function () use (&$invocationCount) {
+        $stream = new LazyStream(function () use (&$invocationCount) {
             $invocationCount++;
             return 'Test';
         });
@@ -34,7 +34,7 @@ class CallbackStreamTest extends TestCase
     public function test_callback_is_invoked_once_on_to_string(): void
     {
         $invocationCount = 0;
-        $stream = new CallbackStream(function () use (&$invocationCount) {
+        $stream = new LazyStream(function () use (&$invocationCount) {
             $invocationCount++;
             return 'ToString';
         });
@@ -45,7 +45,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_eof_after_read(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -58,7 +58,7 @@ class CallbackStreamTest extends TestCase
     {
         // Per PSR-7, getSize() may return null when the size is unknown —
         // invoking the callback eagerly would defeat lazy streaming.
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -70,7 +70,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_is_seekable_returns_false(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -79,7 +79,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_is_writable_returns_false(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -88,7 +88,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_is_readable_returns_true(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -100,14 +100,14 @@ class CallbackStreamTest extends TestCase
         $cb = function () {
             return 'Data';
         };
-        $stream = new CallbackStream($cb);
+        $stream = new LazyStream($cb);
 
         $this->assertSame($cb, $stream->detach());
     }
 
     public function test_close_prevents_further_reads(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 
@@ -117,7 +117,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_callback_echo_is_captured(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             echo 'Echoed';
             return '';
         });
@@ -127,7 +127,7 @@ class CallbackStreamTest extends TestCase
 
     public function test_get_metadata_returns_empty_array(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             return 'Data';
         });
 

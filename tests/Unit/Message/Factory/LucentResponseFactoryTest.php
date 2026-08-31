@@ -3,8 +3,8 @@
 namespace Tests\Unit\Message\Factory;
 
 use Lucent\Http\Message\Factory\LucentResponseFactory;
-use Lucent\Http\Message\Stream\CallbackStream;
 use Lucent\Http\Message\Stream\IteratorStream;
+use Lucent\Http\Message\Stream\LazyStream;
 use PHPUnit\Framework\TestCase;
 
 class LucentResponseFactoryTest extends TestCase
@@ -74,6 +74,15 @@ class LucentResponseFactoryTest extends TestCase
         $this->assertSame('event data', (string) $response->getBody());
     }
 
+    public function test_create_event_stream_response_with_traversable(): void
+    {
+        $response = $this->factory->createEventStreamResponse(new \ArrayIterator(['event data']));
+
+        $this->assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
+        $this->assertInstanceOf(IteratorStream::class, $response->getBody());
+        $this->assertSame('event data', (string) $response->getBody());
+    }
+
     public function test_create_stream_response_with_callable(): void
     {
         $response = $this->factory->createStreamResponse(function () {
@@ -81,7 +90,7 @@ class LucentResponseFactoryTest extends TestCase
         });
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertInstanceOf(CallbackStream::class, $response->getBody());
+        $this->assertInstanceOf(LazyStream::class,$response->getBody());
         $this->assertSame('streamed content', (string) $response->getBody());
     }
 

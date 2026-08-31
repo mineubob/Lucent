@@ -8,15 +8,19 @@ use Psr\Http\Message\StreamInterface;
 use RuntimeException;
 
 /**
- * PSR-7 stream implementation backed by a callable.
+ * PSR-7 stream implementation backed by a callable, providing a lazy
+ * one-shot body.
  *
  * The callback is invoked once on the first read/getContents/__toString call.
  * Subsequent calls return an empty string. The callback can use echo/printf
  * (captured via output buffering) or return a string.
  *
- * Replaces the old EventStreamResponse's callback mechanism with a PSR-7-compliant stream.
+ * This is NOT incremental streaming — the entire output is buffered in memory
+ * on first read. Its value is deferred execution: expensive computation or
+ * external calls only run if the body is actually consumed. For true
+ * incremental streaming, use {@see IteratorStream} instead.
  */
-final class CallbackStream implements StreamInterface
+final class LazyStream implements StreamInterface
 {
     /** @var callable|null */
     private $callback;
@@ -89,12 +93,12 @@ final class CallbackStream implements StreamInterface
 
     public function seek(int $offset, int $whence = SEEK_SET): void
     {
-        throw new RuntimeException('CallbackStream is not seekable');
+        throw new RuntimeException('LazyStream is not seekable');
     }
 
     public function rewind(): void
     {
-        throw new RuntimeException('CallbackStream is not seekable');
+        throw new RuntimeException('LazyStream is not seekable');
     }
 
     public function isWritable(): bool
@@ -104,7 +108,7 @@ final class CallbackStream implements StreamInterface
 
     public function write(string $string): int
     {
-        throw new RuntimeException('CallbackStream is not writable');
+        throw new RuntimeException('LazyStream is not writable');
     }
 
     public function isReadable(): bool

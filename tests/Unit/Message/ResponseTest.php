@@ -157,6 +157,14 @@ class ResponseTest extends TestCase
         $this->assertSame('keep-alive', $response->getHeaderLine('Connection'));
     }
 
+    public function test_with_event_stream_accepts_traversable(): void
+    {
+        $response = (new Response())->withEventStream(new \ArrayIterator(['event data']));
+
+        $this->assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
+        $this->assertSame('event data', (string) $response->getBody());
+    }
+
     public function test_immutability(): void
     {
         $response = new Response();

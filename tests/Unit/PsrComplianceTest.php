@@ -7,7 +7,8 @@ use Lucent\Http\Message\Request;
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\ServerRequest;
 use Lucent\Http\Message\Stream;
-use Lucent\Http\Message\Stream\CallbackStream;
+use Lucent\Http\Message\Stream\IteratorStream;
+use Lucent\Http\Message\Stream\LazyStream;
 use Lucent\Http\Message\UploadedFile;
 use Lucent\Http\Message\Uri;
 use Lucent\Http\Middleware\MiddlewarePipeline;
@@ -336,11 +337,11 @@ class PsrComplianceTest extends TestCase
         Response::json(['a' => 1], 99);
     }
 
-    // ─── CallbackStream ─────────────────────────────────────────────────
+    // ─── LazyStream ─────────────────────────────────────────────────────
 
-    public function test_callback_stream_to_string_never_throws(): void
+    public function test_lazy_stream_to_string_never_throws(): void
     {
-        $stream = new CallbackStream(function () {
+        $stream = new LazyStream(function () {
             throw new \RuntimeException('boom');
         });
 

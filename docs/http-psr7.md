@@ -66,7 +66,7 @@ class AuthMiddleware implements MiddlewareInterface
 | PSR-7 Message | `Lucent\Http\Message\Stream` | — |
 | PSR-7 Message | `Lucent\Http\Message\Uri` | — |
 | PSR-7 Message | `Lucent\Http\Message\UploadedFile` | — |
-| PSR-7 Stream | `Lucent\Http\Message\Stream\CallbackStream` | `EventStreamResponse` callback mechanism |
+| PSR-7 Stream | `Lucent\Http\Message\Stream\LazyStream` | lazy one-shot bodies (deferred execution) |
 | PSR-7 Stream | `Lucent\Http\Message\Stream\IteratorStream` | `StreamController::stream()` generator |
 | PSR-15 Middleware | `Lucent\Http\Middleware\MiddlewarePipeline` | — |
 | PSR-17 Factory | `Lucent\Http\Message\Factory\HttpFactory` | — |
@@ -163,11 +163,12 @@ public function stream(): Response
 }
 ```
 
-`withEventStream()` accepts a **generator only** — each `yield` becomes one
-SSE event, flushed to the client as soon as it is produced. (The old
-callback form was removed: a callable cannot be partially invoked, so it
-could only "stream" by self-flushing around the stream. For one-shot lazy
-bodies, use `withStream()` instead.)
+`withEventStream()` accepts any **`Traversable`** — a `Generator`, `Iterator`,
+or `IteratorAggregate`. Each iteration becomes one SSE event, flushed to the
+client as soon as it is produced. (The old callback form was removed: a
+callable cannot be partially invoked, so it could only "stream" by
+self-flushing around the stream. For one-shot lazy bodies, use `withStream()`
+instead.)
 
 For **push-style sources** (event emitters, websockets, workers), use the
 `EventStream` bridge — it queues events from any context and exposes them as
@@ -194,6 +195,27 @@ stream (pending events are drained first).
 > `waitForEvent()`), nothing is sent until the generator is advanced. Register
 > listeners and return the response immediately; let the emitter pull events as
 > they arrive.
+
+Because `withEventStream()` accepts any `Traversable`, you can compose lazy
+transformations (e.g. filtering)and pass the chain straight in — no
+`getIterator()` needed:
+
+```php
+function filterEvents(\Generator $source): \Generator
+{
+    foreach ($source as $event) {
+        if ($event->type !== 'step.start') {
+            yield $event->toSSE();
+        }
+    }
+}
+
+return (new Response())->withEventStream(filterEvents($runner->run($pipeline, $input))));
+```
+
+> **Note**: a wrapper generator like this doesn't expose the source generator's
+> return value — keep your own reference to the generator if you need the final
+> payload via `getReturn()`.
 
 ### 4. Accessing Request Data
 
@@ -372,22 +394,30 @@ Exceptions thrown by global middleware itself are caught and converted to a
 
 ---
 
-## Streaming Responses
+## Lazy Bodies
 
-PSR-7 streaming is handled through `StreamInterface` implementations:
-
-### CallbackStream
-Wraps a callable that is invoked once when the stream is read:
+### LazyStream
+Wraps a callable that is invoked **once** when the body is first read.
+This is **not** incremental streaming — the entire output is buffered in memory.
+Its value is **deferred execution**: expensive computation or external API
+calls only run if the body is actually consumed. If the response is never read
+(e.g. replaced by middleware, or a client aborts), the callback never runs.
 
 ```php
-use Lucent\Http\Message\Stream\CallbackStream;
+use Lucent\Http\Message\Stream\LazyStream;
 
 $response = (new Response())
-    ->withBody(new CallbackStream(function () {
+    ->withBody(new LazyStream(function () {
         // Long computation or external API call
         return $result;
     }));
 ```
+
+---
+
+## Streaming Responses
+
+PSR-7 streaming is handled through `StreamInterface` implementations:
 
 ### IteratorStream
 Wraps a generator/`Traversable` for incremental output:
@@ -485,7 +515,7 @@ $body = $request->getParsedBody(); // ['name' => 'John']
 New test files are available in `tests/Unit/Message/`:
 
 - `StreamTest.php` — `Stream` implementation
-- `Stream/CallbackStreamTest.php` — Callback-based streaming
+- `Stream/LazyStreamTest.php` — Lazy one-shot bodies (deferred execution)
 - `Stream/IteratorStreamTest.php` — Iterator-based streaming
 - `UriTest.php` — URI parsing and manipulation
 - `ResponseTest.php` — Response creation and convenience methods

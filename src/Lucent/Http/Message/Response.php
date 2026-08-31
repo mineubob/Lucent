@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Lucent\Http\Message;
 
-use Generator;
-use Lucent\Http\Message\Stream\CallbackStream;
 use Lucent\Http\Message\Stream\IteratorStream;
+use Lucent\Http\Message\Stream\LazyStream;
 use Psr\Http\Message\ResponseInterface;
 use Traversable;
 
@@ -212,14 +211,19 @@ class Response extends AbstractMessage implements ResponseInterface
     /**
      * Return a new response with a streaming body.
      *
-     * @param callable|Traversable $source A callable (uses CallbackStream) or Traversable/Generator (uses IteratorStream)
+     * A callable produces a lazy one-shot body ({@see LazyStream}): invoked
+     * once on first read, fully buffered — deferred execution, not
+     * incremental. A Traversable produces true incremental streaming
+     * ({@see IteratorStream}): one chunk per read.
+     *
+     * @param callable|Traversable $source A callable (uses LazyStream) or Traversable/Generator (uses IteratorStream)
      * @param array $headers Additional headers to set
      */
     public function withStream(callable|Traversable $source, array $headers = []): static
     {
         $body = $source instanceof Traversable
             ? new IteratorStream($source)
-            : new CallbackStream($source);
+            : new LazyStream($source);
 
         $new = $this->withBody($body);
         foreach ($headers as $name => $value) {
@@ -232,16 +236,17 @@ class Response extends AbstractMessage implements ResponseInterface
     /**
      * Return a new SSE (Server-Sent Events) response.
      *
-     * Sets appropriate SSE headers and wraps the generator in an IteratorStream.
+     * Sets appropriate SSE headers and wraps the source in an IteratorStream.
      *
-     * Only generators are supported: a generator yields one SSE event per
-     * iteration, which the emitter flushes per event (true streaming). A callable
-     * cannot be partially invoked, so it would have to self-flush around the
-     * stream — use withStream() for one-shot lazy bodies instead.
+     * Accepts any Traversable — Generator, Iterator, or IteratorAggregate
+     * (e.g. LazyCollection). Each iteration yields one SSE event, flushed
+     * per event (true streaming). A callable cannot be partially invoked, so
+     * it would have to self-flush around the stream — use withStream() for
+     * one-shot lazy bodies instead.
      *
-     * @param Generator $source A generator that yields SSE event payloads
+     * @param Traversable $source A lazy iterable that yields SSE event payloads
      */
-    public function withEventStream(Generator $source): static
+    public function withEventStream(Traversable $source): static
     {
         return $this
             ->withBody(new IteratorStream($source))
