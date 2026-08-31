@@ -81,8 +81,6 @@ class EventStreamTest extends TestCase
         $gen = $events->stream();
         // No "event:" line — the browser uses its default "message" handler.
 
-
-
         $this->assertSame("data: {\"n\":1}\n\n", $gen->current());
     }
 }

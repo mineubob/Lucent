@@ -32,7 +32,7 @@ readonly final class Event
      *                        "message" handler (addEventListener('message')).
      * @param array $data Event payload. JSON-encoded and emitted as one
      *                        or more "data:" lines (multi-line JSON is split
-     *                        per line,, as the SSE spec requires).
+     *                        per line, as the SSE spec requires).
      * @param string|null $id Optional SSE "id:" field — a cursor the
      *                        browser sends back on reconnection (Last-Event-ID),
      *                        letting the server resume from where it left off.
@@ -50,14 +50,14 @@ readonly final class Event
     /**
      * Serialize this event to the SSE wire format.
      *
-     * Field order is fixed (id, retry,, event,, data) and each field is
-     * terminated with a newline. The event ends with a blank line,, which is
+     * Field order is fixed (id, retry, event, data) and each field is
+     * terminated with a newline. The event ends with a blank line, which is
      * what tells the browser "this event is complete". The payload is
-     * JSON-encoded; if it contains newlines,, each line is emitted as its
+     * JSON-encoded; if it contains newlines, each line is emitted as its
      * own "data:" field (the spec concatenates them back with \n on the
      * client side).
      *
-     * @return string The complete SSE event,, including the trailing blank line.
+     * @return string The complete SSE event, including the trailing blank line.
      * @throws \RuntimeException If the payload cannot be JSON-encoded
      *                           (e.g. invalid UTF-8 or depth overflow).
      */
@@ -119,7 +119,7 @@ readonly final class Event
     /**
      * Create a "progress" event — a progress report for a long-running job.
      *
-     * Includes the current/total counts and a pre-computed percentage,, so
+     * Includes the current/total counts and a pre-computed percentage, so
      * clients can render a progress bar without doing the math themselves.
      *
      * @param int $current Units completed so far
@@ -141,7 +141,7 @@ readonly final class Event
     /**
      * Create a "complete" event — signals that a job finished successfully.
      *
-     * @param array $data Optional final payload (e.g. results,, totals).
+     * @param array $data Optional final payload (e.g. results, totals).
      * @param string|null $id Optional SSE id (see constructor).
      * @return self
      */
@@ -154,11 +154,11 @@ readonly final class Event
      *
      * The general-purpose factory: pick any event name and the browser can
      * listen for it with addEventListener('<type>', ...). For the spec's
-     * default "message" handler,, pass '' as the type.
+     * default "message" handler, pass '' as the type.
      *
      * @param string $type Event name; '' omits the "event:" field (see
      *                        constructor).
-     * @param array $data Arbitrary payload,, JSON-encoded on the wire
+     * @param array $data Arbitrary payload, JSON-encoded on the wire
      * @param string|null $id Optional SSE id (see constructor).
      * @return self
      */

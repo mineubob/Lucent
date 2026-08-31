@@ -15,7 +15,7 @@ use SplQueue;
  * the generator returned by stream() pulls those events one at a time, so
  * withEventStream() flushes each as it arrives. This avoids the old
  * callback form's self-flush hack and the (function () {})() IIFE pattern.
-
+ *
  * Usage:
  *   $events = new EventStream();
  *   $runner->on('*', fn ($data) => $events->push(Event::data('data', $data))));
@@ -59,6 +59,10 @@ final class EventStream
      * Blocks (via a short poll) until an event is available or the stream
      * is closed. If your event source can signal readiness (e.g. a pipe
      * readable via stream_select), replace the poll with a real blocking wait.
+     *
+     * @todo Replace the usleep poll with a real blocking wait (e.g.
+     *       stream_select on a pipe) when an event source can signal
+     *       readiness — eliminates the 50ms idle latency.
      */
     public function stream(): Generator
     {
