@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 
 namespace Lucent\Http\Message\Stream;
 
@@ -72,7 +74,7 @@ final class IteratorStream implements StreamInterface
 
     public function eof(): bool
     {
-        return $this->exhausted;
+        return $this->exhausted || $this->iterator === null;
     }
 
     public function isSeekable(): bool
@@ -117,6 +119,15 @@ final class IteratorStream implements StreamInterface
             $this->iterator->next();
             $this->position += strlen($chunk);
             $contents .= $chunk;
+
+            // True streaming: return after the first yielded chunk so the
+            // emitter (Application::executeHttpRequest()) flushes per event
+            // instead of batching until $length bytes accumulate. PSR-7
+            // permits read() to return fewer bytes than requested.
+
+            if ($contents !== '') {
+                break;
+            }
         }
 
         if (! $this->iterator->valid()) {

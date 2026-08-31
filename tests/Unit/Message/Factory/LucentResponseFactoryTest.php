@@ -61,28 +61,17 @@ class LucentResponseFactoryTest extends TestCase
         $this->assertSame('/temporary', $response->getHeaderLine('Location'));
     }
 
-    public function test_create_event_stream_response_with_callable(): void
-    {
-        $response = $this->factory->createEventStreamResponse(function () {
-            return 'event data';
-        });
-
-        $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
-        $this->assertSame('no-cache, no-store, must-revalidate', $response->getHeaderLine('Cache-Control'));
-        $this->assertInstanceOf(CallbackStream::class, $response->getBody());
-    }
-
     public function test_create_event_stream_response_with_generator(): void
     {
         $response = $this->factory->createEventStreamResponse((function () {
-            yield 'chunk1';
-            yield 'chunk2';
+            yield 'event data';
         })());
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
+        $this->assertSame('no-cache, no-store, must-revalidate', $response->getHeaderLine('Cache-Control'));
         $this->assertInstanceOf(IteratorStream::class, $response->getBody());
+        $this->assertSame('event data', (string) $response->getBody());
     }
 
     public function test_create_stream_response_with_callable(): void

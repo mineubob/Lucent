@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 
 namespace Lucent\Http\Message\Factory;
 
@@ -65,10 +67,10 @@ final class LucentResponseFactory
     /**
      * Create an SSE (Server-Sent Events) response.
      *
-     * @param callable|Generator $source A callable or Generator that yields/produces SSE events
+     * @param Generator $source A generator that yields SSE event payloads
      * @return ResponseInterface
      */
-    public function createEventStreamResponse(callable|Generator $source): ResponseInterface
+    public function createEventStreamResponse(Generator $source): ResponseInterface
     {
         $response = new Response();
         return $response->withEventStream($source);

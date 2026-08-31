@@ -7,12 +7,19 @@ use PHPUnit\Framework\TestCase;
 
 class IteratorStreamTest extends TestCase
 {
-    public function test_read_returns_all_content(): void
+    public function test_read_returns_one_chunk_per_call(): void
     {
         $stream = new IteratorStream($this->generateChunks(['Chunk1', 'Chunk2', 'Chunk3']));
 
-        $this->assertSame('Chunk1Chunk2Chunk3', $stream->read(1024));
+        // Per-chunk streaming: read() returns after the first yielded chunk,
+        // even when more bytes were requested.
+
+        $this->assertSame('Chunk1', $stream->read(1024));
+        $this->assertFalse($stream->eof());
+        $this->assertSame('Chunk2', $stream->read(1024));
+        $this->assertSame('Chunk3', $stream->read(1024));
         $this->assertTrue($stream->eof());
+        $this->assertSame('', $stream->read(1024));
     }
 
     public function test_get_contents_returns_all_chunks(): void
@@ -88,6 +95,19 @@ class IteratorStreamTest extends TestCase
         $this->assertSame('', $stream->read(1024));
     }
 
+    public function test_eof_returns_true_after_close(): void
+    {
+        $stream = new IteratorStream($this->generateChunks(['Data']));
+
+        $this->assertFalse($stream->eof());
+        $stream->close();
+
+        // eof() must agree with read() (which returns '' after close) so
+        // an emitter loop (while !eof()) can't spin on a closed stream.
+
+        $this->assertTrue($stream->eof());
+    }
+
     public function test_empty_generator(): void
     {
         $stream = new IteratorStream($this->generateChunks([]));
@@ -117,6 +137,8 @@ class IteratorStreamTest extends TestCase
         $stream = new IteratorStream($this->generateChunks(['Hello', ' World']));
 
         $this->assertSame(0, $stream->tell());
+        $stream->read(1024);
+        $this->assertSame(5, $stream->tell());
         $stream->read(1024);
         $this->assertSame(11, $stream->tell());
     }

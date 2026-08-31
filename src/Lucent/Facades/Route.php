@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Copyright Jack Harris
  * Peninsula Interactive - forum

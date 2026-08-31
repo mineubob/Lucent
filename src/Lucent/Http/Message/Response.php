@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 
 namespace Lucent\Http\Message;
 
@@ -230,18 +232,19 @@ class Response extends AbstractMessage implements ResponseInterface
     /**
      * Return a new SSE (Server-Sent Events) response.
      *
-     * Sets appropriate SSE headers and wraps the source in a streaming stream.
+     * Sets appropriate SSE headers and wraps the generator in an IteratorStream.
      *
-     * @param callable|Generator $source A callable or Generator that yields/produces SSE events
+     * Only generators are supported: a generator yields one SSE event per
+     * iteration, which the emitter flushes per event (true streaming). A callable
+     * cannot be partially invoked, so it would have to self-flush around the
+     * stream — use withStream() for one-shot lazy bodies instead.
+     *
+     * @param Generator $source A generator that yields SSE event payloads
      */
-    public function withEventStream(callable|Generator $source): static
+    public function withEventStream(Generator $source): static
     {
-        $body = $source instanceof Generator
-            ? new IteratorStream($source)
-            : new CallbackStream($source);
-
         return $this
-            ->withBody($body)
+            ->withBody(new IteratorStream($source))
             ->withHeader('Content-Type', 'text/event-stream')
             ->withHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
             ->withHeader('X-Accel-Buffering', 'no')
