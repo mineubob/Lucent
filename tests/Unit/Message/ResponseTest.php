@@ -147,9 +147,9 @@ class ResponseTest extends TestCase
 
     public function test_with_event_stream(): void
     {
-        $response = (new Response())->withEventStream(function () {
-            return 'event data';
-        });
+        $response = (new Response())->withEventStream((function () {
+            yield 'event data';
+        })());
 
         $this->assertSame('text/event-stream', $response->getHeaderLine('Content-Type'));
         $this->assertSame('no-cache, no-store, must-revalidate', $response->getHeaderLine('Cache-Control'));

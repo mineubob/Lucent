@@ -154,20 +154,40 @@ use Lucent\Http\Message\Response;
 
 public function stream(): Response
 {
-    return (new Response())->withEventStream(function () {
+    return (new Response())->withEventStream((function () {
         while (true) {
-            echo "data: " . json_encode(['time' => time()]) . "\n\n";
-            flush();
+            yield "data: " . json_encode(['time' => time()]) . "\n\n";
             sleep(1);
         }
-    });
+    })());
 }
 ```
 
-Or with a generator:
+`withEventStream()` accepts a **generator only** — each `yield` becomes one
+SSE event, flushed to the client as soon as it is produced. (The old
+callback form was removed: a callable cannot be partially invoked, so it
+could only "stream" by self-flushing around the stream. For one-shot lazy
+bodies, use `withStream()` instead.)
+
+For **push-style sources** (event emitters, websockets, workers), use the
+`EventStream` bridge — it queues events from any context and exposes them as
+a generator, so no `(function () {})()` IIFE is needed:
+
 ```php
-return (new Response())->withEventStream($this->generateEvents());
+use Lucent\Http\EventStream\Event;
+use Lucent\Http\EventStream\EventStream;
+
+public function stream(EventStream $events): Response
+{
+    $this->runner->on('*', fn ($data) => $events->push(Event::data('data', $data))));
+
+    return $events->response();
+}
 ```
+
+`push()` is non-blocking and safe from any context; `response()` builds the
+SSE response wired to the bridge's generator. Call `close()` to end a finite
+stream (pending events are drained first).
 
 ### 4. Accessing Request Data
 

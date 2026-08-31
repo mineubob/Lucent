@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 
 namespace Lucent\Container;
 
@@ -1227,7 +1229,7 @@ class Container implements ContainerInterface
     {
         $type = $parameter->getType();
 
-        if ($type instanceof ReflectionNamedType && !$type->isBuiltin()) {
+        if ($type instanceof ReflectionNamedType) {
             return $type->getName();
         }
 
