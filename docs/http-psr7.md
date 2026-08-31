@@ -189,6 +189,12 @@ public function stream(EventStream $events): Response
 SSE response wired to the bridge's generator. Call `close()` to end a finite
 stream (pending events are drained first).
 
+> **Blocking caveat**: `stream()` only produces output when the emitter pulls it.
+> If your controller blocks before returning the response (e.g. a synchronous
+> `waitForEvent()`), nothing is sent until the generator is advanced. Register
+> listeners and return the response immediately; let the emitter pull events as
+> they arrive.
+
 ### 4. Accessing Request Data
 
 **Before:**

@@ -83,4 +83,31 @@ class EventStreamTest extends TestCase
 
         $this->assertSame("data: {\"n\":1}\n\n", $gen->current());
     }
+
+    public function test_signal_handler_wakes_blocked_stream(): void
+    {
+        if (!function_exists('pcntl_async_signals')) {
+            $this->markTestSkipped('pcntl extension required');
+        }
+
+        $events = new EventStream();
+        $gen = $events->stream();
+
+        // Register a signal handler that pushes an event — this runs while
+        // stream() is blocked in stream_select, proving the self-pipe wakes it.
+
+        pcntl_async_signals(true);
+        pcntl_signal(SIGUSR1, function () use ($events) {
+            $events->push(Event::data('wake', ['from' => 'signal']));
+        });
+
+        posix_kill(posix_getpid(), SIGUSR1);
+
+        // The blocked stream() should wake immediately and yield the pushed event..
+
+        $this->assertSame("event: wake\ndata: {\"from\":\"signal\"}\n\n", $gen->current());
+
+        pcntl_async_signals(false);
+        pcntl_signal(SIGUSR1, SIG_DFL);
+    }
 }
