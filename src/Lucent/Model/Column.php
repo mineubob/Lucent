@@ -70,10 +70,14 @@ class Column
         $values = [];
 
         foreach ($enum->getCases() as $case) {
-            if ($case instanceof \ReflectionEnumUnitCase) {
-                $values[] = $case->getName();
-            } else if ($case instanceof \ReflectionEnumBackedCase) {
+            // ReflectionEnumBackedCase extends ReflectionEnumUnitCase, so it
+            // MUST be checked first — otherwise backed enums fall into the
+            // unit branch and the schema gets case names instead of backing
+            // values, which then disagree with what preProcess() writes.
+            if ($case instanceof \ReflectionEnumBackedCase) {
                 $values[] = (string) $case->getBackingValue();
+            } else {
+                $values[] = $case->getName();
             }
         }
 
