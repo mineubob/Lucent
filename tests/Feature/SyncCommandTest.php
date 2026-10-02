@@ -6,6 +6,7 @@ use App\Models\SluggedModel;
 use App\Models\TestUser;
 use App\Models\TestUserTwo;
 use BlueprintAU\Radiant\Database;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\Concerns\CapturesCommandOutput;
 use Tests\Support\Concerns\CopiesFixtures;
@@ -100,9 +101,7 @@ class SyncCommandTest extends TestCase
 
         // An orphan table no model declares — e.g. left by a removed model
         // or another tool sharing the database.
-        $connection = Database::sqlConnection();
-        $connection->statement('CREATE TABLE "orphan_table" ("id" INTEGER PRIMARY KEY)');
-
+        self::createLegacyTable('orphan_table', ['id' => ColumnType::BigInt]);
         // Default: the orphan is offered for drop.
         $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
         $this->assertStringContainsString("drop table [orphan_table]", $result);
@@ -140,16 +139,22 @@ class SyncCommandTest extends TestCase
         // appear in ONE plan, and the schema must be fully in sync after
         // the single apply.
         self::setupDatabase($driver, $config, []);
-
-        $connection = Database::sqlConnection();
-        $connection->statement(
-            'CREATE TABLE "TestUser" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "email" TEXT, "full_name" TEXT)'
-        );
+        self::createLegacyTable('TestUser', [
+            'id' => ColumnType::BigInt,
+            'email' => ColumnType::Text,
+            'full_name' => ColumnType::Text,
+        ]);
 
         $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models --force");
 
-        // One plan: the rename AND the drift together.
-        $this->assertStringContainsString("rename table [TestUser] to [test_users]", $result);
+        // One plan: the rename AND the drift together. Discovery order is
+        // filesystem-dependent, so EITHER model may claim the legacy
+        // TestUser drop (both share its columns) — assert the rename shape,
+        // not a specific target.
+        $this->assertMatchesRegularExpression(
+            '/rename table \[TestUser\] to \[test_(users|user_twos)\]/',
+            $result,
+        );
         $this->assertStringContainsString("password_hash", $result);
         $this->assertStringContainsString("planned change(s) applied", $result);
 

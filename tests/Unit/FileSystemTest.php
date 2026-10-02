@@ -331,7 +331,6 @@ class FileSystemTest extends TestCase
 
         $folder = $file->getDirectory();
         $this->assertTrue($folder->exists());
-        var_dump("Runnign file search....");
         $this->assertCount(1,$folder->search()->extension("txt")->onlyFiles()->collect());
 
         $this->assertTrue($file->delete());

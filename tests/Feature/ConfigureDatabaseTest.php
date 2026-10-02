@@ -53,12 +53,11 @@ class ConfigureDatabaseTest extends TestCase
 
         // The new connection actually targets the new database: create a
         // table there and confirm the first connection cannot see it.
-        $second->statement('CREATE TABLE "marker" ("id" INTEGER PRIMARY KEY)');
-        $firstTables = array_map(
-            fn($row) => $row->name,
-            $first->select($first->table('sqlite_master')->select('name')->where('type', '=', 'table'))->all(),
-        );
-        $this->assertNotContains('marker', $firstTables);
+        // (The first connection is still on the ORIGINAL database — the
+        // schema inspector reads the live schema of whichever database the
+        // connection points at, so dialect-agnostically.)
+        $second->statement('CREATE TABLE marker (id INT PRIMARY KEY)');
+        $this->assertNotContains('marker', $first->schemaInspector->tables());
     }
 
     public function test_set_env_adopts_foreign_manager_without_replacing_it(): void

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\TestUser;
 use BlueprintAU\Radiant\Database;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\Concerns\CapturesCommandOutput;
 use Tests\Support\Concerns\CopiesFixtures;
@@ -36,25 +37,26 @@ class SyncLegacyCommandTest extends TestCase
     /**
      * Create a legacy-named table (short class name) with one row.
      */
-    private function createLegacyTable(string $driver, array $config): void
+    private function seedLegacyTable(string $driver, array $config): void
     {
         self::setupDatabase($driver, $config, []);
 
-        $connection = Database::sqlConnection();
-        $connection->statement(
-            'CREATE TABLE "TestUser" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "email" TEXT, '
-            . '"password_hash" TEXT, "full_name" TEXT)'
-        );
-        $connection->statement(
-            'INSERT INTO "TestUser" ("email", "password_hash", "full_name") VALUES (?, ?, ?)',
-            ['john@doe.com', 'password', 'John Doe']
-        );
+        self::createLegacyTable('TestUser', [
+            'id' => ColumnType::BigInt,
+            'email' => ColumnType::Text,
+            'password_hash' => ColumnType::Text,
+            'full_name' => ColumnType::Text,
+        ]);
+
+        Database::sqlConnection()
+            ->table('TestUser')
+            ->insert(['email' => 'john@doe.com', 'password_hash' => 'password', 'full_name' => 'John Doe']);
     }
 
     #[DataProvider('databaseDriverProvider')]
     public function test_sync_legacy_renames_old_table($driver, $config): void
     {
-        $this->createLegacyTable($driver, $config);
+        $this->seedLegacyTable($driver, $config);
 
         $result = CommandLine::execute("sync:legacy --dir=" . TEMP_ROOT . "App/Models");
 
@@ -71,7 +73,7 @@ class SyncLegacyCommandTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_sync_legacy_supports_filters($driver, $config): void
     {
-        $this->createLegacyTable($driver, $config);
+        $this->seedLegacyTable($driver, $config);
 
         // A filter that matches nothing leaves the legacy table untouched.
         $result = CommandLine::execute(
@@ -87,7 +89,7 @@ class SyncLegacyCommandTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_sync_legacy_is_idempotent($driver, $config): void
     {
-        $this->createLegacyTable($driver, $config);
+        $this->seedLegacyTable($driver, $config);
 
         CommandLine::execute("sync:legacy --dir=" . TEMP_ROOT . "App/Models");
 
@@ -100,7 +102,7 @@ class SyncLegacyCommandTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_sync_legacy_dry_run_displays_plan_without_applying($driver, $config): void
     {
-        $this->createLegacyTable($driver, $config);
+        $this->seedLegacyTable($driver, $config);
 
         $result = CommandLine::execute(
             "sync:legacy --dir=" . TEMP_ROOT . "App/Models --dry-run"
@@ -119,7 +121,7 @@ class SyncLegacyCommandTest extends TestCase
     #[DataProvider('databaseDriverProvider')]
     public function test_sync_legacy_marks_deprecated($driver, $config): void
     {
-        $this->createLegacyTable($driver, $config);
+        $this->seedLegacyTable($driver, $config);
 
         $result = CommandLine::execute("sync:legacy --dir=" . TEMP_ROOT . "App/Models");
 

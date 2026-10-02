@@ -4,6 +4,7 @@ namespace Tests\Support\Concerns;
 
 use BlueprintAU\Radiant\Database;
 use BlueprintAU\Radiant\Database\Schema\Blueprint;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
 use BlueprintAU\Radiant\Database\Schema\SchemaSynchronizer;
 use Lucent\Application;
 
@@ -68,6 +69,13 @@ trait DatabaseTesting
 
         Application::getInstance()->setEnv($env, false);
 
+        // MySQL is a persistent server shared across tests — drop any
+        // tables left by earlier tests (and their auto-increment counters)
+        // so every test starts from a clean schema. SQLite :memory: is
+        // per-connection and already empty; dropping from an empty schema
+        // is a no-op, so the call is unconditional.
+        self::resetDatabase();
+
         if ($models === []) {
             return;
         }
@@ -81,5 +89,50 @@ trait DatabaseTesting
         );
 
         $synchronizer->sync($desired, confirm: fn() => true);
+    }
+
+    /**
+     * Drop every table in the live schema.
+     *
+     * MySQL is a persistent server shared across tests — tables and rows
+     * from an earlier test leak into later ones (auto-increment counters
+     * included), so tests that assume a fresh database must reset it.
+     * SQLite :memory: is per-connection and needs no reset, but dropping
+     * from an empty schema is a no-op, so the call is unconditional.
+     */
+    protected static function resetDatabase(): void
+    {
+        $connection = Database::sqlConnection();
+
+        foreach ($connection->schemaInspector->tables() as $table) {
+            $connection->drop($table);
+        }
+    }
+
+    /**
+     * Create a legacy-named table (short class name) with the given
+     * columns, dialect-agnostically — via a Radiant blueprint rather than
+     * raw SQLite DDL (double-quoted identifiers and AUTOINCREMENT are
+     * SQLite-only).
+     *
+     * @param string $table The legacy table name (e.g. "TestUser")
+     * @param array<string, ColumnType> $columns Column name => type
+     */
+    protected static function createLegacyTable(string $table, array $columns): void
+    {
+        $blueprint = new Blueprint($table);
+
+        $first = true;
+        foreach ($columns as $name => $type) {
+            $blueprint = $blueprint->column(
+                $type,
+                $name,
+                primaryKey: $first,
+                autoIncrement: $first,
+            );
+            $first = false;
+        }
+
+        Database::sqlConnection()->create($blueprint);
     }
 }
