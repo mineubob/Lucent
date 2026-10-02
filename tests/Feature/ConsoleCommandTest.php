@@ -118,7 +118,7 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("");
 
         $this->assertStringContainsString("Available commands:", $result);
-        $this->assertStringContainsString("migration make {class}", $result);
+        $this->assertStringContainsString("sync", $result);
         $this->assertStringContainsString("generate api-docs", $result);
         $this->assertStringContainsString("serve", $result);
     }
@@ -150,7 +150,7 @@ class ConsoleCommandTest extends TestCase
         $result = CommandLine::execute("help");
 
         $this->assertStringContainsString("Available commands:", $result);
-        $this->assertStringContainsString("migration make {class}", $result);
+        $this->assertStringContainsString("sync", $result);
         $this->assertStringNotContainsString("deploy latest", $result);
         $this->assertStringNotContainsString("deploy rollback", $result);
         $this->assertStringContainsString("generate api-docs", $result);

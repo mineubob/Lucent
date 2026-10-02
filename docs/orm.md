@@ -1,592 +1,190 @@
 [Home](../README.md)
 
-# Lucent ORM Guide
+# ORM (Radiant Models)
 
-Lucent provides a powerful and intuitive Object-Relational Mapping (ORM) system for interacting with your database. This guide will explain the key features and usage patterns of the Lucent ORM.
+Lucent's ORM is [**Radiant**](https://github.com/blueprintau/radiant) — an Active Record ORM where typed properties + `#[Column]` attributes declare the schema. Radiant is developed in its own repository with its own documentation; this page covers the essentials for Lucent applications.
 
-## Table of Contents
+## Defining a Model
 
-- [Model Basics](#model-basics)
-- [Defining Models](#defining-models)
-- [Database Columns](#database-columns)
-- [CRUD Operations](#crud-operations)
-  - [Creating Records](#creating-records)
-  - [Reading Records](#reading-records)
-  - [Updating Records](#updating-records)
-  - [Deleting Records](#deleting-records)
-- [Query Building](#query-building)
-  - [Basic Queries](#basic-queries)
-  - [Logical Operators](#logical-operators)
-  - [Like Queries](#like-queries)
-  - [Pagination](#pagination)
-- [Model Relationships](#model-relationships)
-- [Model Traits](#model-traits)
-  - [Creating Traits](#creating-traits)
-  - [Using Traits](#using-traits)
-  - [Trait Query Scope](#trait-query-scope)
-  - [Example: SoftDelete Trait](#example-softdelete-trait)
-
-## Model Basics
-
-Lucent's ORM centers around the `Model` class which provides a simple and elegant way to interact with database tables. Each model represents a table in your database, and each instance of a model represents a row in that table.
-
-```php
-use Lucent\Model;
-use Lucent\Database\Dataset;
-
-class Article extends Model
-{
-    // Model implementation
-    
-    public function __construct(Dataset $dataset)
-    {
-        // Initialize properties from dataset
-    }
-}
-```
-
-> **Note**: All model instances must be constructed with a `Dataset` object that contains the property values. The `Dataset` is used to populate model properties and provides a consistent way to handle data throughout the ORM.
-
-## Defining Models
-
-To define a model in Lucent, you create a class that extends `Lucent\Model`. Property attributes define the database schema:
+Extend `BlueprintAU\Radiant\Model` and declare columns with the `#[Column]` attribute:
 
 ```php
 <?php
 
 namespace App\Models;
 
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
-use Lucent\Model;
-
-class Article extends Model
-{
-    #[Column(ColumnType::INT, name: "id", primaryKey: true, autoIncrement: true)]
-    public int $id;
-
-    #[Column(ColumnType::VARCHAR, name: "title", length: 200)]
-    public string $title;
-
-    #[Column(ColumnType::TEXT, name: "content")]
-    public string $content;
-
-    #[Column(ColumnType::BOOLEAN, name: "published", default: 0)]
-    public bool $published = false;
-    
-    /**
-     * Constructor that accepts a Dataset
-     */
-    public function __construct(Dataset $dataset)
-    {
-        $this->id = $dataset->get("id");
-        $this->title = $dataset->get("title");
-        $this->content = $dataset->get("content");
-        $this->published = $dataset->get("published", false);
-    }
-}
-```
-
-## Database Columns
-
-The `Column` attribute is used to define column properties:
-
-| Parameter | Type | Description |
-|---|---|---|
-| `type` | `ColumnType` | Data type (e.g. `ColumnType::INT`, `ColumnType::VARCHAR`, etc.) |
-| `name` | `?string` | Column name in the database table (defaults to property name) |
-| `nullable` | `?bool` | Whether the column can contain NULL values |
-| `length` | `?int` | Maximum length for string-type columns |
-| `primaryKey` | `?bool` | Whether this column is the primary key |
-| `autoIncrement` | `?bool` | Whether this column auto-increments (for IDs) |
-| `default` | `mixed` | Default value for the column |
-| `unique` | `?bool` | Whether values must be unique |
-| `values` | `class-string<\UnitEnum>\|array<string>\|null` | Allowed enum values for ENUM columns |
-| `references` | `Reference\|class-string<Model>\|string\|null` | Foreign key reference |
-| `unsigned` | `?bool` | Whether the column is unsigned (for numeric types) |
-
-> **Important**: Each model must have exactly one property marked with `PRIMARY_KEY` set to `true`. This column will be used by default for save() and delete() operations, but you can specify a different column name as an argument if needed.
-
-### UUID Columns
-
-Use `ColumnType::UUID` for columns that store UUIDs. The type defaults to 36-character string storage (`CHAR(36)` on MySQL, `TEXT` on SQLite), matching the output of `UUID::generate()`. Values are validated as RFC 4122 UUIDs on save and on retrieval.
-
-```php
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Facades\UUID;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Attributes\ColumnType;
+use BlueprintAU\Radiant\Model;
 
 class User extends Model
 {
-    #[Column(ColumnType::UUID, primaryKey: true)]
-    public string $id;
-
-    #[Column(ColumnType::VARCHAR, length: 255)]
-    public string $name;
-
-    public function __construct()
-    {
-        $this->id = UUID::generate();
-    }
-}
-```
-
-## CRUD Operations
-
-### Creating Records
-
-To create a new database record, first create an instance with a Dataset containing your data:
-
-```php
-// Create a Dataset with your record data
-$dataset = new Dataset([
-    "title" => "Getting Started with Lucent",
-    "content" => "Lucent is a powerful PHP framework...",
-    "published" => true
-]);
-
-// Create model instance with the dataset
-$article = new Article($dataset);
-
-// Save to database
-$article->create();
-```
-
-### Reading Records
-
-Fetch records with static query methods:
-
-```php
-// Get first matching record
-$article = Article::where('id', 5)->getFirst();
-
-// Get all matching records
-$articles = Article::where('published', true)->get();
-
-// Limit results
-$recentArticles = Article::where('published', true)
-    ->limit(10)
-    ->get();
-
-// Pagination
-$page2Articles = Article::where('published', true)
-    ->limit(10)
-    ->offset(10)
-    ->get();
-```
-
-### Updating Records
-
-Update an existing record:
-
-```php
-$article = Article::where('id', 5)->getFirst();
-$article->title = "Updated Title";
-
-// Save using default 'id' primary key
-$article->save();
-
-// Or if your primary key column has a different name
-$article->save('article_id');
-```
-
-### Deleting Records
-
-Delete a record:
-
-```php
-$article = Article::where('id', 5)->getFirst();
-
-// Delete using default 'id' primary key
-$article->delete();
-
-// Or if your primary key column has a different name
-$article->delete('article_id');
-```
-
-## Query Building
-
-### Basic Queries
-
-Lucent provides a fluent interface for building queries:
-
-```php
-// Basic where clause
-$articles = Article::where('published', true)->get();
-
-// Chain multiple conditions (using AND by default)
-$articles = Article::where('published', true)
-    ->where('category_id', 3)
-    ->get();
-
-// Count records
-$count = Article::where('published', true)->count();
-
-// Sum a column
-$total = Article::where('published', true)->sum('views');
-
-// Average a column
-$average = Article::where('published', true)->avg('rating');
-
-// Get minimum/maximum values
-$lowestPrice = Product::min('price');
-$highestPrice = Product::max('price');
-
-// All aggregates work with any query conditions
-$categoryTotal = Order::where('status', 'completed')
-    ->compare('created_at', '>=', '2024-01-01')
-    ->sum('amount');
-```
-
-### Logical Operators
-
-Lucent supports both AND and OR logical operators in queries:
-
-```php
-// Default behavior uses AND
-$articles = Article::where('published', true)
-    ->where('category_id', 3)
-    ->get();
-    
-// Explicitly specify AND or OR for each condition
-$articles = Article::where('published', true)
-    ->where('category_id', 3, 'AND')  // Explicit AND
-    ->where('featured', true, 'OR')   // Use OR logic for this condition
-    ->get();
-    
-// Convenience methods for OR conditions
-$articles = Article::where('published', true)
-    ->orWhere('featured', true)       // Equivalent to ->where('featured', true, 'OR')
-    ->get();
-    
-// Complex query with mixed operators
-$articles = Article::where('status', 'active')        // AND (default)
-    ->where('category_id', 5)                       // AND (default)
-    ->orWhere('featured', true)                     // OR
-    ->orWhere('popular', true)                      // OR
-    ->get();
-    
-// The query above is equivalent to SQL:
-// WHERE status = 'active' AND category_id = 5 OR featured = true OR popular = true
-```
-
-### Like Queries
-
-You can use LIKE conditions for pattern matching, also with AND/OR support:
-
-```php
-// Basic LIKE query (default AND)
-$articles = Article::like('title', 'Lucent')
-    ->get();
-    
-// Combining LIKE with WHERE
-$articles = Article::where('published', true)
-    ->like('title', 'Lucent')
-    ->get();
-    
-// Using OR with LIKE
-$articles = Article::like('title', 'Lucent')
-    ->orLike('content', 'framework')
-    ->get();
-    
-// Explicit OR operator
-$articles = Article::like('title', 'Lucent')
-    ->like('content', 'framework', 'OR')
-    ->get();
-    
-// Complex query mixing WHERE and LIKE with different operators
-$articles = Article::where('published', true)
-    ->where('category_id', 3)
-    ->like('title', 'Lucent')
-    ->orLike('content', 'framework')
-    ->get();
-```
-
-### Pagination
-
-Use limit and offset for pagination:
-
-```php
-// Get first page (10 items)
-$page1 = Article::where('published', true)
-    ->limit(10)
-    ->offset(0)  // Can be omitted for first page
-    ->get();
-
-// Get second page (next 10 items)
-$page2 = Article::where('published', true)
-    ->limit(10)
-    ->offset(10)
-    ->get();
-```
-
-## Model Relationships
-
-Lucent handles model inheritance for relationships. For example, a specialized user type:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
-use App\Models\TestUser;
-
-class Admin extends TestUser
-{
-    #[Column(ColumnType::BOOLEAN, default: false)]
-    public private(set) bool $can_reset_passwords;
-
-    #[Column(ColumnType::BOOLEAN, default: false)]
-    public private(set) bool $can_lock_accounts;
-
-    #[Column(ColumnType::VARCHAR, nullable: true, length: 255)]
-    public private(set) ?string $notes;
-
-
-    public function __construct(Dataset $dataset){
-        // Call parent constructor first to initialize inherited properties
-        parent::__construct($dataset);
-        
-        // Then initialize this model's properties from the dataset
-        $this->can_reset_passwords = $dataset->get("can_reset_passwords", false);
-        $this->can_lock_accounts = $dataset->get("can_lock_accounts", false);
-        $this->notes = $dataset->get("notes");
-    }
-    
-    public function setNotes(string $notes): void
-    {
-        $this->notes = $notes;
-    }
-}
-```
-
-When working with extended models, Lucent will manage foreign keys and joins automatically.
-
-## Model Traits
-
-Lucent ORM now supports using PHP traits in models with enhanced functionality for traits that define database columns and behavior. This allows you to encapsulate reusable model functionality like soft deletion, timestamping, or user tracking across multiple models.
-
-### Creating Traits
-
-Traits in Lucent can define database columns and methods that should be included in multiple models:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-
-trait Timestampable
-{
-    #[Column(ColumnType::TIMESTAMP, nullable: true)]
-    public private(set) ?string $created_at = null;
-
-    #[Column(ColumnType::TIMESTAMP, nullable: true)]
-    public private(set) ?string $updated_at = null;
-    
-    public function setCreatedAt(): void
-    {
-        $this->created_at = date('Y-m-d H:i:s');
-    }
-    
-    public function setUpdatedAt(): void
-    {
-        $this->updated_at = date('Y-m-d H:i:s');
-    }
-}
-```
-
-### Using Traits
-
-To use a trait in your model, simply include it with the PHP `use` statement. **Important:** You must manually initialize the trait properties in your constructor from the Dataset:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
-use Lucent\Model;
-use App\Models\Timestampable;
-
-class Article extends Model
-{
-    use Timestampable;
-
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR, length: 255)]
-    protected string $title;
-    
-    // ... other properties and methods
-
-    public function __construct(Dataset $dataset)
-    {
-        $this->id = $dataset->get("id");
-        $this->title = $dataset->get("title");
-        
-        // You must initialize trait properties from the dataset
-        // Lucent won't do this automatically
-        $this->created_at = $dataset->get("created_at");
-        $this->updated_at = $dataset->get("updated_at");
-    }
-    
-    // Override the create() method to set timestamps
-    public function create(): bool
-    {
-        $this->setCreatedAt();
-        $this->setUpdatedAt();
-        return parent::create();
-    }
-    
-    // Override the save() method to update the updated_at timestamp
-    public function save(string $identifier = "id"): bool
-    {
-        $this->setUpdatedAt();
-        return parent::save($identifier);
-    }
-}
-```
-
-### Trait Query Scope
-
-One of the powerful features of Lucent's trait support is the ability to register global query scopes for models that use specific traits. This allows you to automatically apply certain query conditions whenever a model with that trait is queried.
-
-To register a trait condition:
-
-```php
-use Lucent\Model\Collection;
-
-// Register a condition for models using the SoftDelete trait
-Collection::registerTraitCondition(
-    \App\Models\SoftDelete::class,  // The trait class
-    'deleted_at',                   // The column to apply the condition to
-    null                           // The value to check for (null = include only non-deleted records)
-);
-```
-
-Now, any query on a model that uses the `SoftDelete` trait will automatically include a `WHERE deleted_at IS NULL` condition, effectively filtering out soft-deleted records by default.
-
-### Example: SoftDelete Trait
-
-Here's a complete example of a SoftDelete trait implementation:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
-use Lucent\Model;
-
-trait SoftDelete
-{
-    #[Column(ColumnType::INT, nullable: true)]
-    public private(set) ?int $deleted_at = null;
-
-    /**
-     * Override the base delete method with a soft delete implementation
-     *
-     * @param mixed $propertyName The primary key property name
-     * @return bool Success
-     */
-    public function delete($propertyName = "id"): bool
-    {
-        return $this->softDelete($propertyName);
-    }
-
-    /**
-     * Delete the model by setting the deleted_at timestamp
-     *
-     * @param string $propertyName The primary key property name
-     * @return bool Success
-     */
-    public function softDelete(string $propertyName = "id"): bool
-    {
-        $this->deleted_at = time();
-        return $this->save($propertyName);
-    }
-
-    /**
-     * Restore a soft deleted model
-     *
-     * @return bool Success
-     */
-    public function restore(): bool
-    {
-        $this->deleted_at = null;
-        return $this->save();
-    }
-}
-```
-
-Using the SoftDelete trait in a model:
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
-use Lucent\Model;
-use App\Models\SoftDelete;
-
-class TestUser extends Model
-{
-    use SoftDelete;
-
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
-    public private(set) ?int $id;
-
-    #[Column(ColumnType::VARCHAR, length: 255)]
+    #[Column(ColumnType::String, length: 255)]
     protected string $email;
 
-    // ... other properties
+    #[Column(ColumnType::String, length: 100)]
+    protected string $full_name;
 
-    public function __construct(Dataset $dataset)
+    #[Column(ColumnType::Text, nullable: true)]
+    protected ?string $bio = null;
+
+    public function __construct(string $email, string $full_name)
     {
-        $this->id = $dataset->get("id", -1);
-        $this->email = $dataset->get("email");
-        
-        // Important: You must manually initialize trait properties
-        // from the dataset in your constructor
-        $this->deleted_at = $dataset->get("deleted_at");
+        $this->email = $email;
+        $this->full_name = $full_name;
     }
 }
 ```
 
-Automatically applying the soft delete condition:
+Key points:
+
+- **Typed properties are required** — every `#[Column]` property must declare a single named type so the cast pipeline has a contract.
+- **The table name** defaults to the snake-cased plural of the class (`User` → `users`). Override with `#[Table('custom_name')]`.
+- **Column names** default to the property name. Override with `#[Column(name: 'custom_column')]`.
+- **Property visibility is respected** — `private(set)` properties are read-only from outside; use methods to mutate.
+- **Auto-increment PKs must be `ColumnType::BigInt`** — SQLite renders `Int` as `int`, and `AUTOINCREMENT` is only legal on `INTEGER PRIMARY KEY`.
+
+## Column Types
+
+The `ColumnType` enum drives DDL and casting:
+
+| Type | Property type | Notes |
+|---|---|---|
+| `ColumnType::BigInt` | `int` | 64-bit integer — the default for auto-increment PKs |
+| `ColumnType::Int` | `int` | 32-bit integer |
+| `ColumnType::String` | `string` | Requires `length:` |
+| `ColumnType::Char` | `string` | Fixed-length, requires `length:` |
+| `ColumnType::Text` | `string` | Unbounded text |
+| `ColumnType::Decimal` | `float` | Requires `precision:` + `scale:` |
+| `ColumnType::Float` | `float` | Floating point |
+| `ColumnType::Boolean` | `bool` | |
+| `ColumnType::Date` | `string` / `Carbon` | Calendar date |
+| `ColumnType::DateTime` | `string` / `Carbon` | Date-time |
+| `ColumnType::Timestamp` | `int` / `Carbon` | Unix timestamp |
+| `ColumnType::Json` | `array` | JSON document |
+| `ColumnType::Enum` | `string` | Requires `values:` (list or enum class-string) |
+| `ColumnType::Binary` | `string` | Raw bytes |
+| `ColumnType::Uuid` | `string` | Fixed 36-character RFC 4122 UUID |
+
+## Querying
+
+Every model exposes a fluent query builder via `newQuery()` and static forwarders:
 
 ```php
-// Register the trait condition once (typically in your application bootstrap)
-Collection::registerTraitCondition(
-    App\Models\SoftDelete::class,
-    'deleted_at',
-    null
-);
+use App\Models\User;
 
-// Now queries will automatically exclude soft-deleted records
-$users = TestUser::like('email', '@example.com')->get();
+// Find by primary key
+$user = User::find(1);
 
-// To include soft-deleted records, you would need to override the condition
-$allUsers = TestUser::compare('deleted_at', 'IS NOT', '', 'OR')
-    ->orWhere('deleted_at', '')
-    ->get();
+// Find or throw
+$user = User::findOrFail(1);
+
+// Where clauses — the operator is explicit
+$user = User::where('email', '=', 'john@doe.com')->first();
+
+// Get all matching
+$users = User::where('active', '=', 1)->get();
+
+// Ordering, limiting
+$recent = User::orderBy('created_at', 'desc')->limit(10)->get();
+
+// Aggregates
+$count = User::where('active', '=', 1)->count();
+$max   = User::max('age');
+
+// Eager loading
+$posts = Post::with('author', 'comments')->get();
 ```
 
----
+Column names are **validated against the declared set** — an unknown column throws `InvalidArgumentException` rather than being interpolated into SQL.
 
-For more information on using Lucent's ORM, check the [full documentation](../README.md).
+## Creating and Updating
+
+```php
+$user = new User('john@doe.com', 'John Doe');
+$user->save(); // INSERT — the auto-increment PK is populated
+
+$user->full_name = 'Jack Harris'; // via a setter method if private(set)
+$user->save(); // UPDATE of the dirty columns only
+
+$user->delete(); // DELETE (or soft delete when SoftDeletes is used)
+```
+
+## Soft Deletes
+
+Use the `SoftDeletes` trait — a nullable `deleted_at` column is added and every query auto-applies a `deleted_at IS NULL` scope:
+
+```php
+use BlueprintAU\Radiant\Model;
+use BlueprintAU\Radiant\SoftDeletes;
+
+class Post extends Model
+{
+    use SoftDeletes;
+
+    // ...
+}
+
+$post->delete();      // soft delete — stamps deleted_at
+$post->restore();     // clears deleted_at
+$post->forceDelete(); // hard delete
+
+Post::withTrashed()->get();  // include soft-deleted rows
+Post::onlyTrashed()->get();  // only soft-deleted rows
+```
+
+## Timestamps
+
+Use the `Timestamps` trait to add `created_at` / `updated_at` maintenance:
+
+```php
+use BlueprintAU\Radiant\Timestamps;
+
+class Post extends Model
+{
+    use Timestamps;
+    // ...
+}
+```
+
+## Relationships
+
+Radiant supports `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`, and polymorphic relations. A relation is a method returning a `Relation` object:
+
+```php
+class Post extends Model
+{
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+
+$post->author;          // lazy load
+Post::with('author');   // eager load (one extra query, no N+1)
+```
+
+## Multi-Table Inheritance (MTI)
+
+Extend a table-owning model to split columns across tables — the child table holds its own columns plus a derived key, and reads join the ancestor chain transparently:
+
+```php
+class Admin extends User
+{
+    #[Column(default: false)]
+    public bool $can_reset_passwords;
+}
+```
+
+The `admins` table holds `can_reset_passwords` + a foreign key to `users`; querying `Admin` joins both tables and hydrates a single virtual row.
+
+## Route Model Binding
+
+See [Route Model Binding](route-model-binding.md) for the `#[Bind]` attribute — opt-in resolution of model parameters from route variables.
+
+## Schema Synchronization
+
+The `sync` command diffs your models' declared schema against the live database and applies the changes. See [Schema](database/schema.md) and [Command Line](commandline.md).

@@ -1,25 +1,25 @@
 <?php
 namespace App\Models;
 
-use Lucent\Model\Model;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
+use BlueprintAU\Radiant\Model;
 
 class LongTextModel extends Model
 {
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::LONGTEXT)]
+    #[Column(ColumnType::Text)]
     protected string $email;
 
-    #[Column(ColumnType::TEXT)]
+    #[Column(ColumnType::Text)]
     protected string $text;
 
-    #[Column(ColumnType::MEDIUMTEXT)]
+    #[Column(ColumnType::Text)]
     protected string $mText;
 
-    #[Column(ColumnType::VARCHAR, length: 100)]
+    #[Column(ColumnType::String, length: 100)]
     protected string $full_name;
 
     public function __construct(string $email, string $text, string $mText, string $full_name)

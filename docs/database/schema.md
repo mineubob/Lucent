@@ -1,343 +1,146 @@
-[Home](../../README.md)
+[Home](../README.md)
 
-# Schema in Lucent
+# Schema Synchronization
 
-## Introduction
+Lucent's schema workflow is **diff-based**: your models declare the desired state, and the `sync` command computes the difference against the live database and applies it. There are no migration files to author or track — the models are the schema.
 
-The `Schema` class is Lucent's interface for defining and managing your database structure. It provides a fluent, driver-agnostic API for creating tables, defining columns, and querying the existing database structure — without writing raw SQL.
+## How It Works
 
-Schema works across both MySQL and SQLite automatically, translating your column definitions into the correct SQL syntax for whichever driver is configured.
+1. **Discover** — Lucent scans your app's PSR-4 directories for Radiant model classes.
+2. **Declare** — each model's `#[Column]`/`#[Table]`/`#[Index]`/`#[ForeignKey]` attributes compile into a desired-state `Blueprint` via Radiant's `Blueprint::fromMetadata()`.
+3. **Diff** — Radiant's `SchemaDiffer` compares the desired state against the live schema, producing ordered, classified `SchemaChange`s (creates first, then alters, drops last).
+4. **Review** — the plan is printed with destructive changes flagged.
+5. **Apply** — confirmed changes are applied under the `radiant:schema` lock, so the shown plan is exactly what gets applied.
 
----
+## The Desired State
 
-## Creating Tables
-
-Use `Schema::table()` to define a table. Pass the table name and a callback that receives a `Table` instance, then call `create()` to execute the statement.
-
-```php
-use Lucent\Database\Schema;
-
-Schema::table('users', function ($table) {
-    $table->int('id')->autoIncrement()->primaryKey();
-    $table->varchar('name')->length(100);
-    $table->varchar('email')->length(255)->unique();
-    $table->boolean('active')->default(1);
-    $table->timestamp('created_at')->nullable();
-})->create();
-```
-
-By default, `create()` uses `CREATE TABLE IF NOT EXISTS`, so it is safe to call on every boot without checking first. To force creation without the `IF NOT EXISTS` guard, pass `false`:
-
-```php
-Schema::table('users', function ($table) {
-    // ...
-})->create(false);
-```
-
----
-
-## Column Types
-
-The following column types are available on the `Table` instance. All methods return the column object so you can chain modifiers.
-
-### String Types
-
-```php
-$table->varchar('name')->length(100);        // Variable-length string, length required
-$table->char('code')->length(10);            // Fixed-length string, length required
-$table->text('bio');                         // Unbounded text
-$table->mediumtext('body');                  // Medium text blob
-$table->longtext('content');                 // Large text blob
-```
-
-### Numeric Types
-
-```php
-$table->int('id');                           // Standard integer
-$table->bigint('external_id');               // Large integer
-$table->tinyint('status');                   // Small integer (0–255)
-$table->float('rating');                     // Single-precision float
-$table->double('price');                     // Double-precision float
-$table->decimal('amount');                   // Fixed-point decimal (20,2)
-$table->boolean('active');                   // Stored as tinyint, pre/post processed as bool
-```
-
-### Date & Time Types
-
-```php
-$table->date('birthday');                    // Date only (YYYY-MM-DD)
-$table->timestamp('created_at');             // Date and time
-```
-
-### Other Types
-
-```php
-$table->json('metadata');                    // JSON blob
-$table->binary('hash')->length(64);          // Binary data, length required
-$table->enum('status')->values(['draft', 'published', 'archived']);
-```
-
----
-
-## Column Modifiers
-
-Modifiers can be chained onto any column after the type method. Numeric types (`int`, `bigint`, `tinyint`, `float`, `double`, `decimal`, `boolean`) also support `autoIncrement()` and `unsigned()`.
-
-```php
-// Available on all column types
-->nullable()                  // Allow NULL values
-->default($value)             // Set a default value
-->primaryKey()                // Mark as primary key (implies NOT NULL)
-->unique()                    // Add a UNIQUE constraint
-->length(int $length)         // Set character/binary length
-->values(array $values)       // Set allowed values for ENUM columns
-->references(Reference $ref)  // Add a foreign key reference
-
-// Numeric columns only
-->autoIncrement()             // AUTO_INCREMENT (MySQL) / AUTOINCREMENT (SQLite)
-->unsigned()                  // UNSIGNED (MySQL only, ignored on SQLite)
-```
-
-### Examples
-
-```php
-// Primary key with auto increment
-$table->int('id')->autoIncrement()->primaryKey();
-
-// Nullable column with a default
-$table->varchar('nickname')->length(50)->nullable()->default('Anonymous');
-
-// Unique email
-$table->varchar('email')->length(255)->unique();
-
-// Unsigned big integer
-$table->bigint('views')->unsigned()->default(0);
-
-// Enum with allowed values
-$table->enum('role')->values(['admin', 'editor', 'viewer'])->default('viewer');
-```
-
----
-
-## Foreign Keys
-
-Use `references()` with a `Reference` instance to define a foreign key constraint inline on the column.
-
-```php
-use Lucent\Database\Schema;
-use Lucent\Database\Schema\Reference;
-
-Schema::table('posts', function ($table) {
-    $table->int('id')->autoIncrement()->primaryKey();
-    $table->int('user_id')->references(new Reference('users', 'id'));
-    $table->varchar('title')->length(200);
-    $table->text('body');
-})->create();
-```
-
-You can also build a `Reference` from a string in `table(column)` format:
-
-```php
-use Lucent\Database\Schema\Reference;
-
-$ref = Reference::fromString('users(id)');
-```
-
-Or directly from a Model class, which resolves the table name and primary key automatically:
-
-```php
-use Lucent\Database\Schema\Reference;
-use App\Models\User;
-
-$ref = Reference::fromString(User::class);
-```
-
----
-
-## Checking Table Existence
-
-Before creating or modifying tables, you can check whether they already exist:
-
-```php
-$table = Schema::table('users');
-
-if ($table->exists()) {
-    // Table already exists
-}
-```
-
----
-
-## Dropping Tables
-
-```php
-Schema::table('users')->drop();
-```
-
-When dropping tables with foreign key constraints, disable FK checks first to avoid constraint violations regardless of drop order:
-
-```php
-use Lucent\Database;
-use Lucent\Database\Schema;
-
-Database::disabling('foreign_key_checks', function () {
-    Schema::table('order_items')->drop();
-    Schema::table('orders')->drop();
-    Schema::table('customers')->drop();
-});
-```
-
----
-
-## Listing All Tables
-
-`Schema::list()` returns an array of `Table` instances for every table in the current database:
-
-```php
-$tables = Schema::list();
-
-foreach ($tables as $table) {
-    echo $table->name . PHP_EOL;
-}
-```
-
-This is how Lucent's own test setup drops all tables before each test run:
-
-```php
-Database::disabling('foreign_key_checks', function () {
-    foreach (Schema::list() as $table) {
-        $table->drop();
-    }
-});
-```
-
----
-
-## Checking Column Existence
-
-You can check whether a specific column exists on a table:
-
-```php
-$table = Schema::table('users');
-$column = $table->varchar('email')->length(255);
-
-if ($column->exists()) {
-    // Column already exists on the table
-}
-```
-
----
-
-## Real-World Example: Application Schema Bootstrap
-
-The following example shows a typical schema setup for a multi-tenant CRM, creating several related tables in the correct order with foreign key constraints.
+A model's attributes are the single source of truth:
 
 ```php
 <?php
 
-use Lucent\Database;
-use Lucent\Database\Schema;
-use Lucent\Database\Schema\Reference;
+namespace App\Models;
 
-// Drop everything cleanly before rebuilding
-Database::disabling('foreign_key_checks', function () {
-    foreach (Schema::list() as $table) {
-        $table->drop();
-    }
-});
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Attributes\ForeignKey;
+use BlueprintAU\Radiant\Attributes\Index;
+use BlueprintAU\Radiant\Attributes\Table;
+use BlueprintAU\Radiant\Attributes\Unique;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
+use BlueprintAU\Radiant\Model;
 
-// Tenants
-Schema::table('tenants', function ($table) {
-    $table->int('id')->autoIncrement()->primaryKey();
-    $table->varchar('subdomain')->length(100)->unique();
-    $table->varchar('db_host')->length(255);
-    $table->varchar('db_name')->length(100);
-    $table->varchar('db_user')->length(100);
-    $table->varchar('db_password')->length(255);
-    $table->timestamp('created_at')->nullable();
-})->create();
+#[Table('posts')]
+class Post extends Model
+{
+    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
+    public private(set) ?int $id;
 
-// Contacts
-Schema::table('contacts', function ($table) {
-    $table->int('id')->autoIncrement()->primaryKey();
-    $table->varchar('first_name')->length(100);
-    $table->varchar('last_name')->length(100);
-    $table->varchar('email')->length(255)->unique();
-    $table->varchar('phone')->length(20)->nullable();
-    $table->varchar('address_line_1')->length(255)->nullable();
-    $table->varchar('address_line_2')->length(255)->nullable();
-    $table->varchar('city')->length(100)->nullable();
-    $table->varchar('state_province_region')->length(100)->nullable();
-    $table->varchar('postal_code')->length(20)->nullable();
-    $table->varchar('country')->length(2)->nullable();  // ISO 3166-1 alpha-2
-    $table->timestamp('created_at')->nullable();
-})->create();
+    #[Column(ColumnType::String, length: 255)]
+    public string $title;
 
-// Leads
-Schema::table('leads', function ($table) {
-    $table->int('id')->autoIncrement()->primaryKey();
-    $table->varchar('name')->length(255);
-    $table->enum('type')->values(['NEW_BUSINESS', 'EXISTING_BUSINESS'])->nullable();
-    $table->enum('label')->values(['HOT', 'WARM', 'COLD'])->nullable();
-    $table->enum('stage')->values(['NEW', 'ATTEMPTING', 'CONNECTED', 'QUALIFIED', 'DISQUALIFIED'])->default('NEW');
-    $table->int('contact_id')->references(new Reference('contacts', 'id'));
-    $table->int('owner_id')->nullable();
-    $table->timestamp('created_at')->nullable();
-})->create();
+    #[Column(ColumnType::Text, nullable: true)]
+    public ?string $body = null;
+
+    #[Column(ColumnType::BigInt, foreign: 'users.id', onDelete: 'cascade')]
+    public int $author_id;
+
+    #[Column(ColumnType::Enum, values: ['draft', 'published'], default: 'draft')]
+    public string $status;
+
+    #[Unique(columns: ['title', 'author_id'])]
+    #[Index(columns: ['status'])]
+    public const CONSTRAINTS = null;
+}
 ```
 
----
+Running `vendor/bin/lucent sync` creates the `posts` table with all columns, the unique constraint, the index, and the foreign key — nothing to hand-write.
 
-## API Reference
+## Running Sync
 
-### `Schema`
+```bash
+vendor/bin/lucent sync
+```
 
-| Method | Description |
-|---|---|
-| `Schema::table(name, callback?)` | Define a table and return a `Table` instance |
-| `Schema::list()` | Return all tables in the current database as `Table[]` |
+Output:
 
-### `Table`
+```
+Planned schema changes:
+    create table [posts]
+    create table [users]
+  ! drop table [legacy_table] — DESTRUCTIVE: data loss
+Apply this destructive change? (yes/no)
+```
 
-| Method | Returns | Description |
+- **Non-destructive changes** (creates, adds, renames) apply automatically.
+- **Destructive changes** (drops, nullability tightening) prompt per change.
+- **`--force`** skips all prompts.
+- **`--dry-run`** displays the plan and exits without applying anything.
+- **`--no-drop-tables`** makes the plan additive-only: tables no model declares (orphans, other tools' tables) are left untouched instead of offered for drop. Note this suppresses *table-level* drops only — a live column missing from the model still diffs as a destructive `DropColumn` and goes through the confirm gate.
+- **Transactional apply** runs by default when the dialect supports transactional DDL (SQLite, PostgreSQL) — a mid-apply failure rolls the whole plan back. MySQL DDL auto-commits, so a warning is shown and the apply is non-transactional; opt out explicitly with `--no-transactional`.
+
+### Filters
+
+`--filter` and `--exclude-filter` are matched against fully-qualified class names; exclude wins. A pattern that is a valid regular expression is used verbatim; anything else is treated as a case-insensitive literal substring:
+
+```bash
+# Only the User model (regex)
+vendor/bin/lucent sync --filter='/App\\Models\\User$/'
+
+# Literal substring — no regex escaping needed
+vendor/bin/lucent sync --filter=User
+
+# Everything except legacy models
+vendor/bin/lucent sync --exclude-filter='/Legacy/'
+
+# Both — exclude wins
+vendor/bin/lucent sync --filter='/App\\Models\\/' --exclude-filter='/Legacy/'
+```
+
+With filters active, excluded models' tables are **protected**: the differ itself never drops a protected table and never offers it as a rename target, so a filtered run cannot look orphaned to the differ and destroy an excluded model's table — not even through the rename-pairing path (two models sharing columns would otherwise be paired as a possible rename, moving the excluded table's data into the wrong table).
+
+### Custom Directories
+
+By default Lucent scans the PSR-4 directories registered with the Composer ClassLoader. Override with `--dir` (comma-separated):
+
+```bash
+vendor/bin/lucent sync --dir=app/Models,modules/Billing/Models
+```
+
+## Change Types
+
+| Change | Destructive | Description |
 |---|---|---|
-| `->create(ifNotExists?)` | `bool` | Execute `CREATE TABLE` |
-| `->drop()` | `bool` | Execute `DROP TABLE IF EXISTS` |
-| `->exists()` | `bool` | Check if the table exists |
-| `->toSql(ifNotExists?)` | `string` | Get the raw SQL without executing |
+| `create table` | No | New table from a model |
+| `add column(s)` | No | New columns on an existing table |
+| `rename column` | No | Declared via `#[Column(name: ...)]` — data travels with the rename |
+| `rename table` | No | Declared via `#[Table]` when the old name exists — data travels with the rename |
+| `modify column(s)` | Sometimes | Type/default drift; destructive when nullability tightens |
+| `alter indexes` | No | Index option drift (partial predicate, NULLS NOT DISTINCT) |
+| `add/drop foreign key` | No | Constraint shape changes |
+| `add/drop check` | Advisory | CHECK expression drift is reported, never executed |
+| `drop column(s)` | **Yes** | Columns removed from the model |
+| `drop table` | **Yes** | Tables no longer declared by any model |
 
-### Column Type Methods on `Table`
+## Rename Detection
 
-| Method | SQL Type | Notes |
-|---|---|---|
-| `->int(name)` | `INT` | Returns `NumericColumn` |
-| `->bigint(name)` | `BIGINT` | Returns `NumericColumn` |
-| `->tinyint(name)` | `TINYINT` | Returns `NumericColumn` |
-| `->boolean(name)` | `TINYINT` | Returns `NumericColumn`, bool pre/post processing |
-| `->float(name)` | `FLOAT` | Returns `NumericColumn` |
-| `->double(name)` | `DOUBLE` | Returns `NumericColumn` |
-| `->decimal(name)` | `DECIMAL(20,2)` | Returns `NumericColumn` |
-| `->varchar(name)` | `VARCHAR` | Requires `->length()` |
-| `->char(name)` | `CHAR` | Requires `->length()` |
-| `->text(name)` | `TEXT` | |
-| `->mediumtext(name)` | `MEDIUMTEXT` | |
-| `->longtext(name)` | `LONGTEXT` | |
-| `->json(name)` | `JSON` | |
-| `->date(name)` | `DATE` | |
-| `->timestamp(name)` | `TIMESTAMP` | |
-| `->binary(name)` | `BINARY` | Requires `->length()` |
-| `->enum(name)` | `ENUM` | Requires `->values([...])` |
+The differ flags **possible renames** rather than guessing: a create/drop pair whose columns overlap by ≥50% is annotated `POSSIBLE RENAME` in the plan. When `sync` sees a flagged pair it prompts:
 
-### Column Modifiers
+```
+POSSIBLE RENAME: [old_table] → [new_table]. Treat as a rename? (yes/no)
+```
 
-| Modifier | Applies To | Description |
-|---|---|---|
-| `->nullable()` | All | Allow NULL values |
-| `->default(value)` | All | Set a default value |
-| `->primaryKey()` | All | Mark as primary key |
-| `->unique()` | All | Add UNIQUE constraint |
-| `->length(int)` | String / Binary | Set column length |
-| `->values(array)` | ENUM | Set allowed values |
-| `->references(Reference)` | All | Add foreign key reference |
-| `->autoIncrement()` | Numeric only | Auto-increment on insert |
-| `->unsigned()` | Numeric only | Unsigned (MySQL only) |
+Confirming declares the rename on the blueprint (`renamedFrom`) and re-plans — **nothing touches the database until the plan is final**. The differ verifies the declaration and emits the real `RenameTable` change (data travels with it) instead of a drop + create. Each old table can only be claimed by one rename (highest overlap wins); competing creates stay as create + drop.
+
+A declared rename and its column drift land in **one plan**: the differ emits the `RenameTable` change first, then diffs the desired columns against the old table's live shape and emits the follow-up `AddColumn`/`ModifyColumn`/`DropColumn` changes targeting the new name. Applying the plan leaves the schema fully in sync — a renamed column that also changed shape sequences `RenameColumn` first, then `ModifyColumn`.
+
+With `--force` every suggestion is auto-accepted. Without a TTY the flagged pair is kept as-is (the plan shows the annotation and the destructive gate handles it).
+
+To declare a rename deterministically instead of relying on the prompt, declare it (the new `#[Table]`/`#[Column(name:)]` value against the existing table) and re-run — the declared rename is verified against the live schema and data travels with it.
+
+## The Schema Lock
+
+The whole plan → display → apply flow runs under Radiant's `radiant:schema` cross-process lock (a named advisory lock on MySQL/Postgres; a file lock on SQLite). Two concurrent `sync` runs serialize — the second waits, then re-diffs against the updated schema.
+
+## First Run
+
+On a fresh database, `sync` creates every discovered model's table. On an existing database built by a pre-Radiant version of Lucent, run [`sync:legacy`](commandline.md) once first to rename the old-style tables.

@@ -187,28 +187,27 @@ Example model using UUID as primary key:
 
 namespace App\Models;
 
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Attributes\ColumnType;
+use BlueprintAU\Radiant\Model;
 use Lucent\Facades\UUID;
-use Lucent\Model;
 
 class User extends Model
 {
-    #[Column(ColumnType::VARCHAR, primaryKey: true, length: 36, autoIncrement: false)]
+    #[Column(ColumnType::Uuid, primaryKey: true, autoIncrement: false)]
     protected string $id;
     
-    #[Column(ColumnType::VARCHAR, length: 255)]
+    #[Column(length: 255)]
     protected string $name;
     
-    #[Column(ColumnType::VARCHAR, length: 255, unique: true)]
+    #[Column(length: 255, unique: true)]
     protected string $email;
     
-    public function __construct(Dataset $data)
+    public function __construct(string $name, string $email)
     {
-           $this->id = $data->get("id", UUID::v7());
-           $this->name = $data->get("name");
-           $this->email = $data->get("email");
+        $this->id = UUID::v7();
+        $this->name = $name;
+        $this->email = $email;
     }
     
     // Getters and setters...
@@ -264,38 +263,36 @@ When using UUIDs in databases, consider these options:
 
 namespace App\Models;
 
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-use Lucent\Database\Dataset;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Attributes\ColumnType;
+use BlueprintAU\Radiant\Model;
 use Lucent\Facades\UUID;
-use Lucent\Model;
 
 class Article extends Model
 {
-    #[Column(ColumnType::VARCHAR, primaryKey: true, length: 36, autoIncrement: false)]
+    #[Column(ColumnType::Uuid, primaryKey: true, autoIncrement: false)]
     protected string $id;
     
-    #[Column(ColumnType::VARCHAR, length: 36)]
+    #[Column(ColumnType::Uuid, foreign: 'users.id')]
     protected string $author_id;
-    
-    #[Column(ColumnType::VARCHAR, length: 200)]
+
+    #[Column(length: 200)]
     protected string $title;
     
-    #[Column(ColumnType::TEXT)]
+    #[Column]
     protected string $content;
     
-    #[Column(ColumnType::TIMESTAMP, default: "CURRENT_TIMESTAMP")]
-    protected string $created_at;
+    #[Column(nullable: true)]
+    protected ?string $created_at;
     
-    public function __construct(Dataset $data)
+    public function __construct(string $author_id, string $title, string $content)
     {
-        $this->id = $data->get("id", UUID::v7());
-        $this->author_id = $data->get("author_id");
-        $this->title = $data->get("title");
-        $this->content = $data->get("content");
-        $this->created_at = $data->get("created_at");
+        $this->id = UUID::v7();
+        $this->author_id = $author_id;
+        $this->title = $title;
+        $this->content = $content;
+        $this->created_at = null;
     }
-    
 }
 ```
 

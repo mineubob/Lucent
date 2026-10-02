@@ -14,7 +14,7 @@ class AuthMiddleware implements MiddlewareInterface
     {
         $urlVars = $request->getAttribute('urlVars', []);
         if (($urlVars['user'] ?? null) === "1"){
-            $request = $request->withAttribute('user', TestUser::where("id",1)->getFirst());
+            $request = $request->withAttribute('user', TestUser::where("id", "=", 1)->first());
         }
 
         return $handler->handle($request);

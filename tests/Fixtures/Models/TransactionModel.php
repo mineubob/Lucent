@@ -1,25 +1,25 @@
 <?php
 namespace App\Models;
 
-use Lucent\Model\Model;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
+use BlueprintAU\Radiant\Model;
 
 class TransactionModel extends Model
 {
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
+    #[Column(ColumnType::String, length: 255, nullable: true)]
     protected ?string $description;
 
-    #[Column(ColumnType::DECIMAL)]
+    #[Column(ColumnType::Float)]
     public protected(set) float $amount;
 
-    #[Column(ColumnType::INT)]
+    #[Column(ColumnType::Int)]
     protected int $type;
 
-    #[Column(ColumnType::INT)]
+    #[Column(ColumnType::Int)]
     public protected(set) int $date;
 
     public function __construct(float $amount, int $type, ?string $description = null, ?int $date = null)

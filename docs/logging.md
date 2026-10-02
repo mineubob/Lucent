@@ -107,19 +107,10 @@ class SyslogDriver extends Driver
 
 ## Database Logging
 
-The database layer accepts any PSR-3 logger via `Database::setLogger()`:
-
-```php
-use Lucent\Database;
-use Lucent\Logging\Channel;
-use Lucent\Logging\Drivers\FileDriver;
-
-Database::setLogger(new Channel('lucent.db', new FileDriver('db.log')));
-```
-
-`Database::log($level, $message, $context = [])` routes through the configured logger. If no logger is set, calls are silently dropped (mirroring the PSR-3 `NullLogger` convention).
-
- > **Note:** The legacy `Lucent\Database\DatabaseLogger` interface is deprecated. It remains as a type alias for projects that still reference it, but implementations must now satisfy the full PSR-3 `Psr\Log\LoggerInterface` contract.
+The database layer (Radiant) does not currently expose a query-logging seam —
+there is no `Database::setLogger()` equivalent. The `lucent.db` channel
+remains registered and available for application-level database logging; wire
+your own query logging by wrapping the connection if needed.
 
 ## Built-in Channels
 

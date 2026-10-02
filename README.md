@@ -9,9 +9,10 @@ Lucent is a lightweight PHP framework designed for building APIs with minimal ov
 Lucent provides a streamlined approach to building PHP APIs with:
 
 - Simple routing with REST
-- [Database abstraction with support for MySQL and SQLite](./docs/database.md)
-- [Model-based ORM with relationships](./docs/orm.md)
-- [Route Model Binding](./docs/route-model-binding.md)
+- [Database layer powered by Radiant — MySQL, SQLite, Postgres](./docs/database.md)
+- [Attribute-driven ORM with relationships](./docs/orm.md)
+- [Diff-based schema synchronization (`sync`)](./docs/database/schema.md)
+- [Route Model Binding via `#[Bind]`](./docs/route-model-binding.md)
 - [Rules & Validation](./docs/rules-and-validation.md)
 - Middleware support
 - [Comprehensive PSR-3 compliant logging](./docs/logging.md)
@@ -23,6 +24,7 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - [File System](./docs/filesystem/file.md)
 - [UUID's](./docs/facades/uuid.md)
 - [Exception & Error handling](./docs/error-handling.md)
+- [Upgrading from a pre-Radiant version](./docs/migrating-to-radiant.md)
 
 
 ## Installing and Updating
@@ -141,13 +143,15 @@ myapp/
 Configure your database connection and other settings in the `.env` file:
 
 ```env
-DB_USERNAME=root
-DB_PASSWORD=
+DB_DRIVER=mysql
 DB_HOST=localhost
 DB_PORT=3306
 DB_DATABASE=lucent
-DB_DRIVER=mysql
+DB_USERNAME=root
+DB_PASSWORD=
 ```
+
+Supported drivers: `mysql`, `sqlite`, `pgsql`, `csv`.
 
 ## Contributing
 

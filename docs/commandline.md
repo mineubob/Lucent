@@ -35,7 +35,8 @@ Lucent comes with several built-in commands:
 
 | Command | Description |
 |---------|-------------|
-| `migration make {class}` | Creates or updates database tables based on model classes |
+| `sync` | Diffs the discovered models' schema against the database and applies it |
+| `sync:legacy` | DEPRECATED one-time migration: renames legacy table names to the Radiant naming |
 | `generate api-docs` | Generates API documentation based on your controller attributes |
 | `serve` | Starts the built-in PHP development server |
 | `deploy latest` | Downloads and deploys the latest project release |
@@ -48,14 +49,84 @@ Lucent comes with several built-in commands:
 Lucent commands are run via the `vendor/bin/lucent` binary:
 
 ```bash
-vendor/bin/lucent migration make App/Models/User
+vendor/bin/lucent sync
 ```
 
 To run these commands, use the `vendor/bin/lucent` binary in your project root:
 
 ```bash
-vendor/bin/lucent migration make App/Models/User
+vendor/bin/lucent sync
 ```
+
+### The `sync` Command
+
+`sync` keeps the database schema in step with your models. It discovers every Radiant model class, compiles each model's attributes into a desired-state blueprint, diffs that against the live schema, and applies the changes.
+
+```bash
+vendor/bin/lucent sync
+```
+
+Options:
+
+| Option | Description |
+|--------|-------------|
+| `--filter=pattern` | Only include models whose FQCN matches. A valid regex is used verbatim; anything else is a case-insensitive literal substring match |
+| `--exclude-filter=pattern` | Exclude matching models (wins over `--filter`); their tables are protected from drops and renames |
+| `--dir=a,b` | Override the PSR-4 discovery directories (comma-separated) |
+| `--force` | Skip the destructive-change prompts |
+| `--dry-run` | Display the plan and exit without applying anything |
+| `--no-drop-tables` | Additive-only plan: tables no model declares are left untouched instead of offered for drop (column drops still go through the confirm gate) |
+| `--no-transactional` | Disable the transactional apply (on by default when the dialect supports it) |
+
+```bash
+# Only the User model (regex)
+vendor/bin/lucent sync --filter='/App\\\\Models\\\\User$/'
+
+# Literal substring — no regex escaping needed
+vendor/bin/lucent sync --filter='User'
+
+# Everything except legacy models
+vendor/bin/lucent sync --exclude-filter='/Legacy/'
+
+# Custom discovery directories
+vendor/bin/lucent sync --dir='app/Models,modules/Billing/Models'
+
+# Preview the plan without touching the database
+vendor/bin/lucent sync --dry-run
+
+# Non-interactive (CI)
+vendor/bin/lucent sync --force
+```
+
+Non-destructive changes (creates, adds, renames) apply automatically. Destructive changes (drops, nullability tightening) prompt per change unless `--force` is given. See [Schema](database/schema.md) for the full change vocabulary.
+
+#### Transactional apply
+
+When the dialect supports transactional DDL (SQLite, PostgreSQL), the apply runs inside a transaction — a mid-apply failure rolls the whole plan back. MySQL DDL auto-commits, so `sync` prints a warning and applies non-transactionally. Pass `--no-transactional` to opt out explicitly.
+
+#### Rename suggestions
+
+When the differ flags a create/drop pair as a possible rename (≥50% column overlap), `sync` prompts:
+
+```
+POSSIBLE RENAME: [old_table] → [new_table]. Treat as a rename? (yes/no)
+```
+
+Confirming declares the rename on the blueprint and re-plans — nothing touches the database until the plan is final. The differ emits the real `RenameTable` change (data travels with it) instead of a drop + create, together with any column shape drift in the same plan — so the schema is fully in sync after one apply. Each old table can only be claimed by one rename (highest overlap wins). With `--force` suggestions are auto-accepted; without a TTY they are kept as-is. To declare a rename deterministically instead of relying on the prompt, use `renamedFrom()` in host code (see [Schema](database/schema.md)).
+
+### The `sync:legacy` Command
+
+> **DEPRECATED:** `sync:legacy` is a one-time migration for databases created by a pre-Radiant version of Lucent and will be removed in a future release.
+
+Old Lucent named tables after the model's short class name (`TestUser`); Radiant defaults to the snake-cased plural (`test_users`). `sync:legacy` renames each old-style table to its Radiant name — data travels with the rename, no column or data conversion is needed.
+
+```bash
+vendor/bin/lucent sync:legacy
+```
+
+It accepts the same `--filter` / `--exclude-filter` / `--dir` options as `sync` (see above), plus `--dry-run` to display the rename plan and exit without applying anything. It is idempotent: a second run finds nothing to rename. Run it once after upgrading, then run `sync` to bring the rest of the schema in line.
+
+All renames are collected first and applied in a single call — on a dialect with transactional DDL (SQLite, PostgreSQL) the whole set commits or rolls back atomically, so a mid-migration failure never leaves half the tables renamed. MySQL DDL auto-commits, so the apply runs non-transactionally there.
 
 ### The `serve` Command
 
@@ -246,7 +317,7 @@ vendor/bin/lucent command [arguments]
 For example:
 
 ```bash
-vendor/bin/lucent migration make App/Models/User
+vendor/bin/lucent sync
 vendor/bin/lucent generate api-docs
 ```
 

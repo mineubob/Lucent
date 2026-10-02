@@ -1,0 +1,81 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\SluggedModel;
+use App\Models\TestUser;
+use App\Models\TestUserTwo;
+use BlueprintAU\Radiant\Model;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\Concerns\CopiesFixtures;
+use Tests\Support\Concerns\DatabaseTesting;
+use Tests\Support\TestCase;
+use Lucent\Console\Support\ModelDiscovery;
+
+class ModelDiscoveryTest extends TestCase
+{
+    use CopiesFixtures;
+    use DatabaseTesting;
+
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        self::copyFixtures([
+            'Model' => ['TestUser.php', 'TestUserTwo.php', 'SluggedModel.php'],
+        ]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_discover_scans_explicit_dir($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+
+        $discovery = new ModelDiscovery();
+        $models = $discovery->discover([TEMP_ROOT . 'App/Models']);
+
+        $this->assertContains(TestUser::class, $models);
+        $this->assertContains(TestUserTwo::class, $models);
+        $this->assertContains(SluggedModel::class, $models);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_discover_returns_fqcn_strings($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+
+        $models = (new ModelDiscovery())->discover([TEMP_ROOT . 'App/Models']);
+
+        $this->assertNotEmpty($models);
+
+        foreach ($models as $model) {
+            $this->assertIsString($model);
+            $this->assertTrue(class_exists($model));
+            $this->assertTrue(is_subclass_of($model, Model::class));
+        }
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_discover_deduplicates($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+
+        // The same dir twice must not produce duplicate entries.
+        $models = (new ModelDiscovery())->discover([
+            TEMP_ROOT . 'App/Models',
+            TEMP_ROOT . 'App/Models',
+        ]);
+
+        $this->assertCount(count(array_unique($models)), $models);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_discover_with_nonexistent_dir_returns_empty($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+
+        $models = (new ModelDiscovery())->discover([TEMP_ROOT . 'Does/Not/Exist']);
+
+        $this->assertSame([], $models);
+    }
+}
