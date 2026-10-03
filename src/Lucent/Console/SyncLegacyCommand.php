@@ -71,7 +71,7 @@ final class SyncLegacyCommand
         ['active' => $models] = $filter->apply($models);
 
         if ($models === []) {
-            self::warn("No models found.");
+            self::warn("No models matched.");
             return '';
         }
 
