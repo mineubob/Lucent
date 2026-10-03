@@ -84,6 +84,11 @@ final class ModelDiscovery
      * result reflects the actual autoloader state (correct when Lucent is a
      * dependency of a consumer project, and for multi-dir prefixes).
      *
+     * Dependency (vendor/) directories are EXCLUDED: they never hold the
+     * app's models, and scanning them would include dependency files whose
+     * references may not resolve (e.g. an optional symfony/finder), which
+     * fatals at include time and cannot be caught.
+     *
      * @return list<string> Absolute directory paths
      */
     private function psr4Directories(): array
@@ -92,13 +97,33 @@ final class ModelDiscovery
 
         foreach ($this->psr4Map() as $paths) {
             foreach ($paths as $path) {
-                if (is_dir($path)) {
+                if (is_dir($path) && !$this->isVendorPath($path)) {
                     $dirs[] = $path;
                 }
             }
         }
 
         return array_values(array_unique($dirs));
+    }
+
+    /**
+     * Whether the path lives inside a Composer vendor directory.
+     *
+     * @param string $path Absolute directory path
+     */
+    private function isVendorPath(string $path): bool
+    {
+        // The vendor dir is derivable from the registered loaders' keys
+        // (ClassLoader::getRegisteredLoaders() is keyed by vendor dir).
+        foreach (ClassLoader::getRegisteredLoaders() as $vendorDir => $loader) {
+            $vendorDir = rtrim((string) realpath($vendorDir), '/\\');
+
+            if ($vendorDir !== '' && str_starts_with($path, $vendorDir . DIRECTORY_SEPARATOR)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -171,12 +196,23 @@ final class ModelDiscovery
      */
     private function loadAndInspect(string $path): void
     {
+        // Only files that DECLARE a class-like can hold a Model. Scripts
+        // (route files, test-server routers, CLI entrypoints) execute
+        // side effects when included — echoing output, reading $_SERVER,
+        // registering routes — and must never run during discovery.
+        if (!$this->declaresClassLike($path)) {
+            return;
+        }
+
         $class = $this->classFromFile($path);
 
-        if ($class !== null && class_exists($class)) {
-            // Already loaded (or autoloadable) — inspect it directly. A
-            // declared-classes diff would MISS it: the class was loaded
-            // before this call, so it never appears in the diff.
+        // No autoload: class_exists($class, false) only reports classes that
+        // are ALREADY declared. Triggering the autoloader here would include
+        // the file through Composer's plain `include` — and a second lookup
+        // for a name the file doesn't actually declare (a fixture whose
+        // namespace doesn't match its location) would include it AGAIN and
+        // fatal with "Cannot redeclare class".
+        if ($class !== null && class_exists($class, false)) {
             $this->collectIfModel($class);
             return;
         }
@@ -185,16 +221,68 @@ final class ModelDiscovery
 
         require_once $path;
 
-        // Prefer the derived class name when it now exists — a diff can miss
-        // classes that were already loaded by another file's require.
-        if ($class !== null && class_exists($class)) {
-            $this->collectIfModel($class);
-            return;
-        }
-
+        // The file may declare a DIFFERENT class than the path derives (a
+        // fixture whose namespace doesn't match its location, or a file
+        // declaring several classes). Read the declared-classes diff — it
+        // covers both that case and a derived class loaded by another file's
+        // require. Never re-ask the autoloader for the derived name: if the
+        // file didn't declare it, a lookup would include the file a second
+        // time (Composer's autoloader uses plain `include`).
         foreach (array_diff(get_declared_classes(), $classesBefore) as $declared) {
             $this->collectIfModel($declared);
         }
+    }
+
+    /**
+     * Whether the file declares a class, interface, trait or enum.
+     *
+     * A cheap token scan: stop at the first T_CLASS / T_INTERFACE /
+     * T_TRAIT / T_ENUM token that is not a ::class constant reference
+     * (those are preceded by a double-colon). Comments and strings are
+     * skipped by the tokenizer, so prose mentioning "class" never
+     * false-positives.
+     *
+     * @param string $path Absolute file path
+     */
+    private function declaresClassLike(string $path): bool
+    {
+        $source = file_get_contents($path);
+
+        if ($source === false || $source === '') {
+            return false;
+        }
+
+        $previousCode = null;
+
+        foreach (\token_get_all($source) as $token) {
+            if (!is_array($token)) {
+                $previousCode = $token; // single-char (e.g. ':', ';')
+                continue;
+            }
+
+            [$id, $text] = $token;
+
+            if (
+                $id === T_CLASS || $id === T_INTERFACE
+                || $id === T_TRAIT || $id === T_ENUM
+            ) {
+                // "::class" is two tokens: T_DOUBLE_COLON then T_CLASS —
+                // skip it so a file that only REFERENCES a class still
+                // counts as script-only.
+                if ($previousCode === ':' || $previousCode === T_DOUBLE_COLON) {
+                    $previousCode = $id;
+                    continue;
+                }
+
+                return true;
+            }
+
+            if ($text !== '' && trim($text) !== '') {
+                $previousCode = $id;
+            }
+        }
+
+        return false;
     }
 
     /**
