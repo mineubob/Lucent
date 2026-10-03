@@ -14,10 +14,8 @@ class TestUser extends Model
     protected string $email;
 
     // Nullable so a sync that ADDS this column to an existing table stays an
-    // in-place add that converges in a single apply. A NOT NULL add without a
-    // default is supported too — Radiant backfills the existing rows — but
-    // only via Blueprint::backfill(), which a model attribute cannot express,
-    // and that path converges over two applies rather than one.
+    // in-place add that converges in a single apply (a NOT NULL add without a
+    // default needs a declared default or a #[Backfill]).
     #[Column(ColumnType::String, length: 255, nullable: true)]
     protected string $password_hash;
 
