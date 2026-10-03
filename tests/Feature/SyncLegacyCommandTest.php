@@ -80,7 +80,7 @@ class SyncLegacyCommandTest extends TestCase
             "sync:legacy --dir=" . TEMP_ROOT . "App/Models --filter=DoesNotExist"
         );
 
-        $this->assertStringContainsString("No models found", $result);
+        $this->assertStringContainsString("No models matched", $result);
 
         $tables = Database::sqlConnection()->schemaInspector->tables();
         $this->assertContains('TestUser', $tables);

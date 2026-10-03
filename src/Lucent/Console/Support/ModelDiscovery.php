@@ -46,6 +46,9 @@ final class ModelDiscovery
      *
      * @param list<string>|null $dirs Explicit directories (absolute or
      *        root-relative). Null scans the app composer.json's PSR-4 dirs.
+     *        Explicit dirs are scanned AS GIVEN — including vendor/ paths —
+     *        so a package that ships models can be synced with
+     *        `sync --dir=vendor/<package>/Models`.
      * @return list<class-string<Model>>
      */
     public function discover(?array $dirs = null): array
@@ -84,10 +87,12 @@ final class ModelDiscovery
      * result reflects the actual autoloader state (correct when Lucent is a
      * dependency of a consumer project, and for multi-dir prefixes).
      *
-     * Dependency (vendor/) directories are EXCLUDED: they never hold the
-     * app's models, and scanning them would include dependency files whose
-     * references may not resolve (e.g. an optional symfony/finder), which
-     * fatals at include time and cannot be caught.
+     * Dependency (vendor/) directories are EXCLUDED from the default scan:
+     * they never hold the app's models, and a vendor-wide scan would include
+     * dependency files whose references may not resolve (e.g. an optional
+     * symfony/finder), which fatals at include time and cannot be caught.
+     * Explicit --dir paths bypass this filter — the deliberate escape hatch
+     * for packages that ship models.
      *
      * @return list<string> Absolute directory paths
      */
