@@ -26,7 +26,6 @@ Lucent provides a streamlined approach to building PHP APIs with:
 - [Exception & Error handling](./docs/error-handling.md)
 - [Upgrading from a pre-Radiant version](./docs/migrating-to-radiant.md)
 
-
 ## Installing and Updating
 
 ### Installation
@@ -77,9 +76,9 @@ DEPLOY_URL=https://api.github.com/repos/your-org/your-repo/zipball/master
 DEPLOY_TOKEN=your_personal_access_token
 ```
 
-For GitHub private repositories, generate a Access Token with `repo` scope at https://github.com/settings/tokens, then use the API URL format above with the following headers automatically applied by Lucent:
+For GitHub private repositories, generate a Access Token with `repo` scope at <https://github.com/settings/tokens>, then use the API URL format above with the following headers automatically applied by Lucent:
 
-```
+```txt
 Authorization: Bearer {token}
 
 Accept: application/vnd.github+json
@@ -94,11 +93,13 @@ vendor/bin/lucent deploy latest
 ```
 
 This will:
+
 1. Download the zip from `DEPLOY_URL`
 2. Back up your current project to `storage/backups/{timestamp}.zip`
 3. Extract the new version over your project
 
 The following paths are never touched during a deploy:
+
 - `.env` — your environment config
 - `vendor/` — your Composer dependencies
 - `storage/` — your logs, uploads, and temp files
@@ -110,6 +111,7 @@ vendor/bin/lucent deploy rollback
 ```
 
 This will:
+
 1. Clean the current project (preserving `.env`, `vendor/`, `storage/backups`, `storage/temp`, and `logs`)
 2. Restore the most recent backup zip
 3. Remove the used backup
