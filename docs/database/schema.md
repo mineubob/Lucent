@@ -55,6 +55,24 @@ class Post extends Model
 
 Running `vendor/bin/lucent sync` creates the `posts` table with all columns, the unique constraint, the index, and the foreign key — nothing to hand-write.
 
+## Adding NOT NULL Columns to Existing Tables
+
+A NOT NULL column with no declared default cannot be added to a table that already has rows — there is no value for them. Radiant fails fast at apply time with the fix spelled out. Three ways to resolve it:
+
+- **Declare a default** — `#[Column(ColumnType::String, length: 255, default: '')]`. Existing rows are backfilled with it, and it stays as the default for new rows.
+- **Make the column nullable** — `#[Column(ColumnType::String, length: 255, nullable: true)]`. Existing rows carry `NULL`.
+- **Declare a one-time backfill** — a separate `#[Backfill]` attribute on the same property:
+
+```php
+use BlueprintAU\Radiant\Attributes\Backfill;
+
+#[Column(ColumnType::String, length: 255)]
+#[Backfill('unknown')]
+protected string $password_hash;
+```
+
+The backfill value fills the rows that exist when the column is added; it is not part of the column's permanent shape (new rows get `NULL` unless a default is declared, and the attribute is inert once the column exists). When both a default and a backfill are declared, the backfill wins for existing rows and the default applies to new rows.
+
 ## Running Sync
 
 ```bash

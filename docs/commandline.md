@@ -100,6 +100,10 @@ vendor/bin/lucent sync --force
 
 Non-destructive changes (creates, adds, renames) apply automatically. Destructive changes (drops, nullability tightening) prompt per change unless `--force` is given. See [Schema](database/schema.md) for the full change vocabulary.
 
+#### Adding NOT NULL columns
+
+A NOT NULL column with no default cannot be added to a table that already has rows — the apply fails fast. Declare a `default:` on the column, make it nullable, or add a one-time `#[Backfill]` attribute (see [Schema](database/schema.md#adding-not-null-columns-to-existing-tables)).
+
 #### Transactional apply
 
 When the dialect supports transactional DDL (SQLite, PostgreSQL), the apply runs inside a transaction — a mid-apply failure rolls the whole plan back. MySQL DDL auto-commits, so `sync` prints a warning and applies non-transactionally. Pass `--no-transactional` to opt out explicitly.
