@@ -2,303 +2,155 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard for /home/runner/work/Lucent/Lucent/src/Lucent/Logging/Channels</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/billboard.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Logging</a></li>
-         <li class="breadcrumb-item"><a href="index.html">Channels</a></li>
-         <li class="breadcrumb-item active">(Dashboard)</li>
-
-       </ol>
-      </nav>
-     </div>
-    </div>
-   </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../../index.html">Lucent</a></li>
+     <li><a href="../index.html">Logging</a></li>
+     <li><a href="index.html">Channels</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../../_classes/dashboard.html">Classes</a></li>
+   </ul>
   </header>
-  <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classesCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">1</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">3</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="NullChannel.php.html#18"><circle cx="780.0" cy="130.0" r="20.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="NullChannel.php.html#18">Lucent\Logging\Channels\NullChannel</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">1</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="NullChannel.php.html#20"><circle cx="780.0" cy="185.0" r="20.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="NullChannel.php.html#25"><circle cx="780.0" cy="185.0" r="20.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel::log — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="NullChannel.php.html#20">Lucent\Logging\Channels\NullChannel::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="NullChannel.php.html#25">Lucent\Logging\Channels\NullChannel::log</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2 style="margin-top: 3rem;">Methods</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodsCoverageDistribution" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <footer>
-    <hr/>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
-  <script src="../../../_js/billboard.pkgd.min.js?v=12.5.7" type="text/javascript"></script>
-  <script type="application/json" id="complexity_class">[[100,2,"NullChannel.php.html#18","Lucent\\Logging\\Channels\\NullChannel","2"]]</script>
-  <script type="application/json" id="complexity_method">[[100,1,"NullChannel.php.html#20","Lucent\\Logging\\Channels\\NullChannel::__construct","1"],[100,1,"NullChannel.php.html#25","Lucent\\Logging\\Channels\\NullChannel::log","1"]]</script>
-  <script type="text/javascript" defer>
-  const barLabels = [
-    '0%',
-    '0-10%',
-    '10-20%',
-    '20-30%',
-    '30-40%',
-    '40-50%',
-    '50-60%',
-    '60-70%',
-    '70-80%',
-    '80-90%',
-    '90-100%',
-    '100%'
-  ];
-  const barConfig = (name, fullName, values) => ({
-    axis: {
-      x: {
-        type: "category",
-        categories: barLabels,
-      },
-      y: {
-        label: {
-          text: `#${name}`,
-          position: 'outer-top',
-        },
-      },
-    },
-    bindto: `#${name}CoverageDistribution`,
-    data: {
-      columns: [
-        [fullName].concat(values),
-      ],
-      colors: {
-        [fullName]: "rgba(69, 114, 167, 0.75)",
-      },
-      type: "bar",
-    },
-    bar: {
-      width: {
-        ratio: 0.9,
-      },
-    },
-    grid: {
-      focus: {
-        show: false,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">Coverage ${barLabels[data[0].x]}</th></tr>
-            <tr><td class="value">${data[0].value} ${name}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  bb.generate(
-    barConfig('classes', "Class Coverage", [0,0,0,0,0,0,0,0,0,0,0,1])
-  );
-  bb.generate(
-    barConfig('methods', "Method Coverage", [0,0,0,0,0,0,0,0,0,0,0,2])
-  );
-
-  const scatterConfig = (name, complexityData) => ({
-    axis: {
-      x: {
-        label: {
-          text: 'Code Coverage (in percent)',
-          position: 'outer-right',
-        },
-        tick: {
-          values: [0, 20, 40, 60, 80, 100],
-        },
-      },
-      y: {
-        label: {
-          text: 'Cyclomatic Complexity',
-          position: 'outer-top',
-        },
-        min: 0,
-        padding: {
-          bottom: 0,
-          top: 5,
-        },
-      },
-    },
-    bindto: `#${name}Complexity`,
-    data: {
-      columns: [
-        ["complexity_x"].concat(complexityData.map(d => d[0])),
-        ["complexity"].concat(complexityData.map(d => d[1])),
-      ],
-      onclick: function(data, element) {
-        window.location = complexityData[data.index][2];
-      },
-      type: "scatter",
-      xs: {
-        "complexity": "complexity_x",
-      },
-    },
-    grid: {
-      focus: {
-        show: true,
-        y: true,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        const coverage = Math.round(data[0].x);
-        const complexity = data[0].value;
-        const targetName = complexityData[data[0].index][3];
-        const crap = complexityData[data[0].index][4];
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">${targetName}</th></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Coverage</td><td class="name">${coverage}%</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Complexity</td><td class="value">${complexity}</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Crap</td><td class="value">${crap}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  const classComplexityData = JSON.parse(document.getElementById('complexity_class').textContent);
-  bb.generate(
-    scatterConfig("class", classComplexityData)
-  );
-  const methodComplexityData = JSON.parse(document.getElementById('complexity_method').textContent);
-  bb.generate(
-    scatterConfig("method", methodComplexityData),
-  );
-  </script>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
  </body>
 </html>

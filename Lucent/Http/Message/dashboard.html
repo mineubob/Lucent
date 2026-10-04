@@ -2,416 +2,557 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard for /home/runner/work/Lucent/Lucent/src/Lucent/Http/Message</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/billboard.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Http</a></li>
-         <li class="breadcrumb-item"><a href="index.html">Message</a></li>
-         <li class="breadcrumb-item active">(Dashboard)</li>
-
-       </ol>
-      </nav>
-     </div>
-    </div>
-   </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../../index.html">Lucent</a></li>
+     <li><a href="../index.html">Http</a></li>
+     <li><a href="index.html">Message</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../../_classes/dashboard.html">Classes</a></li>
+   </ul>
   </header>
-  <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classesCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="240.0" x2="780" y2="240.0" class="chart-grid"/>
+ <text x="52" y="240.0" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="130.0" x2="780" y2="130.0" class="chart-grid"/>
+ <text x="52" y="130.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="ServerRequest.php.html#29"><circle cx="577.2" cy="132.2" r="20.0" class="bubble-warning"><title>Lucent\Http\Message\ServerRequest — Coverage: 71.8% | Lines: 174 | Complexity: 99</title></circle></a>
+ <a href="Stream.php.html#16"><circle cx="608.6" cy="200.4" r="18.4" class="bubble-warning"><title>Lucent\Http\Message\Stream — Coverage: 76.2% | Lines: 147 | Complexity: 68</title></circle></a>
+ <a href="Uri.php.html#14"><circle cx="754.8" cy="160.8" r="18.1" class="bubble-success"><title>Lucent\Http\Message\Uri — Coverage: 96.5% | Lines: 143 | Complexity: 86</title></circle></a>
+ <a href="AbstractMessage.php.html#15"><circle cx="722.4" cy="266.4" r="13.1" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage — Coverage: 92.0% | Lines: 75 | Complexity: 38</title></circle></a>
+ <a href="UploadedFile.php.html#16"><circle cx="511.3" cy="273.0" r="12.4" class="bubble-warning"><title>Lucent\Http\Message\UploadedFile — Coverage: 62.7% | Lines: 67 | Complexity: 35</title></circle></a>
+ <a href="UriResolver.php.html#20"><circle cx="708.0" cy="299.4" r="11.7" class="bubble-success"><title>Lucent\Http\Message\UriResolver — Coverage: 90.0% | Lines: 60 | Complexity: 23</title></circle></a>
+ <a href="Response.php.html#21"><circle cx="742.1" cy="301.6" r="11.4" class="bubble-success"><title>Lucent\Http\Message\Response — Coverage: 94.7% | Lines: 57 | Complexity: 22</title></circle></a>
+ <a href="Stream/LazyStream.php.html#23"><circle cx="712.1" cy="295.0" r="11.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream — Coverage: 90.6% | Lines: 53 | Complexity: 25</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#21"><circle cx="696.9" cy="286.2" r="10.9" class="bubble-warning"><title>Lucent\Http\Message\Stream\IteratorStream — Coverage: 88.5% | Lines: 52 | Complexity: 29</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#25"><circle cx="631.8" cy="312.6" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\Factory\HttpFactory — Coverage: 79.4% | Lines: 34 | Complexity: 17</title></circle></a>
+ <a href="Request.php.html#15"><circle cx="674.1" cy="308.2" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\Request — Coverage: 85.3% | Lines: 34 | Complexity: 19</title></circle></a>
+ <a href="RequestContext.php.html#23"><circle cx="568.2" cy="288.4" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\RequestContext — Coverage: 70.6% | Lines: 34 | Complexity: 28</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#20"><circle cx="780.0" cy="339.0" r="4.5" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="ServerRequest.php.html#29">Lucent\Http\Message\ServerRequest</a></td><td class="number">317.88</td><td class="number">71.8%</td></tr>
+       <tr><td><a href="Stream.php.html#16">Lucent\Http\Message\Stream</a></td><td class="number">130.41</td><td class="number">76.2%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#16">Lucent\Http\Message\UploadedFile</a></td><td class="number">98.64</td><td class="number">62.7%</td></tr>
+       <tr><td><a href="Uri.php.html#14">Lucent\Http\Message\Uri</a></td><td class="number">86</td><td class="number">96.5%</td></tr>
+       <tr><td><a href="RequestContext.php.html#23">Lucent\Http\Message\RequestContext</a></td><td class="number">47.95</td><td class="number">70.6%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#15">Lucent\Http\Message\AbstractMessage</a></td><td class="number">38.74</td><td class="number">92.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#21">Lucent\Http\Message\Stream\IteratorStream</a></td><td class="number">30.29</td><td class="number">88.5%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#23">Lucent\Http\Message\Stream\LazyStream</a></td><td class="number">25.52</td><td class="number">90.6%</td></tr>
+       <tr><td><a href="UriResolver.php.html#20">Lucent\Http\Message\UriResolver</a></td><td class="number">23.53</td><td class="number">90.0%</td></tr>
+       <tr><td><a href="Response.php.html#21">Lucent\Http\Message\Response</a></td><td class="number">22.07</td><td class="number">94.7%</td></tr>
+       <tr><td><a href="Request.php.html#15">Lucent\Http\Message\Request</a></td><td class="number">20.15</td><td class="number">85.3%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#25">Lucent\Http\Message\Factory\HttpFactory</a></td><td class="number">19.52</td><td class="number">79.4%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#20">Lucent\Http\Message\Factory\LucentResponseFactory</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="UriResolver.php.html#107"><circle cx="696.9" cy="168.5" r="20.0" class="bubble-warning"><title>Lucent\Http\Message\UriResolver::removeDotSegments — Coverage: 88.5% | Lines: 26 | Complexity: 11</title></circle></a>
+ <a href="ServerRequest.php.html#151"><circle cx="780.0" cy="185.0" r="19.6" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::create — Coverage: 100.0% | Lines: 25 | Complexity: 10</title></circle></a>
+ <a href="UriResolver.php.html#31"><circle cx="780.0" cy="251.0" r="18.8" class="bubble-success"><title>Lucent\Http\Message\UriResolver::resolve — Coverage: 100.0% | Lines: 23 | Complexity: 6</title></circle></a>
+ <a href="ServerRequest.php.html#90"><circle cx="574.3" cy="218.0" r="18.0" class="bubble-warning"><title>Lucent\Http\Message\ServerRequest::capture — Coverage: 71.4% | Lines: 21 | Complexity: 8</title></circle></a>
+ <a href="Stream.php.html#227"><circle cx="528.0" cy="152.0" r="17.5" class="bubble-warning"><title>Lucent\Http\Message\Stream::seek — Coverage: 65.0% | Lines: 20 | Complexity: 12</title></circle></a>
+ <a href="Uri.php.html#149"><circle cx="704.2" cy="86.0" r="17.1" class="bubble-warning"><title>Lucent\Http\Message\Uri::isValid — Coverage: 89.5% | Lines: 19 | Complexity: 16</title></circle></a>
+ <a href="UploadedFile.php.html#47"><circle cx="700.0" cy="218.0" r="16.6" class="bubble-warning"><title>Lucent\Http\Message\UploadedFile::__construct — Coverage: 88.9% | Lines: 18 | Complexity: 8</title></circle></a>
+ <a href="Uri.php.html#98"><circle cx="700.0" cy="185.0" r="16.6" class="bubble-warning"><title>Lucent\Http\Message\Uri::fromServer — Coverage: 88.9% | Lines: 18 | Complexity: 10</title></circle></a>
+ <a href="ServerRequest.php.html#685"><circle cx="60.0" cy="218.0" r="16.2" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::createUploadedFile — Coverage: 0.0% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="Stream/LazyStream.php.html#150"><circle cx="780.0" cy="251.0" r="16.2" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::getOutput — Coverage: 100.0% | Lines: 17 | Complexity: 6</title></circle></a>
+ <a href="Uri.php.html#342"><circle cx="737.6" cy="185.0" r="16.2" class="bubble-success"><title>Lucent\Http\Message\Uri::__toString — Coverage: 94.1% | Lines: 17 | Complexity: 10</title></circle></a>
+ <a href="RequestContext.php.html#147"><circle cx="330.0" cy="86.0" r="15.7" class="bubble-danger"><title>Lucent\Http\Message\RequestContext::matchesType — Coverage: 37.5% | Lines: 16 | Complexity: 16</title></circle></a>
+ <a href="UploadedFile.php.html#107"><circle cx="588.0" cy="218.0" r="15.2" class="bubble-warning"><title>Lucent\Http\Message\UploadedFile::moveTo — Coverage: 73.3% | Lines: 15 | Complexity: 8</title></circle></a>
+ <a href="Stream.php.html#298"><circle cx="574.3" cy="251.0" r="14.7" class="bubble-warning"><title>Lucent\Http\Message\Stream::read — Coverage: 71.4% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="UploadedFile.php.html#163"><circle cx="625.7" cy="251.0" r="14.7" class="bubble-warning"><title>Lucent\Http\Message\UploadedFile::moveStream — Coverage: 78.6% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="Uri.php.html#68"><circle cx="780.0" cy="251.0" r="14.7" class="bubble-success"><title>Lucent\Http\Message\Uri::fromString — Coverage: 100.0% | Lines: 14 | Complexity: 6</title></circle></a>
+ <a href="Response.php.html#94"><circle cx="669.2" cy="267.5" r="14.1" class="bubble-warning"><title>Lucent\Http\Message\Response::json — Coverage: 84.6% | Lines: 13 | Complexity: 5</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#110"><circle cx="780.0" cy="234.5" r="14.1" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::read — Coverage: 100.0% | Lines: 13 | Complexity: 7</title></circle></a>
+ <a href="AbstractMessage.php.html#106"><circle cx="780.0" cy="300.5" r="13.6" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::withAddedHeader — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="ServerRequest.php.html#624"><circle cx="720.0" cy="234.5" r="13.6" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::extractHeaders — Coverage: 91.7% | Lines: 12 | Complexity: 7</title></circle></a>
+ <a href="Stream.php.html#323"><circle cx="600.0" cy="267.5" r="13.6" class="bubble-warning"><title>Lucent\Http\Message\Stream::getContents — Coverage: 75.0% | Lines: 12 | Complexity: 5</title></circle></a>
+ <a href="Stream.php.html#129"><circle cx="780.0" cy="300.5" r="13.0" class="bubble-success"><title>Lucent\Http\Message\Stream::close — Coverage: 100.0% | Lines: 11 | Complexity: 3</title></circle></a>
+ <a href="Stream.php.html#170"><circle cx="387.3" cy="267.5" r="13.0" class="bubble-danger"><title>Lucent\Http\Message\Stream::getSize — Coverage: 45.5% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="Stream.php.html#272"><circle cx="583.6" cy="267.5" r="13.0" class="bubble-warning"><title>Lucent\Http\Message\Stream::write — Coverage: 72.7% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="AbstractMessage.php.html#84"><circle cx="780.0" cy="300.5" r="12.4" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::withHeader — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="RequestContext.php.html#123"><circle cx="780.0" cy="300.5" r="12.4" class="bubble-success"><title>Lucent\Http\Message\RequestContext::requireTyped — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Stream.php.html#73"><circle cx="780.0" cy="317.0" r="12.4" class="bubble-success"><title>Lucent\Http\Message\Stream::fromResource — Coverage: 100.0% | Lines: 10 | Complexity: 2</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#140"><circle cx="708.0" cy="284.0" r="12.4" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::getContents — Coverage: 90.0% | Lines: 10 | Complexity: 4</title></circle></a>
+ <a href="UploadedFile.php.html#81"><circle cx="60.0" cy="267.5" r="12.4" class="bubble-danger"><title>Lucent\Http\Message\UploadedFile::getStream — Coverage: 0.0% | Lines: 10 | Complexity: 5</title></circle></a>
+ <a href="Uri.php.html#433"><circle cx="780.0" cy="300.5" r="12.4" class="bubble-success"><title>Lucent\Http\Message\Uri::encodeComponent — Coverage: 100.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Request.php.html#107"><circle cx="780.0" cy="267.5" r="11.8" class="bubble-success"><title>Lucent\Http\Message\Request::withUri — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="Response.php.html#171"><circle cx="780.0" cy="317.0" r="11.8" class="bubble-success"><title>Lucent\Http\Message\Response::withJsonEnvelope — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#270"><circle cx="780.0" cy="267.5" r="11.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withUri — Coverage: 100.0% | Lines: 9 | Complexity: 5</title></circle></a>
+ <a href="Stream.php.html#157"><circle cx="780.0" cy="333.5" r="11.8" class="bubble-success"><title>Lucent\Http\Message\Stream::detach — Coverage: 100.0% | Lines: 9 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#131"><circle cx="690.0" cy="317.0" r="11.1" class="bubble-warning"><title>Lucent\Http\Message\AbstractMessage::withoutHeader — Coverage: 87.5% | Lines: 8 | Complexity: 2</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#114"><circle cx="420.0" cy="300.5" r="11.1" class="bubble-danger"><title>Lucent\Http\Message\Factory\HttpFactory::createStreamFromFile — Coverage: 50.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Response.php.html#126"><circle cx="780.0" cy="284.0" r="11.1" class="bubble-success"><title>Lucent\Http\Message\Response::withStatus — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="ServerRequest.php.html#58"><circle cx="780.0" cy="300.5" r="11.1" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::__construct — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Stream.php.html#192"><circle cx="330.0" cy="284.0" r="11.1" class="bubble-danger"><title>Lucent\Http\Message\Stream::tell — Coverage: 37.5% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Stream.php.html#345"><circle cx="420.0" cy="284.0" r="11.1" class="bubble-danger"><title>Lucent\Http\Message\Stream::getMetadata — Coverage: 50.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Uri.php.html#203"><circle cx="780.0" cy="284.0" r="11.1" class="bubble-success"><title>Lucent\Http\Message\Uri::getAuthority — Coverage: 100.0% | Lines: 8 | Complexity: 4</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#92"><circle cx="677.1" cy="300.5" r="10.4" class="bubble-warning"><title>Lucent\Http\Message\Factory\HttpFactory::createStream — Coverage: 85.7% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Request.php.html#26"><circle cx="780.0" cy="300.5" r="10.4" class="bubble-success"><title>Lucent\Http\Message\Request::__construct — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="Request.php.html#41"><circle cx="574.3" cy="284.0" r="10.4" class="bubble-warning"><title>Lucent\Http\Message\Request::getRequestTarget — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="Response.php.html#222"><circle cx="780.0" cy="300.5" r="10.4" class="bubble-success"><title>Lucent\Http\Message\Response::withStream — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="ServerRequest.php.html#214"><circle cx="677.1" cy="284.0" r="10.4" class="bubble-warning"><title>Lucent\Http\Message\ServerRequest::getRequestTarget — Coverage: 85.7% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="ServerRequest.php.html#659"><circle cx="368.6" cy="267.5" r="10.4" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::normalizeUploadedFiles — Coverage: 42.9% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="Stream.php.html#55"><circle cx="780.0" cy="333.5" r="10.4" class="bubble-success"><title>Lucent\Http\Message\Stream::fromString — Coverage: 100.0% | Lines: 7 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#113"><circle cx="574.3" cy="284.0" r="10.4" class="bubble-warning"><title>Lucent\Http\Message\Stream::__toString — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="Uri.php.html#255"><circle cx="780.0" cy="300.5" r="10.4" class="bubble-success"><title>Lucent\Http\Message\Uri::withScheme — Coverage: 100.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="UriResolver.php.html#86"><circle cx="574.3" cy="284.0" r="10.4" class="bubble-warning"><title>Lucent\Http\Message\UriResolver::mergePaths — Coverage: 71.4% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="AbstractMessage.php.html#192"><circle cx="780.0" cy="300.5" r="9.6" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::withHeaderInternal — Coverage: 100.0% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="AbstractMessage.php.html#225"><circle cx="420.0" cy="267.5" r="9.6" class="bubble-danger"><title>Lucent\Http\Message\AbstractMessage::assertHeaderName — Coverage: 50.0% | Lines: 6 | Complexity: 5</title></circle></a>
+ <a href="AbstractMessage.php.html#246"><circle cx="540.0" cy="267.5" r="9.6" class="bubble-warning"><title>Lucent\Http\Message\AbstractMessage::assertHeaderValue — Coverage: 66.7% | Lines: 6 | Complexity: 5</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#140"><circle cx="540.0" cy="300.5" r="9.6" class="bubble-warning"><title>Lucent\Http\Message\Factory\HttpFactory::createStreamFromResource — Coverage: 66.7% | Lines: 6 | Complexity: 3</title></circle></a>
+ <a href="Response.php.html#198"><circle cx="780.0" cy="317.0" r="9.6" class="bubble-success"><title>Lucent\Http\Message\Response::withRedirect — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Response.php.html#249"><circle cx="780.0" cy="333.5" r="9.6" class="bubble-success"><title>Lucent\Http\Message\Response::withEventStream — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#352"><circle cx="780.0" cy="284.0" r="9.6" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::assertUploadedFilesTree — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#37"><circle cx="780.0" cy="317.0" r="9.6" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::__toString — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Stream/LazyStream.php.html#57"><circle cx="780.0" cy="333.5" r="9.6" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::detach — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="UploadedFile.php.html#142"><circle cx="60.0" cy="284.0" r="9.6" class="bubble-danger"><title>Lucent\Http\Message\UploadedFile::moveFile — Coverage: 0.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="Uri.php.html#452"><circle cx="780.0" cy="284.0" r="9.6" class="bubble-success"><title>Lucent\Http\Message\Uri::isValidHost — Coverage: 100.0% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="AbstractMessage.php.html#62"><circle cx="780.0" cy="317.0" r="8.8" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::getHeader — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#73"><circle cx="780.0" cy="317.0" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Factory\HttpFactory::createServerRequest — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="Response.php.html#152"><circle cx="636.0" cy="317.0" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\Response::withJsonBody — Coverage: 80.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#251"><circle cx="636.0" cy="300.5" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\ServerRequest::withMethod — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="ServerRequest.php.html#373"><circle cx="780.0" cy="284.0" r="8.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withParsedBody — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="ServerRequest.php.html#545"><circle cx="60.0" cy="267.5" r="8.8" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getParsedBodyValue — Coverage: 0.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="ServerRequest.php.html#596"><circle cx="780.0" cy="333.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::validate — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#104"><circle cx="780.0" cy="267.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Stream::isWritableMode — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="Stream.php.html#209"><circle cx="636.0" cy="300.5" r="8.8" class="bubble-warning"><title>Lucent\Http\Message\Stream::eof — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#56"><circle cx="780.0" cy="333.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::detach — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#268"><circle cx="780.0" cy="300.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withUserInfo — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Uri.php.html#281"><circle cx="780.0" cy="300.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withHost — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="Uri.php.html#295"><circle cx="780.0" cy="284.0" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withPort — Coverage: 100.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="Uri.php.html#386"><circle cx="780.0" cy="267.5" r="8.8" class="bubble-success"><title>Lucent\Http\Message\Uri::filterPort — Coverage: 100.0% | Lines: 5 | Complexity: 5</title></circle></a>
+ <a href="AbstractMessage.php.html#72"><circle cx="780.0" cy="317.0" r="7.8" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::getHeaderLine — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Request.php.html#78"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Request::withMethod — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#337"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withUploadedFiles — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#49"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::close — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#119"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::read — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#127"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::getContents — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#309"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withPath — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#321"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withQuery — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#333"><circle cx="780.0" cy="333.5" r="7.8" class="bubble-success"><title>Lucent\Http\Message\Uri::withFragment — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="UriResolver.php.html#149"><circle cx="600.0" cy="317.0" r="7.8" class="bubble-warning"><title>Lucent\Http\Message\UriResolver::removeLastSegment — Coverage: 75.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="AbstractMessage.php.html#43"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::withProtocolVersion — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#147"><circle cx="780.0" cy="317.0" r="6.8" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::getBody — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="AbstractMessage.php.html#162"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::withBody — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#168"><circle cx="780.0" cy="317.0" r="6.8" class="bubble-success"><title>Lucent\Http\Message\Factory\HttpFactory::createUploadedFile — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Request.php.html#59"><circle cx="60.0" cy="333.5" r="6.8" class="bubble-danger"><title>Lucent\Http\Message\Request::withRequestTarget — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#232"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withRequestTarget — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#305"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withCookieParams — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#320"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withQueryParams — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#403"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withAttribute — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#413"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::withoutAttribute — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#569"><circle cx="60.0" cy="300.5" r="6.8" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getUploadedFile — Coverage: 0.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="Stream.php.html#42"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\Stream::__construct — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#29"><circle cx="540.0" cy="317.0" r="6.8" class="bubble-warning"><title>Lucent\Http\Message\Stream\IteratorStream::__construct — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#49"><circle cx="780.0" cy="333.5" r="6.8" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::close — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#158"><circle cx="540.0" cy="317.0" r="6.8" class="bubble-warning"><title>Lucent\Http\Message\Stream\IteratorStream::getMetadata — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Stream/LazyStream.php.html#39"><circle cx="780.0" cy="317.0" r="6.8" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::__toString — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Stream/LazyStream.php.html#67"><circle cx="780.0" cy="317.0" r="6.8" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::getSize — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="Stream/LazyStream.php.html#135"><circle cx="540.0" cy="317.0" r="6.8" class="bubble-warning"><title>Lucent\Http\Message\Stream\LazyStream::getMetadata — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="AbstractMessage.php.html#182"><circle cx="780.0" cy="317.0" r="5.5" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::setHeaders — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#42"><circle cx="780.0" cy="317.0" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\HttpFactory::createRequest — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#57"><circle cx="780.0" cy="333.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\HttpFactory::createResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#43"><circle cx="780.0" cy="333.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory::createJsonEnvelopeResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#60"><circle cx="780.0" cy="333.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory::createRedirectResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#74"><circle cx="780.0" cy="333.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory::createEventStreamResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#87"><circle cx="780.0" cy="333.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory::createStreamResponse — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Request.php.html#92"><circle cx="780.0" cy="300.5" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Request::assertValidMethod — Coverage: 100.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="RequestContext.php.html#39"><circle cx="780.0" cy="317.0" r="5.5" class="bubble-success"><title>Lucent\Http\Message\RequestContext::fromRequest — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="RequestContext.php.html#92"><circle cx="780.0" cy="317.0" r="5.5" class="bubble-success"><title>Lucent\Http\Message\RequestContext::getTyped — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#465"><circle cx="60.0" cy="317.0" r="5.5" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getContext — Coverage: 0.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#482"><circle cx="60.0" cy="333.5" r="5.5" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::withContext — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#474"><circle cx="780.0" cy="317.0" r="5.5" class="bubble-success"><title>Lucent\Http\Message\Uri::assertNoControlChars — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="AbstractMessage.php.html#29"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#35"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::getProtocolVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#52"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::getHeaders — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#57"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::hasHeader — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#174"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::setBody — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#214"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::normalizeHeaderName — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="AbstractMessage.php.html#265"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\AbstractMessage::sanitizeHeaderValue — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Factory/HttpFactory.php.html#193"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Factory\HttpFactory::createUri — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Factory/LucentResponseFactory.php.html#29"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Factory\LucentResponseFactory::createJsonResponse — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Request.php.html#66"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Request::getMethod — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Request.php.html#99"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Request::getUri — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RequestContext.php.html#53"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\RequestContext::set — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RequestContext.php.html#65"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Http\Message\RequestContext::get — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="RequestContext.php.html#176"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\RequestContext::has — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="RequestContext.php.html#186"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\RequestContext::all — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Response.php.html#78"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Response::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Response.php.html#121"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Response::getStatusCode — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Response.php.html#140"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Response::getReasonPhrase — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#239"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getMethod — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#262"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getUri — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#292"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getServerParams — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#297"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getCookieParams — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#312"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getQueryParams — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#327"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getUploadedFiles — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#365"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getParsedBody — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#383"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getAttributes — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#395"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getAttribute — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#427"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\ServerRequest::getRouteInfo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#437"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getUrlVars — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#449"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getUrlVar — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="ServerRequest.php.html#499"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getQueryParam — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#514"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getCookie — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#529"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::getServerParam — Coverage: 0.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="ServerRequest.php.html#613"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\ServerRequest::withProtocolVersionInternal — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#94"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::isReadableMode — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Stream.php.html#152"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::__destruct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#222"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::isSeekable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#262"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::rewind — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#267"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::isWritable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream.php.html#293"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream::isReadable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#65"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::getSize — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#70"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::tell — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#75"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::eof — Coverage: 100.0% | Lines: 1 | Complexity: 2</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#80"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::isSeekable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#85"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\IteratorStream::seek — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#90"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\IteratorStream::rewind — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#95"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::isWritable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#100"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\IteratorStream::write — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/IteratorStream.php.html#105"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\IteratorStream::isReadable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#34"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#79"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\LazyStream::tell — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#84"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::eof — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#89"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::isSeekable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#94"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\LazyStream::seek — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#99"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\LazyStream::rewind — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#104"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::isWritable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#109"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Http\Message\Stream\LazyStream::write — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Stream/LazyStream.php.html#114"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Stream\LazyStream::isReadable — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UploadedFile.php.html#192"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\UploadedFile::getSize — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UploadedFile.php.html#197"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\UploadedFile::getError — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UploadedFile.php.html#202"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\UploadedFile::getClientFilename — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UploadedFile.php.html#207"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\UploadedFile::getClientMediaType — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#57"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#198"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getScheme — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#222"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getUserInfo — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#227"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getHost — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#232"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getPort — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#237"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getPath — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#242"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getQuery — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#247"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::getFragment — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#407"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::encodePath — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Uri.php.html#420"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Http\Message\Uri::encodeQueryOrFragment — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="RequestContext.php.html#147">Lucent\Http\Message\RequestContext::matchesType</a></td><td class="number">78.50</td><td class="number">37.5%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#685">Lucent\Http\Message\ServerRequest::createUploadedFile</a></td><td class="number">72</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#545">Lucent\Http\Message\ServerRequest::getParsedBodyValue</a></td><td class="number">30</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#81">Lucent\Http\Message\UploadedFile::getStream</a></td><td class="number">30</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#142">Lucent\Http\Message\UploadedFile::moveFile</a></td><td class="number">20</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream.php.html#227">Lucent\Http\Message\Stream::seek</a></td><td class="number">18.17</td><td class="number">65.0%</td></tr>
+       <tr><td><a href="Uri.php.html#149">Lucent\Http\Message\Uri::isValid</a></td><td class="number">16.30</td><td class="number">89.5%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#569">Lucent\Http\Message\ServerRequest::getUploadedFile</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="UriResolver.php.html#107">Lucent\Http\Message\UriResolver::removeDotSegments</a></td><td class="number">11.19</td><td class="number">88.5%</td></tr>
+       <tr><td><a href="Uri.php.html#98">Lucent\Http\Message\Uri::fromServer</a></td><td class="number">10.14</td><td class="number">88.9%</td></tr>
+       <tr><td><a href="Uri.php.html#342">Lucent\Http\Message\Uri::__toString</a></td><td class="number">10.02</td><td class="number">94.1%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#151">Lucent\Http\Message\ServerRequest::create</a></td><td class="number">10</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#659">Lucent\Http\Message\ServerRequest::normalizeUploadedFiles</a></td><td class="number">9.66</td><td class="number">42.9%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#90">Lucent\Http\Message\ServerRequest::capture</a></td><td class="number">9.49</td><td class="number">71.4%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#107">Lucent\Http\Message\UploadedFile::moveTo</a></td><td class="number">9.21</td><td class="number">73.3%</td></tr>
+       <tr><td><a href="Stream.php.html#170">Lucent\Http\Message\Stream::getSize</a></td><td class="number">9.06</td><td class="number">45.5%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#225">Lucent\Http\Message\AbstractMessage::assertHeaderName</a></td><td class="number">8.12</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#47">Lucent\Http\Message\UploadedFile::__construct</a></td><td class="number">8.09</td><td class="number">88.9%</td></tr>
+       <tr><td><a href="Stream.php.html#192">Lucent\Http\Message\Stream::tell</a></td><td class="number">7.91</td><td class="number">37.5%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#624">Lucent\Http\Message\ServerRequest::extractHeaders</a></td><td class="number">7.03</td><td class="number">91.7%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#110">Lucent\Http\Message\Stream\IteratorStream::read</a></td><td class="number">7</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#298">Lucent\Http\Message\Stream::read</a></td><td class="number">6.84</td><td class="number">71.4%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#163">Lucent\Http\Message\UploadedFile::moveStream</a></td><td class="number">6.35</td><td class="number">78.6%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#465">Lucent\Http\Message\ServerRequest::getContext</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#499">Lucent\Http\Message\ServerRequest::getQueryParam</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#514">Lucent\Http\Message\ServerRequest::getCookie</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#529">Lucent\Http\Message\ServerRequest::getServerParam</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream.php.html#345">Lucent\Http\Message\Stream::getMetadata</a></td><td class="number">6.00</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#150">Lucent\Http\Message\Stream\LazyStream::getOutput</a></td><td class="number">6</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#68">Lucent\Http\Message\Uri::fromString</a></td><td class="number">6</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UriResolver.php.html#31">Lucent\Http\Message\UriResolver::resolve</a></td><td class="number">6</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#246">Lucent\Http\Message\AbstractMessage::assertHeaderValue</a></td><td class="number">5.93</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="Stream.php.html#272">Lucent\Http\Message\Stream::write</a></td><td class="number">5.51</td><td class="number">72.7%</td></tr>
+       <tr><td><a href="Stream.php.html#323">Lucent\Http\Message\Stream::getContents</a></td><td class="number">5.39</td><td class="number">75.0%</td></tr>
+       <tr><td><a href="Response.php.html#94">Lucent\Http\Message\Response::json</a></td><td class="number">5.09</td><td class="number">84.6%</td></tr>
+       <tr><td><a href="Request.php.html#107">Lucent\Http\Message\Request::withUri</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#270">Lucent\Http\Message\ServerRequest::withUri</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#104">Lucent\Http\Message\Stream::isWritableMode</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#386">Lucent\Http\Message\Uri::filterPort</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#41">Lucent\Http\Message\Request::getRequestTarget</a></td><td class="number">4.37</td><td class="number">71.4%</td></tr>
+       <tr><td><a href="Stream.php.html#113">Lucent\Http\Message\Stream::__toString</a></td><td class="number">4.37</td><td class="number">71.4%</td></tr>
+       <tr><td><a href="UriResolver.php.html#86">Lucent\Http\Message\UriResolver::mergePaths</a></td><td class="number">4.37</td><td class="number">71.4%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#114">Lucent\Http\Message\Factory\HttpFactory::createStreamFromFile</a></td><td class="number">4.12</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#214">Lucent\Http\Message\ServerRequest::getRequestTarget</a></td><td class="number">4.05</td><td class="number">85.7%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#140">Lucent\Http\Message\Stream\IteratorStream::getContents</a></td><td class="number">4.02</td><td class="number">90.0%</td></tr>
+       <tr><td><a href="Response.php.html#126">Lucent\Http\Message\Response::withStatus</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#352">Lucent\Http\Message\ServerRequest::assertUploadedFilesTree</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#373">Lucent\Http\Message\ServerRequest::withParsedBody</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#203">Lucent\Http\Message\Uri::getAuthority</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#295">Lucent\Http\Message\Uri::withPort</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#452">Lucent\Http\Message\Uri::isValidHost</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#140">Lucent\Http\Message\Factory\HttpFactory::createStreamFromResource</a></td><td class="number">3.33</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#251">Lucent\Http\Message\ServerRequest::withMethod</a></td><td class="number">3.07</td><td class="number">80.0%</td></tr>
+       <tr><td><a href="Stream.php.html#209">Lucent\Http\Message\Stream::eof</a></td><td class="number">3.07</td><td class="number">80.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#92">Lucent\Http\Message\Factory\HttpFactory::createStream</a></td><td class="number">3.03</td><td class="number">85.7%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#84">Lucent\Http\Message\AbstractMessage::withHeader</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#106">Lucent\Http\Message\AbstractMessage::withAddedHeader</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#192">Lucent\Http\Message\AbstractMessage::withHeaderInternal</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#26">Lucent\Http\Message\Request::__construct</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#92">Lucent\Http\Message\Request::assertValidMethod</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#123">Lucent\Http\Message\RequestContext::requireTyped</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#222">Lucent\Http\Message\Response::withStream</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#58">Lucent\Http\Message\ServerRequest::__construct</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#129">Lucent\Http\Message\Stream::close</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#255">Lucent\Http\Message\Uri::withScheme</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#268">Lucent\Http\Message\Uri::withUserInfo</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#281">Lucent\Http\Message\Uri::withHost</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#433">Lucent\Http\Message\Uri::encodeComponent</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#29">Lucent\Http\Message\Stream\IteratorStream::__construct</a></td><td class="number">2.15</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#158">Lucent\Http\Message\Stream\IteratorStream::getMetadata</a></td><td class="number">2.15</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#135">Lucent\Http\Message\Stream\LazyStream::getMetadata</a></td><td class="number">2.15</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="UriResolver.php.html#149">Lucent\Http\Message\UriResolver::removeLastSegment</a></td><td class="number">2.06</td><td class="number">75.0%</td></tr>
+       <tr><td><a href="Response.php.html#152">Lucent\Http\Message\Response::withJsonBody</a></td><td class="number">2.03</td><td class="number">80.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#131">Lucent\Http\Message\AbstractMessage::withoutHeader</a></td><td class="number">2.01</td><td class="number">87.5%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#62">Lucent\Http\Message\AbstractMessage::getHeader</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#72">Lucent\Http\Message\AbstractMessage::getHeaderLine</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#147">Lucent\Http\Message\AbstractMessage::getBody</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#182">Lucent\Http\Message\AbstractMessage::setHeaders</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#42">Lucent\Http\Message\Factory\HttpFactory::createRequest</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#73">Lucent\Http\Message\Factory\HttpFactory::createServerRequest</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#168">Lucent\Http\Message\Factory\HttpFactory::createUploadedFile</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#59">Lucent\Http\Message\Request::withRequestTarget</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#39">Lucent\Http\Message\RequestContext::fromRequest</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#65">Lucent\Http\Message\RequestContext::get</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#92">Lucent\Http\Message\RequestContext::getTyped</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#171">Lucent\Http\Message\Response::withJsonEnvelope</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#198">Lucent\Http\Message\Response::withRedirect</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#383">Lucent\Http\Message\ServerRequest::getAttributes</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#395">Lucent\Http\Message\ServerRequest::getAttribute</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#437">Lucent\Http\Message\ServerRequest::getUrlVars</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#449">Lucent\Http\Message\ServerRequest::getUrlVar</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#482">Lucent\Http\Message\ServerRequest::withContext</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#613">Lucent\Http\Message\ServerRequest::withProtocolVersionInternal</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream.php.html#73">Lucent\Http\Message\Stream::fromResource</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#94">Lucent\Http\Message\Stream::isReadableMode</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#37">Lucent\Http\Message\Stream\IteratorStream::__toString</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#75">Lucent\Http\Message\Stream\IteratorStream::eof</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#85">Lucent\Http\Message\Stream\IteratorStream::seek</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#90">Lucent\Http\Message\Stream\IteratorStream::rewind</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#100">Lucent\Http\Message\Stream\IteratorStream::write</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#39">Lucent\Http\Message\Stream\LazyStream::__toString</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#67">Lucent\Http\Message\Stream\LazyStream::getSize</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#79">Lucent\Http\Message\Stream\LazyStream::tell</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#94">Lucent\Http\Message\Stream\LazyStream::seek</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#99">Lucent\Http\Message\Stream\LazyStream::rewind</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#109">Lucent\Http\Message\Stream\LazyStream::write</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Uri.php.html#474">Lucent\Http\Message\Uri::assertNoControlChars</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#29">Lucent\Http\Message\AbstractMessage::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#35">Lucent\Http\Message\AbstractMessage::getProtocolVersion</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#43">Lucent\Http\Message\AbstractMessage::withProtocolVersion</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#52">Lucent\Http\Message\AbstractMessage::getHeaders</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#57">Lucent\Http\Message\AbstractMessage::hasHeader</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#162">Lucent\Http\Message\AbstractMessage::withBody</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#174">Lucent\Http\Message\AbstractMessage::setBody</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#214">Lucent\Http\Message\AbstractMessage::normalizeHeaderName</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="AbstractMessage.php.html#265">Lucent\Http\Message\AbstractMessage::sanitizeHeaderValue</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#57">Lucent\Http\Message\Factory\HttpFactory::createResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/HttpFactory.php.html#193">Lucent\Http\Message\Factory\HttpFactory::createUri</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#29">Lucent\Http\Message\Factory\LucentResponseFactory::createJsonResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#43">Lucent\Http\Message\Factory\LucentResponseFactory::createJsonEnvelopeResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#60">Lucent\Http\Message\Factory\LucentResponseFactory::createRedirectResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#74">Lucent\Http\Message\Factory\LucentResponseFactory::createEventStreamResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Factory/LucentResponseFactory.php.html#87">Lucent\Http\Message\Factory\LucentResponseFactory::createStreamResponse</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#66">Lucent\Http\Message\Request::getMethod</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#78">Lucent\Http\Message\Request::withMethod</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Request.php.html#99">Lucent\Http\Message\Request::getUri</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#53">Lucent\Http\Message\RequestContext::set</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#176">Lucent\Http\Message\RequestContext::has</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="RequestContext.php.html#186">Lucent\Http\Message\RequestContext::all</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#78">Lucent\Http\Message\Response::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#121">Lucent\Http\Message\Response::getStatusCode</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#140">Lucent\Http\Message\Response::getReasonPhrase</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Response.php.html#249">Lucent\Http\Message\Response::withEventStream</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#232">Lucent\Http\Message\ServerRequest::withRequestTarget</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#239">Lucent\Http\Message\ServerRequest::getMethod</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#262">Lucent\Http\Message\ServerRequest::getUri</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#292">Lucent\Http\Message\ServerRequest::getServerParams</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#297">Lucent\Http\Message\ServerRequest::getCookieParams</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#305">Lucent\Http\Message\ServerRequest::withCookieParams</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#312">Lucent\Http\Message\ServerRequest::getQueryParams</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#320">Lucent\Http\Message\ServerRequest::withQueryParams</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#327">Lucent\Http\Message\ServerRequest::getUploadedFiles</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#337">Lucent\Http\Message\ServerRequest::withUploadedFiles</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#365">Lucent\Http\Message\ServerRequest::getParsedBody</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#403">Lucent\Http\Message\ServerRequest::withAttribute</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#413">Lucent\Http\Message\ServerRequest::withoutAttribute</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#427">Lucent\Http\Message\ServerRequest::getRouteInfo</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="ServerRequest.php.html#596">Lucent\Http\Message\ServerRequest::validate</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#42">Lucent\Http\Message\Stream::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#55">Lucent\Http\Message\Stream::fromString</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#152">Lucent\Http\Message\Stream::__destruct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#157">Lucent\Http\Message\Stream::detach</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#222">Lucent\Http\Message\Stream::isSeekable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#262">Lucent\Http\Message\Stream::rewind</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#267">Lucent\Http\Message\Stream::isWritable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream.php.html#293">Lucent\Http\Message\Stream::isReadable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#49">Lucent\Http\Message\Stream\IteratorStream::close</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#56">Lucent\Http\Message\Stream\IteratorStream::detach</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#65">Lucent\Http\Message\Stream\IteratorStream::getSize</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#70">Lucent\Http\Message\Stream\IteratorStream::tell</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#80">Lucent\Http\Message\Stream\IteratorStream::isSeekable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#95">Lucent\Http\Message\Stream\IteratorStream::isWritable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/IteratorStream.php.html#105">Lucent\Http\Message\Stream\IteratorStream::isReadable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#34">Lucent\Http\Message\Stream\LazyStream::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#49">Lucent\Http\Message\Stream\LazyStream::close</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#57">Lucent\Http\Message\Stream\LazyStream::detach</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#84">Lucent\Http\Message\Stream\LazyStream::eof</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#89">Lucent\Http\Message\Stream\LazyStream::isSeekable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#104">Lucent\Http\Message\Stream\LazyStream::isWritable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#114">Lucent\Http\Message\Stream\LazyStream::isReadable</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#119">Lucent\Http\Message\Stream\LazyStream::read</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Stream/LazyStream.php.html#127">Lucent\Http\Message\Stream\LazyStream::getContents</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#192">Lucent\Http\Message\UploadedFile::getSize</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#197">Lucent\Http\Message\UploadedFile::getError</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#202">Lucent\Http\Message\UploadedFile::getClientFilename</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UploadedFile.php.html#207">Lucent\Http\Message\UploadedFile::getClientMediaType</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#57">Lucent\Http\Message\Uri::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#198">Lucent\Http\Message\Uri::getScheme</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#222">Lucent\Http\Message\Uri::getUserInfo</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#227">Lucent\Http\Message\Uri::getHost</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#232">Lucent\Http\Message\Uri::getPort</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#237">Lucent\Http\Message\Uri::getPath</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#242">Lucent\Http\Message\Uri::getQuery</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#247">Lucent\Http\Message\Uri::getFragment</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#309">Lucent\Http\Message\Uri::withPath</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#321">Lucent\Http\Message\Uri::withQuery</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#333">Lucent\Http\Message\Uri::withFragment</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#407">Lucent\Http\Message\Uri::encodePath</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Uri.php.html#420">Lucent\Http\Message\Uri::encodeQueryOrFragment</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="UploadedFile.php.html#16">Lucent\Http\Message\UploadedFile</a></td><td class="text-right">62%</td></tr>
-       <tr><td><a href="RequestContext.php.html#23">Lucent\Http\Message\RequestContext</a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#29">Lucent\Http\Message\ServerRequest</a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="Stream.php.html#16">Lucent\Http\Message\Stream</a></td><td class="text-right">76%</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#25">Lucent\Http\Message\Factory\HttpFactory</a></td><td class="text-right">79%</td></tr>
-       <tr><td><a href="Request.php.html#15">Lucent\Http\Message\Request</a></td><td class="text-right">85%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#21">Lucent\Http\Message\Stream\IteratorStream</a></td><td class="text-right">88%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="ServerRequest.php.html#29">Lucent\Http\Message\ServerRequest</a></td><td class="text-right">71.8%</td><td class="text-right">99</td><td class="text-right">317</td></tr>
-       <tr><td><a href="Stream.php.html#16">Lucent\Http\Message\Stream</a></td><td class="text-right">76.4%</td><td class="text-right">68</td><td class="text-right">129</td></tr>
-       <tr><td><a href="UploadedFile.php.html#16">Lucent\Http\Message\UploadedFile</a></td><td class="text-right">62.7%</td><td class="text-right">35</td><td class="text-right">98</td></tr>
-       <tr><td><a href="RequestContext.php.html#23">Lucent\Http\Message\RequestContext</a></td><td class="text-right">71.4%</td><td class="text-right">28</td><td class="text-right">46</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#21">Lucent\Http\Message\Stream\IteratorStream</a></td><td class="text-right">88.5%</td><td class="text-right">29</td><td class="text-right">30</td></tr>
-       <tr><td><a href="Request.php.html#15">Lucent\Http\Message\Request</a></td><td class="text-right">85.3%</td><td class="text-right">19</td><td class="text-right">20</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#25">Lucent\Http\Message\Factory\HttpFactory</a></td><td class="text-right">79.4%</td><td class="text-right">17</td><td class="text-right">19</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2 style="margin-top: 3rem;">Methods</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodsCoverageDistribution" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Request.php.html#59"><abbr title="Lucent\Http\Message\Request::withRequestTarget">withRequestTarget</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#383"><abbr title="Lucent\Http\Message\ServerRequest::getAttributes">getAttributes</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#437"><abbr title="Lucent\Http\Message\ServerRequest::getUrlVars">getUrlVars</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#449"><abbr title="Lucent\Http\Message\ServerRequest::getUrlVar">getUrlVar</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#465"><abbr title="Lucent\Http\Message\ServerRequest::getContext">getContext</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#482"><abbr title="Lucent\Http\Message\ServerRequest::withContext">withContext</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#499"><abbr title="Lucent\Http\Message\ServerRequest::getQueryParam">getQueryParam</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#514"><abbr title="Lucent\Http\Message\ServerRequest::getCookie">getCookie</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#529"><abbr title="Lucent\Http\Message\ServerRequest::getServerParam">getServerParam</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#545"><abbr title="Lucent\Http\Message\ServerRequest::getParsedBodyValue">getParsedBodyValue</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#569"><abbr title="Lucent\Http\Message\ServerRequest::getUploadedFile">getUploadedFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#613"><abbr title="Lucent\Http\Message\ServerRequest::withProtocolVersionInternal">withProtocolVersionInternal</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#685"><abbr title="Lucent\Http\Message\ServerRequest::createUploadedFile">createUploadedFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#85"><abbr title="Lucent\Http\Message\Stream\IteratorStream::seek">seek</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#90"><abbr title="Lucent\Http\Message\Stream\IteratorStream::rewind">rewind</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#100"><abbr title="Lucent\Http\Message\Stream\IteratorStream::write">write</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#79"><abbr title="Lucent\Http\Message\Stream\LazyStream::tell">tell</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#94"><abbr title="Lucent\Http\Message\Stream\LazyStream::seek">seek</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#99"><abbr title="Lucent\Http\Message\Stream\LazyStream::rewind">rewind</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#109"><abbr title="Lucent\Http\Message\Stream\LazyStream::write">write</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="UploadedFile.php.html#81"><abbr title="Lucent\Http\Message\UploadedFile::getStream">getStream</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="UploadedFile.php.html#142"><abbr title="Lucent\Http\Message\UploadedFile::moveFile">moveFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Stream.php.html#192"><abbr title="Lucent\Http\Message\Stream::tell">tell</abbr></a></td><td class="text-right">37%</td></tr>
-       <tr><td><a href="RequestContext.php.html#147"><abbr title="Lucent\Http\Message\RequestContext::matchesType">matchesType</abbr></a></td><td class="text-right">41%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#659"><abbr title="Lucent\Http\Message\ServerRequest::normalizeUploadedFiles">normalizeUploadedFiles</abbr></a></td><td class="text-right">42%</td></tr>
-       <tr><td><a href="Stream.php.html#170"><abbr title="Lucent\Http\Message\Stream::getSize">getSize</abbr></a></td><td class="text-right">45%</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#225"><abbr title="Lucent\Http\Message\AbstractMessage::assertHeaderName">assertHeaderName</abbr></a></td><td class="text-right">50%</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#114"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStreamFromFile">createStreamFromFile</abbr></a></td><td class="text-right">50%</td></tr>
-       <tr><td><a href="Stream.php.html#345"><abbr title="Lucent\Http\Message\Stream::getMetadata">getMetadata</abbr></a></td><td class="text-right">50%</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#246"><abbr title="Lucent\Http\Message\AbstractMessage::assertHeaderValue">assertHeaderValue</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#140"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStreamFromResource">createStreamFromResource</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Stream.php.html#227"><abbr title="Lucent\Http\Message\Stream::seek">seek</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#29"><abbr title="Lucent\Http\Message\Stream\IteratorStream::__construct">__construct</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#158"><abbr title="Lucent\Http\Message\Stream\IteratorStream::getMetadata">getMetadata</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#135"><abbr title="Lucent\Http\Message\Stream\LazyStream::getMetadata">getMetadata</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Request.php.html#41"><abbr title="Lucent\Http\Message\Request::getRequestTarget">getRequestTarget</abbr></a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#90"><abbr title="Lucent\Http\Message\ServerRequest::capture">capture</abbr></a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="Stream.php.html#113"><abbr title="Lucent\Http\Message\Stream::__toString">__toString</abbr></a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="Stream.php.html#298"><abbr title="Lucent\Http\Message\Stream::read">read</abbr></a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="UriResolver.php.html#86"><abbr title="Lucent\Http\Message\UriResolver::mergePaths">mergePaths</abbr></a></td><td class="text-right">71%</td></tr>
-       <tr><td><a href="Stream.php.html#272"><abbr title="Lucent\Http\Message\Stream::write">write</abbr></a></td><td class="text-right">72%</td></tr>
-       <tr><td><a href="UploadedFile.php.html#107"><abbr title="Lucent\Http\Message\UploadedFile::moveTo">moveTo</abbr></a></td><td class="text-right">73%</td></tr>
-       <tr><td><a href="Stream.php.html#323"><abbr title="Lucent\Http\Message\Stream::getContents">getContents</abbr></a></td><td class="text-right">75%</td></tr>
-       <tr><td><a href="UriResolver.php.html#149"><abbr title="Lucent\Http\Message\UriResolver::removeLastSegment">removeLastSegment</abbr></a></td><td class="text-right">75%</td></tr>
-       <tr><td><a href="UploadedFile.php.html#163"><abbr title="Lucent\Http\Message\UploadedFile::moveStream">moveStream</abbr></a></td><td class="text-right">78%</td></tr>
-       <tr><td><a href="Response.php.html#152"><abbr title="Lucent\Http\Message\Response::withJsonBody">withJsonBody</abbr></a></td><td class="text-right">80%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#251"><abbr title="Lucent\Http\Message\ServerRequest::withMethod">withMethod</abbr></a></td><td class="text-right">80%</td></tr>
-       <tr><td><a href="Stream.php.html#209"><abbr title="Lucent\Http\Message\Stream::eof">eof</abbr></a></td><td class="text-right">80%</td></tr>
-       <tr><td><a href="Response.php.html#94"><abbr title="Lucent\Http\Message\Response::json">json</abbr></a></td><td class="text-right">84%</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#92"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStream">createStream</abbr></a></td><td class="text-right">85%</td></tr>
-       <tr><td><a href="ServerRequest.php.html#214"><abbr title="Lucent\Http\Message\ServerRequest::getRequestTarget">getRequestTarget</abbr></a></td><td class="text-right">85%</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#131"><abbr title="Lucent\Http\Message\AbstractMessage::withoutHeader">withoutHeader</abbr></a></td><td class="text-right">87%</td></tr>
-       <tr><td><a href="UriResolver.php.html#107"><abbr title="Lucent\Http\Message\UriResolver::removeDotSegments">removeDotSegments</abbr></a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="UploadedFile.php.html#47"><abbr title="Lucent\Http\Message\UploadedFile::__construct">__construct</abbr></a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="Uri.php.html#98"><abbr title="Lucent\Http\Message\Uri::fromServer">fromServer</abbr></a></td><td class="text-right">88%</td></tr>
-       <tr><td><a href="Uri.php.html#149"><abbr title="Lucent\Http\Message\Uri::isValid">isValid</abbr></a></td><td class="text-right">89%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="ServerRequest.php.html#685"><abbr title="Lucent\Http\Message\ServerRequest::createUploadedFile">createUploadedFile</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">8</td><td class="text-right">72</td></tr>
-       <tr><td><a href="RequestContext.php.html#147"><abbr title="Lucent\Http\Message\RequestContext::matchesType">matchesType</abbr></a></td><td class="text-right">41.2%</td><td class="text-right">16</td><td class="text-right">68</td></tr>
-       <tr><td><a href="ServerRequest.php.html#545"><abbr title="Lucent\Http\Message\ServerRequest::getParsedBodyValue">getParsedBodyValue</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">5</td><td class="text-right">30</td></tr>
-       <tr><td><a href="UploadedFile.php.html#81"><abbr title="Lucent\Http\Message\UploadedFile::getStream">getStream</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">5</td><td class="text-right">30</td></tr>
-       <tr><td><a href="UploadedFile.php.html#142"><abbr title="Lucent\Http\Message\UploadedFile::moveFile">moveFile</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">4</td><td class="text-right">20</td></tr>
-       <tr><td><a href="Stream.php.html#227"><abbr title="Lucent\Http\Message\Stream::seek">seek</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">12</td><td class="text-right">17</td></tr>
-       <tr><td><a href="Uri.php.html#149"><abbr title="Lucent\Http\Message\Uri::isValid">isValid</abbr></a></td><td class="text-right">89.5%</td><td class="text-right">16</td><td class="text-right">16</td></tr>
-       <tr><td><a href="ServerRequest.php.html#569"><abbr title="Lucent\Http\Message\ServerRequest::getUploadedFile">getUploadedFile</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">3</td><td class="text-right">12</td></tr>
-       <tr><td><a href="UriResolver.php.html#107"><abbr title="Lucent\Http\Message\UriResolver::removeDotSegments">removeDotSegments</abbr></a></td><td class="text-right">88.5%</td><td class="text-right">11</td><td class="text-right">11</td></tr>
-       <tr><td><a href="Uri.php.html#98"><abbr title="Lucent\Http\Message\Uri::fromServer">fromServer</abbr></a></td><td class="text-right">88.9%</td><td class="text-right">10</td><td class="text-right">10</td></tr>
-       <tr><td><a href="ServerRequest.php.html#90"><abbr title="Lucent\Http\Message\ServerRequest::capture">capture</abbr></a></td><td class="text-right">71.4%</td><td class="text-right">8</td><td class="text-right">9</td></tr>
-       <tr><td><a href="ServerRequest.php.html#659"><abbr title="Lucent\Http\Message\ServerRequest::normalizeUploadedFiles">normalizeUploadedFiles</abbr></a></td><td class="text-right">42.9%</td><td class="text-right">5</td><td class="text-right">9</td></tr>
-       <tr><td><a href="Stream.php.html#170"><abbr title="Lucent\Http\Message\Stream::getSize">getSize</abbr></a></td><td class="text-right">45.5%</td><td class="text-right">5</td><td class="text-right">9</td></tr>
-       <tr><td><a href="UploadedFile.php.html#107"><abbr title="Lucent\Http\Message\UploadedFile::moveTo">moveTo</abbr></a></td><td class="text-right">73.3%</td><td class="text-right">8</td><td class="text-right">9</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#225"><abbr title="Lucent\Http\Message\AbstractMessage::assertHeaderName">assertHeaderName</abbr></a></td><td class="text-right">50.0%</td><td class="text-right">5</td><td class="text-right">8</td></tr>
-       <tr><td><a href="UploadedFile.php.html#47"><abbr title="Lucent\Http\Message\UploadedFile::__construct">__construct</abbr></a></td><td class="text-right">88.9%</td><td class="text-right">8</td><td class="text-right">8</td></tr>
-       <tr><td><a href="Stream.php.html#192"><abbr title="Lucent\Http\Message\Stream::tell">tell</abbr></a></td><td class="text-right">37.5%</td><td class="text-right">4</td><td class="text-right">7</td></tr>
-       <tr><td><a href="ServerRequest.php.html#465"><abbr title="Lucent\Http\Message\ServerRequest::getContext">getContext</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="ServerRequest.php.html#499"><abbr title="Lucent\Http\Message\ServerRequest::getQueryParam">getQueryParam</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="ServerRequest.php.html#514"><abbr title="Lucent\Http\Message\ServerRequest::getCookie">getCookie</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="ServerRequest.php.html#529"><abbr title="Lucent\Http\Message\ServerRequest::getServerParam">getServerParam</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="Stream.php.html#298"><abbr title="Lucent\Http\Message\Stream::read">read</abbr></a></td><td class="text-right">71.4%</td><td class="text-right">6</td><td class="text-right">6</td></tr>
-       <tr><td><a href="Stream.php.html#345"><abbr title="Lucent\Http\Message\Stream::getMetadata">getMetadata</abbr></a></td><td class="text-right">50.0%</td><td class="text-right">4</td><td class="text-right">6</td></tr>
-       <tr><td><a href="UploadedFile.php.html#163"><abbr title="Lucent\Http\Message\UploadedFile::moveStream">moveStream</abbr></a></td><td class="text-right">78.6%</td><td class="text-right">6</td><td class="text-right">6</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#246"><abbr title="Lucent\Http\Message\AbstractMessage::assertHeaderValue">assertHeaderValue</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">5</td><td class="text-right">5</td></tr>
-       <tr><td><a href="Response.php.html#94"><abbr title="Lucent\Http\Message\Response::json">json</abbr></a></td><td class="text-right">84.6%</td><td class="text-right">5</td><td class="text-right">5</td></tr>
-       <tr><td><a href="Stream.php.html#272"><abbr title="Lucent\Http\Message\Stream::write">write</abbr></a></td><td class="text-right">72.7%</td><td class="text-right">5</td><td class="text-right">5</td></tr>
-       <tr><td><a href="Stream.php.html#323"><abbr title="Lucent\Http\Message\Stream::getContents">getContents</abbr></a></td><td class="text-right">75.0%</td><td class="text-right">5</td><td class="text-right">5</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#114"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStreamFromFile">createStreamFromFile</abbr></a></td><td class="text-right">50.0%</td><td class="text-right">3</td><td class="text-right">4</td></tr>
-       <tr><td><a href="Request.php.html#41"><abbr title="Lucent\Http\Message\Request::getRequestTarget">getRequestTarget</abbr></a></td><td class="text-right">71.4%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-       <tr><td><a href="ServerRequest.php.html#214"><abbr title="Lucent\Http\Message\ServerRequest::getRequestTarget">getRequestTarget</abbr></a></td><td class="text-right">85.7%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-       <tr><td><a href="Stream.php.html#113"><abbr title="Lucent\Http\Message\Stream::__toString">__toString</abbr></a></td><td class="text-right">71.4%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-       <tr><td><a href="UriResolver.php.html#86"><abbr title="Lucent\Http\Message\UriResolver::mergePaths">mergePaths</abbr></a></td><td class="text-right">71.4%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#92"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStream">createStream</abbr></a></td><td class="text-right">85.7%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-       <tr><td><a href="Factory/HttpFactory.php.html#140"><abbr title="Lucent\Http\Message\Factory\HttpFactory::createStreamFromResource">createStreamFromResource</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-       <tr><td><a href="ServerRequest.php.html#251"><abbr title="Lucent\Http\Message\ServerRequest::withMethod">withMethod</abbr></a></td><td class="text-right">80.0%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-       <tr><td><a href="Stream.php.html#209"><abbr title="Lucent\Http\Message\Stream::eof">eof</abbr></a></td><td class="text-right">80.0%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-       <tr><td><a href="AbstractMessage.php.html#131"><abbr title="Lucent\Http\Message\AbstractMessage::withoutHeader">withoutHeader</abbr></a></td><td class="text-right">87.5%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-       <tr><td><a href="Response.php.html#152"><abbr title="Lucent\Http\Message\Response::withJsonBody">withJsonBody</abbr></a></td><td class="text-right">80.0%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#29"><abbr title="Lucent\Http\Message\Stream\IteratorStream::__construct">__construct</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-       <tr><td><a href="Stream/IteratorStream.php.html#158"><abbr title="Lucent\Http\Message\Stream\IteratorStream::getMetadata">getMetadata</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-       <tr><td><a href="Stream/LazyStream.php.html#135"><abbr title="Lucent\Http\Message\Stream\LazyStream::getMetadata">getMetadata</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-       <tr><td><a href="UriResolver.php.html#149"><abbr title="Lucent\Http\Message\UriResolver::removeLastSegment">removeLastSegment</abbr></a></td><td class="text-right">75.0%</td><td class="text-right">2</td><td class="text-right">2</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <footer>
-    <hr/>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
-  <script src="../../../_js/billboard.pkgd.min.js?v=12.5.7" type="text/javascript"></script>
-  <script type="application/json" id="complexity_class">[[62.68656716417911,35,"UploadedFile.php.html#16","Lucent\\Http\\Message\\UploadedFile","98.64"],[71.42857142857143,28,"RequestContext.php.html#23","Lucent\\Http\\Message\\RequestContext","46.29"],[71.83908045977012,99,"ServerRequest.php.html#29","Lucent\\Http\\Message\\ServerRequest","317.88"],[76.35135135135135,68,"Stream.php.html#16","Lucent\\Http\\Message\\Stream","129.16"],[79.41176470588235,17,"Factory\/HttpFactory.php.html#25","Lucent\\Http\\Message\\Factory\\HttpFactory","19.52"],[85.29411764705883,19,"Request.php.html#15","Lucent\\Http\\Message\\Request","20.15"],[88.46153846153845,29,"Stream\/IteratorStream.php.html#21","Lucent\\Http\\Message\\Stream\\IteratorStream","30.29"],[90,23,"UriResolver.php.html#20","Lucent\\Http\\Message\\UriResolver","23.53"],[90.56603773584906,25,"Stream\/LazyStream.php.html#23","Lucent\\Http\\Message\\Stream\\LazyStream","25.52"],[92,38,"AbstractMessage.php.html#15","Lucent\\Http\\Message\\AbstractMessage","38.74"],[94.73684210526315,22,"Response.php.html#21","Lucent\\Http\\Message\\Response","22.07"],[96.5034965034965,86,"Uri.php.html#14","Lucent\\Http\\Message\\Uri","86"],[100,5,"Factory\/LucentResponseFactory.php.html#20","Lucent\\Http\\Message\\Factory\\LucentResponseFactory","5"]]</script>
-  <script type="application/json" id="complexity_method">[[0,1,"Request.php.html#59","Lucent\\Http\\Message\\Request::withRequestTarget","2"],[0,1,"ServerRequest.php.html#383","Lucent\\Http\\Message\\ServerRequest::getAttributes","2"],[0,1,"ServerRequest.php.html#437","Lucent\\Http\\Message\\ServerRequest::getUrlVars","2"],[0,1,"ServerRequest.php.html#449","Lucent\\Http\\Message\\ServerRequest::getUrlVar","2"],[0,2,"ServerRequest.php.html#465","Lucent\\Http\\Message\\ServerRequest::getContext","6"],[0,1,"ServerRequest.php.html#482","Lucent\\Http\\Message\\ServerRequest::withContext","2"],[0,2,"ServerRequest.php.html#499","Lucent\\Http\\Message\\ServerRequest::getQueryParam","6"],[0,2,"ServerRequest.php.html#514","Lucent\\Http\\Message\\ServerRequest::getCookie","6"],[0,2,"ServerRequest.php.html#529","Lucent\\Http\\Message\\ServerRequest::getServerParam","6"],[0,5,"ServerRequest.php.html#545","Lucent\\Http\\Message\\ServerRequest::getParsedBodyValue","30"],[0,3,"ServerRequest.php.html#569","Lucent\\Http\\Message\\ServerRequest::getUploadedFile","12"],[0,1,"ServerRequest.php.html#613","Lucent\\Http\\Message\\ServerRequest::withProtocolVersionInternal","2"],[0,8,"ServerRequest.php.html#685","Lucent\\Http\\Message\\ServerRequest::createUploadedFile","72"],[0,1,"Stream\/IteratorStream.php.html#85","Lucent\\Http\\Message\\Stream\\IteratorStream::seek","2"],[0,1,"Stream\/IteratorStream.php.html#90","Lucent\\Http\\Message\\Stream\\IteratorStream::rewind","2"],[0,1,"Stream\/IteratorStream.php.html#100","Lucent\\Http\\Message\\Stream\\IteratorStream::write","2"],[0,1,"Stream\/LazyStream.php.html#79","Lucent\\Http\\Message\\Stream\\LazyStream::tell","2"],[0,1,"Stream\/LazyStream.php.html#94","Lucent\\Http\\Message\\Stream\\LazyStream::seek","2"],[0,1,"Stream\/LazyStream.php.html#99","Lucent\\Http\\Message\\Stream\\LazyStream::rewind","2"],[0,1,"Stream\/LazyStream.php.html#109","Lucent\\Http\\Message\\Stream\\LazyStream::write","2"],[0,5,"UploadedFile.php.html#81","Lucent\\Http\\Message\\UploadedFile::getStream","30"],[0,4,"UploadedFile.php.html#142","Lucent\\Http\\Message\\UploadedFile::moveFile","20"],[37.5,4,"Stream.php.html#192","Lucent\\Http\\Message\\Stream::tell","7.91"],[41.17647058823529,16,"RequestContext.php.html#147","Lucent\\Http\\Message\\RequestContext::matchesType","68.11"],[42.857142857142854,5,"ServerRequest.php.html#659","Lucent\\Http\\Message\\ServerRequest::normalizeUploadedFiles","9.66"],[45.45454545454545,5,"Stream.php.html#170","Lucent\\Http\\Message\\Stream::getSize","9.06"],[50,5,"AbstractMessage.php.html#225","Lucent\\Http\\Message\\AbstractMessage::assertHeaderName","8.12"],[50,3,"Factory\/HttpFactory.php.html#114","Lucent\\Http\\Message\\Factory\\HttpFactory::createStreamFromFile","4.12"],[50,4,"Stream.php.html#345","Lucent\\Http\\Message\\Stream::getMetadata","6.00"],[66.66666666666666,5,"AbstractMessage.php.html#246","Lucent\\Http\\Message\\AbstractMessage::assertHeaderValue","5.93"],[66.66666666666666,3,"Factory\/HttpFactory.php.html#140","Lucent\\Http\\Message\\Factory\\HttpFactory::createStreamFromResource","3.33"],[66.66666666666666,12,"Stream.php.html#227","Lucent\\Http\\Message\\Stream::seek","17.33"],[66.66666666666666,2,"Stream\/IteratorStream.php.html#29","Lucent\\Http\\Message\\Stream\\IteratorStream::__construct","2.15"],[66.66666666666666,2,"Stream\/IteratorStream.php.html#158","Lucent\\Http\\Message\\Stream\\IteratorStream::getMetadata","2.15"],[66.66666666666666,2,"Stream\/LazyStream.php.html#135","Lucent\\Http\\Message\\Stream\\LazyStream::getMetadata","2.15"],[71.42857142857143,4,"Request.php.html#41","Lucent\\Http\\Message\\Request::getRequestTarget","4.37"],[71.42857142857143,8,"ServerRequest.php.html#90","Lucent\\Http\\Message\\ServerRequest::capture","9.49"],[71.42857142857143,4,"Stream.php.html#113","Lucent\\Http\\Message\\Stream::__toString","4.37"],[71.42857142857143,6,"Stream.php.html#298","Lucent\\Http\\Message\\Stream::read","6.84"],[71.42857142857143,4,"UriResolver.php.html#86","Lucent\\Http\\Message\\UriResolver::mergePaths","4.37"],[72.72727272727273,5,"Stream.php.html#272","Lucent\\Http\\Message\\Stream::write","5.51"],[73.33333333333333,8,"UploadedFile.php.html#107","Lucent\\Http\\Message\\UploadedFile::moveTo","9.21"],[75,5,"Stream.php.html#323","Lucent\\Http\\Message\\Stream::getContents","5.39"],[75,2,"UriResolver.php.html#149","Lucent\\Http\\Message\\UriResolver::removeLastSegment","2.06"],[78.57142857142857,6,"UploadedFile.php.html#163","Lucent\\Http\\Message\\UploadedFile::moveStream","6.35"],[80,2,"Response.php.html#152","Lucent\\Http\\Message\\Response::withJsonBody","2.03"],[80,3,"ServerRequest.php.html#251","Lucent\\Http\\Message\\ServerRequest::withMethod","3.07"],[80,3,"Stream.php.html#209","Lucent\\Http\\Message\\Stream::eof","3.07"],[84.61538461538461,5,"Response.php.html#94","Lucent\\Http\\Message\\Response::json","5.09"],[85.71428571428571,3,"Factory\/HttpFactory.php.html#92","Lucent\\Http\\Message\\Factory\\HttpFactory::createStream","3.03"],[85.71428571428571,4,"ServerRequest.php.html#214","Lucent\\Http\\Message\\ServerRequest::getRequestTarget","4.05"],[87.5,2,"AbstractMessage.php.html#131","Lucent\\Http\\Message\\AbstractMessage::withoutHeader","2.01"],[88.46153846153845,11,"UriResolver.php.html#107","Lucent\\Http\\Message\\UriResolver::removeDotSegments","11.19"],[88.88888888888889,8,"UploadedFile.php.html#47","Lucent\\Http\\Message\\UploadedFile::__construct","8.09"],[88.88888888888889,10,"Uri.php.html#98","Lucent\\Http\\Message\\Uri::fromServer","10.14"],[89.47368421052632,16,"Uri.php.html#149","Lucent\\Http\\Message\\Uri::isValid","16.30"],[90,4,"Stream\/IteratorStream.php.html#140","Lucent\\Http\\Message\\Stream\\IteratorStream::getContents","4.02"],[91.66666666666666,7,"ServerRequest.php.html#624","Lucent\\Http\\Message\\ServerRequest::extractHeaders","7.03"],[94.11764705882352,10,"Uri.php.html#342","Lucent\\Http\\Message\\Uri::__toString","10.02"],[100,1,"AbstractMessage.php.html#29","Lucent\\Http\\Message\\AbstractMessage::__construct","1"],[100,1,"AbstractMessage.php.html#35","Lucent\\Http\\Message\\AbstractMessage::getProtocolVersion","1"],[100,1,"AbstractMessage.php.html#43","Lucent\\Http\\Message\\AbstractMessage::withProtocolVersion","1"],[100,1,"AbstractMessage.php.html#52","Lucent\\Http\\Message\\AbstractMessage::getHeaders","1"],[100,1,"AbstractMessage.php.html#57","Lucent\\Http\\Message\\AbstractMessage::hasHeader","1"],[100,2,"AbstractMessage.php.html#62","Lucent\\Http\\Message\\AbstractMessage::getHeader","2"],[100,2,"AbstractMessage.php.html#72","Lucent\\Http\\Message\\AbstractMessage::getHeaderLine","2"],[100,3,"AbstractMessage.php.html#84","Lucent\\Http\\Message\\AbstractMessage::withHeader","3"],[100,3,"AbstractMessage.php.html#106","Lucent\\Http\\Message\\AbstractMessage::withAddedHeader","3"],[100,2,"AbstractMessage.php.html#147","Lucent\\Http\\Message\\AbstractMessage::getBody","2"],[100,1,"AbstractMessage.php.html#162","Lucent\\Http\\Message\\AbstractMessage::withBody","1"],[100,1,"AbstractMessage.php.html#174","Lucent\\Http\\Message\\AbstractMessage::setBody","1"],[100,2,"AbstractMessage.php.html#182","Lucent\\Http\\Message\\AbstractMessage::setHeaders","2"],[100,3,"AbstractMessage.php.html#192","Lucent\\Http\\Message\\AbstractMessage::withHeaderInternal","3"],[100,1,"AbstractMessage.php.html#214","Lucent\\Http\\Message\\AbstractMessage::normalizeHeaderName","1"],[100,1,"AbstractMessage.php.html#265","Lucent\\Http\\Message\\AbstractMessage::sanitizeHeaderValue","1"],[100,2,"Factory\/HttpFactory.php.html#42","Lucent\\Http\\Message\\Factory\\HttpFactory::createRequest","2"],[100,1,"Factory\/HttpFactory.php.html#57","Lucent\\Http\\Message\\Factory\\HttpFactory::createResponse","1"],[100,2,"Factory\/HttpFactory.php.html#73","Lucent\\Http\\Message\\Factory\\HttpFactory::createServerRequest","2"],[100,2,"Factory\/HttpFactory.php.html#168","Lucent\\Http\\Message\\Factory\\HttpFactory::createUploadedFile","2"],[100,1,"Factory\/HttpFactory.php.html#193","Lucent\\Http\\Message\\Factory\\HttpFactory::createUri","1"],[100,1,"Factory\/LucentResponseFactory.php.html#29","Lucent\\Http\\Message\\Factory\\LucentResponseFactory::createJsonResponse","1"],[100,1,"Factory\/LucentResponseFactory.php.html#43","Lucent\\Http\\Message\\Factory\\LucentResponseFactory::createJsonEnvelopeResponse","1"],[100,1,"Factory\/LucentResponseFactory.php.html#60","Lucent\\Http\\Message\\Factory\\LucentResponseFactory::createRedirectResponse","1"],[100,1,"Factory\/LucentResponseFactory.php.html#74","Lucent\\Http\\Message\\Factory\\LucentResponseFactory::createEventStreamResponse","1"],[100,1,"Factory\/LucentResponseFactory.php.html#87","Lucent\\Http\\Message\\Factory\\LucentResponseFactory::createStreamResponse","1"],[100,3,"Request.php.html#26","Lucent\\Http\\Message\\Request::__construct","3"],[100,1,"Request.php.html#66","Lucent\\Http\\Message\\Request::getMethod","1"],[100,1,"Request.php.html#78","Lucent\\Http\\Message\\Request::withMethod","1"],[100,3,"Request.php.html#92","Lucent\\Http\\Message\\Request::assertValidMethod","3"],[100,1,"Request.php.html#99","Lucent\\Http\\Message\\Request::getUri","1"],[100,5,"Request.php.html#107","Lucent\\Http\\Message\\Request::withUri","5"],[100,2,"RequestContext.php.html#39","Lucent\\Http\\Message\\RequestContext::fromRequest","2"],[100,1,"RequestContext.php.html#53","Lucent\\Http\\Message\\RequestContext::set","1"],[100,2,"RequestContext.php.html#65","Lucent\\Http\\Message\\RequestContext::get","2"],[100,2,"RequestContext.php.html#92","Lucent\\Http\\Message\\RequestContext::getTyped","2"],[100,3,"RequestContext.php.html#123","Lucent\\Http\\Message\\RequestContext::requireTyped","3"],[100,1,"RequestContext.php.html#176","Lucent\\Http\\Message\\RequestContext::has","1"],[100,1,"RequestContext.php.html#186","Lucent\\Http\\Message\\RequestContext::all","1"],[100,1,"Response.php.html#78","Lucent\\Http\\Message\\Response::__construct","1"],[100,1,"Response.php.html#121","Lucent\\Http\\Message\\Response::getStatusCode","1"],[100,4,"Response.php.html#126","Lucent\\Http\\Message\\Response::withStatus","4"],[100,1,"Response.php.html#140","Lucent\\Http\\Message\\Response::getReasonPhrase","1"],[100,2,"Response.php.html#171","Lucent\\Http\\Message\\Response::withJsonEnvelope","2"],[100,2,"Response.php.html#198","Lucent\\Http\\Message\\Response::withRedirect","2"],[100,3,"Response.php.html#222","Lucent\\Http\\Message\\Response::withStream","3"],[100,1,"Response.php.html#249","Lucent\\Http\\Message\\Response::withEventStream","1"],[100,3,"ServerRequest.php.html#58","Lucent\\Http\\Message\\ServerRequest::__construct","3"],[100,10,"ServerRequest.php.html#151","Lucent\\Http\\Message\\ServerRequest::create","10"],[100,1,"ServerRequest.php.html#232","Lucent\\Http\\Message\\ServerRequest::withRequestTarget","1"],[100,1,"ServerRequest.php.html#239","Lucent\\Http\\Message\\ServerRequest::getMethod","1"],[100,1,"ServerRequest.php.html#262","Lucent\\Http\\Message\\ServerRequest::getUri","1"],[100,5,"ServerRequest.php.html#270","Lucent\\Http\\Message\\ServerRequest::withUri","5"],[100,1,"ServerRequest.php.html#292","Lucent\\Http\\Message\\ServerRequest::getServerParams","1"],[100,1,"ServerRequest.php.html#297","Lucent\\Http\\Message\\ServerRequest::getCookieParams","1"],[100,1,"ServerRequest.php.html#305","Lucent\\Http\\Message\\ServerRequest::withCookieParams","1"],[100,1,"ServerRequest.php.html#312","Lucent\\Http\\Message\\ServerRequest::getQueryParams","1"],[100,1,"ServerRequest.php.html#320","Lucent\\Http\\Message\\ServerRequest::withQueryParams","1"],[100,1,"ServerRequest.php.html#327","Lucent\\Http\\Message\\ServerRequest::getUploadedFiles","1"],[100,1,"ServerRequest.php.html#337","Lucent\\Http\\Message\\ServerRequest::withUploadedFiles","1"],[100,4,"ServerRequest.php.html#352","Lucent\\Http\\Message\\ServerRequest::assertUploadedFilesTree","4"],[100,1,"ServerRequest.php.html#365","Lucent\\Http\\Message\\ServerRequest::getParsedBody","1"],[100,4,"ServerRequest.php.html#373","Lucent\\Http\\Message\\ServerRequest::withParsedBody","4"],[100,2,"ServerRequest.php.html#395","Lucent\\Http\\Message\\ServerRequest::getAttribute","2"],[100,1,"ServerRequest.php.html#403","Lucent\\Http\\Message\\ServerRequest::withAttribute","1"],[100,1,"ServerRequest.php.html#413","Lucent\\Http\\Message\\ServerRequest::withoutAttribute","1"],[100,1,"ServerRequest.php.html#427","Lucent\\Http\\Message\\ServerRequest::getRouteInfo","1"],[100,1,"ServerRequest.php.html#596","Lucent\\Http\\Message\\ServerRequest::validate","1"],[100,1,"Stream.php.html#42","Lucent\\Http\\Message\\Stream::__construct","1"],[100,1,"Stream.php.html#55","Lucent\\Http\\Message\\Stream::fromString","1"],[100,2,"Stream.php.html#73","Lucent\\Http\\Message\\Stream::fromResource","2"],[100,2,"Stream.php.html#94","Lucent\\Http\\Message\\Stream::isReadableMode","2"],[100,5,"Stream.php.html#104","Lucent\\Http\\Message\\Stream::isWritableMode","5"],[100,3,"Stream.php.html#129","Lucent\\Http\\Message\\Stream::close","3"],[100,1,"Stream.php.html#152","Lucent\\Http\\Message\\Stream::__destruct","1"],[100,1,"Stream.php.html#157","Lucent\\Http\\Message\\Stream::detach","1"],[100,1,"Stream.php.html#222","Lucent\\Http\\Message\\Stream::isSeekable","1"],[100,1,"Stream.php.html#262","Lucent\\Http\\Message\\Stream::rewind","1"],[100,1,"Stream.php.html#267","Lucent\\Http\\Message\\Stream::isWritable","1"],[100,1,"Stream.php.html#293","Lucent\\Http\\Message\\Stream::isReadable","1"],[100,2,"Stream\/IteratorStream.php.html#37","Lucent\\Http\\Message\\Stream\\IteratorStream::__toString","2"],[100,1,"Stream\/IteratorStream.php.html#49","Lucent\\Http\\Message\\Stream\\IteratorStream::close","1"],[100,1,"Stream\/IteratorStream.php.html#56","Lucent\\Http\\Message\\Stream\\IteratorStream::detach","1"],[100,1,"Stream\/IteratorStream.php.html#65","Lucent\\Http\\Message\\Stream\\IteratorStream::getSize","1"],[100,1,"Stream\/IteratorStream.php.html#70","Lucent\\Http\\Message\\Stream\\IteratorStream::tell","1"],[100,2,"Stream\/IteratorStream.php.html#75","Lucent\\Http\\Message\\Stream\\IteratorStream::eof","2"],[100,1,"Stream\/IteratorStream.php.html#80","Lucent\\Http\\Message\\Stream\\IteratorStream::isSeekable","1"],[100,1,"Stream\/IteratorStream.php.html#95","Lucent\\Http\\Message\\Stream\\IteratorStream::isWritable","1"],[100,1,"Stream\/IteratorStream.php.html#105","Lucent\\Http\\Message\\Stream\\IteratorStream::isReadable","1"],[100,7,"Stream\/IteratorStream.php.html#110","Lucent\\Http\\Message\\Stream\\IteratorStream::read","7"],[100,1,"Stream\/LazyStream.php.html#34","Lucent\\Http\\Message\\Stream\\LazyStream::__construct","1"],[100,2,"Stream\/LazyStream.php.html#39","Lucent\\Http\\Message\\Stream\\LazyStream::__toString","2"],[100,1,"Stream\/LazyStream.php.html#49","Lucent\\Http\\Message\\Stream\\LazyStream::close","1"],[100,1,"Stream\/LazyStream.php.html#57","Lucent\\Http\\Message\\Stream\\LazyStream::detach","1"],[100,2,"Stream\/LazyStream.php.html#67","Lucent\\Http\\Message\\Stream\\LazyStream::getSize","2"],[100,1,"Stream\/LazyStream.php.html#84","Lucent\\Http\\Message\\Stream\\LazyStream::eof","1"],[100,1,"Stream\/LazyStream.php.html#89","Lucent\\Http\\Message\\Stream\\LazyStream::isSeekable","1"],[100,1,"Stream\/LazyStream.php.html#104","Lucent\\Http\\Message\\Stream\\LazyStream::isWritable","1"],[100,1,"Stream\/LazyStream.php.html#114","Lucent\\Http\\Message\\Stream\\LazyStream::isReadable","1"],[100,1,"Stream\/LazyStream.php.html#119","Lucent\\Http\\Message\\Stream\\LazyStream::read","1"],[100,1,"Stream\/LazyStream.php.html#127","Lucent\\Http\\Message\\Stream\\LazyStream::getContents","1"],[100,6,"Stream\/LazyStream.php.html#150","Lucent\\Http\\Message\\Stream\\LazyStream::getOutput","6"],[100,1,"UploadedFile.php.html#192","Lucent\\Http\\Message\\UploadedFile::getSize","1"],[100,1,"UploadedFile.php.html#197","Lucent\\Http\\Message\\UploadedFile::getError","1"],[100,1,"UploadedFile.php.html#202","Lucent\\Http\\Message\\UploadedFile::getClientFilename","1"],[100,1,"UploadedFile.php.html#207","Lucent\\Http\\Message\\UploadedFile::getClientMediaType","1"],[100,1,"Uri.php.html#57","Lucent\\Http\\Message\\Uri::__construct","1"],[100,6,"Uri.php.html#68","Lucent\\Http\\Message\\Uri::fromString","6"],[100,1,"Uri.php.html#198","Lucent\\Http\\Message\\Uri::getScheme","1"],[100,4,"Uri.php.html#203","Lucent\\Http\\Message\\Uri::getAuthority","4"],[100,1,"Uri.php.html#222","Lucent\\Http\\Message\\Uri::getUserInfo","1"],[100,1,"Uri.php.html#227","Lucent\\Http\\Message\\Uri::getHost","1"],[100,1,"Uri.php.html#232","Lucent\\Http\\Message\\Uri::getPort","1"],[100,1,"Uri.php.html#237","Lucent\\Http\\Message\\Uri::getPath","1"],[100,1,"Uri.php.html#242","Lucent\\Http\\Message\\Uri::getQuery","1"],[100,1,"Uri.php.html#247","Lucent\\Http\\Message\\Uri::getFragment","1"],[100,3,"Uri.php.html#255","Lucent\\Http\\Message\\Uri::withScheme","3"],[100,3,"Uri.php.html#268","Lucent\\Http\\Message\\Uri::withUserInfo","3"],[100,3,"Uri.php.html#281","Lucent\\Http\\Message\\Uri::withHost","3"],[100,4,"Uri.php.html#295","Lucent\\Http\\Message\\Uri::withPort","4"],[100,1,"Uri.php.html#309","Lucent\\Http\\Message\\Uri::withPath","1"],[100,1,"Uri.php.html#321","Lucent\\Http\\Message\\Uri::withQuery","1"],[100,1,"Uri.php.html#333","Lucent\\Http\\Message\\Uri::withFragment","1"],[100,5,"Uri.php.html#386","Lucent\\Http\\Message\\Uri::filterPort","5"],[100,1,"Uri.php.html#407","Lucent\\Http\\Message\\Uri::encodePath","1"],[100,1,"Uri.php.html#420","Lucent\\Http\\Message\\Uri::encodeQueryOrFragment","1"],[100,3,"Uri.php.html#433","Lucent\\Http\\Message\\Uri::encodeComponent","3"],[100,4,"Uri.php.html#452","Lucent\\Http\\Message\\Uri::isValidHost","4"],[100,2,"Uri.php.html#474","Lucent\\Http\\Message\\Uri::assertNoControlChars","2"],[100,6,"UriResolver.php.html#31","Lucent\\Http\\Message\\UriResolver::resolve","6"]]</script>
-  <script type="text/javascript" defer>
-  const barLabels = [
-    '0%',
-    '0-10%',
-    '10-20%',
-    '20-30%',
-    '30-40%',
-    '40-50%',
-    '50-60%',
-    '60-70%',
-    '70-80%',
-    '80-90%',
-    '90-100%',
-    '100%'
-  ];
-  const barConfig = (name, fullName, values) => ({
-    axis: {
-      x: {
-        type: "category",
-        categories: barLabels,
-      },
-      y: {
-        label: {
-          text: `#${name}`,
-          position: 'outer-top',
-        },
-      },
-    },
-    bindto: `#${name}CoverageDistribution`,
-    data: {
-      columns: [
-        [fullName].concat(values),
-      ],
-      colors: {
-        [fullName]: "rgba(69, 114, 167, 0.75)",
-      },
-      type: "bar",
-    },
-    bar: {
-      width: {
-        ratio: 0.9,
-      },
-    },
-    grid: {
-      focus: {
-        show: false,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">Coverage ${barLabels[data[0].x]}</th></tr>
-            <tr><td class="value">${data[0].value} ${name}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  bb.generate(
-    barConfig('classes', "Class Coverage", [0,0,0,0,0,0,0,1,4,2,5,1])
-  );
-  bb.generate(
-    barConfig('methods', "Method Coverage", [22,0,0,0,1,3,3,6,10,11,3,130])
-  );
-
-  const scatterConfig = (name, complexityData) => ({
-    axis: {
-      x: {
-        label: {
-          text: 'Code Coverage (in percent)',
-          position: 'outer-right',
-        },
-        tick: {
-          values: [0, 20, 40, 60, 80, 100],
-        },
-      },
-      y: {
-        label: {
-          text: 'Cyclomatic Complexity',
-          position: 'outer-top',
-        },
-        min: 0,
-        padding: {
-          bottom: 0,
-          top: 5,
-        },
-      },
-    },
-    bindto: `#${name}Complexity`,
-    data: {
-      columns: [
-        ["complexity_x"].concat(complexityData.map(d => d[0])),
-        ["complexity"].concat(complexityData.map(d => d[1])),
-      ],
-      onclick: function(data, element) {
-        window.location = complexityData[data.index][2];
-      },
-      type: "scatter",
-      xs: {
-        "complexity": "complexity_x",
-      },
-    },
-    grid: {
-      focus: {
-        show: true,
-        y: true,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        const coverage = Math.round(data[0].x);
-        const complexity = data[0].value;
-        const targetName = complexityData[data[0].index][3];
-        const crap = complexityData[data[0].index][4];
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">${targetName}</th></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Coverage</td><td class="name">${coverage}%</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Complexity</td><td class="value">${complexity}</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Crap</td><td class="value">${crap}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  const classComplexityData = JSON.parse(document.getElementById('complexity_class').textContent);
-  bb.generate(
-    scatterConfig("class", classComplexityData)
-  );
-  const methodComplexityData = JSON.parse(document.getElementById('complexity_method').textContent);
-  bb.generate(
-    scatterConfig("method", methodComplexityData),
-  );
-  </script>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
  </body>
 </html>

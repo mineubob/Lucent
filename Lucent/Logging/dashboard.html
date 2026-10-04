@@ -2,318 +2,225 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard for /home/runner/work/Lucent/Lucent/src/Lucent/Logging</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/billboard.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="index.html">Logging</a></li>
-         <li class="breadcrumb-item active">(Dashboard)</li>
-
-       </ol>
-      </nav>
-     </div>
-    </div>
-   </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../index.html">Lucent</a></li>
+     <li><a href="index.html">Logging</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../_classes/dashboard.html">Classes</a></li>
+   </ul>
   </header>
-  <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classesCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">30</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="SqlHighlighter.php.html#7"><circle cx="486.4" cy="284.0" r="20.0" class="bubble-warning"><title>Lucent\Logging\SqlHighlighter — Coverage: 59.2% | Lines: 103 | Complexity: 8</title></circle></a>
+ <a href="Channel.php.html#18"><circle cx="729.5" cy="77.8" r="14.9" class="bubble-success"><title>Lucent\Logging\Channel — Coverage: 93.0% | Lines: 57 | Complexity: 33</title></circle></a>
+ <a href="Drivers/FileDriver.php.html#10"><circle cx="518.2" cy="317.0" r="6.5" class="bubble-warning"><title>Lucent\Logging\Drivers\FileDriver — Coverage: 63.6% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="Drivers/TeeDriver.php.html#9"><circle cx="420.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Logging\Drivers\TeeDriver — Coverage: 50.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Channels/NullChannel.php.html#18"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Drivers/CliDriver.php.html#9"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Logging\Drivers\CliDriver — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Drivers/NullDriver.php.html#9"><circle cx="60.0" cy="341.8" r="4.0" class="bubble-danger"><title>Lucent\Logging\Drivers\NullDriver — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="Channel.php.html#18">Lucent\Logging\Channel</a></td><td class="number">33.38</td><td class="number">93.0%</td></tr>
+       <tr><td><a href="SqlHighlighter.php.html#7">Lucent\Logging\SqlHighlighter</a></td><td class="number">12.34</td><td class="number">59.2%</td></tr>
+       <tr><td><a href="Drivers/FileDriver.php.html#10">Lucent\Logging\Drivers\FileDriver</a></td><td class="number">4.77</td><td class="number">63.6%</td></tr>
+       <tr><td><a href="Drivers/TeeDriver.php.html#9">Lucent\Logging\Drivers\TeeDriver</a></td><td class="number">2.50</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="Channels/NullChannel.php.html#18">Lucent\Logging\Channels\NullChannel</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Drivers/CliDriver.php.html#9">Lucent\Logging\Drivers\CliDriver</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Drivers/NullDriver.php.html#9">Lucent\Logging\Drivers\NullDriver</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="ConsoleColors.php.html#8">Lucent\Logging\ConsoleColors</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Driver.php.html#7">Lucent\Logging\Driver</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">4</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">6</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">8</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="SqlHighlighter.php.html#200"><circle cx="466.0" cy="218.0" r="20.0" class="bubble-warning"><title>Lucent\Logging\SqlHighlighter::highlightCore — Coverage: 56.4% | Lines: 94 | Complexity: 4</title></circle></a>
+ <a href="Channel.php.html#87"><circle cx="780.0" cy="284.0" r="9.2" class="bubble-success"><title>Lucent\Logging\Channel::formatMessage — Coverage: 100.0% | Lines: 20 | Complexity: 2</title></circle></a>
+ <a href="Drivers/FileDriver.php.html#19"><circle cx="564.0" cy="251.0" r="6.5" class="bubble-warning"><title>Lucent\Logging\Drivers\FileDriver::write — Coverage: 70.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Channel.php.html#127"><circle cx="780.0" cy="119.0" r="6.2" class="bubble-success"><title>Lucent\Logging\Channel::interpolate — Coverage: 100.0% | Lines: 9 | Complexity: 7</title></circle></a>
+ <a href="SqlHighlighter.php.html#331"><circle cx="690.0" cy="251.0" r="5.8" class="bubble-warning"><title>Lucent\Logging\SqlHighlighter::highlight — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="Channel.php.html#53"><circle cx="780.0" cy="284.0" r="5.1" class="bubble-success"><title>Lucent\Logging\Channel::__construct — Coverage: 100.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Channel.php.html#72"><circle cx="660.0" cy="218.0" r="5.1" class="bubble-warning"><title>Lucent\Logging\Channel::highlightLine — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="Channel.php.html#154"><circle cx="540.0" cy="86.0" r="5.1" class="bubble-warning"><title>Lucent\Logging\Channel::log — Coverage: 66.7% | Lines: 6 | Complexity: 8</title></circle></a>
+ <a href="Drivers/CliDriver.php.html#11"><circle cx="780.0" cy="284.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Drivers\CliDriver::write — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Drivers/TeeDriver.php.html#14"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Logging\Drivers\TeeDriver::__construct — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Drivers/TeeDriver.php.html#20"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Drivers\TeeDriver::write — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#67"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Logging\Channel::getName — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#114"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::write — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#169"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::emergency — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#174"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::alert — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#179"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::critical — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#184"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::error — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#189"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::warning — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#194"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::notice — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#199"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::info — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channel.php.html#204"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channel::debug — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channels/NullChannel.php.html#20"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Channels/NullChannel.php.html#25"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\Channels\NullChannel::log — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Drivers/FileDriver.php.html#14"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Logging\Drivers\FileDriver::__construct — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Drivers/NullDriver.php.html#12"><circle cx="60.0" cy="317.0" r="4.0" class="bubble-danger"><title>Lucent\Logging\Drivers\NullDriver::write — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="SqlHighlighter.php.html#194"><circle cx="780.0" cy="317.0" r="4.0" class="bubble-success"><title>Lucent\Logging\SqlHighlighter::shouldHighlight — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="Channel.php.html#154">Lucent\Logging\Channel::log</a></td><td class="number">10.37</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="Channel.php.html#127">Lucent\Logging\Channel::interpolate</a></td><td class="number">7</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="SqlHighlighter.php.html#200">Lucent\Logging\SqlHighlighter::highlightCore</a></td><td class="number">5.33</td><td class="number">56.4%</td></tr>
+       <tr><td><a href="Channel.php.html#72">Lucent\Logging\Channel::highlightLine</a></td><td class="number">4.07</td><td class="number">83.3%</td></tr>
+       <tr><td><a href="Drivers/FileDriver.php.html#19">Lucent\Logging\Drivers\FileDriver::write</a></td><td class="number">3.24</td><td class="number">70.0%</td></tr>
+       <tr><td><a href="SqlHighlighter.php.html#331">Lucent\Logging\SqlHighlighter::highlight</a></td><td class="number">3.02</td><td class="number">87.5%</td></tr>
+       <tr><td><a href="Channel.php.html#53">Lucent\Logging\Channel::__construct</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#67">Lucent\Logging\Channel::getName</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Channel.php.html#87">Lucent\Logging\Channel::formatMessage</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Drivers/CliDriver.php.html#11">Lucent\Logging\Drivers\CliDriver::write</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Drivers/FileDriver.php.html#14">Lucent\Logging\Drivers\FileDriver::__construct</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Drivers/NullDriver.php.html#12">Lucent\Logging\Drivers\NullDriver::write</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Drivers/TeeDriver.php.html#14">Lucent\Logging\Drivers\TeeDriver::__construct</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Channel.php.html#114">Lucent\Logging\Channel::write</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#169">Lucent\Logging\Channel::emergency</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#174">Lucent\Logging\Channel::alert</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#179">Lucent\Logging\Channel::critical</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#184">Lucent\Logging\Channel::error</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#189">Lucent\Logging\Channel::warning</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#194">Lucent\Logging\Channel::notice</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#199">Lucent\Logging\Channel::info</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channel.php.html#204">Lucent\Logging\Channel::debug</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channels/NullChannel.php.html#20">Lucent\Logging\Channels\NullChannel::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Channels/NullChannel.php.html#25">Lucent\Logging\Channels\NullChannel::log</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Drivers/TeeDriver.php.html#20">Lucent\Logging\Drivers\TeeDriver::write</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="SqlHighlighter.php.html#194">Lucent\Logging\SqlHighlighter::shouldHighlight</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Driver.php.html#9">Lucent\Logging\Driver::write</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Drivers/NullDriver.php.html#9">Lucent\Logging\Drivers\NullDriver</a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Drivers/TeeDriver.php.html#9">Lucent\Logging\Drivers\TeeDriver</a></td><td class="text-right">50%</td></tr>
-       <tr><td><a href="Drivers/FileDriver.php.html#10">Lucent\Logging\Drivers\FileDriver</a></td><td class="text-right">63%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Drivers/FileDriver.php.html#10">Lucent\Logging\Drivers\FileDriver</a></td><td class="text-right">63.6%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2 style="margin-top: 3rem;">Methods</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodsCoverageDistribution" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Channel.php.html#67"><abbr title="Lucent\Logging\Channel::getName">getName</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Drivers/FileDriver.php.html#14"><abbr title="Lucent\Logging\Drivers\FileDriver::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Drivers/NullDriver.php.html#12"><abbr title="Lucent\Logging\Drivers\NullDriver::write">write</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Drivers/TeeDriver.php.html#14"><abbr title="Lucent\Logging\Drivers\TeeDriver::__construct">__construct</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Drivers/FileDriver.php.html#19"><abbr title="Lucent\Logging\Drivers\FileDriver::write">write</abbr></a></td><td class="text-right">70%</td></tr>
-       <tr><td><a href="Channel.php.html#154"><abbr title="Lucent\Logging\Channel::log">log</abbr></a></td><td class="text-right">75%</td></tr>
-       <tr><td><a href="Channel.php.html#72"><abbr title="Lucent\Logging\Channel::highlightLine">highlightLine</abbr></a></td><td class="text-right">83%</td></tr>
-       <tr><td><a href="SqlHighlighter.php.html#331"><abbr title="Lucent\Logging\SqlHighlighter::highlight">highlight</abbr></a></td><td class="text-right">87%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Channel.php.html#154"><abbr title="Lucent\Logging\Channel::log">log</abbr></a></td><td class="text-right">75.0%</td><td class="text-right">8</td><td class="text-right">9</td></tr>
-       <tr><td><a href="Channel.php.html#72"><abbr title="Lucent\Logging\Channel::highlightLine">highlightLine</abbr></a></td><td class="text-right">83.3%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-       <tr><td><a href="Drivers/FileDriver.php.html#19"><abbr title="Lucent\Logging\Drivers\FileDriver::write">write</abbr></a></td><td class="text-right">70.0%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-       <tr><td><a href="SqlHighlighter.php.html#331"><abbr title="Lucent\Logging\SqlHighlighter::highlight">highlight</abbr></a></td><td class="text-right">87.5%</td><td class="text-right">3</td><td class="text-right">3</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <footer>
-    <hr/>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
-  <script src="../../_js/billboard.pkgd.min.js?v=12.5.7" type="text/javascript"></script>
-  <script type="application/json" id="complexity_class">[[0,1,"Drivers\/NullDriver.php.html#9","Lucent\\Logging\\Drivers\\NullDriver","2"],[50,2,"Drivers\/TeeDriver.php.html#9","Lucent\\Logging\\Drivers\\TeeDriver","2.50"],[63.63636363636363,4,"Drivers\/FileDriver.php.html#10","Lucent\\Logging\\Drivers\\FileDriver","4.77"],[93.22033898305084,33,"Channel.php.html#18","Lucent\\Logging\\Channel","33.34"],[96.11650485436894,8,"SqlHighlighter.php.html#7","Lucent\\Logging\\SqlHighlighter","8"],[100,2,"Channels\/NullChannel.php.html#18","Lucent\\Logging\\Channels\\NullChannel","2"],[100,0,"ConsoleColors.php.html#8","Lucent\\Logging\\ConsoleColors","0"],[100,0,"Driver.php.html#7","Lucent\\Logging\\Driver","0"],[100,2,"Drivers\/CliDriver.php.html#9","Lucent\\Logging\\Drivers\\CliDriver","2"]]</script>
-  <script type="application/json" id="complexity_method">[[0,1,"Channel.php.html#67","Lucent\\Logging\\Channel::getName","2"],[0,1,"Drivers\/FileDriver.php.html#14","Lucent\\Logging\\Drivers\\FileDriver::__construct","2"],[0,1,"Drivers\/NullDriver.php.html#12","Lucent\\Logging\\Drivers\\NullDriver::write","2"],[0,1,"Drivers\/TeeDriver.php.html#14","Lucent\\Logging\\Drivers\\TeeDriver::__construct","2"],[70,3,"Drivers\/FileDriver.php.html#19","Lucent\\Logging\\Drivers\\FileDriver::write","3.24"],[75,8,"Channel.php.html#154","Lucent\\Logging\\Channel::log","9.00"],[83.33333333333334,4,"Channel.php.html#72","Lucent\\Logging\\Channel::highlightLine","4.07"],[87.5,3,"SqlHighlighter.php.html#331","Lucent\\Logging\\SqlHighlighter::highlight","3.02"],[96.80851063829788,4,"SqlHighlighter.php.html#200","Lucent\\Logging\\SqlHighlighter::highlightCore","4"],[100,2,"Channel.php.html#53","Lucent\\Logging\\Channel::__construct","2"],[100,2,"Channel.php.html#87","Lucent\\Logging\\Channel::formatMessage","2"],[100,1,"Channel.php.html#114","Lucent\\Logging\\Channel::write","1"],[100,7,"Channel.php.html#127","Lucent\\Logging\\Channel::interpolate","7"],[100,1,"Channel.php.html#169","Lucent\\Logging\\Channel::emergency","1"],[100,1,"Channel.php.html#174","Lucent\\Logging\\Channel::alert","1"],[100,1,"Channel.php.html#179","Lucent\\Logging\\Channel::critical","1"],[100,1,"Channel.php.html#184","Lucent\\Logging\\Channel::error","1"],[100,1,"Channel.php.html#189","Lucent\\Logging\\Channel::warning","1"],[100,1,"Channel.php.html#194","Lucent\\Logging\\Channel::notice","1"],[100,1,"Channel.php.html#199","Lucent\\Logging\\Channel::info","1"],[100,1,"Channel.php.html#204","Lucent\\Logging\\Channel::debug","1"],[100,1,"Channels\/NullChannel.php.html#20","Lucent\\Logging\\Channels\\NullChannel::__construct","1"],[100,1,"Channels\/NullChannel.php.html#25","Lucent\\Logging\\Channels\\NullChannel::log","1"],[100,0,"Driver.php.html#9","Lucent\\Logging\\Driver::write","0"],[100,2,"Drivers\/CliDriver.php.html#11","Lucent\\Logging\\Drivers\\CliDriver::write","2"],[100,1,"Drivers\/TeeDriver.php.html#20","Lucent\\Logging\\Drivers\\TeeDriver::write","1"],[100,1,"SqlHighlighter.php.html#194","Lucent\\Logging\\SqlHighlighter::shouldHighlight","1"]]</script>
-  <script type="text/javascript" defer>
-  const barLabels = [
-    '0%',
-    '0-10%',
-    '10-20%',
-    '20-30%',
-    '30-40%',
-    '40-50%',
-    '50-60%',
-    '60-70%',
-    '70-80%',
-    '80-90%',
-    '90-100%',
-    '100%'
-  ];
-  const barConfig = (name, fullName, values) => ({
-    axis: {
-      x: {
-        type: "category",
-        categories: barLabels,
-      },
-      y: {
-        label: {
-          text: `#${name}`,
-          position: 'outer-top',
-        },
-      },
-    },
-    bindto: `#${name}CoverageDistribution`,
-    data: {
-      columns: [
-        [fullName].concat(values),
-      ],
-      colors: {
-        [fullName]: "rgba(69, 114, 167, 0.75)",
-      },
-      type: "bar",
-    },
-    bar: {
-      width: {
-        ratio: 0.9,
-      },
-    },
-    grid: {
-      focus: {
-        show: false,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">Coverage ${barLabels[data[0].x]}</th></tr>
-            <tr><td class="value">${data[0].value} ${name}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  bb.generate(
-    barConfig('classes', "Class Coverage", [1,0,0,0,0,0,1,1,0,0,2,4])
-  );
-  bb.generate(
-    barConfig('methods', "Method Coverage", [4,0,0,0,0,0,0,0,2,2,1,18])
-  );
-
-  const scatterConfig = (name, complexityData) => ({
-    axis: {
-      x: {
-        label: {
-          text: 'Code Coverage (in percent)',
-          position: 'outer-right',
-        },
-        tick: {
-          values: [0, 20, 40, 60, 80, 100],
-        },
-      },
-      y: {
-        label: {
-          text: 'Cyclomatic Complexity',
-          position: 'outer-top',
-        },
-        min: 0,
-        padding: {
-          bottom: 0,
-          top: 5,
-        },
-      },
-    },
-    bindto: `#${name}Complexity`,
-    data: {
-      columns: [
-        ["complexity_x"].concat(complexityData.map(d => d[0])),
-        ["complexity"].concat(complexityData.map(d => d[1])),
-      ],
-      onclick: function(data, element) {
-        window.location = complexityData[data.index][2];
-      },
-      type: "scatter",
-      xs: {
-        "complexity": "complexity_x",
-      },
-    },
-    grid: {
-      focus: {
-        show: true,
-        y: true,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        const coverage = Math.round(data[0].x);
-        const complexity = data[0].value;
-        const targetName = complexityData[data[0].index][3];
-        const crap = complexityData[data[0].index][4];
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">${targetName}</th></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Coverage</td><td class="name">${coverage}%</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Complexity</td><td class="value">${complexity}</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Crap</td><td class="value">${crap}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  const classComplexityData = JSON.parse(document.getElementById('complexity_class').textContent);
-  bb.generate(
-    scatterConfig("class", classComplexityData)
-  );
-  const methodComplexityData = JSON.parse(document.getElementById('complexity_method').textContent);
-  bb.generate(
-    scatterConfig("method", methodComplexityData),
-  );
-  </script>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
  </body>
 </html>

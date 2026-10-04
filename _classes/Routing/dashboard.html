@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard for Lucent\Routing</title>
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
+ </head>
+ <body>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../index.html">Lucent</a></li>
+     <li><a href="index.html">Routing</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../dashboard.html">Files</a></li>
+    <li><a href="../../_classes/index.html" aria-current="page">Classes</a></li>
+   </ul>
+  </header>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#17"><circle cx="60.0" cy="119.0" r="20.0" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup — Coverage: 0.0% | Lines: 21 | Complexity: 14</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteBuilder.php.html#10"><circle cx="60.0" cy="300.5" r="13.1" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteBuilder — Coverage: 0.0% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Routing/RouteGroup.php.html#9"><circle cx="60.0" cy="300.5" r="11.5" class="bubble-danger"><title>Lucent\Routing\RouteGroup — Coverage: 0.0% | Lines: 7 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Routing/RouteBuilder.php.html#9"><circle cx="60.0" cy="333.5" r="4.4" class="bubble-danger"><title>Lucent\Routing\RouteBuilder — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#17">Lucent\Routing\Rest\RestRouteGroup</a></td><td class="number">210</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteGroup.php.html#9">Lucent\Routing\RouteGroup</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteBuilder.php.html#10">Lucent\Routing\Rest\RestRouteBuilder</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteBuilder.php.html#9">Lucent\Routing\RouteBuilder</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">1</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">3</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">4</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="../../Lucent/Routing/Rest/RestRouteBuilder.php.html#13"><circle cx="60.0" cy="102.5" r="20.0" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteBuilder::group — Coverage: 0.0% | Lines: 9 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#103"><circle cx="60.0" cy="102.5" r="18.9" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::method — Coverage: 0.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Routing/RouteGroup.php.html#28"><circle cx="60.0" cy="267.5" r="11.5" class="bubble-danger"><title>Lucent\Routing\RouteGroup::registerRoute — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/RouteGroup.php.html#16"><circle cx="60.0" cy="267.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\RouteGroup::__construct — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/RouteGroup.php.html#22"><circle cx="60.0" cy="267.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\RouteGroup::middleware — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#122"><circle cx="60.0" cy="267.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::defaultController — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#136"><circle cx="60.0" cy="267.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::prefix — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#151"><circle cx="60.0" cy="267.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::setBasePrefix — Coverage: 0.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#163"><circle cx="60.0" cy="102.5" r="9.4" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::buildPath — Coverage: 0.0% | Lines: 2 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Routing/RouteBuilder.php.html#13"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\RouteBuilder::__construct — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#39"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::get — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#51"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::post — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#63"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::put — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#75"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::patch — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#87"><circle cx="60.0" cy="267.5" r="6.7" class="bubble-danger"><title>Lucent\Routing\Rest\RestRouteGroup::delete — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteBuilder.php.html#13">Lucent\Routing\Rest\RestRouteBuilder::group</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#103">Lucent\Routing\Rest\RestRouteGroup::method</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#163">Lucent\Routing\Rest\RestRouteGroup::buildPath</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteBuilder.php.html#13">Lucent\Routing\RouteBuilder::__construct</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteGroup.php.html#16">Lucent\Routing\RouteGroup::__construct</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteGroup.php.html#22">Lucent\Routing\RouteGroup::middleware</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteGroup.php.html#28">Lucent\Routing\RouteGroup::registerRoute</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#39">Lucent\Routing\Rest\RestRouteGroup::get</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#51">Lucent\Routing\Rest\RestRouteGroup::post</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#63">Lucent\Routing\Rest\RestRouteGroup::put</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#75">Lucent\Routing\Rest\RestRouteGroup::patch</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#87">Lucent\Routing\Rest\RestRouteGroup::delete</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#122">Lucent\Routing\Rest\RestRouteGroup::defaultController</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#136">Lucent\Routing\Rest\RestRouteGroup::prefix</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/Rest/RestRouteGroup.php.html#151">Lucent\Routing\Rest\RestRouteGroup::setBasePrefix</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteBuilder.php.html#18">Lucent\Routing\RouteBuilder::group</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Routing/RouteGroup.php.html#35">Lucent\Routing\RouteGroup::buildPath</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
+     </div>
+    </div>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
+ </body>
+</html>

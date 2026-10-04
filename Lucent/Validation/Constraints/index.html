@@ -2,680 +2,323 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Code Coverage for /home/runner/work/Lucent/Lucent/src/Lucent/Validation/Constraints</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/octicons.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Validation</a></li>
-         <li class="breadcrumb-item active">Constraints</li>
-         <li class="breadcrumb-item">(<a href="dashboard.html">Dashboard</a>)</li>
-
-       </ol>
-      </nav>
-     </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../../index.html">Lucent</a></li>
+     <li><a href="../index.html">Validation</a></li>
+     <li class="current">Constraints</li>
+     <li class="secondary"><a href="dashboard.html">Dashboard</a></li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../../_classes/index.html">Classes</a></li>
+   </ul>
+  </header>
+  <main>
+   <div class="summary" data-coverage="{&quot;linesTotal&quot;:177,&quot;linesAll&quot;:169,&quot;methodsTotal&quot;:63,&quot;methodsAll&quot;:57,&quot;classesTotal&quot;:21,&quot;classesAll&quot;:17,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+    <div class="metric" data-metric="lines-card" data-level="success">
+     <span class="metric-name">Lines</span>
+     <span class="metric-percentage" data-metric="lines-percent" data-level="success">95.48%</span>
+     <span class="metric-bar" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 95.48%"></span></span></span>
+     <span class="metric-count" data-metric="lines-number" data-level="success">169 / 177</span>
+    </div>
+    <div class="metric" data-metric="methods-card" data-level="success">
+     <span class="metric-name">Functions and Methods</span>
+     <span class="metric-percentage" data-metric="methods-percent" data-level="success">90.47%</span>
+     <span class="metric-bar" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 90.47%"></span></span></span>
+     <span class="metric-count" data-metric="methods-number" data-level="success">57 / 63</span>
+    </div>
+    <div class="metric" data-metric="classes-card" data-level="warning">
+     <span class="metric-name">Classes and Traits</span>
+     <span class="metric-percentage" data-metric="classes-percent" data-level="warning">80.95%</span>
+     <span class="metric-bar" data-metric="classes-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 80.95%"></span></span></span>
+     <span class="metric-count" data-metric="classes-number" data-level="warning">17 / 21</span>
     </div>
    </div>
-  </header>
-  <div class="container-fluid">
-   <div class="table-responsive">
-    <table class="table table-bordered">
+   <div class="table-scroll">
+    <table class="coverage">
      <thead>
       <tr>
-       <td>&nbsp;</td>
-       <td colspan="9"><div align="center"><strong>Code Coverage</strong></div></td>
-      </tr>
-      <tr>
-       <td>&nbsp;</td>
-       <td colspan="3"><div align="center"><strong>Lines</strong></div></td>
-       <td colspan="3"><div align="center"><strong>Functions and Methods</strong></div></td>
-       <td colspan="3"><div align="center"><strong>Classes and Traits</strong></div></td>
+       <th scope="col" class="name">Name</th>
+       <th scope="colgroup" colspan="3">Lines</th>
+       <th scope="colgroup" colspan="3">Functions and Methods</th>
+       <th scope="colgroup" colspan="3">Classes and Traits</th>
       </tr>
      </thead>
      <tbody>
-      <tr>
-       <td class="success">Total</td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="95.72" aria-valuemin="0" aria-valuemax="100" style="width: 95.72%">
-           <span class="visually-hidden">95.72% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">95.72%</div></td>
-       <td class="success small"><div align="right">179&nbsp;/&nbsp;187</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="90.48" aria-valuemin="0" aria-valuemax="100" style="width: 90.48%">
-           <span class="visually-hidden">90.48% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">90.48%</div></td>
-       <td class="success small"><div align="right">57&nbsp;/&nbsp;63</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="80.95" aria-valuemin="0" aria-valuemax="100" style="width: 80.95%">
-           <span class="visually-hidden">80.95% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">80.95%</div></td>
-       <td class="warning small"><div align="right">17&nbsp;/&nbsp;21</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:19,&quot;linesAll&quot;:19,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Boolean.php.html">Boolean.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">19 / 19</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Boolean.php.html">Boolean.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">19&nbsp;/&nbsp;19</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:13,&quot;linesAll&quot;:12,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Date.php.html">Date.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 92.30%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">92.30%</td>
+       <td class="count" data-metric="lines-number" data-level="success">12 / 13</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 66.66%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="warning">66.66%</td>
+       <td class="count" data-metric="methods-number" data-level="warning">2 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Date.php.html">Date.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="92.31" aria-valuemin="0" aria-valuemax="100" style="width: 92.31%">
-           <span class="visually-hidden">92.31% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">92.31%</div></td>
-       <td class="success small"><div align="right">12&nbsp;/&nbsp;13</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="66.67" aria-valuemin="0" aria-valuemax="100" style="width: 66.67%">
-           <span class="visually-hidden">66.67% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">66.67%</div></td>
-       <td class="warning small"><div align="right">2&nbsp;/&nbsp;3</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:10,&quot;linesAll&quot;:10,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Distinct.php.html">Distinct.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">10 / 10</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Distinct.php.html">Distinct.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">10&nbsp;/&nbsp;10</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:3,&quot;linesAll&quot;:3,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Email.php.html">Email.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Email.php.html">Email.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:26,&quot;linesAll&quot;:26,&quot;methodsTotal&quot;:5,&quot;methodsAll&quot;:5,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Enum.php.html">Enum.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">26 / 26</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">5 / 5</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Enum.php.html">Enum.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">26&nbsp;/&nbsp;26</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">5&nbsp;/&nbsp;5</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:2,&quot;linesAll&quot;:2,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Integer.php.html">Integer.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Integer.php.html">Integer.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:4,&quot;linesAll&quot;:4,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Ip.php.html">Ip.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">4 / 4</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Ip.php.html">Ip.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">4&nbsp;/&nbsp;4</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:14,&quot;linesAll&quot;:9,&quot;methodsTotal&quot;:4,&quot;methodsAll&quot;:1,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-file" aria-hidden="true"></span><a href="Length.php.html">Length.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 64.28%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">64.28%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">9 / 14</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 25.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">25.00%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">1 / 4</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Length.php.html">Length.php</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="75.00" aria-valuemin="0" aria-valuemax="100" style="width: 75.00%">
-           <span class="visually-hidden">75.00% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">75.00%</div></td>
-       <td class="warning small"><div align="right">15&nbsp;/&nbsp;20</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="25.00" aria-valuemin="0" aria-valuemax="100" style="width: 25.00%">
-           <span class="visually-hidden">25.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">25.00%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;4</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:19,&quot;linesAll&quot;:19,&quot;methodsTotal&quot;:9,&quot;methodsAll&quot;:9,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Matches.php.html">Matches.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">19 / 19</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">9 / 9</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Matches.php.html">Matches.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">19&nbsp;/&nbsp;19</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">9&nbsp;/&nbsp;9</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:10,&quot;linesAll&quot;:10,&quot;methodsTotal&quot;:4,&quot;methodsAll&quot;:4,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="NotIn.php.html">NotIn.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">10 / 10</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">4 / 4</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="NotIn.php.html">NotIn.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">10&nbsp;/&nbsp;10</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">4&nbsp;/&nbsp;4</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:2,&quot;linesAll&quot;:2,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Number.php.html">Number.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Number.php.html">Number.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:7,&quot;linesAll&quot;:6,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:1,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-file" aria-hidden="true"></span><a href="Numeric.php.html">Numeric.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 85.71%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">85.71%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">6 / 7</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 50.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">50.00%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">1 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Numeric.php.html">Numeric.php</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="85.71" aria-valuemin="0" aria-valuemax="100" style="width: 85.71%">
-           <span class="visually-hidden">85.71% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">85.71%</div></td>
-       <td class="warning small"><div align="right">6&nbsp;/&nbsp;7</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="50.00" aria-valuemin="0" aria-valuemax="100" style="width: 50.00%">
-           <span class="visually-hidden">50.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">50.00%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;2</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:2,&quot;linesAll&quot;:2,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Present.php.html">Present.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Present.php.html">Present.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:16,&quot;linesAll&quot;:16,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Range.php.html">Range.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">16 / 16</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Range.php.html">Range.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">20&nbsp;/&nbsp;20</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:7,&quot;linesAll&quot;:6,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:1,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-file" aria-hidden="true"></span><a href="Required.php.html">Required.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 85.71%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">85.71%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">6 / 7</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 50.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">50.00%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">1 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Required.php.html">Required.php</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="85.71" aria-valuemin="0" aria-valuemax="100" style="width: 85.71%">
-           <span class="visually-hidden">85.71% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">85.71%</div></td>
-       <td class="warning small"><div align="right">6&nbsp;/&nbsp;7</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="50.00" aria-valuemin="0" aria-valuemax="100" style="width: 50.00%">
-           <span class="visually-hidden">50.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">50.00%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;2</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:3,&quot;linesAll&quot;:3,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="SameAs.php.html">SameAs.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="SameAs.php.html">SameAs.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:2,&quot;linesAll&quot;:2,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Str.php.html">Str.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Str.php.html">Str.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:6,&quot;linesAll&quot;:6,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Unique.php.html">Unique.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">6 / 6</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Unique.php.html">Unique.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">6&nbsp;/&nbsp;6</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:3,&quot;linesAll&quot;:3,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="UploadedFile.php.html">UploadedFile.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">2 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="UploadedFile.php.html">UploadedFile.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:6,&quot;linesAll&quot;:6,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Uri.php.html">Uri.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">6 / 6</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Uri.php.html">Uri.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">6&nbsp;/&nbsp;6</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:3,&quot;linesAll&quot;:3,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:3,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-file" aria-hidden="true"></span><a href="Uuid.php.html">Uuid.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">3 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">1 / 1</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../../_icons/file-code.svg" class="octicon" /><a href="Uuid.php.html">Uuid.php</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">3&nbsp;/&nbsp;3</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">1&nbsp;/&nbsp;1</div></td>
-      </tr>
-
-
      </tbody>
     </table>
    </div>
-   <footer>
-    <hr/>
-    <h4>Legend</h4>
-    <p>
-     <span class="danger"><strong>Low</strong>: 0% to 50%</span>
-     <span class="warning"><strong>Medium</strong>: 50% to 90%</span>
-     <span class="success"><strong>High</strong>: 90% to 100%</span>
-    </p>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
+  </main>
+  <footer>
+   <ul class="legend">
+    <li class="danger"><strong>Low</strong>: 0% to 50%</li>
+    <li class="warning"><strong>Medium</strong>: 50% to 90%</li>
+    <li class="success"><strong>High</strong>: 90% to 100%</li>
+   </ul>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
+  <script src="../../../_js/coverage-table.js?v=14.4.1" defer></script>
  </body>
 </html>

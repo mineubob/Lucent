@@ -2,365 +2,340 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard for /home/runner/work/Lucent/Lucent/src/Lucent/Facades</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/billboard.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Lucent</a></li>
-         <li class="breadcrumb-item"><a href="index.html">Facades</a></li>
-         <li class="breadcrumb-item active">(Dashboard)</li>
-
-       </ol>
-      </nav>
-     </div>
-    </div>
-   </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../index.html">Lucent</a></li>
+     <li><a href="index.html">Facades</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../_classes/dashboard.html">Classes</a></li>
+   </ul>
   </header>
-  <div class="container-fluid">
-   <div class="row">
-    <div class="col-md-12">
-     <h2>Classes</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="classesCoverageDistribution" style="height: 300px;">
-       <svg></svg>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">40</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">60</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">80</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="Faker.php.html#10"><circle cx="431.7" cy="109.1" r="20.0" class="bubble-warning"><title>Lucent\Facades\Faker — Coverage: 51.6% | Lines: 246 | Complexity: 73</title></circle></a>
+ <a href="FileSystem.php.html#20"><circle cx="409.9" cy="185.0" r="13.2" class="bubble-danger"><title>Lucent\Facades\FileSystem — Coverage: 48.6% | Lines: 107 | Complexity: 50</title></circle></a>
+ <a href="UUID.php.html#16"><circle cx="780.0" cy="297.2" r="10.0" class="bubble-success"><title>Lucent\Facades\UUID — Coverage: 100.0% | Lines: 62 | Complexity: 16</title></circle></a>
+ <a href="App.php.html#20"><circle cx="471.4" cy="310.4" r="4.8" class="bubble-warning"><title>Lucent\Facades\App — Coverage: 57.1% | Lines: 14 | Complexity: 12</title></circle></a>
+ <a href="Http.php.html#25"><circle cx="420.0" cy="317.0" r="4.4" class="bubble-danger"><title>Lucent\Facades\Http — Coverage: 50.0% | Lines: 12 | Complexity: 10</title></circle></a>
+ <a href="Cache.php.html#18"><circle cx="540.0" cy="320.3" r="4.0" class="bubble-warning"><title>Lucent\Facades\Cache — Coverage: 66.7% | Lines: 9 | Complexity: 9</title></circle></a>
+ <a href="CommandLine.php.html#16"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\CommandLine — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="Route.php.html#17"><circle cx="240.0" cy="336.8" r="4.0" class="bubble-danger"><title>Lucent\Facades\Route — Coverage: 25.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="Event.php.html#17"><circle cx="780.0" cy="343.4" r="4.0" class="bubble-success"><title>Lucent\Facades\Event — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="Log.php.html#11"><circle cx="780.0" cy="346.7" r="4.0" class="bubble-success"><title>Lucent\Facades\Log — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="Faker.php.html#10">Lucent\Facades\Faker</a></td><td class="number">676.23</td><td class="number">51.6%</td></tr>
+       <tr><td><a href="FileSystem.php.html#20">Lucent\Facades\FileSystem</a></td><td class="number">389.53</td><td class="number">48.6%</td></tr>
+       <tr><td><a href="App.php.html#20">Lucent\Facades\App</a></td><td class="number">23.34</td><td class="number">57.1%</td></tr>
+       <tr><td><a href="Http.php.html#25">Lucent\Facades\Http</a></td><td class="number">22.50</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="UUID.php.html#16">Lucent\Facades\UUID</a></td><td class="number">16</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#18">Lucent\Facades\Cache</a></td><td class="number">12.00</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="Route.php.html#17">Lucent\Facades\Route</a></td><td class="number">10.75</td><td class="number">25.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#16">Lucent\Facades\CommandLine</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Event.php.html#17">Lucent\Facades\Event</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Log.php.html#11">Lucent\Facades\Log</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="classComplexity" style="height: 300px;">
-       <svg></svg>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">5</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">15</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">20</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="Faker.php.html#419"><circle cx="780.0" cy="300.5" r="20.0" class="bubble-success"><title>Lucent\Facades\Faker::generateCssContent — Coverage: 100.0% | Lines: 43 | Complexity: 3</title></circle></a>
+ <a href="Faker.php.html#352"><circle cx="60.0" cy="234.5" r="18.8" class="bubble-danger"><title>Lucent\Facades\Faker::generateJsContent — Coverage: 0.0% | Lines: 38 | Complexity: 7</title></circle></a>
+ <a href="Faker.php.html#66"><circle cx="620.0" cy="119.0" r="18.3" class="bubble-warning"><title>Lucent\Facades\Faker::files — Coverage: 77.8% | Lines: 36 | Complexity: 14</title></circle></a>
+ <a href="Faker.php.html#518"><circle cx="754.3" cy="86.0" r="16.1" class="bubble-success"><title>Lucent\Facades\Faker::getCssPropertyValue — Coverage: 96.4% | Lines: 28 | Complexity: 16</title></circle></a>
+ <a href="FileSystem.php.html#123"><circle cx="780.0" cy="135.5" r="15.2" class="bubble-success"><title>Lucent\Facades\FileSystem::normalizePath — Coverage: 100.0% | Lines: 25 | Complexity: 13</title></circle></a>
+ <a href="FileSystem.php.html#227"><circle cx="60.0" cy="201.5" r="14.3" class="bubble-danger"><title>Lucent\Facades\FileSystem::getFiles — Coverage: 0.0% | Lines: 22 | Complexity: 9</title></circle></a>
+ <a href="UUID.php.html#48"><circle cx="780.0" cy="333.5" r="13.6" class="bubble-success"><title>Lucent\Facades\UUID::v7 — Coverage: 100.0% | Lines: 20 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#182"><circle cx="704.2" cy="251.0" r="13.3" class="bubble-warning"><title>Lucent\Facades\FileSystem::isWithinRoot — Coverage: 89.5% | Lines: 19 | Complexity: 6</title></circle></a>
+ <a href="Faker.php.html#20"><circle cx="60.0" cy="284.0" r="12.9" class="bubble-danger"><title>Lucent\Facades\Faker::file — Coverage: 0.0% | Lines: 18 | Complexity: 4</title></circle></a>
+ <a href="FileSystem.php.html#312"><circle cx="60.0" cy="251.0" r="11.0" class="bubble-danger"><title>Lucent\Facades\FileSystem::create — Coverage: 0.0% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="UUID.php.html#183"><circle cx="780.0" cy="317.0" r="10.1" class="bubble-success"><title>Lucent\Facades\UUID::fromBinary — Coverage: 100.0% | Lines: 11 | Complexity: 2</title></circle></a>
+ <a href="Faker.php.html#160"><circle cx="60.0" cy="300.5" r="9.6" class="bubble-danger"><title>Lucent\Facades\Faker::generateTextContent — Coverage: 0.0% | Lines: 10 | Complexity: 3</title></circle></a>
+ <a href="Faker.php.html#184"><circle cx="60.0" cy="317.0" r="9.6" class="bubble-danger"><title>Lucent\Facades\Faker::generateJsonContent — Coverage: 0.0% | Lines: 10 | Complexity: 2</title></circle></a>
+ <a href="Faker.php.html#497"><circle cx="780.0" cy="333.5" r="9.6" class="bubble-success"><title>Lucent\Facades\Faker::randomFontFamily — Coverage: 100.0% | Lines: 10 | Complexity: 1</title></circle></a>
+ <a href="UUID.php.html#143"><circle cx="780.0" cy="333.5" r="9.6" class="bubble-success"><title>Lucent\Facades\UUID::v5 — Coverage: 100.0% | Lines: 10 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#206"><circle cx="780.0" cy="317.0" r="9.1" class="bubble-success"><title>Lucent\Facades\Faker::generateHtmlContent — Coverage: 100.0% | Lines: 9 | Complexity: 2</title></circle></a>
+ <a href="FileSystem.php.html#279"><circle cx="60.0" cy="284.0" r="9.1" class="bubble-danger"><title>Lucent\Facades\FileSystem::get — Coverage: 0.0% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="Faker.php.html#141"><circle cx="420.0" cy="218.0" r="8.6" class="bubble-danger"><title>Lucent\Facades\Faker::generateContent — Coverage: 50.0% | Lines: 8 | Complexity: 8</title></circle></a>
+ <a href="Faker.php.html#228"><circle cx="60.0" cy="317.0" r="8.6" class="bubble-danger"><title>Lucent\Facades\Faker::generateCsvContent — Coverage: 0.0% | Lines: 8 | Complexity: 2</title></circle></a>
+ <a href="UUID.php.html#91"><circle cx="780.0" cy="267.5" r="8.6" class="bubble-success"><title>Lucent\Facades\UUID::isValid — Coverage: 100.0% | Lines: 8 | Complexity: 5</title></circle></a>
+ <a href="FileSystem.php.html#59"><circle cx="660.0" cy="284.0" r="7.5" class="bubble-warning"><title>Lucent\Facades\FileSystem::isAbsolute — Coverage: 83.3% | Lines: 6 | Complexity: 4</title></circle></a>
+ <a href="FileSystem.php.html#350"><circle cx="60.0" cy="317.0" r="7.5" class="bubble-danger"><title>Lucent\Facades\FileSystem::formatFileSize — Coverage: 0.0% | Lines: 6 | Complexity: 2</title></circle></a>
+ <a href="Faker.php.html#260"><circle cx="780.0" cy="317.0" r="6.8" class="bubble-success"><title>Lucent\Facades\Faker::randomString — Coverage: 100.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="UUID.php.html#121"><circle cx="780.0" cy="300.5" r="6.8" class="bubble-success"><title>Lucent\Facades\UUID::getVersion — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="App.php.html#22"><circle cx="780.0" cy="317.0" r="6.1" class="bubble-success"><title>Lucent\Facades\App::env — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="Http.php.html#33"><circle cx="780.0" cy="317.0" r="6.1" class="bubble-success"><title>Lucent\Facades\Http::client — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="UUID.php.html#25"><circle cx="780.0" cy="333.5" r="6.1" class="bubble-success"><title>Lucent\Facades\UUID::generate — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="CommandLine.php.html#40"><circle cx="780.0" cy="333.5" r="5.3" class="bubble-success"><title>Lucent\Facades\CommandLine::execute — Coverage: 100.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#280"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::textFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#295"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::jsonFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#310"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::htmlFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#325"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::csvFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#340"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::binaryFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#561"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::jsFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#576"><circle cx="60.0" cy="333.5" r="5.3" class="bubble-danger"><title>Lucent\Facades\Faker::cssFile — Coverage: 0.0% | Lines: 3 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#105"><circle cx="780.0" cy="317.0" r="5.3" class="bubble-success"><title>Lucent\Facades\FileSystem::absolutePath — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="UUID.php.html#168"><circle cx="780.0" cy="317.0" r="5.3" class="bubble-success"><title>Lucent\Facades\UUID::toBinary — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="App.php.html#34"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\App::getLucentVersion — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#40"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\App::registerRoutes — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#45"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::registerCommands — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#50"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\App::registerGlobalMiddlewares — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#55"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\App::handleHttpRequest — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#60"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::execute — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#79"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::container — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#95"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::make — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#112"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::call — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="App.php.html#129"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\App::exceptions — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#25"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::store — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#37"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::get — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#50"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::set — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#61"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::delete — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#71"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::clear — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#83"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Cache::getMultiple — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#95"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Cache::setMultiple — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#106"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Cache::deleteMultiple — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Cache.php.html#117"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Cache::has — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CommandLine.php.html#20"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\CommandLine::captureOutput — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CommandLine.php.html#25"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\CommandLine::isCaptured — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CommandLine.php.html#30"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\CommandLine::disableCommand — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="CommandLine.php.html#35"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\CommandLine::register — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Event.php.html#27"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Event::listen — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Event.php.html#38"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Event::dispatch — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#249"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Faker::generateBinaryContent — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Faker.php.html#487"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Faker::randomColor — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#34"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\FileSystem::rootPath — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#45"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\FileSystem::overrideRootPath — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#89"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\FileSystem::resolvePath — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="FileSystem.php.html#363"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\FileSystem::root — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#48"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::sendRequest — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#60"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Http::get — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#72"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::post — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#84"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::put — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#96"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::patch — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#108"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::delete — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#120"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Http::head — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Http.php.html#128"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Http::swap — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Log.php.html#14"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Log::channel — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Route.php.html#20"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Route::disable — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Route.php.html#25"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Route::rest — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Route.php.html#30"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\Route::error — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="Route.php.html#35"><circle cx="60.0" cy="333.5" r="4.0" class="bubble-danger"><title>Lucent\Facades\Route::fallback — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="UUID.php.html#209"><circle cx="780.0" cy="333.5" r="4.0" class="bubble-success"><title>Lucent\Facades\UUID::nil — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="FileSystem.php.html#227">Lucent\Facades\FileSystem::getFiles</a></td><td class="number">90</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#352">Lucent\Facades\Faker::generateJsContent</a></td><td class="number">56</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#312">Lucent\Facades\FileSystem::create</a></td><td class="number">42</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#20">Lucent\Facades\Faker::file</a></td><td class="number">20</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#279">Lucent\Facades\FileSystem::get</a></td><td class="number">20</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#66">Lucent\Facades\Faker::files</a></td><td class="number">16.15</td><td class="number">77.8%</td></tr>
+       <tr><td><a href="Faker.php.html#141">Lucent\Facades\Faker::generateContent</a></td><td class="number">16.00</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="Faker.php.html#518">Lucent\Facades\Faker::getCssPropertyValue</a></td><td class="number">16</td><td class="number">96.4%</td></tr>
+       <tr><td><a href="FileSystem.php.html#123">Lucent\Facades\FileSystem::normalizePath</a></td><td class="number">13</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Faker.php.html#160">Lucent\Facades\Faker::generateTextContent</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#182">Lucent\Facades\FileSystem::isWithinRoot</a></td><td class="number">6.04</td><td class="number">89.5%</td></tr>
+       <tr><td><a href="Faker.php.html#184">Lucent\Facades\Faker::generateJsonContent</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#228">Lucent\Facades\Faker::generateCsvContent</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#350">Lucent\Facades\FileSystem::formatFileSize</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="UUID.php.html#91">Lucent\Facades\UUID::isValid</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#59">Lucent\Facades\FileSystem::isAbsolute</a></td><td class="number">4.07</td><td class="number">83.3%</td></tr>
+       <tr><td><a href="Faker.php.html#419">Lucent\Facades\Faker::generateCssContent</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#121">Lucent\Facades\UUID::getVersion</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#22">Lucent\Facades\App::env</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#45">Lucent\Facades\App::registerCommands</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="App.php.html#60">Lucent\Facades\App::execute</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="App.php.html#79">Lucent\Facades\App::container</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="App.php.html#95">Lucent\Facades\App::make</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="App.php.html#112">Lucent\Facades\App::call</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="App.php.html#129">Lucent\Facades\App::exceptions</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Cache.php.html#83">Lucent\Facades\Cache::getMultiple</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Cache.php.html#95">Lucent\Facades\Cache::setMultiple</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Cache.php.html#106">Lucent\Facades\Cache::deleteMultiple</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#206">Lucent\Facades\Faker::generateHtmlContent</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Faker.php.html#249">Lucent\Facades\Faker::generateBinaryContent</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#260">Lucent\Facades\Faker::randomString</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Faker.php.html#280">Lucent\Facades\Faker::textFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#295">Lucent\Facades\Faker::jsonFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#310">Lucent\Facades\Faker::htmlFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#325">Lucent\Facades\Faker::csvFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#340">Lucent\Facades\Faker::binaryFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#561">Lucent\Facades\Faker::jsFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Faker.php.html#576">Lucent\Facades\Faker::cssFile</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#45">Lucent\Facades\FileSystem::overrideRootPath</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#105">Lucent\Facades\FileSystem::absolutePath</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#363">Lucent\Facades\FileSystem::root</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#33">Lucent\Facades\Http::client</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Http.php.html#48">Lucent\Facades\Http::sendRequest</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#72">Lucent\Facades\Http::post</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#84">Lucent\Facades\Http::put</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#96">Lucent\Facades\Http::patch</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#108">Lucent\Facades\Http::delete</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Http.php.html#120">Lucent\Facades\Http::head</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Route.php.html#20">Lucent\Facades\Route::disable</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Route.php.html#25">Lucent\Facades\Route::rest</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="Route.php.html#35">Lucent\Facades\Route::fallback</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="UUID.php.html#168">Lucent\Facades\UUID::toBinary</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#183">Lucent\Facades\UUID::fromBinary</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#34">Lucent\Facades\App::getLucentVersion</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#40">Lucent\Facades\App::registerRoutes</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#50">Lucent\Facades\App::registerGlobalMiddlewares</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="App.php.html#55">Lucent\Facades\App::handleHttpRequest</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#25">Lucent\Facades\Cache::store</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#37">Lucent\Facades\Cache::get</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#50">Lucent\Facades\Cache::set</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#61">Lucent\Facades\Cache::delete</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#71">Lucent\Facades\Cache::clear</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Cache.php.html#117">Lucent\Facades\Cache::has</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#20">Lucent\Facades\CommandLine::captureOutput</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#25">Lucent\Facades\CommandLine::isCaptured</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#30">Lucent\Facades\CommandLine::disableCommand</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#35">Lucent\Facades\CommandLine::register</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="CommandLine.php.html#40">Lucent\Facades\CommandLine::execute</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Event.php.html#27">Lucent\Facades\Event::listen</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Event.php.html#38">Lucent\Facades\Event::dispatch</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Faker.php.html#487">Lucent\Facades\Faker::randomColor</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Faker.php.html#497">Lucent\Facades\Faker::randomFontFamily</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#34">Lucent\Facades\FileSystem::rootPath</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="FileSystem.php.html#89">Lucent\Facades\FileSystem::resolvePath</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Http.php.html#60">Lucent\Facades\Http::get</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Http.php.html#128">Lucent\Facades\Http::swap</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Log.php.html#14">Lucent\Facades\Log::channel</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="Route.php.html#30">Lucent\Facades\Route::error</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#25">Lucent\Facades\UUID::generate</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#48">Lucent\Facades\UUID::v7</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#143">Lucent\Facades\UUID::v5</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="UUID.php.html#209">Lucent\Facades\UUID::nil</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
      </div>
     </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="Route.php.html#17">Lucent\Facades\Route</a></td><td class="text-right">25%</td></tr>
-       <tr><td><a href="FileSystem.php.html#20">Lucent\Facades\FileSystem</a></td><td class="text-right">48%</td></tr>
-       <tr><td><a href="Http.php.html#25">Lucent\Facades\Http</a></td><td class="text-right">50%</td></tr>
-       <tr><td><a href="App.php.html#21">Lucent\Facades\App</a></td><td class="text-right">53%</td></tr>
-       <tr><td><a href="Cache.php.html#18">Lucent\Facades\Cache</a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Faker.php.html#10">Lucent\Facades\Faker</a></td><td class="text-right">68%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Class</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="FileSystem.php.html#20">Lucent\Facades\FileSystem</a></td><td class="text-right">48.6%</td><td class="text-right">50</td><td class="text-right">389</td></tr>
-       <tr><td><a href="Faker.php.html#10">Lucent\Facades\Faker</a></td><td class="text-right">68.4%</td><td class="text-right">73</td><td class="text-right">240</td></tr>
-       <tr><td><a href="App.php.html#21">Lucent\Facades\App</a></td><td class="text-right">53.3%</td><td class="text-right">13</td><td class="text-right">30</td></tr>
-       <tr><td><a href="Http.php.html#25">Lucent\Facades\Http</a></td><td class="text-right">50.0%</td><td class="text-right">10</td><td class="text-right">22</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-12">
-     <h2 style="margin-top: 3rem;">Methods</h2>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3>Coverage Distribution</h3>
-     <div id="methodsCoverageDistribution" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3>Complexity</h3>
-     <div id="methodComplexity" style="height: 300px;">
-       <svg></svg>
-     </div>
-    </div>
-   </div>
-   <div class="row">
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Insufficient Coverage</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="App.php.html#46"><abbr title="Lucent\Facades\App::registerCommands">registerCommands</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#51"><abbr title="Lucent\Facades\App::registerDatabaseDriver">registerDatabaseDriver</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#66"><abbr title="Lucent\Facades\App::execute">execute</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#85"><abbr title="Lucent\Facades\App::container">container</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#101"><abbr title="Lucent\Facades\App::make">make</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#118"><abbr title="Lucent\Facades\App::call">call</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="App.php.html#135"><abbr title="Lucent\Facades\App::exceptions">exceptions</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Cache.php.html#83"><abbr title="Lucent\Facades\Cache::getMultiple">getMultiple</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Cache.php.html#95"><abbr title="Lucent\Facades\Cache::setMultiple">setMultiple</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Cache.php.html#106"><abbr title="Lucent\Facades\Cache::deleteMultiple">deleteMultiple</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#20"><abbr title="Lucent\Facades\Faker::file">file</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#160"><abbr title="Lucent\Facades\Faker::generateTextContent">generateTextContent</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#184"><abbr title="Lucent\Facades\Faker::generateJsonContent">generateJsonContent</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#228"><abbr title="Lucent\Facades\Faker::generateCsvContent">generateCsvContent</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#249"><abbr title="Lucent\Facades\Faker::generateBinaryContent">generateBinaryContent</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#280"><abbr title="Lucent\Facades\Faker::textFile">textFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#295"><abbr title="Lucent\Facades\Faker::jsonFile">jsonFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#310"><abbr title="Lucent\Facades\Faker::htmlFile">htmlFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#325"><abbr title="Lucent\Facades\Faker::csvFile">csvFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#340"><abbr title="Lucent\Facades\Faker::binaryFile">binaryFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#561"><abbr title="Lucent\Facades\Faker::jsFile">jsFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#576"><abbr title="Lucent\Facades\Faker::cssFile">cssFile</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#45"><abbr title="Lucent\Facades\FileSystem::overrideRootPath">overrideRootPath</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#227"><abbr title="Lucent\Facades\FileSystem::getFiles">getFiles</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#279"><abbr title="Lucent\Facades\FileSystem::get">get</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#312"><abbr title="Lucent\Facades\FileSystem::create">create</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#350"><abbr title="Lucent\Facades\FileSystem::formatFileSize">formatFileSize</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="FileSystem.php.html#363"><abbr title="Lucent\Facades\FileSystem::root">root</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#48"><abbr title="Lucent\Facades\Http::sendRequest">sendRequest</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#72"><abbr title="Lucent\Facades\Http::post">post</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#84"><abbr title="Lucent\Facades\Http::put">put</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#96"><abbr title="Lucent\Facades\Http::patch">patch</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#108"><abbr title="Lucent\Facades\Http::delete">delete</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Http.php.html#120"><abbr title="Lucent\Facades\Http::head">head</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Route.php.html#20"><abbr title="Lucent\Facades\Route::disable">disable</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Route.php.html#25"><abbr title="Lucent\Facades\Route::rest">rest</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Route.php.html#35"><abbr title="Lucent\Facades\Route::fallback">fallback</abbr></a></td><td class="text-right">0%</td></tr>
-       <tr><td><a href="Faker.php.html#141"><abbr title="Lucent\Facades\Faker::generateContent">generateContent</abbr></a></td><td class="text-right">66%</td></tr>
-       <tr><td><a href="Faker.php.html#66"><abbr title="Lucent\Facades\Faker::files">files</abbr></a></td><td class="text-right">83%</td></tr>
-       <tr><td><a href="FileSystem.php.html#59"><abbr title="Lucent\Facades\FileSystem::isAbsolute">isAbsolute</abbr></a></td><td class="text-right">83%</td></tr>
-       <tr><td><a href="FileSystem.php.html#182"><abbr title="Lucent\Facades\FileSystem::isWithinRoot">isWithinRoot</abbr></a></td><td class="text-right">89%</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-    <div class="col-md-6">
-     <h3 style="margin-top: 2rem;">Project Risks</h3>
-     <div class="scrollbox">
-      <table class="table">
-       <thead>
-        <tr>
-         <th>Method</th>
-         <th class="text-right">Coverage</th>
-         <th class="text-right">Complexity</th>
-         <th class="text-right"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
-        </tr>
-       </thead>
-       <tbody>
-       <tr><td><a href="FileSystem.php.html#227"><abbr title="Lucent\Facades\FileSystem::getFiles">getFiles</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">9</td><td class="text-right">90</td></tr>
-       <tr><td><a href="FileSystem.php.html#312"><abbr title="Lucent\Facades\FileSystem::create">create</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">6</td><td class="text-right">42</td></tr>
-       <tr><td><a href="Faker.php.html#20"><abbr title="Lucent\Facades\Faker::file">file</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">4</td><td class="text-right">20</td></tr>
-       <tr><td><a href="FileSystem.php.html#279"><abbr title="Lucent\Facades\FileSystem::get">get</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">4</td><td class="text-right">20</td></tr>
-       <tr><td><a href="Faker.php.html#66"><abbr title="Lucent\Facades\Faker::files">files</abbr></a></td><td class="text-right">83.3%</td><td class="text-right">14</td><td class="text-right">14</td></tr>
-       <tr><td><a href="Faker.php.html#160"><abbr title="Lucent\Facades\Faker::generateTextContent">generateTextContent</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">3</td><td class="text-right">12</td></tr>
-       <tr><td><a href="Faker.php.html#141"><abbr title="Lucent\Facades\Faker::generateContent">generateContent</abbr></a></td><td class="text-right">66.7%</td><td class="text-right">8</td><td class="text-right">10</td></tr>
-       <tr><td><a href="Faker.php.html#184"><abbr title="Lucent\Facades\Faker::generateJsonContent">generateJsonContent</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="Faker.php.html#228"><abbr title="Lucent\Facades\Faker::generateCsvContent">generateCsvContent</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="FileSystem.php.html#182"><abbr title="Lucent\Facades\FileSystem::isWithinRoot">isWithinRoot</abbr></a></td><td class="text-right">89.5%</td><td class="text-right">6</td><td class="text-right">6</td></tr>
-       <tr><td><a href="FileSystem.php.html#350"><abbr title="Lucent\Facades\FileSystem::formatFileSize">formatFileSize</abbr></a></td><td class="text-right">0.0%</td><td class="text-right">2</td><td class="text-right">6</td></tr>
-       <tr><td><a href="FileSystem.php.html#59"><abbr title="Lucent\Facades\FileSystem::isAbsolute">isAbsolute</abbr></a></td><td class="text-right">83.3%</td><td class="text-right">4</td><td class="text-right">4</td></tr>
-
-       </tbody>
-      </table>
-     </div>
-    </div>
-   </div>
-   <footer>
-    <hr/>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
-  <script src="../../_js/billboard.pkgd.min.js?v=12.5.7" type="text/javascript"></script>
-  <script type="application/json" id="complexity_class">[[25,4,"Route.php.html#17","Lucent\\Facades\\Route","10.75"],[48.598130841121495,50,"FileSystem.php.html#20","Lucent\\Facades\\FileSystem","389.53"],[50,10,"Http.php.html#25","Lucent\\Facades\\Http","22.50"],[53.333333333333336,13,"App.php.html#21","Lucent\\Facades\\App","30.18"],[66.66666666666666,9,"Cache.php.html#18","Lucent\\Facades\\Cache","12.00"],[68.42105263157895,73,"Faker.php.html#10","Lucent\\Facades\\Faker","240.82"],[100,5,"CommandLine.php.html#16","Lucent\\Facades\\CommandLine","5"],[100,2,"Event.php.html#17","Lucent\\Facades\\Event","2"],[100,1,"Log.php.html#11","Lucent\\Facades\\Log","1"],[100,16,"UUID.php.html#16","Lucent\\Facades\\UUID","16"]]</script>
-  <script type="application/json" id="complexity_method">[[0,1,"App.php.html#46","Lucent\\Facades\\App::registerCommands","2"],[0,1,"App.php.html#51","Lucent\\Facades\\App::registerDatabaseDriver","2"],[0,1,"App.php.html#66","Lucent\\Facades\\App::execute","2"],[0,1,"App.php.html#85","Lucent\\Facades\\App::container","2"],[0,1,"App.php.html#101","Lucent\\Facades\\App::make","2"],[0,1,"App.php.html#118","Lucent\\Facades\\App::call","2"],[0,1,"App.php.html#135","Lucent\\Facades\\App::exceptions","2"],[0,1,"Cache.php.html#83","Lucent\\Facades\\Cache::getMultiple","2"],[0,1,"Cache.php.html#95","Lucent\\Facades\\Cache::setMultiple","2"],[0,1,"Cache.php.html#106","Lucent\\Facades\\Cache::deleteMultiple","2"],[0,4,"Faker.php.html#20","Lucent\\Facades\\Faker::file","20"],[0,3,"Faker.php.html#160","Lucent\\Facades\\Faker::generateTextContent","12"],[0,2,"Faker.php.html#184","Lucent\\Facades\\Faker::generateJsonContent","6"],[0,2,"Faker.php.html#228","Lucent\\Facades\\Faker::generateCsvContent","6"],[0,1,"Faker.php.html#249","Lucent\\Facades\\Faker::generateBinaryContent","2"],[0,1,"Faker.php.html#280","Lucent\\Facades\\Faker::textFile","2"],[0,1,"Faker.php.html#295","Lucent\\Facades\\Faker::jsonFile","2"],[0,1,"Faker.php.html#310","Lucent\\Facades\\Faker::htmlFile","2"],[0,1,"Faker.php.html#325","Lucent\\Facades\\Faker::csvFile","2"],[0,1,"Faker.php.html#340","Lucent\\Facades\\Faker::binaryFile","2"],[0,1,"Faker.php.html#561","Lucent\\Facades\\Faker::jsFile","2"],[0,1,"Faker.php.html#576","Lucent\\Facades\\Faker::cssFile","2"],[0,1,"FileSystem.php.html#45","Lucent\\Facades\\FileSystem::overrideRootPath","2"],[0,9,"FileSystem.php.html#227","Lucent\\Facades\\FileSystem::getFiles","90"],[0,4,"FileSystem.php.html#279","Lucent\\Facades\\FileSystem::get","20"],[0,6,"FileSystem.php.html#312","Lucent\\Facades\\FileSystem::create","42"],[0,2,"FileSystem.php.html#350","Lucent\\Facades\\FileSystem::formatFileSize","6"],[0,1,"FileSystem.php.html#363","Lucent\\Facades\\FileSystem::root","2"],[0,1,"Http.php.html#48","Lucent\\Facades\\Http::sendRequest","2"],[0,1,"Http.php.html#72","Lucent\\Facades\\Http::post","2"],[0,1,"Http.php.html#84","Lucent\\Facades\\Http::put","2"],[0,1,"Http.php.html#96","Lucent\\Facades\\Http::patch","2"],[0,1,"Http.php.html#108","Lucent\\Facades\\Http::delete","2"],[0,1,"Http.php.html#120","Lucent\\Facades\\Http::head","2"],[0,1,"Route.php.html#20","Lucent\\Facades\\Route::disable","2"],[0,1,"Route.php.html#25","Lucent\\Facades\\Route::rest","2"],[0,1,"Route.php.html#35","Lucent\\Facades\\Route::fallback","2"],[66.66666666666666,8,"Faker.php.html#141","Lucent\\Facades\\Faker::generateContent","10.37"],[83.33333333333334,14,"Faker.php.html#66","Lucent\\Facades\\Faker::files","14.91"],[83.33333333333334,4,"FileSystem.php.html#59","Lucent\\Facades\\FileSystem::isAbsolute","4.07"],[89.47368421052632,6,"FileSystem.php.html#182","Lucent\\Facades\\FileSystem::isWithinRoot","6.04"],[96.42857142857143,16,"Faker.php.html#518","Lucent\\Facades\\Faker::getCssPropertyValue","16"],[100,2,"App.php.html#23","Lucent\\Facades\\App::env","2"],[100,1,"App.php.html#35","Lucent\\Facades\\App::getLucentVersion","1"],[100,1,"App.php.html#41","Lucent\\Facades\\App::registerRoutes","1"],[100,1,"App.php.html#56","Lucent\\Facades\\App::registerGlobalMiddlewares","1"],[100,1,"App.php.html#61","Lucent\\Facades\\App::handleHttpRequest","1"],[100,1,"Cache.php.html#25","Lucent\\Facades\\Cache::store","1"],[100,1,"Cache.php.html#37","Lucent\\Facades\\Cache::get","1"],[100,1,"Cache.php.html#50","Lucent\\Facades\\Cache::set","1"],[100,1,"Cache.php.html#61","Lucent\\Facades\\Cache::delete","1"],[100,1,"Cache.php.html#71","Lucent\\Facades\\Cache::clear","1"],[100,1,"Cache.php.html#117","Lucent\\Facades\\Cache::has","1"],[100,1,"CommandLine.php.html#20","Lucent\\Facades\\CommandLine::captureOutput","1"],[100,1,"CommandLine.php.html#25","Lucent\\Facades\\CommandLine::isCaptured","1"],[100,1,"CommandLine.php.html#30","Lucent\\Facades\\CommandLine::disableCommand","1"],[100,1,"CommandLine.php.html#35","Lucent\\Facades\\CommandLine::register","1"],[100,1,"CommandLine.php.html#40","Lucent\\Facades\\CommandLine::execute","1"],[100,1,"Event.php.html#27","Lucent\\Facades\\Event::listen","1"],[100,1,"Event.php.html#38","Lucent\\Facades\\Event::dispatch","1"],[100,2,"Faker.php.html#206","Lucent\\Facades\\Faker::generateHtmlContent","2"],[100,2,"Faker.php.html#260","Lucent\\Facades\\Faker::randomString","2"],[100,7,"Faker.php.html#352","Lucent\\Facades\\Faker::generateJsContent","7"],[100,3,"Faker.php.html#419","Lucent\\Facades\\Faker::generateCssContent","3"],[100,1,"Faker.php.html#487","Lucent\\Facades\\Faker::randomColor","1"],[100,1,"Faker.php.html#497","Lucent\\Facades\\Faker::randomFontFamily","1"],[100,1,"FileSystem.php.html#34","Lucent\\Facades\\FileSystem::rootPath","1"],[100,1,"FileSystem.php.html#89","Lucent\\Facades\\FileSystem::resolvePath","1"],[100,2,"FileSystem.php.html#105","Lucent\\Facades\\FileSystem::absolutePath","2"],[100,13,"FileSystem.php.html#123","Lucent\\Facades\\FileSystem::normalizePath","13"],[100,2,"Http.php.html#33","Lucent\\Facades\\Http::client","2"],[100,1,"Http.php.html#60","Lucent\\Facades\\Http::get","1"],[100,1,"Http.php.html#128","Lucent\\Facades\\Http::swap","1"],[100,1,"Log.php.html#14","Lucent\\Facades\\Log::channel","1"],[100,1,"Route.php.html#30","Lucent\\Facades\\Route::error","1"],[100,1,"UUID.php.html#25","Lucent\\Facades\\UUID::generate","1"],[100,1,"UUID.php.html#48","Lucent\\Facades\\UUID::v7","1"],[100,5,"UUID.php.html#91","Lucent\\Facades\\UUID::isValid","5"],[100,3,"UUID.php.html#121","Lucent\\Facades\\UUID::getVersion","3"],[100,1,"UUID.php.html#143","Lucent\\Facades\\UUID::v5","1"],[100,2,"UUID.php.html#168","Lucent\\Facades\\UUID::toBinary","2"],[100,2,"UUID.php.html#183","Lucent\\Facades\\UUID::fromBinary","2"],[100,1,"UUID.php.html#209","Lucent\\Facades\\UUID::nil","1"]]</script>
-  <script type="text/javascript" defer>
-  const barLabels = [
-    '0%',
-    '0-10%',
-    '10-20%',
-    '20-30%',
-    '30-40%',
-    '40-50%',
-    '50-60%',
-    '60-70%',
-    '70-80%',
-    '80-90%',
-    '90-100%',
-    '100%'
-  ];
-  const barConfig = (name, fullName, values) => ({
-    axis: {
-      x: {
-        type: "category",
-        categories: barLabels,
-      },
-      y: {
-        label: {
-          text: `#${name}`,
-          position: 'outer-top',
-        },
-      },
-    },
-    bindto: `#${name}CoverageDistribution`,
-    data: {
-      columns: [
-        [fullName].concat(values),
-      ],
-      colors: {
-        [fullName]: "rgba(69, 114, 167, 0.75)",
-      },
-      type: "bar",
-    },
-    bar: {
-      width: {
-        ratio: 0.9,
-      },
-    },
-    grid: {
-      focus: {
-        show: false,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">Coverage ${barLabels[data[0].x]}</th></tr>
-            <tr><td class="value">${data[0].value} ${name}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  bb.generate(
-    barConfig('classes', "Class Coverage", [0,0,0,1,0,1,2,2,0,0,0,4])
-  );
-  bb.generate(
-    barConfig('methods', "Method Coverage", [37,0,0,0,0,0,0,1,0,3,1,41])
-  );
-
-  const scatterConfig = (name, complexityData) => ({
-    axis: {
-      x: {
-        label: {
-          text: 'Code Coverage (in percent)',
-          position: 'outer-right',
-        },
-        tick: {
-          values: [0, 20, 40, 60, 80, 100],
-        },
-      },
-      y: {
-        label: {
-          text: 'Cyclomatic Complexity',
-          position: 'outer-top',
-        },
-        min: 0,
-        padding: {
-          bottom: 0,
-          top: 5,
-        },
-      },
-    },
-    bindto: `#${name}Complexity`,
-    data: {
-      columns: [
-        ["complexity_x"].concat(complexityData.map(d => d[0])),
-        ["complexity"].concat(complexityData.map(d => d[1])),
-      ],
-      onclick: function(data, element) {
-        window.location = complexityData[data.index][2];
-      },
-      type: "scatter",
-      xs: {
-        "complexity": "complexity_x",
-      },
-    },
-    grid: {
-      focus: {
-        show: true,
-        y: true,
-      },
-      x: {
-        show: true,
-      },
-      y: {
-        show: true,
-      },
-    },
-    legend: {
-      show: false,
-    },
-    tooltip: {
-      contents: function (data) {
-        const coverage = Math.round(data[0].x);
-        const complexity = data[0].value;
-        const targetName = complexityData[data[0].index][3];
-        const crap = complexityData[data[0].index][4];
-        return `<table class="bb-tooltip"><tbody>
-            <tr><th colspan="2">${targetName}</th></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Coverage</td><td class="name">${coverage}%</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Complexity</td><td class="value">${complexity}</td></tr>
-            <tr class="bb-tooltip-name-complexity"><td>Crap</td><td class="value">${crap}</td></tr>
-          </tbody></table>`;
-      },
-      grouped: false,
-    },
-  });
-  const classComplexityData = JSON.parse(document.getElementById('complexity_class').textContent);
-  bb.generate(
-    scatterConfig("class", classComplexityData)
-  );
-  const methodComplexityData = JSON.parse(document.getElementById('complexity_method').textContent);
-  bb.generate(
-    scatterConfig("method", methodComplexityData),
-  );
-  </script>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
  </body>
 </html>

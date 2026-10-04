@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard for Lucent\Container</title>
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
+ </head>
+ <body>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../index.html">Lucent</a></li>
+     <li><a href="index.html">Container</a></li>
+     <li class="current">Dashboard</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../dashboard.html">Files</a></li>
+    <li><a href="../../_classes/index.html" aria-current="page">Classes</a></li>
+   </ul>
+  </header>
+  <main class="dashboard">
+   <section>
+    <h2>Classes</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="267.5" x2="780" y2="267.5" class="chart-grid"/>
+ <text x="52" y="267.5" text-anchor="end" dominant-baseline="middle" class="chart-label">50</text>
+ <line x1="60" y1="185.0" x2="780" y2="185.0" class="chart-grid"/>
+ <text x="52" y="185.0" text-anchor="end" dominant-baseline="middle" class="chart-label">100</text>
+ <line x1="60" y1="102.5" x2="780" y2="102.5" class="chart-grid"/>
+ <text x="52" y="102.5" text-anchor="end" dominant-baseline="middle" class="chart-label">150</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">200</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="../../Lucent/Container/Container.php.html#40"><circle cx="610.6" cy="86.0" r="20.0" class="bubble-warning"><title>Lucent\Container\Container — Coverage: 76.5% | Lines: 306 | Complexity: 160</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#35"><circle cx="447.7" cy="328.6" r="4.1" class="bubble-warning"><title>Lucent\Container\ServiceProvider — Coverage: 53.8% | Lines: 13 | Complexity: 13</title></circle></a>
+ <a href="../../Lucent/Container/ContextualBindingBuilder.php.html#23"><circle cx="540.0" cy="343.4" r="4.0" class="bubble-warning"><title>Lucent\Container\ContextualBindingBuilder — Coverage: 66.7% | Lines: 9 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/NotFoundException.php.html#16"><circle cx="780.0" cy="348.4" r="4.0" class="bubble-success"><title>Lucent\Container\NotFoundException — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Class</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#40">Lucent\Container\Container</a></td><td class="number">493.48</td><td class="number">76.5%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#35">Lucent\Container\ServiceProvider</a></td><td class="number">29.62</td><td class="number">53.8%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ContextualBindingBuilder.php.html#23">Lucent\Container\ContextualBindingBuilder</a></td><td class="number">4.59</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="../../Lucent/Container/NotFoundException.php.html#16">Lucent\Container\NotFoundException</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ContainerException.php.html#16">Lucent\Container\ContainerException</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
+     </div>
+    </div>
+   </section>
+   <section>
+    <h2>Methods</h2>
+    <div class="panel">
+     <div class="chart">
+      <p class="hint">Line coverage against cyclomatic complexity. Bubble size is the number of executable lines; hover for details, click to navigate.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+ <style>
+  .bubble-success { fill: var(--coverage-success-bar); opacity: 0.7; }
+  .bubble-warning { fill: var(--coverage-warning-bar); opacity: 0.7; }
+  .bubble-danger { fill: var(--coverage-danger-bar); opacity: 0.7; }
+  .bubble-success:hover, .bubble-warning:hover, .bubble-danger:hover { opacity: 1; stroke: var(--text); stroke-width: 1.5; }
+  .chart-grid { stroke: var(--border); stroke-width: 0.5; stroke-dasharray: 4,4; opacity: 0.5; }
+  .chart-axis { stroke: var(--border); stroke-width: 1; }
+  .chart-label { fill: var(--text); font-size: 11px; font-family: var(--font-sans); }
+  .chart-title { fill: var(--text); font-size: 12px; font-family: var(--font-sans); }
+ </style>
+ <line x1="60.0" y1="20" x2="60.0" y2="350" class="chart-grid"/>
+ <text x="60.0" y="368" text-anchor="middle" class="chart-label">0%</text>
+ <line x1="204.0" y1="20" x2="204.0" y2="350" class="chart-grid"/>
+ <text x="204.0" y="368" text-anchor="middle" class="chart-label">20%</text>
+ <line x1="348.0" y1="20" x2="348.0" y2="350" class="chart-grid"/>
+ <text x="348.0" y="368" text-anchor="middle" class="chart-label">40%</text>
+ <line x1="492.0" y1="20" x2="492.0" y2="350" class="chart-grid"/>
+ <text x="492.0" y="368" text-anchor="middle" class="chart-label">60%</text>
+ <line x1="636.0" y1="20" x2="636.0" y2="350" class="chart-grid"/>
+ <text x="636.0" y="368" text-anchor="middle" class="chart-label">80%</text>
+ <line x1="780.0" y1="20" x2="780.0" y2="350" class="chart-grid"/>
+ <text x="780.0" y="368" text-anchor="middle" class="chart-label">100%</text>
+ <line x1="60" y1="350.0" x2="780" y2="350.0" class="chart-grid"/>
+ <text x="52" y="350.0" text-anchor="end" dominant-baseline="middle" class="chart-label">0</text>
+ <line x1="60" y1="284.0" x2="780" y2="284.0" class="chart-grid"/>
+ <text x="52" y="284.0" text-anchor="end" dominant-baseline="middle" class="chart-label">2</text>
+ <line x1="60" y1="218.0" x2="780" y2="218.0" class="chart-grid"/>
+ <text x="52" y="218.0" text-anchor="end" dominant-baseline="middle" class="chart-label">4</text>
+ <line x1="60" y1="152.0" x2="780" y2="152.0" class="chart-grid"/>
+ <text x="52" y="152.0" text-anchor="end" dominant-baseline="middle" class="chart-label">6</text>
+ <line x1="60" y1="86.0" x2="780" y2="86.0" class="chart-grid"/>
+ <text x="52" y="86.0" text-anchor="end" dominant-baseline="middle" class="chart-label">8</text>
+ <line x1="60" y1="20.0" x2="780" y2="20.0" class="chart-grid"/>
+ <text x="52" y="20.0" text-anchor="end" dominant-baseline="middle" class="chart-label">10</text>
+ <line x1="60" y1="20" x2="60" y2="350" class="chart-axis"/>
+ <line x1="60" y1="350" x2="780" y2="350" class="chart-axis"/>
+ <text x="420.0" y="395" text-anchor="middle" class="chart-title">Line Coverage (%)</text>
+ <text x="15" y="185.0" text-anchor="middle" transform="rotate(-90, 15, 185.0)" class="chart-title">Cyclomatic Complexity</text>
+ <a href="../../Lucent/Container/Container.php.html#925"><circle cx="628.4" cy="185.0" r="20.0" class="bubble-warning"><title>Lucent\Container\Container::build — Coverage: 78.9% | Lines: 19 | Complexity: 5</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#972"><circle cx="483.5" cy="86.0" r="18.9" class="bubble-warning"><title>Lucent\Container\Container::resolveDependencies — Coverage: 58.8% | Lines: 17 | Complexity: 8</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1101"><circle cx="780.0" cy="218.0" r="17.8" class="bubble-success"><title>Lucent\Container\Container::getParameterPlan — Coverage: 100.0% | Lines: 15 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#721"><circle cx="60.0" cy="86.0" r="16.5" class="bubble-danger"><title>Lucent\Container\Container::loadCachedPlans — Coverage: 0.0% | Lines: 13 | Complexity: 8</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1174"><circle cx="724.6" cy="152.0" r="16.5" class="bubble-success"><title>Lucent\Container\Container::resolveParameter — Coverage: 92.3% | Lines: 13 | Complexity: 6</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#325"><circle cx="780.0" cy="251.0" r="15.9" class="bubble-success"><title>Lucent\Container\Container::instance — Coverage: 100.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#861"><circle cx="420.0" cy="251.0" r="15.9" class="bubble-danger"><title>Lucent\Container\Container::resolveFactoryCallable — Coverage: 50.0% | Lines: 12 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#586"><circle cx="714.5" cy="185.0" r="15.2" class="bubble-success"><title>Lucent\Container\Container::call — Coverage: 90.9% | Lines: 11 | Complexity: 5</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#691"><circle cx="60.0" cy="218.0" r="15.2" class="bubble-danger"><title>Lucent\Container\Container::cachePlans — Coverage: 0.0% | Lines: 11 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#787"><circle cx="780.0" cy="152.0" r="15.2" class="bubble-success"><title>Lucent\Container\Container::resolve — Coverage: 100.0% | Lines: 11 | Complexity: 6</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1072"><circle cx="708.0" cy="119.0" r="14.5" class="bubble-success"><title>Lucent\Container\Container::normalizeHandler — Coverage: 90.0% | Lines: 10 | Complexity: 7</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#274"><circle cx="780.0" cy="251.0" r="13.0" class="bubble-success"><title>Lucent\Container\Container::singleton — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#366"><circle cx="690.0" cy="251.0" r="13.0" class="bubble-warning"><title>Lucent\Container\Container::bind — Coverage: 87.5% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1207"><circle cx="510.0" cy="53.0" r="13.0" class="bubble-warning"><title>Lucent\Container\Container::castParameter — Coverage: 62.5% | Lines: 8 | Complexity: 9</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1331"><circle cx="780.0" cy="251.0" r="13.0" class="bubble-success"><title>Lucent\Container\Container::abstractFromCallable — Coverage: 100.0% | Lines: 8 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#212"><circle cx="780.0" cy="185.0" r="12.1" class="bubble-success"><title>Lucent\Container\Container::has — Coverage: 100.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#762"><circle cx="60.0" cy="185.0" r="12.1" class="bubble-danger"><title>Lucent\Container\Container::isValidPlan — Coverage: 0.0% | Lines: 7 | Complexity: 5</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1310"><circle cx="780.0" cy="218.0" r="12.1" class="bubble-success"><title>Lucent\Container\Container::resolvesTo — Coverage: 100.0% | Lines: 7 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#672"><circle cx="780.0" cy="317.0" r="11.2" class="bubble-success"><title>Lucent\Container\Container::flush — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#819"><circle cx="780.0" cy="317.0" r="11.2" class="bubble-success"><title>Lucent\Container\Container::resolveFactory — Coverage: 100.0% | Lines: 6 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#301"><circle cx="492.0" cy="284.0" r="10.3" class="bubble-warning"><title>Lucent\Container\Container::scoped — Coverage: 60.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#620"><circle cx="780.0" cy="251.0" r="10.3" class="bubble-success"><title>Lucent\Container\Container::remove — Coverage: 100.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1025"><circle cx="780.0" cy="317.0" r="10.3" class="bubble-success"><title>Lucent\Container\Container::fireResolvingCallbacks — Coverage: 100.0% | Lines: 5 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1133"><circle cx="636.0" cy="218.0" r="10.3" class="bubble-warning"><title>Lucent\Container\Container::planKey — Coverage: 80.0% | Lines: 5 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1153"><circle cx="636.0" cy="251.0" r="10.3" class="bubble-warning"><title>Lucent\Container\Container::getReflection — Coverage: 80.0% | Lines: 5 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/ContextualBindingBuilder.php.html#69"><circle cx="348.0" cy="284.0" r="10.3" class="bubble-danger"><title>Lucent\Container\ContextualBindingBuilder::give — Coverage: 40.0% | Lines: 5 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#235"><circle cx="780.0" cy="218.0" r="9.2" class="bubble-success"><title>Lucent\Container\Container::bound — Coverage: 100.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#389"><circle cx="600.0" cy="218.0" r="9.2" class="bubble-warning"><title>Lucent\Container\Container::bindIf — Coverage: 75.0% | Lines: 4 | Complexity: 4</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#471"><circle cx="780.0" cy="284.0" r="9.2" class="bubble-success"><title>Lucent\Container\Container::tagged — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#840"><circle cx="780.0" cy="317.0" r="9.2" class="bubble-success"><title>Lucent\Container\Container::resolveBinding — Coverage: 100.0% | Lines: 4 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#906"><circle cx="780.0" cy="284.0" r="9.2" class="bubble-success"><title>Lucent\Container\Container::getContextualConcrete — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1228"><circle cx="780.0" cy="284.0" r="9.2" class="bubble-success"><title>Lucent\Container\Container::getTypeName — Coverage: 100.0% | Lines: 4 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1260"><circle cx="60.0" cy="251.0" r="9.2" class="bubble-danger"><title>Lucent\Container\Container::isPlanSerializable — Coverage: 0.0% | Lines: 4 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#439"><circle cx="540.0" cy="284.0" r="7.9" class="bubble-warning"><title>Lucent\Container\Container::extend — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#455"><circle cx="780.0" cy="251.0" r="7.9" class="bubble-success"><title>Lucent\Container\Container::tag — Coverage: 100.0% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#519"><circle cx="540.0" cy="251.0" r="7.9" class="bubble-warning"><title>Lucent\Container\Container::resolving — Coverage: 66.7% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#535"><circle cx="540.0" cy="251.0" r="7.9" class="bubble-warning"><title>Lucent\Container\Container::afterResolving — Coverage: 66.7% | Lines: 3 | Complexity: 3</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#553"><circle cx="780.0" cy="284.0" r="7.9" class="bubble-success"><title>Lucent\Container\Container::rebinding — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#890"><circle cx="540.0" cy="284.0" r="7.9" class="bubble-warning"><title>Lucent\Container\Container::resolveContextual — Coverage: 66.7% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1009"><circle cx="780.0" cy="284.0" r="7.9" class="bubble-success"><title>Lucent\Container\Container::applyExtenders — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1056"><circle cx="60.0" cy="284.0" r="7.9" class="bubble-danger"><title>Lucent\Container\Container::rebound — Coverage: 0.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1245"><circle cx="780.0" cy="284.0" r="7.9" class="bubble-success"><title>Lucent\Container\Container::isInstantiable — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1294"><circle cx="780.0" cy="284.0" r="7.9" class="bubble-success"><title>Lucent\Container\Container::resolveAlias — Coverage: 100.0% | Lines: 3 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#155"><circle cx="780.0" cy="317.0" r="6.5" class="bubble-success"><title>Lucent\Container\Container::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1043"><circle cx="780.0" cy="284.0" r="6.5" class="bubble-success"><title>Lucent\Container\Container::fireCallbackArray — Coverage: 100.0% | Lines: 2 | Complexity: 2</title></circle></a>
+ <a href="../../Lucent/Container/ContextualBindingBuilder.php.html#44"><circle cx="780.0" cy="317.0" r="6.5" class="bubble-success"><title>Lucent\Container\ContextualBindingBuilder::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ContextualBindingBuilder.php.html#56"><circle cx="780.0" cy="317.0" r="6.5" class="bubble-success"><title>Lucent\Container\ContextualBindingBuilder::needs — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/NotFoundException.php.html#26"><circle cx="780.0" cy="317.0" r="6.5" class="bubble-success"><title>Lucent\Container\NotFoundException::__construct — Coverage: 100.0% | Lines: 2 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#174"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::get — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#197"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::make — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#249"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::resolved — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#419"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::alias — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#494"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::when — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#507"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::addContextualBinding — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#638"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::removeAlias — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#651"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::forgetInstance — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#661"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\Container::forgetInstances — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/Container.php.html#1283"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\Container::forget — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#53"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::__construct — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#75"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::boot — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#87"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::provides — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#97"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::isDeferred — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#112"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::call — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#126"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::make — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#140"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::bind — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#154"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::singleton — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#168"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::instance — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#183"><circle cx="780.0" cy="317.0" r="4.6" class="bubble-success"><title>Lucent\Container\ServiceProvider::alias — Coverage: 100.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#196"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::when — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#210"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::tag — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+ <a href="../../Lucent/Container/ServiceProvider.php.html#223"><circle cx="60.0" cy="317.0" r="4.6" class="bubble-danger"><title>Lucent\Container\ServiceProvider::tagged — Coverage: 0.0% | Lines: 1 | Complexity: 1</title></circle></a>
+</svg>
+     </div>
+     <div>
+      <p class="hint">Sorted by descending <abbr title="Change Risk Anti-Patterns">CRAP</abbr> index.</p>
+      <div class="scrollbox">
+     <table class="crap">
+      <thead>
+       <tr>
+        <th scope="col">Method</th>
+        <th scope="col" class="number"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+        <th scope="col" class="number">Coverage</th>
+       </tr>
+      </thead>
+      <tbody>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#721">Lucent\Container\Container::loadCachedPlans</a></td><td class="number">72</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#762">Lucent\Container\Container::isValidPlan</a></td><td class="number">30</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#691">Lucent\Container\Container::cachePlans</a></td><td class="number">20</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1207">Lucent\Container\Container::castParameter</a></td><td class="number">13.27</td><td class="number">62.5%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#972">Lucent\Container\Container::resolveDependencies</a></td><td class="number">12.47</td><td class="number">58.8%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1260">Lucent\Container\Container::isPlanSerializable</a></td><td class="number">12</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1072">Lucent\Container\Container::normalizeHandler</a></td><td class="number">7.05</td><td class="number">90.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1174">Lucent\Container\Container::resolveParameter</a></td><td class="number">6.02</td><td class="number">92.3%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#787">Lucent\Container\Container::resolve</a></td><td class="number">6</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1056">Lucent\Container\Container::rebound</a></td><td class="number">6</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#925">Lucent\Container\Container::build</a></td><td class="number">5.23</td><td class="number">78.9%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#586">Lucent\Container\Container::call</a></td><td class="number">5.02</td><td class="number">90.9%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#212">Lucent\Container\Container::has</a></td><td class="number">5</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#389">Lucent\Container\Container::bindIf</a></td><td class="number">4.25</td><td class="number">75.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1133">Lucent\Container\Container::planKey</a></td><td class="number">4.13</td><td class="number">80.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#861">Lucent\Container\Container::resolveFactoryCallable</a></td><td class="number">4.12</td><td class="number">50.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#235">Lucent\Container\Container::bound</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1101">Lucent\Container\Container::getParameterPlan</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1310">Lucent\Container\Container::resolvesTo</a></td><td class="number">4</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#519">Lucent\Container\Container::resolving</a></td><td class="number">3.33</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#535">Lucent\Container\Container::afterResolving</a></td><td class="number">3.33</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1153">Lucent\Container\Container::getReflection</a></td><td class="number">3.07</td><td class="number">80.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#366">Lucent\Container\Container::bind</a></td><td class="number">3.02</td><td class="number">87.5%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#274">Lucent\Container\Container::singleton</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#325">Lucent\Container\Container::instance</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#455">Lucent\Container\Container::tag</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#620">Lucent\Container\Container::remove</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1331">Lucent\Container\Container::abstractFromCallable</a></td><td class="number">3</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ContextualBindingBuilder.php.html#69">Lucent\Container\ContextualBindingBuilder::give</a></td><td class="number">2.86</td><td class="number">40.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#301">Lucent\Container\Container::scoped</a></td><td class="number">2.26</td><td class="number">60.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#439">Lucent\Container\Container::extend</a></td><td class="number">2.15</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#890">Lucent\Container\Container::resolveContextual</a></td><td class="number">2.15</td><td class="number">66.7%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#471">Lucent\Container\Container::tagged</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#553">Lucent\Container\Container::rebinding</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#661">Lucent\Container\Container::forgetInstances</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#906">Lucent\Container\Container::getContextualConcrete</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1009">Lucent\Container\Container::applyExtenders</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1043">Lucent\Container\Container::fireCallbackArray</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1228">Lucent\Container\Container::getTypeName</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1245">Lucent\Container\Container::isInstantiable</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1294">Lucent\Container\Container::resolveAlias</a></td><td class="number">2</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#87">Lucent\Container\ServiceProvider::provides</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#112">Lucent\Container\ServiceProvider::call</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#140">Lucent\Container\ServiceProvider::bind</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#196">Lucent\Container\ServiceProvider::when</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#210">Lucent\Container\ServiceProvider::tag</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#223">Lucent\Container\ServiceProvider::tagged</a></td><td class="number">2</td><td class="number">0.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#155">Lucent\Container\Container::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#174">Lucent\Container\Container::get</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#197">Lucent\Container\Container::make</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#249">Lucent\Container\Container::resolved</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#419">Lucent\Container\Container::alias</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#494">Lucent\Container\Container::when</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#507">Lucent\Container\Container::addContextualBinding</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#638">Lucent\Container\Container::removeAlias</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#651">Lucent\Container\Container::forgetInstance</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#672">Lucent\Container\Container::flush</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#819">Lucent\Container\Container::resolveFactory</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#840">Lucent\Container\Container::resolveBinding</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1025">Lucent\Container\Container::fireResolvingCallbacks</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/Container.php.html#1283">Lucent\Container\Container::forget</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ContextualBindingBuilder.php.html#44">Lucent\Container\ContextualBindingBuilder::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ContextualBindingBuilder.php.html#56">Lucent\Container\ContextualBindingBuilder::needs</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/NotFoundException.php.html#26">Lucent\Container\NotFoundException::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#53">Lucent\Container\ServiceProvider::__construct</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#75">Lucent\Container\ServiceProvider::boot</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#97">Lucent\Container\ServiceProvider::isDeferred</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#126">Lucent\Container\ServiceProvider::make</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#154">Lucent\Container\ServiceProvider::singleton</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#168">Lucent\Container\ServiceProvider::instance</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#183">Lucent\Container\ServiceProvider::alias</a></td><td class="number">1</td><td class="number">100.0%</td></tr>
+       <tr><td><a href="../../Lucent/Container/ServiceProvider.php.html#66">Lucent\Container\ServiceProvider::register</a></td><td class="number">0</td><td class="number">100.0%</td></tr>
+      </tbody>
+     </table>
+      </div>
+     </div>
+    </div>
+   </section>
+  </main>
+  <footer>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
+ </body>
+</html>

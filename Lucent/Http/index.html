@@ -2,343 +2,178 @@
 <html lang="en">
  <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Code Coverage for /home/runner/work/Lucent/Lucent/src/Lucent/Http</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="../../_css/bootstrap.min.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/octicons.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/style.css?v=12.5.7" rel="stylesheet" type="text/css">
-  <link href="../../_css/custom.css" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
  </head>
  <body>
-  <header>
-   <div class="container-fluid">
-    <div class="row">
-     <div class="col-md-12">
-      <nav aria-label="breadcrumb">
-       <ol class="breadcrumb">
-         <li class="breadcrumb-item"><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
-         <li class="breadcrumb-item"><a href="../index.html">Lucent</a></li>
-         <li class="breadcrumb-item active">Http</li>
-         <li class="breadcrumb-item">(<a href="dashboard.html">Dashboard</a>)</li>
-
-       </ol>
-      </nav>
-     </div>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../index.html">Lucent</a></li>
+     <li class="current">Http</li>
+     <li class="secondary"><a href="dashboard.html">Dashboard</a></li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../_classes/index.html">Classes</a></li>
+   </ul>
+  </header>
+  <main>
+   <div class="summary" data-coverage="{&quot;linesTotal&quot;:1456,&quot;linesAll&quot;:1205,&quot;methodsTotal&quot;:256,&quot;methodsAll&quot;:173,&quot;classesTotal&quot;:32,&quot;classesAll&quot;:9,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+    <div class="metric" data-metric="lines-card" data-level="warning">
+     <span class="metric-name">Lines</span>
+     <span class="metric-percentage" data-metric="lines-percent" data-level="warning">82.76%</span>
+     <span class="metric-bar" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 82.76%"></span></span></span>
+     <span class="metric-count" data-metric="lines-number" data-level="warning">1205 / 1456</span>
+    </div>
+    <div class="metric" data-metric="methods-card" data-level="warning">
+     <span class="metric-name">Functions and Methods</span>
+     <span class="metric-percentage" data-metric="methods-percent" data-level="warning">67.57%</span>
+     <span class="metric-bar" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 67.57%"></span></span></span>
+     <span class="metric-count" data-metric="methods-number" data-level="warning">173 / 256</span>
+    </div>
+    <div class="metric" data-metric="classes-card" data-level="danger">
+     <span class="metric-name">Classes and Traits</span>
+     <span class="metric-percentage" data-metric="classes-percent" data-level="danger">28.12%</span>
+     <span class="metric-bar" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 28.12%"></span></span></span>
+     <span class="metric-count" data-metric="classes-number" data-level="danger">9 / 32</span>
     </div>
    </div>
-  </header>
-  <div class="container-fluid">
-   <div class="table-responsive">
-    <table class="table table-bordered">
+   <div class="table-scroll">
+    <table class="coverage">
      <thead>
       <tr>
-       <td>&nbsp;</td>
-       <td colspan="9"><div align="center"><strong>Code Coverage</strong></div></td>
-      </tr>
-      <tr>
-       <td>&nbsp;</td>
-       <td colspan="3"><div align="center"><strong>Lines</strong></div></td>
-       <td colspan="3"><div align="center"><strong>Functions and Methods</strong></div></td>
-       <td colspan="3"><div align="center"><strong>Classes and Traits</strong></div></td>
+       <th scope="col" class="name">Name</th>
+       <th scope="colgroup" colspan="3">Lines</th>
+       <th scope="colgroup" colspan="3">Functions and Methods</th>
+       <th scope="colgroup" colspan="3">Classes and Traits</th>
       </tr>
      </thead>
      <tbody>
-      <tr>
-       <td class="warning">Total</td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="82.67" aria-valuemin="0" aria-valuemax="100" style="width: 82.67%">
-           <span class="visually-hidden">82.67% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">82.67%</div></td>
-       <td class="warning small"><div align="right">1202&nbsp;/&nbsp;1454</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="67.45" aria-valuemin="0" aria-valuemax="100" style="width: 67.45%">
-           <span class="visually-hidden">67.45% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">67.45%</div></td>
-       <td class="warning small"><div align="right">172&nbsp;/&nbsp;255</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="25.81" aria-valuemin="0" aria-valuemax="100" style="width: 25.81%">
-           <span class="visually-hidden">25.81% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">25.81%</div></td>
-       <td class="danger small"><div align="right">8&nbsp;/&nbsp;31</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:4,&quot;linesAll&quot;:2,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:2,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="danger"><span class="icon icon-directory" aria-hidden="true"></span><a href="Attributes/index.html">Attributes</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 50.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="danger">50.00%</td>
+       <td class="count" data-metric="lines-number" data-level="danger">2 / 4</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 66.66%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="warning">66.66%</td>
+       <td class="count" data-metric="methods-number" data-level="warning">2 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 50.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">50.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">1 / 2</td>
       </tr>
-
-      <tr>
-       <td class="danger"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="Attributes/index.html">Attributes</a></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="50.00" aria-valuemin="0" aria-valuemax="100" style="width: 50.00%">
-           <span class="visually-hidden">50.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">50.00%</div></td>
-       <td class="danger small"><div align="right">2&nbsp;/&nbsp;4</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="66.67" aria-valuemin="0" aria-valuemax="100" style="width: 66.67%">
-           <span class="visually-hidden">66.67% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">66.67%</div></td>
-       <td class="warning small"><div align="right">2&nbsp;/&nbsp;3</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="50.00" aria-valuemin="0" aria-valuemax="100" style="width: 50.00%">
-           <span class="visually-hidden">50.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">50.00%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;2</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:375,&quot;linesAll&quot;:334,&quot;methodsTotal&quot;:30,&quot;methodsAll&quot;:19,&quot;classesTotal&quot;:6,&quot;classesAll&quot;:2,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-directory" aria-hidden="true"></span><a href="Client/index.html">Client</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 89.06%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">89.06%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">334 / 375</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 63.33%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="warning">63.33%</td>
+       <td class="count" data-metric="methods-number" data-level="warning">19 / 30</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 33.33%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">33.33%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">2 / 6</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="Client/index.html">Client</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="89.07" aria-valuemin="0" aria-valuemax="100" style="width: 89.07%">
-           <span class="visually-hidden">89.07% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">89.07%</div></td>
-       <td class="warning small"><div align="right">334&nbsp;/&nbsp;375</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="63.33" aria-valuemin="0" aria-valuemax="100" style="width: 63.33%">
-           <span class="visually-hidden">63.33% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">63.33%</div></td>
-       <td class="warning small"><div align="right">19&nbsp;/&nbsp;30</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="33.33" aria-valuemin="0" aria-valuemax="100" style="width: 33.33%">
-           <span class="visually-hidden">33.33% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">33.33%</div></td>
-       <td class="danger small"><div align="right">2&nbsp;/&nbsp;6</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:58,&quot;linesAll&quot;:34,&quot;methodsTotal&quot;:13,&quot;methodsAll&quot;:6,&quot;classesTotal&quot;:2,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-directory" aria-hidden="true"></span><a href="EventStream/index.html">EventStream</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 58.62%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">58.62%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">34 / 58</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 46.15%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">46.15%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">6 / 13</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 2</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="EventStream/index.html">EventStream</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="58.62" aria-valuemin="0" aria-valuemax="100" style="width: 58.62%">
-           <span class="visually-hidden">58.62% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">58.62%</div></td>
-       <td class="warning small"><div align="right">34&nbsp;/&nbsp;58</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="46.15" aria-valuemin="0" aria-valuemax="100" style="width: 46.15%">
-           <span class="visually-hidden">46.15% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">46.15%</div></td>
-       <td class="danger small"><div align="right">6&nbsp;/&nbsp;13</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;2</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:31,&quot;linesAll&quot;:29,&quot;methodsTotal&quot;:10,&quot;methodsAll&quot;:9,&quot;classesTotal&quot;:4,&quot;classesAll&quot;:3,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-directory" aria-hidden="true"></span><a href="Exceptions/index.html">Exceptions</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 93.54%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">93.54%</td>
+       <td class="count" data-metric="lines-number" data-level="success">29 / 31</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 90.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">90.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">9 / 10</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 75.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="warning">75.00%</td>
+       <td class="count" data-metric="classes-number" data-level="warning">3 / 4</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="Exceptions/index.html">Exceptions</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="92.00" aria-valuemin="0" aria-valuemax="100" style="width: 92.00%">
-           <span class="visually-hidden">92.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">92.00%</div></td>
-       <td class="success small"><div align="right">23&nbsp;/&nbsp;25</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="88.89" aria-valuemin="0" aria-valuemax="100" style="width: 88.89%">
-           <span class="visually-hidden">88.89% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">88.89%</div></td>
-       <td class="warning small"><div align="right">8&nbsp;/&nbsp;9</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="66.67" aria-valuemin="0" aria-valuemax="100" style="width: 66.67%">
-           <span class="visually-hidden">66.67% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">66.67%</div></td>
-       <td class="warning small"><div align="right">2&nbsp;/&nbsp;3</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:939,&quot;linesAll&quot;:777,&quot;methodsTotal&quot;:189,&quot;methodsAll&quot;:130,&quot;classesTotal&quot;:13,&quot;classesAll&quot;:1,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-directory" aria-hidden="true"></span><a href="Message/index.html">Message</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 82.74%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">82.74%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">777 / 939</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 68.78%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="warning">68.78%</td>
+       <td class="count" data-metric="methods-number" data-level="warning">130 / 189</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 7.69%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">7.69%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">1 / 13</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="Message/index.html">Message</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="82.78" aria-valuemin="0" aria-valuemax="100" style="width: 82.78%">
-           <span class="visually-hidden">82.78% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">82.78%</div></td>
-       <td class="warning small"><div align="right">779&nbsp;/&nbsp;941</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="68.78" aria-valuemin="0" aria-valuemax="100" style="width: 68.78%">
-           <span class="visually-hidden">68.78% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">68.78%</div></td>
-       <td class="warning small"><div align="right">130&nbsp;/&nbsp;189</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="7.69" aria-valuemin="0" aria-valuemax="100" style="width: 7.69%">
-           <span class="visually-hidden">7.69% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">7.69%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;13</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:10,&quot;linesAll&quot;:10,&quot;methodsTotal&quot;:4,&quot;methodsAll&quot;:4,&quot;classesTotal&quot;:2,&quot;classesAll&quot;:2,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="success"><span class="icon icon-directory" aria-hidden="true"></span><a href="Middleware/index.html">Middleware</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="lines-number" data-level="success">10 / 10</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="methods-number" data-level="success">4 / 4</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="success"><span class="bar" aria-hidden="true"><span style="width: 100.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="success">100.00%</td>
+       <td class="count" data-metric="classes-number" data-level="success">2 / 2</td>
       </tr>
-
-      <tr>
-       <td class="success"><img src="../../_icons/file-directory.svg" class="octicon" /><a href="Middleware/index.html">Middleware</a></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">10&nbsp;/&nbsp;10</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">4&nbsp;/&nbsp;4</div></td>
-       <td class="success big">       <div class="progress">
-         <div class="progress-bar bg-success" role="progressbar" aria-valuenow="100.00" aria-valuemin="0" aria-valuemax="100" style="width: 100.00%">
-           <span class="visually-hidden">100.00% covered (success)</span>
-         </div>
-       </div>
-</td>
-       <td class="success small"><div align="right">100.00%</div></td>
-       <td class="success small"><div align="right">2&nbsp;/&nbsp;2</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:23,&quot;linesAll&quot;:11,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:0,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="danger"><span class="icon icon-file" aria-hidden="true"></span><a href="HttpRouter.php.html">HttpRouter.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 47.82%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="danger">47.82%</td>
+       <td class="count" data-metric="lines-number" data-level="danger">11 / 23</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">0 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="danger"><img src="../../_icons/file-code.svg" class="octicon" /><a href="HttpRouter.php.html">HttpRouter.php</a></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="47.83" aria-valuemin="0" aria-valuemax="100" style="width: 47.83%">
-           <span class="visually-hidden">47.83% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">47.83%</div></td>
-       <td class="danger small"><div align="right">11&nbsp;/&nbsp;23</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;2</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:13,&quot;linesAll&quot;:7,&quot;methodsTotal&quot;:3,&quot;methodsAll&quot;:2,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="warning"><span class="icon icon-file" aria-hidden="true"></span><a href="HttpStatus.php.html">HttpStatus.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 53.84%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="warning">53.84%</td>
+       <td class="count" data-metric="lines-number" data-level="warning">7 / 13</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="warning"><span class="bar" aria-hidden="true"><span style="width: 66.66%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="warning">66.66%</td>
+       <td class="count" data-metric="methods-number" data-level="warning">2 / 3</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="warning"><img src="../../_icons/file-code.svg" class="octicon" /><a href="HttpStatus.php.html">HttpStatus.php</a></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="53.33" aria-valuemin="0" aria-valuemax="100" style="width: 53.33%">
-           <span class="visually-hidden">53.33% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">53.33%</div></td>
-       <td class="warning small"><div align="right">8&nbsp;/&nbsp;15</div></td>
-       <td class="warning big">       <div class="progress">
-         <div class="progress-bar bg-warning" role="progressbar" aria-valuenow="66.67" aria-valuemin="0" aria-valuemax="100" style="width: 66.67%">
-           <span class="visually-hidden">66.67% covered (warning)</span>
-         </div>
-       </div>
-</td>
-       <td class="warning small"><div align="right">66.67%</div></td>
-       <td class="warning small"><div align="right">2&nbsp;/&nbsp;3</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
+      <tr data-coverage="{&quot;linesTotal&quot;:3,&quot;linesAll&quot;:1,&quot;methodsTotal&quot;:2,&quot;methodsAll&quot;:1,&quot;classesTotal&quot;:1,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+       <th scope="row" class="name" data-metric="lines-name" data-level="danger"><span class="icon icon-file" aria-hidden="true"></span><a href="RouteInfo.php.html">RouteInfo.php</a></th>
+       <td class="bar-cell" data-metric="lines-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 33.33%"></span></span></td>
+       <td class="percentage" data-metric="lines-percent" data-level="danger">33.33%</td>
+       <td class="count" data-metric="lines-number" data-level="danger">1 / 3</td>
+       <td class="bar-cell" data-metric="methods-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 50.00%"></span></span></td>
+       <td class="percentage" data-metric="methods-percent" data-level="danger">50.00%</td>
+       <td class="count" data-metric="methods-number" data-level="danger">1 / 2</td>
+       <td class="bar-cell" data-metric="classes-bar" data-level="danger"><span class="bar" aria-hidden="true"><span style="width: 0.00%"></span></span></td>
+       <td class="percentage" data-metric="classes-percent" data-level="danger">0.00%</td>
+       <td class="count" data-metric="classes-number" data-level="danger">0 / 1</td>
       </tr>
-
-      <tr>
-       <td class="danger"><img src="../../_icons/file-code.svg" class="octicon" /><a href="RouteInfo.php.html">RouteInfo.php</a></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="33.33" aria-valuemin="0" aria-valuemax="100" style="width: 33.33%">
-           <span class="visually-hidden">33.33% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">33.33%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;3</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="50.00" aria-valuemin="0" aria-valuemax="100" style="width: 50.00%">
-           <span class="visually-hidden">50.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">50.00%</div></td>
-       <td class="danger small"><div align="right">1&nbsp;/&nbsp;2</div></td>
-       <td class="danger big">       <div class="progress">
-         <div class="progress-bar bg-danger" role="progressbar" aria-valuenow="0.00" aria-valuemin="0" aria-valuemax="100" style="width: 0.00%">
-           <span class="visually-hidden">0.00% covered (danger)</span>
-         </div>
-       </div>
-</td>
-       <td class="danger small"><div align="right">0.00%</div></td>
-       <td class="danger small"><div align="right">0&nbsp;/&nbsp;1</div></td>
-      </tr>
-
-
      </tbody>
     </table>
    </div>
-   <footer>
-    <hr/>
-    <h4>Legend</h4>
-    <p>
-     <span class="danger"><strong>Low</strong>: 0% to 50%</span>
-     <span class="warning"><strong>Medium</strong>: 50% to 90%</span>
-     <span class="success"><strong>High</strong>: 90% to 100%</span>
-    </p>
-    <p>
-     <small>Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 12.5.7</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 12.5.36</a> at Mon Sep 28 4:51:36 UTC 2026.</small>
-    </p>
-   </footer>
-  </div>
+  </main>
+  <footer>
+   <ul class="legend">
+    <li class="danger"><strong>Low</strong>: 0% to 50%</li>
+    <li class="warning"><strong>Medium</strong>: 50% to 90%</li>
+    <li class="success"><strong>High</strong>: 90% to 100%</li>
+   </ul>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.0</a> at Sun Oct 4 7:54:47 UTC 2026.</p>
+  </footer>
+  <script src="../../_js/coverage-table.js?v=14.4.1" defer></script>
  </body>
 </html>
