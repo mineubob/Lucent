@@ -320,9 +320,18 @@ final class SyncCommand
 
     /**
      * Whether the process has an interactive terminal on stdin.
+     *
+     * The LUCENT_NON_INTERACTIVE env var forces the non-interactive path —
+     * used by the test suite (a TTY on stdin would otherwise make the
+     * destructive-change prompts block on fgets() forever, hanging phpunit)
+     * and available to CI runners and scripted invocations generally.
      */
     private static function isInteractive(): bool
     {
+        if (getenv('LUCENT_NON_INTERACTIVE') === '1') {
+            return false;
+        }
+
         return is_resource(STDIN) && stream_isatty(STDIN);
     }
 

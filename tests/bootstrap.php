@@ -40,7 +40,15 @@ $isMainProcess = !getenv('LUCENT_TEST_BOOTSTRAPPED');
 
 if ($isMainProcess) {
     putenv('LUCENT_TEST_BOOTSTRAPPED=1');
+}
 
+// Force the sync commands' non-interactive path: when phpunit runs attached
+// to a terminal, STDIN is a TTY and the destructive-change prompts would
+// block on fgets() forever (max_execution_time does not fire — on Linux it
+// counts CPU time, not time blocked in I/O). Tests never answer prompts.
+putenv('LUCENT_NON_INTERACTIVE=1');
+
+if ($isMainProcess) {
     // Clean up any leftover files from a previous test run so each run starts
     // fresh. This prevents stale fixtures (models, routes, .env) from causing
     // false failures or masking bugs.
