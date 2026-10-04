@@ -118,6 +118,54 @@ class SyncCommandTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
+    public function test_sync_declining_destructive_prompt_applies_nothing($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyTable('orphan_table', ['id' => ColumnType::BigInt]);
+
+        // Answer "no" to the destructive confirm (the prompts were fired
+        // in the first place only because an injected input stream makes
+        // the run interactive).
+        $stream = fopen('php://memory', 'r+b');
+        fwrite($stream, "no\n");
+        rewind($stream);
+        SyncCommand::useInputStream($stream);
+
+        $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
+
+        fclose($stream);
+        SyncCommand::useInputStream(null);
+
+        // The decline is honored — the orphan still exists.
+        $tables = Database::sqlConnection()->schemaInspector->tables();
+        $this->assertContains('orphan_table', $tables);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_sync_accepting_destructive_prompt_drops_the_table($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyTable('orphan_table', ['id' => ColumnType::BigInt]);
+
+        // Answer "yes" to the destructive confirm.
+        $stream = fopen('php://memory', 'r+b');
+        fwrite($stream, "yes\n");
+        rewind($stream);
+        SyncCommand::useInputStream($stream);
+
+        $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
+
+        fclose($stream);
+        SyncCommand::useInputStream(null);
+
+        $this->assertStringContainsString("planned change(s) applied", $result);
+
+        // The acceptance is honored — the orphan is gone.
+        $tables = Database::sqlConnection()->schemaInspector->tables();
+        $this->assertNotContains('orphan_table', $tables);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
     public function test_sync_reports_nothing_to_do_when_in_sync($driver, $config): void
     {
         self::setupDatabase($driver, $config, []);

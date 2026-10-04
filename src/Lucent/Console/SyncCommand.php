@@ -54,6 +54,22 @@ final class SyncCommand
     public static string $command = "sync";
 
     /**
+     * The stream prompts read answers from. Injectable so tests can feed
+     * scripted answers and actually exercise the prompt flows; real runs
+     * use STDIN.
+     */
+    private static mixed $inputStream = null;
+
+    /**
+     * Replace the stream prompts read from (e.g. a memory stream in tests).
+     * Pass null to restore STDIN.
+     */
+    public static function useInputStream(mixed $stream): void
+    {
+        self::$inputStream = $stream;
+    }
+
+    /**
      * Run the sync.
      *
      * @param array<string, mixed> $options CLI options (--filter,
@@ -178,7 +194,13 @@ final class SyncCommand
                 // ---- Confirm gate ----
                 $destructive = array_filter($changes, fn(SchemaChange $c): bool => $c->destructive);
 
-                if ($destructive !== [] && !$force && !self::isInteractive()) {
+                // Interactive when a TTY is present OR an input stream is
+                // injected (tests feed scripted answers through the seam —
+                // they must reach the prompt flows, not the fail-fast gate).
+                $interactive = self::isInteractive()
+                    || (self::$inputStream !== null && is_resource(self::$inputStream));
+
+                if ($destructive !== [] && !$force && !$interactive) {
                     self::error(
                         "Destructive changes present and no TTY available — re-run with --force to apply."
                     );
@@ -190,11 +212,9 @@ final class SyncCommand
                         return true;
                     }
 
-                    echo ConsoleColors::FG_YELLOW . $change->description . ConsoleColors::RESET . "\n";
-                    echo "Apply this destructive change? (yes/no) ";
-                    $answer = strtolower(trim((string) fgets(STDIN)));
+                    self::prompt($change->description);
 
-                    return in_array($answer, ['y', 'yes'], true);
+                    return self::readAnswer();
                 };
 
                 // ---- Apply with progress ----
@@ -295,10 +315,10 @@ final class SyncCommand
             if ($force) {
                 $answer = 'yes';
             } else {
-                echo ConsoleColors::FG_YELLOW
-                    . "POSSIBLE RENAME: [{$oldTable}] → [{$newTable}]. Treat as a rename? (yes/no) "
-                    . ConsoleColors::RESET;
-                $answer = strtolower(trim((string) fgets(STDIN)));
+                self::prompt(
+                    "POSSIBLE RENAME: [{$oldTable}] → [{$newTable}]. Treat as a rename?"
+                );
+                $answer = self::readAnswer();
             }
 
             if (!in_array($answer, ['y', 'yes'], true)) {
@@ -322,9 +342,10 @@ final class SyncCommand
      * Whether the process has an interactive terminal on stdin.
      *
      * The LUCENT_NON_INTERACTIVE env var forces the non-interactive path —
-     * used by the test suite (a TTY on stdin would otherwise make the
-     * destructive-change prompts block on fgets() forever, hanging phpunit)
-     * and available to CI runners and scripted invocations generally.
+     * used by the test suite and CI runners; a TTY on stdin would otherwise
+     * make the prompts block on fgets() forever. An injected input stream
+     * (useInputStream) also implies non-interactive TTY detection is
+     * irrelevant — prompts are answered from the stream.
      */
     private static function isInteractive(): bool
     {
@@ -333,6 +354,35 @@ final class SyncCommand
         }
 
         return is_resource(STDIN) && stream_isatty(STDIN);
+    }
+
+    /**
+     * Display a prompt question on STDERR.
+     *
+     * Prompts go to STDERR, never STDOUT: they are interaction, not result
+     * output. This keeps them visible when stdout is redirected or captured
+     * (ob_start in test/execute mode would otherwise SWALLOW the question —
+     * the user would see a silent hang) and follows the git/composer/ssh
+     * convention of separating interaction from results.
+     */
+    private static function prompt(string $question): void
+    {
+        fwrite(
+            STDERR,
+            ConsoleColors::FG_YELLOW . $question . ConsoleColors::RESET . "\n"
+            . "Apply? Type yes or no: "
+        );
+    }
+
+    /**
+     * Read a yes/no answer from the injected stream or STDIN.
+     */
+    private static function readAnswer(): bool
+    {
+        $stream = self::$inputStream ?? STDIN;
+        $answer = strtolower(trim((string) fgets($stream)));
+
+        return in_array($answer, ['y', 'yes'], true);
     }
 
     private static function line(string $message): void
