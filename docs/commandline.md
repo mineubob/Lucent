@@ -116,7 +116,7 @@ When the differ flags a create/drop pair as a possible rename (≥50% column ove
 POSSIBLE RENAME: [old_table] → [new_table]. Treat as a rename? (yes/no)
 ```
 
-Confirming declares the rename on the blueprint and re-plans — nothing touches the database until the plan is final. The differ emits the real `RenameTable` change (data travels with it) instead of a drop + create, together with any column shape drift in the same plan — so the schema is fully in sync after one apply. Each old table can only be claimed by one rename (highest overlap wins). With `--force` suggestions are auto-accepted; without a TTY they are kept as-is. To declare a rename deterministically instead of relying on the prompt, use `renamedFrom()` in host code (see [Schema](database/schema.md)).
+Confirming declares the rename on the blueprint and re-plans — nothing touches the database until the plan is final. The differ emits the real `RenameTable` change (data travels with it) instead of a drop + create, together with any column shape drift in the same plan — so the schema is fully in sync after one apply. Each old table can only be claimed by one rename (highest overlap wins). With `--force` suggestions are auto-accepted; without a TTY (or an injected input stream) they are kept as-is. To declare a rename deterministically instead of relying on the prompt, use `renamedFrom()` in host code (see [Schema](database/schema.md)).
 
 ### The `sync:legacy` Command
 

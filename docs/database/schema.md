@@ -151,7 +151,7 @@ Confirming declares the rename on the blueprint (`renamedFrom`) and re-plans —
 
 A declared rename and its column drift land in **one plan**: the differ emits the `RenameTable` change first, then diffs the desired columns against the old table's live shape and emits the follow-up `AddColumn`/`ModifyColumn`/`DropColumn` changes targeting the new name. Applying the plan leaves the schema fully in sync — a renamed column that also changed shape sequences `RenameColumn` first, then `ModifyColumn`.
 
-With `--force` every suggestion is auto-accepted. Without a TTY the flagged pair is kept as-is (the plan shows the annotation and the destructive gate handles it).
+With `--force` every suggestion is auto-accepted. Without a TTY (or an injected input stream) the flagged pair is kept as-is (the plan shows the annotation and the destructive gate handles it).
 
 To declare a rename deterministically instead of relying on the prompt, declare it (the new `#[Table]`/`#[Column(name:)]` value against the existing table) and re-run — the declared rename is verified against the live schema and data travels with it.
 

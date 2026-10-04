@@ -212,6 +212,82 @@ class SyncCommandTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
+    public function test_sync_accepting_rename_prompt_declares_the_rename($driver, $config): void
+    {
+        // The interactive path (no --force): a scripted "yes" must reach
+        // the rename prompt via the injected input stream, be honored as
+        // an acceptance, and claim the old table — the re-plan emits the
+        // real RenameTable change and no further prompt for the same old
+        // table fires.
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyTable('TestUser', [
+            'id' => ColumnType::BigInt,
+            'email' => ColumnType::Text,
+            'full_name' => ColumnType::Text,
+        ]);
+
+        $stream = fopen('php://memory', 'r+b');
+        fwrite($stream, "yes\n");
+        rewind($stream);
+        SyncCommand::useInputStream($stream);
+
+        $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
+
+        fclose($stream);
+        SyncCommand::useInputStream(null);
+
+        // The acceptance was honored — the rename was declared and applied.
+        $this->assertMatchesRegularExpression(
+            '/rename table \[TestUser\] to \[test_(users|user_twos)\]/',
+            $result,
+        );
+        $this->assertStringContainsString("planned change(s) applied", $result);
+
+        // The old table is gone (renamed away, not dropped) and the schema
+        // is fully in sync afterwards.
+        $tables = Database::sqlConnection()->schemaInspector->tables();
+        $this->assertNotContains('TestUser', $tables);
+        $second = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
+        $this->assertStringContainsString("Schema is in sync", $second);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_sync_declining_rename_prompt_keeps_create_and_drop($driver, $config): void
+    {
+        // A scripted "no" must keep the flagged pair as-is: the plan shows
+        // the create + drop (with the POSSIBLE RENAME annotation) and the
+        // destructive gate handles the drop. Both creates pair with the
+        // same legacy drop, so BOTH rename prompts fire (declining the
+        // first frees the claim); the third answer confirms the drop.
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyTable('TestUser', [
+            'id' => ColumnType::BigInt,
+            'email' => ColumnType::Text,
+            'full_name' => ColumnType::Text,
+        ]);
+
+        $stream = fopen('php://memory', 'r+b');
+        fwrite($stream, "no\nno\nyes\n");
+        rewind($stream);
+        SyncCommand::useInputStream($stream);
+
+        $result = CommandLine::execute("sync --dir=" . TEMP_ROOT . "App/Models");
+
+        fclose($stream);
+        SyncCommand::useInputStream(null);
+
+        // The decline was honored — no rename was declared.
+        $this->assertStringNotContainsString("rename table [TestUser]", $result);
+        $this->assertStringContainsString("planned change(s) applied", $result);
+
+        // The old table was dropped and the new tables created.
+        $tables = Database::sqlConnection()->schemaInspector->tables();
+        $this->assertNotContains('TestUser', $tables);
+        $this->assertContains('test_users', $tables);
+        $this->assertContains('test_user_twos', $tables);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
     public function test_sync_with_no_matching_models_reports_empty($driver, $config): void
     {
         self::setupDatabase($driver, $config, []);

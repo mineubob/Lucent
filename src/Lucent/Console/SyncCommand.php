@@ -197,8 +197,7 @@ final class SyncCommand
                 // Interactive when a TTY is present OR an input stream is
                 // injected (tests feed scripted answers through the seam —
                 // they must reach the prompt flows, not the fail-fast gate).
-                $interactive = self::isInteractive()
-                    || (self::$inputStream !== null && is_resource(self::$inputStream));
+                $interactive = self::canPrompt();
 
                 if ($destructive !== [] && !$force && !$interactive) {
                     self::error(
@@ -274,10 +273,10 @@ final class SyncCommand
      * its best-overlap drop, so multiple creates can claim the same drop —
      * first claim wins).
      *
-     * With --force every suggestion is auto-accepted. Without a TTY the
-     * flagged pair is kept as-is (the plan shows the POSSIBLE RENAME
-     * annotation and the destructive gate handles it) — never block on
-     * stdin we cannot read.
+     * With --force every suggestion is auto-accepted. Without a TTY or an
+     * injected input stream the flagged pair is kept as-is (the plan shows
+     * the POSSIBLE RENAME annotation and the destructive gate handles it)
+     * — never block on stdin we cannot read.
      *
      * @param list<SchemaChange> $changes The current plan
      * @param list<Blueprint> $pristine The desired blueprints (mutated in place)
@@ -298,8 +297,9 @@ final class SyncCommand
             return false;
         }
 
-        // No TTY and no --force: keep the flagged pair as-is.
-        if (!$force && !self::isInteractive()) {
+        // Nothing to prompt with (no TTY, no injected stream) and no
+        // --force: keep the flagged pair as-is.
+        if (!$force && !self::canPrompt()) {
             return false;
         }
 
@@ -312,8 +312,12 @@ final class SyncCommand
                 continue;
             }
 
+            // readAnswer() already normalizes to a bool — a plain falsy
+            // check is the correct gate (a strict string compare would
+            // treat a typed "yes" as a decline and re-prompt every
+            // remaining pair with the same old table).
             if ($force) {
-                $answer = 'yes';
+                $answer = true;
             } else {
                 self::prompt(
                     "POSSIBLE RENAME: [{$oldTable}] → [{$newTable}]. Treat as a rename?"
@@ -321,7 +325,7 @@ final class SyncCommand
                 $answer = self::readAnswer();
             }
 
-            if (!in_array($answer, ['y', 'yes'], true)) {
+            if (!$answer) {
                 continue;
             }
 
@@ -354,6 +358,19 @@ final class SyncCommand
         }
 
         return is_resource(STDIN) && stream_isatty(STDIN);
+    }
+
+    /**
+     * Whether prompts can be asked AND answered: a TTY on stdin, or an
+     * injected input stream (tests feed scripted answers through the
+     * seam). The rename suggestions and the destructive confirm gate share
+     * this definition so both prompt flows are reachable under the same
+     * conditions.
+     */
+    private static function canPrompt(): bool
+    {
+        return self::isInteractive()
+            || (self::$inputStream !== null && is_resource(self::$inputStream));
     }
 
     /**
