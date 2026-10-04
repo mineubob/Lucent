@@ -27,10 +27,16 @@ DB_DATABASE=my_database
 DB_USERNAME=root
 DB_PASSWORD=secret
 
-# SQLite
+# SQLite — relative to the project root
 DB_DRIVER=sqlite
-DB_DATABASE=/storage/database.sqlite
+DB_DATABASE=storage/database.sqlite
+
+# SQLite — absolute path (used verbatim)
+DB_DRIVER=sqlite
+DB_DATABASE=/var/data/database.sqlite
 ```
+
+For SQLite, `DB_DATABASE` is a **filesystem path**. A relative path is resolved against your project's root directory (where `.env` lives), and absolute paths are used verbatim — so the SQLite file can live anywhere on disk. The database file is created automatically by SQLite when the connection opens.
 
 For SQLite you can also use an **in-memory** database by setting `DB_DATABASE=:memory:`. This creates a database that lives entirely in memory and is destroyed when the connection closes. It is ideal for tests and other ephemeral use cases: it is faster (no file I/O), leaves no files behind, and each connection gets its own fully isolated database.
 
@@ -119,7 +125,7 @@ For SQLite:
 ```php
 Database::manager()->addConnection('archive', [
     'driver'   => 'sqlite',
-    'database' => '/storage/archive.sqlite',
+    'database' => 'storage/archive.sqlite',
 ]);
 ```
 

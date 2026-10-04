@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use BlueprintAU\Radiant\Database;
 use BlueprintAU\Radiant\Database\DatabaseManager;
+use Lucent\Facades\FileSystem;
 use Tests\Support\Concerns\DatabaseTesting;
 use Tests\Support\TestCase;
 
@@ -92,6 +93,85 @@ class ConfigureDatabaseTest extends TestCase
         Application_setEnv_reconfigure('sqlite', ['driver' => 'sqlite', 'database' => ':memory:']);
 
         $this->assertTrue(Database::hasManager());
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: string, 2: string}>
+     * @phpcsSuppress SlevomatCodingStandard.TypeHints
+     */
+    public static function sqlitePathProvider(): array
+    {
+        return [
+            'relative path resolved against root' => [
+                'storage/db.sqlite',
+                'storage/db.sqlite',
+                FileSystem::rootPath() . '/storage/db.sqlite',
+            ],
+            'dot segments collapsed' => [
+                'storage/./nested/../db.sqlite',
+                'storage/./nested/../db.sqlite',
+                FileSystem::rootPath() . '/storage/db.sqlite',
+            ],
+            'absolute path passes through' => [
+                '/tmp/lucent-test-absolute.sqlite',
+                '/tmp/lucent-test-absolute.sqlite',
+                '/tmp/lucent-test-absolute.sqlite',
+            ],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('sqlitePathProvider')]
+    public function test_sqlite_database_path_resolved_against_root(
+        string $envValue,
+        string $_input,
+        string $expected,
+    ): void {
+        // A relative sqlite path is resolved against FileSystem::rootPath()
+        // before it reaches Radiant's connector — the connector consumes the
+        // `database` value verbatim as a DSN path.
+        Application_setEnv_reconfigure('sqlite', ['driver' => 'sqlite', 'database' => $envValue]);
+
+        $this->assertSame($expected, self::defaultDatabaseConfig()['database']);
+    }
+
+    public function test_sqlite_memory_sentinel_not_resolved_as_path(): void
+    {
+        Application_setEnv_reconfigure('sqlite', ['driver' => 'sqlite', 'database' => ':memory:']);
+
+        $this->assertSame(':memory:', self::defaultDatabaseConfig()['database']);
+    }
+
+    public function test_non_sqlite_driver_database_value_untouched(): void
+    {
+        // A mysql database NAME must not be mangled by path resolution.
+        Application_setEnv_reconfigure('mysql', [
+            'driver'   => 'mysql',
+            'host'     => 'localhost',
+            'port'     => 3306,
+            'database' => 'my_database',
+            'username' => 'root',
+            'password' => '',
+        ]);
+
+        $this->assertSame('my_database', self::defaultDatabaseConfig()['database']);
+    }
+
+    /**
+     * Read the `default` connection's stored config out of the manager.
+     *
+     * @return array<string, mixed>
+     */
+    private static function defaultDatabaseConfig(): array
+    {
+        $prop = new \ReflectionProperty(
+            \BlueprintAU\Radiant\Database\DatabaseManager::class,
+            'connections',
+        );
+
+        /** @var array<string, array<string, mixed>> $connections */
+        $connections = $prop->getValue(Database::manager());
+
+        return $connections['default'];
     }
 
     protected function tearDown(): void

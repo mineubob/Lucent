@@ -139,7 +139,6 @@ final class SyncLegacyCommand
                     foreach ($changes as $change) {
                         self::line("Would rename [{$change->renameOf}] → [{$change->table}].");
                     }
-                    self::line("Dry run — no changes applied.");
                     return;
                 }
 
@@ -155,6 +154,11 @@ final class SyncLegacyCommand
             }, 'radiant:schema');
         } catch (\Throwable $e) {
             self::error("sync:legacy failed: " . $e->getMessage());
+            return '';
+        }
+
+        if ($dryRun) {
+            self::line(ConsoleColors::FG_CYAN . "Dry run — no changes applied." . ConsoleColors::RESET);
             return '';
         }
 

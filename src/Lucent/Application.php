@@ -807,7 +807,7 @@ class Application
         }
 
         $value = $vars[$name];
-        $keys = $this->resolveBindKeys($bind, $type, $vars, $value);
+        $keys = $this->resolveBindKeys($bind, $type, $vars, $value, $request);
 
         $resolve = function () use ($type, $keys, $bind, $vars, $value, $request) {
             $query = $type::newQuery();
@@ -848,11 +848,13 @@ class Application
      * @param class-string<Model> $type The model class
      * @param array<string, mixed> $vars The matched route variables
      * @param mixed $value The route variable's value
+     * @param ServerRequestInterface $request The current request — passed to
+     *        resolve callables as their context argument
      * @return array<string, mixed>
      * @throws \InvalidArgumentException On a composite PK without an explicit resolve,
      *         a missing route variable, or an empty resolve-callback map
      */
-    private function resolveBindKeys(Bind $bind, string $type, array $vars, mixed $value): array
+    private function resolveBindKeys(Bind $bind, string $type, array $vars, mixed $value, ServerRequestInterface $request): array
     {
         // Explicit callable: the developer declares every key part's source.
         if ($bind->resolve !== null && !is_string($bind->resolve)) {
@@ -1014,7 +1016,11 @@ class Application
      *
      * Reads the DB_* environment variables (DB_DRIVER, DB_HOST, DB_PORT,
      * DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_CHARSET) into the Radiant
-     * connection config shape. Called from loadEnv() and setEnv(), so the
+     * connection config shape. For the sqlite driver, DB_DATABASE is
+     * resolved to an absolute filesystem path (non-absolute paths are
+     * resolved against {@see FileSystem::rootPath()}, `:memory:` passes
+     * through untouched) — Radiant's connector consumes the value as a
+     * DSN path verbatim. Called from loadEnv() and setEnv(), so the
      * database layer re-configures whenever the environment changes (e.g.
      * switching drivers at runtime in tests).
      *
@@ -1053,6 +1059,10 @@ class Application
             }
         }
 
+        if ($driver === 'sqlite') {
+            $this->resolveSqlitePath($config);
+        }
+
         if (!\BlueprintAU\Radiant\Database::hasManager()) {
             // No manager yet — build one with Lucent's default connection.
             \BlueprintAU\Radiant\Database::setManager(
@@ -1076,6 +1086,34 @@ class Application
         // ITS OWN active connection; useConnection() is the switch.
         $manager->addConnection('default', $config);
         $manager->useConnection('default');
+    }
+
+    /**
+     * Resolve the sqlite "database" config value against the project root.
+     *
+     * Radiant's SqliteConnector consumes the `database` value verbatim as a
+     * PDO DSN path — it has no knowledge of the application's root
+     * directory. This restores the pre-Radiant behaviour (and matches
+     * Laravel's SQLiteConnector, which resolves via base_path()): relative
+     * paths such as "storage/database.sqlite" are resolved against
+     * {@see FileSystem::rootPath()}, absolute paths pass through, and the
+     * `:memory:` in-memory sentinel is handed to the connector untouched.
+     * `..` segments are collapsed lexically (no filesystem access, so the
+     * path may not exist yet).
+     *
+     * @param  array<string, mixed>  $config  The default connection config;
+     *         `database` is replaced in place when it is a relative path.
+     * @return void
+     */
+    private function resolveSqlitePath(array &$config): void
+    {
+        $path = $config['database'] ?? null;
+
+        if (!is_string($path) || $path === '' || $path === ':memory:') {
+            return; // absent/invalid lets the connector's fail-fast validation handle it
+        }
+
+        $config['database'] = FileSystem::normalizePath(FileSystem::absolutePath($path));
     }
 
     /**
