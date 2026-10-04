@@ -115,4 +115,108 @@ class ModelDiscoveryTest extends TestCase
             array_map(realpath(...), $dirs),
         );
     }
+
+    /**
+     * A file whose namespace does not match its location must still be
+     * discovered — class names come from the file's tokens, not its path.
+     *
+     * Lives in its own directory: temp_install persists across test classes
+     * in one process, and the sync command tests scan App/Models — a stray
+     * model there would change what they discover.
+     */
+    public function test_discover_finds_model_in_file_with_mismatched_namespace(): void
+    {
+        $dir = TEMP_ROOT . 'App/ModelsOdd';
+        @mkdir($dir, 0755, true);
+
+        file_put_contents($dir . '/Mismatched.php', <<<'PHP'
+<?php
+
+namespace App\Other;
+
+use BlueprintAU\Radiant\Model;
+
+class MismatchedModel extends Model
+{
+}
+PHP);
+
+        $models = (new ModelDiscovery())->discover([$dir]);
+
+        $this->assertContains('App\Other\MismatchedModel', $models);
+    }
+
+    /**
+     * A file declaring several classes yields every Model subclass among
+     * them — names come from tokens, so no path derivation is involved.
+     */
+    public function test_discover_finds_all_models_in_multi_class_file(): void
+    {
+        $dir = TEMP_ROOT . 'App/ModelsMulti';
+        @mkdir($dir, 0755, true);
+
+        file_put_contents($dir . '/MultiClass.php', <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use BlueprintAU\Radiant\Model;
+
+class MultiFirst extends Model
+{
+}
+
+class MultiSecond extends Model
+{
+}
+
+class MultiHelper
+{
+}
+PHP);
+
+        $models = (new ModelDiscovery())->discover([$dir]);
+
+        $this->assertContains('App\Models\MultiFirst', $models);
+        $this->assertContains('App\Models\MultiSecond', $models);
+        $this->assertNotContains('App\Models\MultiHelper', $models);
+    }
+
+    /**
+     * A model whose parent is another model is discovered via the subclass
+     * check after include — the token pass collects the name, the include
+     * resolves the parent chain (declared in the other scanned file).
+     */
+    public function test_discover_finds_model_with_model_parent(): void
+    {
+        $dir = TEMP_ROOT . 'App/ModelsChain';
+        @mkdir($dir, 0755, true);
+
+        file_put_contents($dir . '/ChainBase.php', <<<'PHP'
+<?php
+
+namespace App\Models;
+
+use BlueprintAU\Radiant\Model;
+
+class ChainBase extends Model
+{
+}
+PHP);
+
+        file_put_contents($dir . '/ChainChild.php', <<<'PHP'
+<?php
+
+namespace App\Models;
+
+class ChainChild extends ChainBase
+{
+}
+PHP);
+
+        $models = (new ModelDiscovery())->discover([$dir]);
+
+        $this->assertContains('App\Models\ChainBase', $models);
+        $this->assertContains('App\Models\ChainChild', $models);
+    }
 }

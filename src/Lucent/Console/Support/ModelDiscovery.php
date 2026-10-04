@@ -13,15 +13,26 @@ use ReflectionClass;
  * Discovers Radiant model classes in the application.
  *
  * By default the app's Composer PSR-4 directories are scanned for PHP files,
- * which are loaded and inspected for `Model` subclasses. A `--dir=` option
- * (comma-separated) overrides the PSR-4 default.
+ * which are inspected for `Model` subclasses. A `--dir=` option
+ * (comma-separated) overrides the PSR-4 default; explicit dirs are scanned
+ * AS GIVEN — including vendor/ paths — so a package that ships models can
+ * be synced with `sync --dir=vendor/<package>/Models`.
  *
- * Class names are derived from the file path using the live Composer
- * ClassLoader's PSR-4 prefix map (via {@see ClassLoader::getRegisteredLoaders()}),
- * which is correct even when the scanned directory is a sub-namespace of a
- * prefix or the package is installed as a dependency. When no prefix maps
- * the file, the class is discovered by diffing declared classes around a
- * require.
+ * Declared class names are read from each file's tokens (its `namespace`
+ * plus the name following every class/interface/trait/enum keyword) —
+ * never derived from the file path and never autoloaded — so a file whose
+ * namespace does not match its location is still discovered correctly.
+ * The include happens only to run the subclass check (parents may live in
+ * other files), and only when a declared name is not already loaded:
+ * scripts (route files, CLI entrypoints) that declare nothing are never
+ * executed, and a file whose class is already declared — e.g. by a
+ * duplicate FQCN elsewhere — is never re-included (that fatals with
+ * "Cannot redeclare class", which is not catchable).
+ *
+ * Directory resolution still uses the live Composer ClassLoader's PSR-4
+ * prefix map (via {@see ClassLoader::getRegisteredLoaders()}), which is
+ * correct when Lucent is a dependency of a consumer project and for
+ * multi-dir prefixes.
  *
  * Discovery is app glue — Radiant deliberately does not ship it.
  */
@@ -89,10 +100,9 @@ final class ModelDiscovery
      *
      * Dependency (vendor/) directories are EXCLUDED from the default scan:
      * they never hold the app's models, and a vendor-wide scan would include
-     * dependency files whose references may not resolve (e.g. an optional
-     * symfony/finder), which fatals at include time and cannot be caught.
-     * Explicit --dir paths bypass this filter — the deliberate escape hatch
-     * for packages that ship models.
+     * thousands of dependency files pointlessly (each include is also a
+     * side-effect risk). Explicit --dir paths bypass this filter — the
+     * deliberate escape hatch for packages that ship models.
      *
      * @return list<string> Absolute directory paths
      */
@@ -134,9 +144,8 @@ final class ModelDiscovery
     /**
      * Resolve the Composer PSR-4 prefix map once — prefix => absolute dirs.
      *
-     * Resolved lazily on first use; both {@see psr4Directories()} and
-     * {@see classFromFile()} read the snapshot instead of re-querying the
-     * ClassLoader for every file.
+     * Resolved lazily on first use; {@see psr4Directories()} reads the
+     * snapshot instead of re-querying the ClassLoader.
      *
      * @return array<string, list<string>>
      */
@@ -198,105 +207,151 @@ final class ModelDiscovery
                 continue;
             }
 
-            $this->loadAndInspect($fileInfo->getPathname());
+            $this->processFile($fileInfo->getPathname());
         }
     }
 
     /**
-     * Load a PHP file (when its class is not already autoloadable) and
-     * collect any Model subclasses it declares.
+     * Inspect a PHP file and collect its Model subclasses.
+     *
+     * The declared class-like names are read from tokens first; the file is
+     * included only when a declared name is not already loaded, so the
+     * subclass check can resolve parents declared in other files.
      *
      * @param string $path Absolute file path
      */
-    private function loadAndInspect(string $path): void
+    private function processFile(string $path): void
     {
-        // Only files that DECLARE a class-like can hold a Model. Scripts
-        // (route files, test-server routers, CLI entrypoints) execute
-        // side effects when included — echoing output, reading $_SERVER,
-        // registering routes — and must never run during discovery.
-        if (!$this->declaresClassLike($path)) {
+        $candidates = $this->declaredClassLikes($path);
+
+        // Files that declare nothing are scripts (route files, test-server
+        // routers, CLI entrypoints) — they execute side effects when
+        // included and must never run during discovery.
+        if ($candidates === []) {
             return;
         }
 
-        $class = $this->classFromFile($path);
+        $declared = [];
+        $toLoad = [];
 
-        // No autoload: class_exists($class, false) only reports classes that
-        // are ALREADY declared. Triggering the autoloader here would include
-        // the file through Composer's plain `include` — and a second lookup
-        // for a name the file doesn't actually declare (a fixture whose
-        // namespace doesn't match its location) would include it AGAIN and
-        // fatal with "Cannot redeclare class".
-        if ($class !== null && class_exists($class, false)) {
-            $this->collectIfModel($class);
+        foreach ($candidates as $candidate) {
+            if (class_exists($candidate, false)) {
+                $declared[] = $candidate;
+            } else {
+                $toLoad[] = $candidate;
+            }
+        }
+
+        foreach ($declared as $candidate) {
+            $this->collectIfModel($candidate);
+        }
+
+        // A name the file declares that is ALREADY declared means another
+        // file owns it (a duplicate FQCN) — including this file would fatal
+        // with "Cannot redeclare class", which is not catchable. The already
+        // declared names were collected above; skip the include entirely.
+        if ($toLoad === [] || $declared !== []) {
             return;
         }
 
-        $classesBefore = get_declared_classes();
+        try {
+            require_once $path;
+        } catch (\Throwable) {
+            // Include-time failure — a reference that does not resolve (a
+            // missing parent/interface) or a parse error. Not discoverable
+            // as a model; skip the file.
+            return;
+        }
 
-        require_once $path;
-
-        // The file may declare a DIFFERENT class than the path derives (a
-        // fixture whose namespace doesn't match its location, or a file
-        // declaring several classes). Read the declared-classes diff — it
-        // covers both that case and a derived class loaded by another file's
-        // require. Never re-ask the autoloader for the derived name: if the
-        // file didn't declare it, a lookup would include the file a second
-        // time (Composer's autoloader uses plain `include`).
-        foreach (array_diff(get_declared_classes(), $classesBefore) as $declared) {
-            $this->collectIfModel($declared);
+        foreach ($toLoad as $candidate) {
+            if (class_exists($candidate, false)) {
+                $this->collectIfModel($candidate);
+            }
         }
     }
 
     /**
-     * Whether the file declares a class, interface, trait or enum.
+     * The class-like names (class / interface / trait / enum) a file
+     * declares, fully qualified.
      *
-     * A cheap token scan: stop at the first T_CLASS / T_INTERFACE /
-     * T_TRAIT / T_ENUM token that is not a ::class constant reference
-     * (those are preceded by a double-colon). Comments and strings are
-     * skipped by the tokenizer, so prose mentioning "class" never
-     * false-positives.
+     * A single token pass over the source — no include, no autoloading.
+     * The `namespace` statement sets the qualifying prefix; the name
+     * following each declaration keyword is collected (an anonymous class
+     * has no name and collects nothing). `::class` constant references are
+     * skipped — they are preceded by a double-colon. Comments, docblocks
+     * and heredoc bodies are separate tokens, so prose mentioning "class"
+     * never false-positives.
      *
      * @param string $path Absolute file path
+     * @return list<class-string>
      */
-    private function declaresClassLike(string $path): bool
+    private function declaredClassLikes(string $path): array
     {
         $source = file_get_contents($path);
 
         if ($source === false || $source === '') {
-            return false;
+            return [];
         }
 
-        $previousCode = null;
+        $names = [];
+        $namespace = '';
+        $pending = null; // 'namespace' | 'classlike' | null
+        $previous = null; // id of the previous significant code token
 
         foreach (\token_get_all($source) as $token) {
             if (!is_array($token)) {
-                $previousCode = $token; // single-char (e.g. ':', ';')
+                // A single-char token can never start a declared name —
+                // e.g. the '(' of an anonymous `new class(...)` — so it
+                // cancels any pending declaration.
+                $pending = null;
+                $previous = $token;
                 continue;
             }
 
             [$id, $text] = $token;
+
+            if ($id === T_WHITESPACE || $id === T_COMMENT || $id === T_DOC_COMMENT) {
+                continue; // never separates a keyword from its name
+            }
+
+            if ($pending !== null) {
+                if (
+                    $id === T_STRING || $id === T_NAME_QUALIFIED
+                    || $id === T_NAME_FULLY_QUALIFIED
+                ) {
+                    if ($pending === 'namespace') {
+                        $namespace = ltrim($text, '\\');
+                    } else {
+                        $names[] = $namespace === ''
+                            ? $text
+                            : $namespace . '\\' . $text;
+                    }
+
+                    $pending = null;
+                    $previous = $id;
+                    continue;
+                }
+
+                $pending = null; // not a name — cancel and process normally
+            }
 
             if (
                 $id === T_CLASS || $id === T_INTERFACE
                 || $id === T_TRAIT || $id === T_ENUM
             ) {
                 // "::class" is two tokens: T_DOUBLE_COLON then T_CLASS —
-                // skip it so a file that only REFERENCES a class still
-                // counts as script-only.
-                if ($previousCode === ':' || $previousCode === T_DOUBLE_COLON) {
-                    $previousCode = $id;
-                    continue;
+                // a constant reference, not a declaration.
+                if ($previous !== T_DOUBLE_COLON) {
+                    $pending = 'classlike';
                 }
-
-                return true;
+            } elseif ($id === T_NAMESPACE) {
+                $pending = 'namespace';
             }
 
-            if ($text !== '' && trim($text) !== '') {
-                $previousCode = $id;
-            }
+            $previous = $id;
         }
 
-        return false;
+        return $names;
     }
 
     /**
@@ -309,53 +364,5 @@ final class ModelDiscovery
         if (is_subclass_of($class, Model::class) && !(new ReflectionClass($class))->isAbstract()) {
             $this->models[] = $class;
         }
-    }
-
-    /**
-     * Derive a class name from a file path.
-     *
-     * Primary: the Composer ClassLoader's PSR-4 prefix map — a file under a
-     * PSR-4 directory maps to `<prefix><relative-path-as-namespace>`. This
-     * is correct even when the scanned directory is a sub-namespace of the
-     * prefix (e.g. scanning `app/Models` under the `App\` → `app/` mapping).
-     *
-     * Fallback: root-relative path derivation — covers apps whose autoloader
-     * is not a Composer ClassLoader (e.g. a custom spl_autoload_register
-     * closure mapping the app namespace to the root).
-     *
-     * @param string $path Absolute file path
-     * @return string|null The derived class name, or null when not derivable
-     */
-    private function classFromFile(string $path): ?string
-    {
-        $realPath = realpath($path);
-        if ($realPath === false) {
-            return null;
-        }
-
-        foreach ($this->psr4Map() as $prefix => $dirs) {
-            foreach ($dirs as $dir) {
-                $dir = rtrim((string) realpath($dir), '/\\');
-
-                if ($dir === '' || !str_starts_with($realPath, $dir . DIRECTORY_SEPARATOR)) {
-                    continue;
-                }
-
-                $relative = substr($realPath, strlen($dir) + 1, -4); // strip dir + ".php"
-
-                return $prefix . str_replace(DIRECTORY_SEPARATOR, '\\', $relative);
-            }
-        }
-
-        // Fallback: root-relative derivation.
-        $root = rtrim(FileSystem::rootPath(), '/\\');
-
-        if (str_starts_with($realPath, $root . DIRECTORY_SEPARATOR)) {
-            $relative = substr($realPath, strlen($root) + 1, -4);
-
-            return str_replace(DIRECTORY_SEPARATOR, '\\', $relative);
-        }
-
-        return null;
     }
 }
