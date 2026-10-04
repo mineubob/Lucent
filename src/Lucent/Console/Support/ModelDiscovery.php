@@ -155,7 +155,16 @@ final class ModelDiscovery
                         continue;
                     }
 
-                    $absolute = FileSystem::absolutePath(rtrim($path, '/\\'));
+                    // Composer's generated static autoloader stores path
+                    // strings with embedded `..` segments (e.g.
+                    // "vendor/composer/../../src/Lucent"). Consumers of the
+                    // map compare by string prefix, so the segments must be
+                    // resolved lexically first — otherwise isVendorPath()
+                    // matches the "vendor/" inside the literal string and
+                    // filters out the app's own directories too.
+                    $absolute = FileSystem::normalizePath(
+                        FileSystem::absolutePath(rtrim($path, '/\\')),
+                    );
 
                     if (is_dir($absolute)) {
                         $map[$prefix][] = $absolute;
