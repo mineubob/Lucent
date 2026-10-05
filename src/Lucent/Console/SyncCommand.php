@@ -19,9 +19,16 @@ use Lucent\Logging\ConsoleColors;
  * The `sync` command — diff the discovered models' desired schema against
  * the live database and apply it.
  *
- * The whole plan → display → apply flow runs under the `radiant:schema`
- * lock (plan() and apply() take no lock themselves), so the shown plan is
- * guaranteed to be exactly what gets applied.
+ * The whole flow runs under the `radiant:schema` lock whenever the dialect
+ * allows: plan → display → confirm → apply in one transaction. A change that
+ * routes through an FK-involved SQLite table rebuild cannot run inside any
+ * transaction (the lock is itself one on SQLite, and the rebuild's PRAGMA
+ * foreign_keys toggle is a no-op there) — when the plan carries one, the
+ * whole plan defers past the lock transaction and applies outside it, the
+ * same defer SchemaSynchronizer::sync() performs for one-shot callers. The
+ * deferred window is fenced the way sync() fences its own defer: each
+ * rebuild re-reads the live table per change and fails loud on drift it
+ * cannot reconcile.
  *
  * Output is echoed progressively (visible live in a terminal); in captured
  * mode (tests) the ob_start wrapper in executeConsoleCommand() still
@@ -37,6 +44,9 @@ use Lucent\Logging\ConsoleColors;
  * Transactional apply: on by default when the dialect supports transactional
  * DDL (SQLite, PostgreSQL); MySQL DDL auto-commits, so a warning is shown
  * and the apply runs non-transactionally. Opt out with --no-transactional.
+ * A plan carrying a change that needs a transaction-free connection (an
+ * FK-involved SQLite table rebuild) degrades automatically to per-change
+ * atomicity — apply() decides; the command only passes the flag through.
  *
  * Additive-only mode: --no-drop-tables suppresses DropTable changes for
  * tables no model declares (orphans, other tools' tables) — the plan can
@@ -128,19 +138,68 @@ final class SyncCommand
         $dryRun = isset($options['dry-run']);
         $force = (bool) ($options['force'] ?? false);
         $dropTables = !isset($options['no-drop-tables']);
+        $synchronizer = new SchemaSynchronizer($connection);
+
+        // The destructive-change gate — shared by the apply under the lock and
+        // by a deferred apply outside it.
+        $confirm = function (SchemaChange $change) use ($force): bool {
+            if ($force) {
+                return true;
+            }
+
+            self::prompt($change->description);
+
+            return self::readAnswer();
+        };
+
+        // One progress bar spans both apply legs: under the lock, and — when
+        // the plan carries a change needing a transaction-free connection —
+        // after it. Created once the plan is known, assigned through the
+        // reference so the deferred leg can finish it.
+        $progress = null;
+        $onChange = function (SchemaChange $change) use (&$progress): void {
+            if ($progress !== null) {
+                $progress->advance();
+            }
+        };
+
+        /** @var list<SchemaChange>|null $deferred The plan must apply outside the lock transaction. */
+        $deferred = null;
+        $applied = [];
+        $total = 0;
 
         try {
+            // ---- Plan → declare renames → re-plan → display → apply, UNDER the lock ----
+            // The whole flow stays inside the lock transaction whenever the
+            // dialect allows. The plan-aware predicate
+            // (changeRequiresStandaloneTransaction) resolves each change's
+            // FK involvement through the plan itself — an alter in a
+            // rename-led plan reads the rename source's live state — so the
+            // check is answerable BEFORE anything applies and the plan can
+            // be judged as a unit. When any change needs a transaction-free
+            // connection (an FK-involved SQLite table rebuild must toggle
+            // PRAGMA foreign_keys outside any transaction), the whole plan
+            // is handed back and applied after the lock releases — the same
+            // defer SchemaSynchronizer::sync() performs for one-shot
+            // callers. Otherwise it applies here, in the same transaction,
+            // in the differ's executable order (renames already precede the
+            // alters that target the renamed tables).
             $connection->withLock(function () use (
                 $connection,
+                $synchronizer,
                 $desired,
                 $protected,
                 $force,
-                $transactional,
                 $dryRun,
                 $dropTables,
+                $transactional,
+                $confirm,
+                $onChange,
+                &$progress,
+                &$deferred,
+                &$applied,
+                &$total,
             ): void {
-                $synchronizer = new SchemaSynchronizer($connection);
-
                 // Fresh copies — declaring a rename mutates a blueprint
                 // (renamedFrom), and the originals must stay clean.
                 $pristine = array_map(fn(Blueprint $b): Blueprint => clone $b, $desired);
@@ -177,7 +236,7 @@ final class SyncCommand
                     return;
                 }
 
-                // ---- The blueprints are complete — display and apply ONCE ----
+                // ---- The blueprints are complete — display the final plan ----
                 self::line(ConsoleColors::FG_CYAN . "Planned schema changes:" . ConsoleColors::RESET);
                 foreach ($changes as $change) {
                     $marker = $change->destructive
@@ -197,43 +256,65 @@ final class SyncCommand
                 // Interactive when a TTY is present OR an input stream is
                 // injected (tests feed scripted answers through the seam —
                 // they must reach the prompt flows, not the fail-fast gate).
-                $interactive = self::canPrompt();
-
-                if ($destructive !== [] && !$force && !$interactive) {
+                if ($destructive !== [] && !$force && !self::canPrompt()) {
                     self::error(
                         "Destructive changes present and no TTY available — re-run with --force to apply."
                     );
                     return;
                 }
 
-                $confirm = function (SchemaChange $change) use ($force): bool {
-                    if ($force) {
-                        return true;
-                    }
-
-                    self::prompt($change->description);
-
-                    return self::readAnswer();
-                };
-
-                // ---- Apply with progress ----
                 $total = count($changes);
                 $progress = new ProgressBar($total);
                 $progress->setFormat('[{bar}] {percent}% ({current}/{total})');
 
+                // A change the dialect cannot apply inside a transaction (an
+                // FK-involved SQLite table rebuild needs the foreign_keys
+                // PRAGMA toggle outside one) defers the whole plan past the
+                // lock transaction — the plan is a unit, and the alters that
+                // would follow a rebuild in the same transaction would roll
+                // back with it anyway. The race window is fenced by the
+                // rebuild itself: it re-reads the live table per change and
+                // its foreign_key_check gate fails loud on drift it cannot
+                // reconcile.
+                if (array_any(
+                    $changes,
+                    fn (SchemaChange $c): bool => $connection->changeRequiresStandaloneTransaction($c, $changes),
+                )) {
+                    $deferred = $changes;
+                    return;
+                }
+
                 $applied = $synchronizer->apply(
                     $changes,
                     confirm: $confirm,
-                    onChange: function (SchemaChange $change) use ($progress): void {
-                        $progress->advance();
-                    },
+                    onChange: $onChange,
                     transactional: $transactional,
                 );
 
                 $progress->finish();
-
                 self::success(count($applied) . " of " . $total . " planned change(s) applied.");
             }, 'radiant:schema');
+        } catch (\Throwable $e) {
+            self::error("Sync failed: " . $e->getMessage());
+            return '';
+        }
+
+        if ($deferred === null) {
+            return '';
+        }
+
+        // ---- Deferred apply: outside the lock transaction ----
+        try {
+            $applied = $synchronizer->apply(
+                $deferred,
+                confirm: $confirm,
+                onChange: $onChange,
+                transactional: $transactional,
+            );
+
+            $progress?->finish();
+
+            self::success(count($applied) . " of " . $total . " planned change(s) applied.");
         } catch (\Throwable $e) {
             self::error("Sync failed: " . $e->getMessage());
         }
