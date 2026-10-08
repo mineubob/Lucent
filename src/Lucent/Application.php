@@ -15,6 +15,7 @@ use Lucent\Commandline\GenerateDocumentationCommand;
 use Lucent\Commandline\StartDevServerCommand;
 use Lucent\Console\SyncCommand;
 use Lucent\Console\SyncLegacyCommand;
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
@@ -1284,7 +1285,7 @@ class Application
 
             return $output;
         } catch (\Throwable $e) {
-            return $e->getMessage();
+            return ExceptionChain::render($e, "Command failed: ") . "\n";
         }
     }
     /**

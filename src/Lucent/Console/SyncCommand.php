@@ -11,6 +11,7 @@ use BlueprintAU\Radiant\Database\Schema\SchemaChange;
 use BlueprintAU\Radiant\Database\Schema\SchemaSynchronizer;
 use BlueprintAU\Radiant\Metadata\MetadataFactory;
 use Lucent\Commandline\Components\ProgressBar;
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\Console\Support\ModelDiscovery;
 use Lucent\Console\Support\ModelFilter;
 use Lucent\Logging\ConsoleColors;
@@ -103,7 +104,7 @@ final class SyncCommand
                 isset($options['exclude-filter']) ? (string) $options['exclude-filter'] : null,
             );
         } catch (\InvalidArgumentException $e) {
-            self::error($e->getMessage());
+            self::error(ExceptionChain::render($e, ''));
             return '';
         }
 
@@ -295,7 +296,7 @@ final class SyncCommand
                 self::success(count($applied) . " of " . $total . " planned change(s) applied.");
             }, 'radiant:schema');
         } catch (\Throwable $e) {
-            self::error("Sync failed: " . $e->getMessage());
+            self::error(ExceptionChain::render($e, "Sync failed: "));
             return '';
         }
 
@@ -316,7 +317,7 @@ final class SyncCommand
 
             self::success(count($applied) . " of " . $total . " planned change(s) applied.");
         } catch (\Throwable $e) {
-            self::error("Sync failed: " . $e->getMessage());
+            self::error(ExceptionChain::render($e, "Sync failed: "));
         }
 
         return '';

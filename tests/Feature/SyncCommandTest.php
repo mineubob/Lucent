@@ -361,4 +361,21 @@ class SyncCommandTest extends TestCase
         $this->assertStringContainsString("--dry-run", $result);
         $this->assertStringContainsString("--no-drop-tables", $result);
     }
+
+    public function test_sync_error_output_reports_the_full_exception_chain(): void
+    {
+        // An empty filter throws InvalidArgumentException — the command's
+        // catch prints the chain, so even without a cause the message is
+        // prefixed with the exception class rather than a bare message.
+        self::setupDatabase('sqlite', ['driver' => 'sqlite', 'database' => ':memory:'], []);
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter=''"
+        );
+
+        $this->assertStringContainsString(
+            'InvalidArgumentException: Invalid filter: value must not be empty.',
+            $result
+        );
+    }
 }

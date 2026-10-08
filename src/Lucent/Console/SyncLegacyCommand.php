@@ -9,6 +9,7 @@ use BlueprintAU\Radiant\Database\Schema\Blueprint;
 use BlueprintAU\Radiant\Database\Schema\SchemaChange;
 use BlueprintAU\Radiant\Database\Schema\SchemaSynchronizer;
 use BlueprintAU\Radiant\Metadata\MetadataFactory;
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\Console\Support\ModelDiscovery;
 use Lucent\Console\Support\ModelFilter;
 use Lucent\Logging\ConsoleColors;
@@ -64,7 +65,7 @@ final class SyncLegacyCommand
                 isset($options['exclude-filter']) ? (string) $options['exclude-filter'] : null,
             );
         } catch (\InvalidArgumentException $e) {
-            self::error($e->getMessage());
+            self::error(ExceptionChain::render($e, ''));
             return '';
         }
 
@@ -153,7 +154,7 @@ final class SyncLegacyCommand
                 }
             }, 'radiant:schema');
         } catch (\Throwable $e) {
-            self::error("sync:legacy failed: " . $e->getMessage());
+            self::error(ExceptionChain::render($e, "sync:legacy failed: "));
             return '';
         }
 

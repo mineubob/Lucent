@@ -70,7 +70,12 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals("Method App\Commands\TestCommand::run2() does not exist", $result);
+        // The runner renders the full exception chain; a lone ReflectionException
+        // is still exactly "Class: message".
+        $this->assertEquals(
+            "Command failed: ReflectionException: Method App\Commands\TestCommand::run2() does not exist",
+            trim($result)
+        );
     }
 
     public function test_command_with_invalid_controller(): void
@@ -79,7 +84,10 @@ class ConsoleCommandTest extends TestCase
 
         $result = CommandLine::execute("test run");
 
-        $this->assertEquals('Class "Tests\Feature\TestTwoCommand" does not exist', $result);
+        $this->assertEquals(
+            'Command failed: ReflectionException: Class "Tests\Feature\TestTwoCommand" does not exist',
+            trim($result)
+        );
     }
 
     public function test_command_with_invalid_arguments(): void
