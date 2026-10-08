@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use Lucent\Console\Support\ExceptionChain;
+use Lucent\Logging\ConsoleColors;
 use RuntimeException;
 use Tests\Support\TestCase;
 
@@ -63,5 +64,29 @@ class ExceptionChainTest extends TestCase
 
         $this->assertStringStartsWith('Sync failed: ' . RuntimeException::class . ': outer', $rendered);
         $this->assertStringContainsString('↳ Caused by ' . RuntimeException::class . ': root cause', $rendered);
+    }
+
+    public function test_render_with_colors_true_wraps_causes_in_red(): void
+    {
+        $outer = new RuntimeException('outer', 0, new RuntimeException('root'));
+
+        $rendered = ExceptionChain::render($outer, '', colors: true);
+
+        $this->assertStringContainsString(ConsoleColors::FG_RED . '  ↳ Caused by ', $rendered);
+        $this->assertStringContainsString(ConsoleColors::RESET, $rendered);
+    }
+
+    public function test_render_with_colors_false_emits_clean_text_for_pipes(): void
+    {
+        $outer = new RuntimeException('outer', 0, new RuntimeException('root'));
+
+        $rendered = ExceptionChain::render($outer, '', colors: false);
+
+        $this->assertStringNotContainsString("\033[", $rendered);
+        $this->assertSame(
+            RuntimeException::class . ': outer'
+            . "\n" . '  ↳ Caused by ' . RuntimeException::class . ': root',
+            $rendered
+        );
     }
 }

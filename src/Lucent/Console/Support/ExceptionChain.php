@@ -47,16 +47,29 @@ final class ExceptionChain
     /**
      * Render the chain as console lines: the first line carries the caller's
      * prefix (already styled by the caller), each cause follows as an
-     * indented "Caused by" line in red.
+     * indented "Caused by" line, in red when styling is on.
      *
      * @param string $firstLine e.g. "Sync failed: " — the outermost message is appended
+     * @param bool $colors Emit ANSI codes around the "Caused by" lines. Off
+     *        when the destination is not a TTY (pipes, CI logs, captured
+     *        output) — the styling decision belongs to the caller, which
+     *        knows where the string is headed; this method never inspects
+     *        the streams itself.
      * @return string Multi-line string without a trailing newline
      */
-    public static function render(\Throwable $e, string $firstLine): string
+    public static function render(\Throwable $e, string $firstLine, bool $colors = true): string
     {
         $messages = self::messages($e);
 
         $output = $firstLine . array_shift($messages);
+
+        if (!$colors) {
+            foreach ($messages as $message) {
+                $output .= "\n  ↳ Caused by " . $message;
+            }
+
+            return $output;
+        }
 
         foreach ($messages as $message) {
             $output .= "\n" . ConsoleColors::FG_RED
