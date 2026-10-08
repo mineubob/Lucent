@@ -32,7 +32,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli, pdo_mysql, apcu
+          extensions: pdo_mysql, pdo_sqlite, apcu
           tools: composer:v2
           coverage: xdebug
 
@@ -61,8 +61,8 @@ jobs:
           DB_DRIVER: mysql
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_NAME: test_database
-          DB_USER: root
+          DB_DATABASE: test_database
+          DB_USERNAME: root
           DB_PASSWORD: testpassword
 
       - name: Upload test logs

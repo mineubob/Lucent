@@ -58,7 +58,7 @@ Lucent installs a `vendor/bin/lucent` binary automatically. Run commands with:
 
 ```bash
 vendor/bin/lucent serve
-vendor/bin/lucent migration make App/Models/User
+vendor/bin/lucent sync
 vendor/bin/lucent generate api-docs
 ```
 
@@ -80,5 +80,10 @@ composer update blueprintau/lucent
 ## Requirements
 
 - PHP >= 8.4
-- ext-curl, ext-mysqli, ext-pdo, ext-fileinfo, ext-zip
+- ext-curl, ext-pdo, ext-fileinfo, ext-zip, ext-mbstring
+- A PDO driver for your database: `pdo_mysql`, `pdo_sqlite`, or `pdo_pgsql`
 - PSR packages: `psr/http-message`, `psr/http-factory`, `psr/http-client`, `psr/http-server-handler`, `psr/http-server-middleware`, `psr/log` (installed automatically via Composer)
+
+## Upgrading from a pre-Radiant version
+
+If your application was built on Lucent's original ORM (`Lucent\Model\Model`, `Lucent\Database`), see the [migration guide](migrating-to-radiant.md) for a step-by-step upgrade path.

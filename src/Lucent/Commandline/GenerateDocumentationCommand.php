@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lucent\Commandline;
 
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
@@ -106,7 +107,9 @@ class GenerateDocumentationCommand
                 $documentation[] = $this->processEndpoint($endpoint, $responses);
             }
         } catch (\ReflectionException $e) {
-            Log::channel("lucent.commandline")->critical("ReflectionException " . $e->getMessage());
+            Log::channel("lucent.commandline")->critical(
+                implode(" | ", ExceptionChain::messages($e))
+            );
         }
     }
 

@@ -108,7 +108,7 @@ class UriResolverTest extends TestCase
             ';x'      => [';x', 'http://a/b/c/;x'],
             'g;x'     => ['g;x', 'http://a/b/c/g;x'],
             'g;x?y#s' => ['g;x?y#s', 'http://a/b/c/g;x?y#s'],
-            ''        => ['', 'http://a/b/c/d;p?q'],
+            'empty'   => ['', 'http://a/b/c/d;p?q'],
             '.'       => ['.', 'http://a/b/c/'],
             './'      => ['./', 'http://a/b/c/'],
             '..'      => ['..', 'http://a/b/'],

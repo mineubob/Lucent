@@ -6,6 +6,7 @@ namespace Lucent\Commandline;
 
 use Exception;
 use Lucent\Commandline\Components\ProgressBar;
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\Facades\App;
 use Lucent\Facades\FileSystem;
 use Lucent\Http\Client\Client;
@@ -89,7 +90,7 @@ class DeploymentController
                 },
             ]);
         } catch (ClientExceptionInterface $e) {
-            return "Failed to download update: " . $e->getMessage() . PHP_EOL;
+            return ExceptionChain::render($e, "Failed to download update: ") . PHP_EOL;
         }
 
         $progress->finish();
@@ -181,7 +182,7 @@ class DeploymentController
             $this->addDirectoryToZip($zip, $root, $root, $this->excludeFromBackup);
         } catch (Exception $e) {
             $zip->close();
-            return "Backup failed: " . $e->getMessage() . PHP_EOL;
+            return ExceptionChain::render($e, "Backup failed: ") . PHP_EOL;
         }
 
         $zip->close();

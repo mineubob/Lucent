@@ -2,7 +2,6 @@
 
 namespace Tests\Unit;
 
-use Lucent\Database;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
 use PHPUnit\Framework\TestCase;
@@ -143,26 +142,6 @@ class LoggingTest extends TestCase
         // Should not throw and should not write anywhere.
         $channel->emergency('test');
         $channel->log(LogLevel::INFO, 'test');
-        $this->assertTrue(true);
-    }
-
-    public function test_database_set_logger_accepts_psr3_logger(): void
-    {
-        $logger = new Channel('db-test', $this->driver, false);
-
-        Database::setLogger($logger);
-        Database::log(LogLevel::INFO, 'database message {id}', ['id' => 42]);
-
-        $this->assertCount(1, $this->driver->lines);
-        $this->assertStringContainsString('database message 42', $this->driver->lines[0]);
-    }
-
-    public function test_database_log_with_null_logger_is_noop(): void
-    {
-        Database::setLogger(new NullChannel());
-
-        // Should not throw.
-        Database::log(LogLevel::CRITICAL, 'dropped message');
         $this->assertTrue(true);
     }
 }

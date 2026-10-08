@@ -85,15 +85,27 @@ class TypedProperty
 
         // Handle enums
         if (enum_exists($typeName)) {
+            // Already the correct enum instance — return as-is
+            if ($value instanceof $typeName) {
+                return $value;
+            }
+
             $refEnum = new ReflectionEnum($typeName);
             if ($refEnum->isBacked()) {
-                $case = $typeName::tryFrom($value);
-                if ($case !== null) {
-                    return $case;
+                // Only pass values tryFrom can accept for the backing type,
+                // otherwise it throws a TypeError of its own.
+                $backingType = $refEnum->getBackingType()->getName();
+                if ((is_string($value) && $backingType === 'string')
+                    || (is_int($value) && $backingType === 'int')) {
+                    $case = $typeName::tryFrom($value);
+                    if ($case !== null) {
+                        return $case;
+                    }
                 }
             } else {
                 foreach ($refEnum->getCases() as $case) {
                     if ($case->getName() === $value) {
+                        // getValue() on a unit enum case returns the enum instance
                         return $case->getValue();
                     }
                 }

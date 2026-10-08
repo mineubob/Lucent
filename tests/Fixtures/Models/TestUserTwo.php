@@ -1,25 +1,28 @@
 <?php
 namespace App\Models;
 
-use Lucent\Model\Model;
-use App\Models\SoftDelete;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
+use BlueprintAU\Radiant\Model;
+use BlueprintAU\Radiant\SoftDeletes;
 
 class TestUserTwo extends Model
 {
-    use SoftDelete;
+    use SoftDeletes;
 
-    #[Column(ColumnType::INT, primaryKey: true, autoIncrement: true)]
+    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
     public private(set) ?int $id;
 
-    #[Column(ColumnType::VARCHAR, length: 255)]
+    #[Column(ColumnType::String, length: 255)]
     protected string $email;
 
-    #[Column(ColumnType::VARCHAR, length: 255)]
+    // Nullable so a sync that ADDS this column to an existing table stays an
+    // in-place add that converges in a single apply (a NOT NULL add without a
+    // default needs a declared default or a #[Backfill]).
+    #[Column(ColumnType::String, length: 255, nullable: true)]
     protected string $password_hash;
 
-    #[Column(ColumnType::VARCHAR, length: 100)]
+    #[Column(ColumnType::String, length: 100)]
     protected string $full_name;
 
     public function __construct(string $email, string $password_hash, string $full_name)

@@ -2,18 +2,18 @@
 namespace App\Models;
 
 use App\Models\TestUser;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
+use BlueprintAU\Radiant\Attributes\Column;
+use BlueprintAU\Radiant\Database\Schema\Enums\ColumnType;
 
 class Admin extends TestUser
 {
-    #[Column(ColumnType::BOOLEAN, default: false)]
+    #[Column(ColumnType::Boolean, default: false)]
     public private(set) bool $can_reset_passwords;
 
-    #[Column(ColumnType::BOOLEAN, default: false)]
+    #[Column(ColumnType::Boolean, default: false)]
     public private(set) bool $can_lock_accounts;
 
-    #[Column(ColumnType::VARCHAR, length: 255, nullable: true)]
+    #[Column(ColumnType::String, length: 255, nullable: true)]
     public private(set) ?string $notes;
 
 

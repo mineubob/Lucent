@@ -14,14 +14,18 @@
         ->get(path: "/three",method:"three")
         ->get(path: "/four",method:"test",controller: TestControllerAbc::class)
         ->get(path: "/five",method:"test",controller: SecondRestController::class);
-        
+
 
     Route::rest()->group("user")
         ->prefix("/user")
         ->defaultController(UserController::class)
         ->get(path: "/{id}",method:"getById")
-        ->get(path: "/object/{user}",method:"getModelById");
-        
+        ->get(path: "/object/{user}",method:"getModelById")
+        ->get(path: "/slug/{model}",method:"getBySlug")
+        ->get(path: "/scoped/{user}",method:"getScoped")
+        ->get(path: "/scoped-array/{user}",method:"getScopedArray")
+        ->get(path: "/unbound/{user}",method:"getUnbound");
+
     Route::rest()->group("user2")
         ->prefix("/user2")
         ->defaultController(UserController::class)

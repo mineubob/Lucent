@@ -12,8 +12,10 @@ use Lucent\Commandline\ClearCacheCommand;
 use Lucent\Commandline\CliRouter;
 use Lucent\Commandline\DeploymentController;
 use Lucent\Commandline\GenerateDocumentationCommand;
-use Lucent\Commandline\PerformMigrationCommand;
 use Lucent\Commandline\StartDevServerCommand;
+use Lucent\Console\SyncCommand;
+use Lucent\Console\SyncLegacyCommand;
+use Lucent\Console\Support\ExceptionChain;
 use Lucent\EventDispatcher\EventDispatcherServiceProvider;
 use Lucent\EventDispatcher\ListenerProvider;
 use Lucent\Facades\App;
@@ -23,6 +25,7 @@ use Lucent\Facades\Log;
 use Lucent\Http\Exceptions\Exceptions;
 use Lucent\Http\Exceptions\ExceptionsServiceProvider;
 use Lucent\Http\Exceptions\HttpException;
+use Lucent\Http\Exceptions\ModelBindingException;
 use Lucent\Http\HttpRouter;
 use Lucent\Http\HttpStatus;
 use Lucent\Http\Message\Response;
@@ -32,7 +35,10 @@ use Lucent\Http\Middleware\MiddlewarePipeline;
 use Lucent\Http\RouteInfo;
 use Lucent\Logging\Channel;
 use Lucent\Logging\Channels\NullChannel;
-use Lucent\Model\Model;
+use BlueprintAU\Radiant\Model;
+use BlueprintAU\Radiant\Metadata\MetadataFactory;
+use BlueprintAU\Radiant\Database;
+use Lucent\Support\Attributes\Bind;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -111,18 +117,6 @@ class Application
      * @var CacheInterface|null
      */
     private ?CacheInterface $cache = null;
-
-    /**
-     * The application's query cache store.
-     *
-     * A dedicated store, separate from the main cache, built lazily from the
-     * `QUERY_CACHE_DRIVER` / `QUERY_CACHE_PATH` environment variables on
-     * first access. Injected into {@see Database} as the query cache when
-     * `QUERY_CACHE` is enabled.
-     *
-     * @var CacheInterface|null
-     */
-    private ?CacheInterface $queryCache = null;
 
     /**
      * Environment variables loaded from .env file
@@ -372,51 +366,6 @@ class Application
     }
 
     /**
-     * Get the application's query cache store.
-     *
-     * Builds a dedicated store lazily on first access from the
-     * `QUERY_CACHE_DRIVER` environment variable (defaulting to `array`) and
-     * `QUERY_CACHE_PATH` (defaulting to `storage/cache`). Kept separate from
-     * the main cache so each can use a different driver. The same instance is
-     * returned on subsequent calls.
-     *
-     * @return CacheInterface The query cache store
-     */
-    public function queryCache(): CacheInterface
-    {
-        if ($this->queryCache === null) {
-            $driver = $this->env['QUERY_CACHE_DRIVER'] ?? 'array';
-            $path = $this->env['QUERY_CACHE_PATH'] ?? 'storage/cache';
-
-            $this->queryCache = CacheFactory::create($driver, $this->container, $path);
-        }
-
-        return $this->queryCache;
-    }
-
-    /**
-     * Inject the application's query cache store into the database, when
-     * query caching is enabled.
-     *
-     * Query caching is opt-in via the `QUERY_CACHE` environment variable. When
-     * it is truthy, the dedicated query cache store is passed to
-     * {@see Database::setQueryCache()} so SELECT results are cached. When it
-     * is falsy, any previously injected query cache is cleared.
-     *
-     * @return void
-     */
-    private function injectQueryCache(): void
-    {
-        // Query caching is DISABLED pending the ORM rebuild.
-        // The previous implementation cached raw result rows keyed
-        // only by connection+query, which leaked data
-        // across tenants sharing a connection and had no invalidation. It
-        // will return as an opt-in `->remember($ttl)` on the new Query
-        // Builder. Until then, never auto-enable it from the environment.
-        Database::setQueryCache(null);
-    }
-
-    /**
      * Register a new logging channel.
      *
      * By default the channel is registered under its own name (see
@@ -505,13 +454,6 @@ class Application
         foreach ($this->commands as $command) {
             require_once $command;
         }
-
-        Database::setLogger(Log::channel("lucent.db"));
-
-        // Wire up the query cache from the environment (QUERY_CACHE) so it is
-        // active before any queries run. The store itself stays lazy — it is
-        // only built here when QUERY_CACHE is truthy.
-        $this->injectQueryCache();
     }
 
     /**
@@ -770,70 +712,31 @@ class Application
             $variables[$psr7Injection] = $request;
         }
 
-        // Apply model binding for route parameters
-        //
-        // Auto-binding is DISABLED by default: a Model type-hint is not
-        // resolved from the URL, forcing controllers to perform explicit,
-        // scoped lookups. Implicit binding is an unscoped primary-key lookup
-        // with no ownership/tenant check (an IDOR risk), so it must be
-        // opted back in explicitly with MODEL_BINDING=implicit. The rewrite
-        // replaces this with an opt-in #[Bind] attribute
-        // (see docs/restructure-plan.md §15).
-        $autoBind = App::env('MODEL_BINDING', 'explicit') === 'implicit';
-
+        // Apply #[Bind] route model binding for parameters that opt in.
+        // A Model type-hint WITHOUT #[Bind] is never auto-resolved from the
+        // URL — the container resolves it (or the controller fetches it).
         foreach ($method->getParameters() as $parameter) {
             $type = $parameter->getType();
-            $name = $parameter->getName();
 
-            if ($type === null) {
+            if ($type === null || !($type instanceof ReflectionNamedType)) {
                 continue;
-            }
-
-            if (!($type instanceof ReflectionNamedType)) {
-                throw new \InvalidArgumentException(
-                    sprintf(
-                        "Parameter '%s' in method '%s::%s()' must have a named type hint.",
-                        $parameter->getName(),
-                        $method->getDeclaringClass()->getName(),
-                        $method->getName()
-                    )
-                );
             }
 
             $typeName = $type->getName();
 
-            // Skip non-model types (services are resolved by call())
             if (!is_subclass_of($typeName, Model::class)) {
                 continue;
             }
 
-            // In explicit mode, do not auto-bind — leave the Model parameter
-            // for the container to resolve (or the controller to fetch).
-            if (!$autoBind) {
-                continue;
+            $instance = $this->resolveModelBinding(
+                $parameter,
+                $typeName,
+                $routeData["variables"],
+                $request,
+            );
+            if ($instance !== null) {
+                $variables[$parameter->getName()] = $instance;
             }
-
-            $reflection = new ReflectionClass($typeName);
-            $pkValue = $variables[$name];
-            $pkKey = $typeName::getDatabasePrimaryKey($reflection)->name;
-
-            $context = $routeData["variables"];
-            if (
-                array_key_exists($name, $context)
-                && $context[$name] instanceof $typeName
-                && property_exists($context[$name], $pkKey)
-                && $context[$name]->$pkKey == $pkValue
-            ) {
-                $instance = $context[$name];
-            } else {
-                $instance = $typeName::where($pkKey, $pkValue)->getFirst();
-            }
-
-            if ($instance === null) {
-                throw new HttpException(HttpStatus::NOT_FOUND);
-            }
-
-            $variables[$name] = $instance;
         }
 
         $result = $this->container->call([$controller, $method->getName()], $variables);
@@ -868,6 +771,161 @@ class Application
             }
         }
         return null;
+    }
+
+    /**
+     * Resolve a #[Bind] route model binding for a controller parameter.
+     *
+     * Returns null when the parameter carries no #[Bind] attribute — the
+     * Model parameter is then left for the container to resolve (or the
+     * controller to fetch). A parameter WITH #[Bind] that cannot be resolved
+     * throws HttpException(NOT_FOUND).
+     *
+     * @param \ReflectionParameter $parameter The controller parameter
+     * @param class-string<Model> $type The parameter's model class
+     * @param array<string, mixed> $vars The matched route variables
+     * @param ServerRequestInterface $request The current request — passed to
+     *        resolve/scope/connection callables as their context argument
+     * @return Model|null The bound model, or null when no #[Bind] is present
+     * @throws ModelBindingException When the lookup finds no row
+     */
+    private function resolveModelBinding(
+        \ReflectionParameter $parameter,
+        string $type,
+        array $vars,
+        ServerRequestInterface $request,
+    ): ?Model {
+        $attr = $parameter->getAttributes(Bind::class)[0] ?? null;
+        if ($attr === null) {
+            return null; // no #[Bind] → no auto-binding
+        }
+
+        $bind = $attr->newInstance();
+        $name = $parameter->getName(); // route variable is always the parameter name
+
+        if (!array_key_exists($name, $vars)) {
+            throw new \InvalidArgumentException("Route variable '{$name}' not found for #[Bind]");
+        }
+
+        $value = $vars[$name];
+        $keys = $this->resolveBindKeys($bind, $type, $vars, $value, $request);
+
+        $resolve = function () use ($type, $keys, $bind, $vars, $value, $request) {
+            $query = $type::newQuery();
+
+            foreach ($keys as $column => $columnValue) {
+                $query = $query->where($column, '=', $columnValue);
+            }
+
+            if ($bind->scope !== null) {
+                $query = self::invokeBindCallable($bind->scope, [$query, $value, $vars, $request]);
+            }
+
+            return $query->first();
+        };
+
+        // Connection splitting: run the lookup on the named connection and
+        // restore the previous active connection afterwards (no bleed).
+        $conn = $bind->connection;
+        if ($conn !== null && !is_string($conn)) {
+            $conn = self::invokeBindCallable($conn, [$vars, $request]);
+        }
+
+        $instance = $conn !== null
+            ? Database::usingConnection($conn, $resolve)
+            : $resolve();
+
+        if ($instance === null) {
+            throw new ModelBindingException($type, $keys);
+        }
+
+        return $instance;
+    }
+
+    /**
+     * Resolve the [column => value] map for a #[Bind] binding.
+     *
+     * @param Bind $bind The attribute instance
+     * @param class-string<Model> $type The model class
+     * @param array<string, mixed> $vars The matched route variables
+     * @param mixed $value The route variable's value
+     * @param ServerRequestInterface $request The current request — passed to
+     *        resolve callables as their context argument
+     * @return array<string, mixed>
+     * @throws \InvalidArgumentException On a composite PK without an explicit resolve,
+     *         a missing route variable, or an empty resolve-callback map
+     */
+    private function resolveBindKeys(Bind $bind, string $type, array $vars, mixed $value, ServerRequestInterface $request): array
+    {
+        // Explicit callable: the developer declares every key part's source.
+        if ($bind->resolve !== null && !is_string($bind->resolve)) {
+            $map = self::invokeBindCallable($bind->resolve, [$vars, $request]);
+            if (!is_array($map) || $map === []) {
+                throw new \InvalidArgumentException('#[Bind] resolve callback must return a non-empty [column => value] array');
+            }
+            return $map;
+        }
+
+        // Explicit column name: bind that column to the route variable.
+        if (is_string($bind->resolve)) {
+            return [$bind->resolve => $value];
+        }
+
+        // Default: single primary key bound to the route variable.
+        $pks = array_map(
+            fn($pk) => $pk->name,
+            MetadataFactory::for($type)->primaryKeys,
+        );
+
+        if (count($pks) !== 1 || $pks[0] === null) {
+            throw new \InvalidArgumentException(
+                "Model {$type} has a composite primary key; provide #[Bind(resolve: SomeResolver::class)]"
+            );
+        }
+
+        return [$pks[0] => $value];
+    }
+
+    /**
+     * Invoke a #[Bind] callable argument.
+     *
+     * Attribute arguments must be constant expressions, so callables arrive
+     * in one of these forms:
+     *
+     * - an invokable class-string (`SomeScope::class`) — instantiated and
+     *   invoked;
+     * - a `[Class::class, 'method']` array of constants — instantiated and
+     *   the named method invoked;
+     * - a Closure (only when the Bind is constructed programmatically —
+     *   closures are a compile error inside attribute arguments).
+     *
+     * @param mixed $callable Invokable class-string, [class, method] array, or Closure
+     * @param array<int, mixed> $args Arguments to invoke with
+     * @return mixed The callable's return value
+     * @throws \InvalidArgumentException When the value is not callable
+     */
+    private static function invokeBindCallable(mixed $callable, array $args): mixed
+    {
+        if (is_string($callable) && class_exists($callable)) {
+            $callable = new $callable();
+        } elseif (is_array($callable)
+            && array_keys($callable) === [0, 1]
+            && is_string($callable[0])
+            && is_string($callable[1])
+            && class_exists($callable[0])
+        ) {
+            $callable = [new $callable[0](), $callable[1]];
+        }
+
+        if (!is_callable($callable)) {
+            throw new \InvalidArgumentException(
+                '#[Bind] callable arguments must be an invokable class-string, a '
+                . "[Class::class, 'method'] array, or a Closure; got "
+                . get_debug_type($callable) . '.'
+            );
+        }
+
+        return $callable(...$args);
     }
 
     /**
@@ -921,7 +979,7 @@ class Application
         }
 
         $this->env = $output;
-        Database::configure($this->env);
+        $this->configureDatabase();
     }
 
     /**
@@ -950,8 +1008,113 @@ class Application
         }
 
         $this->env = $merge ? array_merge($this->env, $normalised) : $normalised;
-        Database::configure($this->env);
-        $this->injectQueryCache();
+        $this->configureDatabase();
+    }
+
+    /**
+     * Build the Radiant DatabaseManager from the environment and inject it
+     * into the Radiant Database facade.
+     *
+     * Reads the DB_* environment variables (DB_DRIVER, DB_HOST, DB_PORT,
+     * DB_DATABASE, DB_USERNAME, DB_PASSWORD, DB_CHARSET) into the Radiant
+     * connection config shape. For the sqlite driver, DB_DATABASE is
+     * resolved to an absolute filesystem path (non-absolute paths are
+     * resolved against {@see FileSystem::rootPath()}, `:memory:` passes
+     * through untouched) — Radiant's connector consumes the value as a
+     * DSN path verbatim. Called from loadEnv() and setEnv(), so the
+     * database layer re-configures whenever the environment changes (e.g.
+     * switching drivers at runtime in tests).
+     *
+     * An existing manager is NEVER replaced — runtime customizations (extra
+     * named connections, extended connectors) survive an env reload:
+     *
+     * - manager with a `default` connection: the config is ALTERED via
+     *   {@see DatabaseManager::setConnectionConfig()} — the evicted
+     *   connection is rebuilt lazily on next use, so a changed config
+     *   (e.g. a new sqlite path) takes full effect;
+     * - manager WITHOUT a `default` connection (not built by Lucent): the
+     *   config is registered via addConnection() and made active via
+     *   {@see DatabaseManager::useConnection()} — switching the active
+     *   connection is what makes the env config the default.
+     *
+     * Note: when DB_DRIVER is absent from the environment, the existing
+     * manager is left untouched — an env reload cannot un-configure the
+     * database layer.
+     *
+     * @return void
+     */
+    private function configureDatabase(): void
+    {
+        $driver = $this->env['DB_DRIVER'] ?? null;
+
+        if ($driver === null || $driver === '') {
+            return; // no database configured — nothing to wire
+        }
+
+        $config = ['driver' => $driver];
+
+        foreach (['host', 'port', 'database', 'username', 'password', 'charset'] as $key) {
+            $envKey = 'DB_' . strtoupper($key);
+            if (isset($this->env[$envKey]) && $this->env[$envKey] !== '') {
+                $config[$key] = $key === 'port' ? (int) $this->env[$envKey] : $this->env[$envKey];
+            }
+        }
+
+        if ($driver === 'sqlite') {
+            $this->resolveSqlitePath($config);
+        }
+
+        if (!\BlueprintAU\Radiant\Database::hasManager()) {
+            // No manager yet — build one with Lucent's default connection.
+            \BlueprintAU\Radiant\Database::setManager(
+                new \BlueprintAU\Radiant\Database\DatabaseManager(['default' => $config], 'default'),
+            );
+            return;
+        }
+
+        $manager = \BlueprintAU\Radiant\Database::manager();
+
+        if ($manager->hasConnection('default')) {
+            // Evicts the resolved connection (rolling back any open
+            // transaction first); the next use rebuilds from the new config.
+            $manager->setConnectionConfig('default', $config);
+            return;
+        }
+
+        // A manager exists but was not built by Lucent (no `default`
+        // connection) — register the env config and make it the active
+        // connection. addConnection() alone would leave the manager using
+        // ITS OWN active connection; useConnection() is the switch.
+        $manager->addConnection('default', $config);
+        $manager->useConnection('default');
+    }
+
+    /**
+     * Resolve the sqlite "database" config value against the project root.
+     *
+     * Radiant's SqliteConnector consumes the `database` value verbatim as a
+     * PDO DSN path — it has no knowledge of the application's root
+     * directory. This restores the pre-Radiant behaviour (and matches
+     * Laravel's SQLiteConnector, which resolves via base_path()): relative
+     * paths such as "storage/database.sqlite" are resolved against
+     * {@see FileSystem::rootPath()}, absolute paths pass through, and the
+     * `:memory:` in-memory sentinel is handed to the connector untouched.
+     * `..` segments are collapsed lexically (no filesystem access, so the
+     * path may not exist yet).
+     *
+     * @param  array<string, mixed>  $config  The default connection config;
+     *         `database` is replaced in place when it is a relative path.
+     * @return void
+     */
+    private function resolveSqlitePath(array &$config): void
+    {
+        $path = $config['database'] ?? null;
+
+        if (!is_string($path) || $path === '' || $path === ':memory:') {
+            return; // absent/invalid lets the connector's fail-fast validation handle it
+        }
+
+        $config['database'] = FileSystem::normalizePath(FileSystem::absolutePath($path));
     }
 
     /**
@@ -975,8 +1138,9 @@ class Application
             }
         }
 
-        CommandLine::register(PerformMigrationCommand::$command, "make", PerformMigrationCommand::class, "Generates a database table from the model class.");
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
+        CommandLine::register(SyncCommand::$command, "run", SyncCommand::class, "Sync the discovered models' schema to the database (diff-based, destructive prompts). Options: --filter= --exclude-filter= --dir= --force --dry-run --no-transactional --no-drop-tables");
+        CommandLine::register(SyncLegacyCommand::$command, "run", SyncLegacyCommand::class, "DEPRECATED one-time migration: rename legacy table names to the Radiant naming. Options: --filter= --exclude-filter= --dir= --dry-run");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
         CommandLine::register(DeploymentController::$command_rollback, "rollback", DeploymentController::class, "Rolls back to the most recent backup");
@@ -1121,7 +1285,7 @@ class Application
 
             return $output;
         } catch (\Throwable $e) {
-            return $e->getMessage();
+            return ExceptionChain::render($e, "Command failed: ") . "\n";
         }
     }
     /**

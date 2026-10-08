@@ -4,17 +4,17 @@
 
 ## Introduction
 
-The `Database` class is Lucent's central facade for all database interactions. It manages connections, routes queries to the correct driver, and provides a clean static API for executing SQL against MySQL and SQLite databases.
+Lucent's database layer is [**Radiant**](https://github.com/blueprintau/radiant) (`blueprintau/radiant`) — a typed, attribute-driven ORM and schema toolkit. Lucent wires Radiant's `DatabaseManager` from your `.env` at boot, so the `BlueprintAU\Radiant\Database` facade is ready to use with no setup beyond your environment file.
 
-By default, Lucent operates with a single database connection booted automatically from your environment variables — no setup required beyond your `.env` file. For more advanced use cases such as multi-tenancy, Lucent also supports a named connection pool that lets you register, switch between, and scope queries to multiple databases within a single request.
+By default, Lucent operates with a single database connection built from your environment variables. For advanced use cases such as multi-tenancy, Radiant supports a named connection pool that lets you register, switch between, and scope queries to multiple databases within a single request.
 
 ## Table Management
 
-Looking to create or modify tables? That's handled by the `Schema` class. See the [Schema documentation](database/schema.md) for a full guide on defining tables, columns, constraints, and foreign keys.
+Looking to create or modify tables? That's handled by the `sync` command — a diff-based schema synchronizer driven by your models' attributes. See the [Schema documentation](database/schema.md) for the full guide, and [Command Line](commandline.md) for the `sync` command reference.
 
 ## Basic Usage
 
-For most applications, you never need to think about connection management. The `Database` class reads your environment variables and establishes a connection on first use.
+For most applications, you never need to think about connection management. Lucent reads your environment variables and builds the `DatabaseManager` at boot.
 
 ### Environment Configuration
 
@@ -27,10 +27,16 @@ DB_DATABASE=my_database
 DB_USERNAME=root
 DB_PASSWORD=secret
 
-# SQLite
+# SQLite — relative to the project root
 DB_DRIVER=sqlite
-DB_DATABASE=/storage/database.sqlite
+DB_DATABASE=storage/database.sqlite
+
+# SQLite — absolute path (used verbatim)
+DB_DRIVER=sqlite
+DB_DATABASE=/var/data/database.sqlite
 ```
+
+For SQLite, `DB_DATABASE` is a **filesystem path**. A relative path is resolved against your project's root directory (where `.env` lives), and absolute paths are used verbatim — so the SQLite file can live anywhere on disk. The database file is created automatically by SQLite when the connection opens.
 
 For SQLite you can also use an **in-memory** database by setting `DB_DATABASE=:memory:`. This creates a database that lives entirely in memory and is destroyed when the connection closes. It is ideal for tests and other ephemeral use cases: it is faster (no file I/O), leaves no files behind, and each connection gets its own fully isolated database.
 
@@ -40,141 +46,100 @@ DB_DRIVER=sqlite
 DB_DATABASE=:memory:
 ```
 
+Supported drivers: `mysql`, `sqlite`, `pgsql`, `csv`.
+
 ### Running Queries
 
-```php
-use Lucent\Database;
+Radiant's `Database` facade provides raw SQL access and fluent query building:
 
-// Select all rows
+```php
+use BlueprintAU\Radiant\Database;
+
+// Fluent query builder
+$users = Database::table('users')->where('active', '=', 1)->get();
+
+// Raw select — every matching row as an object
 $users = Database::select("SELECT * FROM users");
 
-// Select a single row
-$user = Database::select("SELECT * FROM users WHERE id = ?", false, [$id]);
-
-// Insert
-Database::insert("INSERT INTO users (name, email) VALUES (?, ?)", [$name, $email]);
-
-// Update
-Database::update("UPDATE users SET name = ? WHERE id = ?", [$name, $id]);
-
-// Delete
-Database::delete("DELETE FROM users WHERE id = ?", [$id]);
-
-// Raw statement (DDL, SET, PRAGMA, etc.)
+// Raw statement that returns no result set
 Database::statement("ALTER TABLE users ADD COLUMN verified TINYINT DEFAULT 0");
+
+// Raw statement returning affected row count
+$count = Database::affectingStatement("UPDATE users SET active = 1 WHERE id = ?", [$id]);
 ```
 
-All query methods return `false` on failure rather than throwing — errors are caught internally and logged to the `lucent.db` log channel.
+Errors throw a `QueryException` rather than returning `false` — failures are loud, not silent.
 
 ### Transactions
 
-Wrap multiple operations in a transaction using a callback. The transaction is automatically committed if the callback returns a truthy value, or rolled back if it returns `false` or throws an exception.
+Wrap multiple operations in a transaction using a callback. The transaction is automatically committed if the callback succeeds, or rolled back if it throws.
 
 ```php
-Database::transaction(function () use ($orderId, $items) {
-    Database::insert("INSERT INTO orders (id) VALUES (?)", [$orderId]);
+use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+
+$connection = Database::sqlConnection();
+
+$connection->transaction(function (SqlConnection $db) use ($orderId, $items) {
+    $db->table('orders')->insert(['id' => $orderId]);
 
     foreach ($items as $item) {
-        Database::insert(
-            "INSERT INTO order_items (order_id, product_id, qty) VALUES (?, ?, ?)",
-            [$orderId, $item['product_id'], $item['qty']]
-        );
+        $db->table('order_items')->insert([
+            'order_id'   => $orderId,
+            'product_id' => $item['product_id'],
+            'qty'        => $item['qty'],
+        ]);
     }
-
-    return true;
 });
 ```
-
-### Disabling Features
-
-Some operations require temporarily disabling database constraints. Use `disabling()` to wrap those operations safely — the feature is always re-enabled afterwards, even if an exception is thrown.
-
-```php
-Database::disabling('foreign_key_checks', function () {
-    Schema::dropTable('order_items');
-    Schema::dropTable('orders');
-});
-```
-
-Supported features vary by driver:
-
-| Feature | MySQL | SQLite |
-|---|---|---|
-| `foreign_key_checks` | ✅ | ✅ |
 
 ---
 
 ## Multiple Database Connections
 
-Lucent supports a named connection pool for applications that need to query more than one database — the most common case being multi-tenant SaaS applications where each tenant has their own database.
+Radiant supports a named connection pool for applications that need to query more than one database — the most common case being multi-tenant SaaS applications where each tenant has their own database.
 
 ### How It Works
 
-1. The `'default'` connection is always booted from environment variables and is always available.
+1. The `'default'` connection is always built from environment variables and is always available.
 2. Additional named connections are registered at runtime using `addConnection()`.
-3. You switch between connections using `switchTo()` or the safer `usingConnection()`.
-4. All standard query methods (`select`, `insert`, etc.) always operate against the currently active connection.
+3. You switch between connections using `usingConnection()` — the safe, scoped switch.
+4. All queries operate against the currently active connection.
 
 ### Registering a Connection
 
 Use `addConnection()` to register a named connection from a configuration array. This does not switch the active connection.
 
 ```php
-Database::addConnection('tenant', [
+Database::manager()->addConnection('tenant', [
     'driver'   => 'mysql',
     'host'     => 'tenant.db.internal',
+    'port'     => 3306,
     'database' => 'tenant_acme',
     'username' => 'acme_user',
     'password' => 'secret',
-    'port'     => '3306',        // optional, defaults to 3306
 ]);
 ```
 
 For SQLite:
 
 ```php
-Database::addConnection('archive', [
+Database::manager()->addConnection('archive', [
     'driver'   => 'sqlite',
-    'database' => '/storage/archive.sqlite',
+    'database' => 'storage/archive.sqlite',
 ]);
 ```
 
 ### Checking if a Connection Exists
 
 ```php
-if (Database::hasConnection('tenant')) {
+if (Database::manager()->hasConnection('tenant')) {
     // Safe to switch or query
 }
-```
-
-### Getting the Active Connection Name
-
-```php
-$name = Database::getActiveConnectionName(); // 'default'
 ```
 
 ---
 
 ## Switching Connections
-
-There are two ways to switch connections, each suited to different situations.
-
-### `switchTo()` — Global Switch
-
-`switchTo()` changes the active connection for all subsequent queries in the current request. You are responsible for switching back when done.
-
-```php
-Database::switchTo('tenant');
-
-// All queries now target the tenant DB
-$leads = Database::select("SELECT * FROM leads");
-$contacts = Database::select("SELECT * FROM contacts");
-
-// Switch back manually
-Database::switchTo('default');
-```
-
-> **Warning:** If you forget to switch back, all subsequent queries in the same request will continue to target the wrong database. Prefer `usingConnection()` to avoid this.
 
 ### `usingConnection()` — Scoped Switch (Recommended)
 
@@ -182,7 +147,7 @@ Database::switchTo('default');
 
 ```php
 $leads = Database::usingConnection('tenant', function () {
-    return Database::select("SELECT * FROM leads");
+    return Database::table('leads')->get();
 });
 
 // Active connection is automatically back to 'default' here
@@ -194,53 +159,9 @@ This is the recommended approach for tenant queries inside middleware or service
 
 ## Real-World Example: Multi-Tenant Middleware
 
-The following example shows how connection switching integrates cleanly into a request lifecycle using middleware.
-
-### 1. Tenant Model (on the central database)
-
-```php
-<?php
-
-namespace App\Models;
-
-use Lucent\Model;
-use Lucent\Model\Column;
-use Lucent\Model\ColumnType;
-
-class Tenant extends Model
-{
-    #[Column(type: ColumnType::INT, primaryKey: true, autoIncrement: true)]
-    public int $id;
-
-    #[Column(type: ColumnType::VARCHAR, length: 100)]
-    public string $subdomain;
-
-    #[Column(type: ColumnType::VARCHAR, length: 255)]
-    public string $db_host;
-
-    #[Column(type: ColumnType::VARCHAR, length: 100)]
-    public string $db_name;
-
-    #[Column(type: ColumnType::VARCHAR, length: 100)]
-    public string $db_user;
-
-    #[Column(type: ColumnType::VARCHAR, length: 255)]
-    public string $db_password;
-
-    public function dbConfig(): array
-    {
-        return [
-            'driver'   => 'mysql',
-            'host'     => $this->db_host,
-            'database' => $this->db_name,
-            'username' => $this->db_user,
-            'password' => $this->db_password,
-        ];
-    }
-}
-```
-
-### 2. Tenant Middleware
+The typical multi-tenant setup resolves the tenant in middleware, registers
+its credentials as a named connection, and scopes controller queries with
+`usingConnection()`:
 
 ```php
 <?php
@@ -248,9 +169,8 @@ class Tenant extends Model
 namespace App\Middleware;
 
 use App\Models\Tenant;
-use Lucent\Database;
+use BlueprintAU\Radiant\Database;
 use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -260,101 +180,57 @@ class TenantMiddleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Resolve the tenant from the subdomain (queries the central/default DB)
-        $subdomain = $request->getHeaderLine('X-Tenant');
-        $tenant = Tenant::where('subdomain', $subdomain)->getFirst();
+        // 1. Resolve the tenant from the central (default) DB
+        $tenant = Tenant::where('subdomain', '=', $request->getHeaderLine('X-Tenant'))->first();
 
         if (!$tenant) {
-            // Short-circuit with a 404 if the tenant doesn't exist
             return (new Response())->withStatus(404);
         }
 
-        // Register the tenant's database connection
-        Database::addConnection('tenant', $tenant->dbConfig());
+        // 2. Register the tenant's credentials as a named connection
+        Database::manager()->addConnection('tenant', $tenant->dbConfig());
 
-        // Store the tenant on the request for use in controllers
-        $request = $request->withAttribute('tenant', $tenant);
-
-        return $handler->handle($request);
+        // 3. Stash the tenant for controllers
+        return $handler->handle($request->withAttribute('tenant', $tenant));
     }
 }
 ```
 
-### 3. Lead Controller
+Controllers then scope queries — everything inside the callback hits the
+tenant's database, and `'default'` is restored afterwards (even on error).
+Route model binding (`#[Bind]`) composes with this too — see
+[Route Model Binding](route-model-binding.md) for scoping bindings to the
+active tenant:
 
 ```php
-<?php
-
-namespace App\Controllers;
-
-use App\Models\Lead;
-use Lucent\Database;
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-
-class LeadController
-{
-    public function index(ServerRequest $request): Response
-    {
-        // All queries inside this block run against the tenant DB
-        $leads = Database::usingConnection('tenant', fn() => Lead::get());
-
-        return Response::json(['leads' => $leads], 200);
-    }
-
-    public function show(ServerRequest $request, Lead $lead): Response
-    {
-        return Database::usingConnection('tenant', function () use ($lead) {
-            return Response::json(['lead' => $lead], 200);
-        });
-    }
-}
+// All queries inside this block run against the tenant DB
+$leads = Database::usingConnection('tenant', fn() => Lead::all());
 ```
 
-### 4. Route Definitions
-
-```php
-<?php
-
-use App\Controllers\LeadController;
-use App\Middleware\TenantMiddleware;
-use Lucent\Facades\Route;
-
-Route::rest()->group('leads')
-    ->prefix('/leads')
-    ->defaultController(LeadController::class)
-    ->middleware([TenantMiddleware::class])
-    ->get(path: '/', method: 'index')
-    ->get(path: '/{lead}', method: 'show');
-```
-
-### How It All Works Together
-
-1. **Request arrives** at `/leads` with an `X-Tenant: acme` header.
-2. **TenantMiddleware runs** — queries the central (default) DB to find the `acme` tenant record, then registers its database config as the `'tenant'` connection.
-3. **Controller executes** — `usingConnection('tenant', ...)` scopes all model queries to the tenant's database and automatically restores `'default'` when done.
-4. **Next request** starts clean — `'default'` is always the active connection at the start of every request.
+The full flow: the request arrives → middleware resolves the tenant from the
+central DB and registers its connection → the controller runs against the
+tenant DB → the next request starts clean on `'default'`.
 
 ---
 
 ## Connection Lifecycle
 
-### Removing a Connection
+### Evicting a Connection
 
-If you need to explicitly close and deregister a connection during a request, use `removeConnection()`. If the removed connection was the active one, the active connection automatically resets to `'default'`.
+If you need to explicitly close and evict a resolved connection during a request, use `flush()`. Any open transaction on the connection is rolled back first.
 
 ```php
-Database::removeConnection('tenant');
+Database::manager()->flush('tenant');
 ```
 
-Calling `removeConnection()` on a name that doesn't exist is safe — it does nothing.
+Calling `flush()` on a name that isn't resolved is safe — it does nothing.
 
-### Resetting All Connections
+### Evicting All Connections
 
-`reset()` closes every connection in the pool and returns the database layer to its initial state. The next query will re-boot the default connection from environment variables. This is primarily useful in testing.
+`flush()` with no arguments evicts every resolved connection and returns the pool to its initial state. The next query rebuilds the connection from its config. This is primarily useful in testing.
 
 ```php
-Database::reset();
+Database::manager()->flush();
 ```
 
 ### Configuring the Database in Tests
@@ -367,14 +243,10 @@ use Lucent\Application;
 // Replace the whole environment (e.g. switch to a fresh driver per dataset).
 Application::getInstance()->setEnv([
     'DB_DRIVER'   => 'sqlite',
-    'DB_DATABASE' => '/storage/database.sqlite',
+    'DB_DATABASE' => ':memory:',
 ], false);
 
-// Or merge individual keys on top of the existing environment.
-Application::getInstance()->setEnv(['DEBUG' => true]);
-
-// Re-boot the connection from the new environment.
-Database::reset();
+// setEnv() re-builds the DatabaseManager from the new environment.
 ```
 
 `setEnv()` normalises keys to upper-case, casts values to strings, and re-configures the database layer. By default it merges into the existing environment; pass `false` as the second argument to replace it entirely.
@@ -393,29 +265,25 @@ Application::getInstance()->loadEnv('/path/to/.env');
 
 | Method | Description |
 |---|---|
-| `Database::select(query, fetchAll, args)` | Execute a SELECT and return rows |
-| `Database::insert(query, args)` | Execute an INSERT |
-| `Database::update(query, args)` | Execute an UPDATE |
-| `Database::delete(query, args)` | Execute a DELETE |
-| `Database::statement(query, args)` | Execute a raw SQL statement |
-| `Database::transaction(callback)` | Run a callback inside a transaction |
-| `Database::disabling(feature, callback)` | Disable a DB feature for a callback |
-| `Database::addConnection(name, config)` | Register a named connection |
-| `Database::switchTo(name)` | Globally switch the active connection |
+| `Database::table(name)` | Start a fluent query against a table |
+| `Database::select(query, args)` | Run raw SQL, return rows as objects |
+| `Database::statement(query, args)` | Run a raw SQL statement (no result set) |
+| `Database::affectingStatement(query, args)` | Run raw SQL, return affected row count |
+| `Database::connection(name?)` | Get a named connection instance |
+| `Database::sqlConnection(name?)` | Get a named connection, narrowed to SQL |
 | `Database::usingConnection(name, callback)` | Scope queries to a connection, then restore |
-| `Database::connection(name)` | Get a named connection instance directly |
-| `Database::hasConnection(name)` | Check if a named connection is registered |
-| `Database::getActiveConnectionName()` | Get the current active connection name |
-| `Database::removeConnection(name)` | Close and deregister a named connection |
-| `Database::getDriver()` | Get the active driver instance |
-| `Database::reset()` | Close all connections and reset to initial state |
+| `Database::manager()` | The underlying DatabaseManager |
+| `Database::manager()->addConnection(name, config)` | Register a named connection |
+| `Database::manager()->hasConnection(name)` | Check if a named connection is registered |
+| `Database::manager()->flush(name?)` | Evict one or all resolved connections |
+| `Database::manager()->disconnect(name)` | Evict one connection (readable alias) |
+| `Database::manager()->usingConnection(name, callback)` | Manager-level scoped switch |
 
 ---
 
 ## Best Practices
 
-1. **Prefer `usingConnection()` over `switchTo()`** — it restores the previous connection automatically and is safe from bleed even when exceptions occur.
+1. **Prefer `usingConnection()` over manual switching** — it restores the previous connection automatically and is safe from bleed even when exceptions occur.
 2. **Register connections in middleware** — resolve tenant credentials before the controller runs so connection setup is centralised and consistent.
 3. **Always query the central DB first** — resolve which tenant you're serving before switching connections. The default connection is always available for this.
 4. **Don't hardcode connection names in models** — keep connection switching in middleware or service classes so models remain portable.
-5. **Use `hasConnection()` before `switchTo()`** — if connection registration is conditional, guard with `hasConnection()` to avoid unexpected exceptions.

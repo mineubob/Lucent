@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\SluggedModel;
+use App\Models\TestUser;
+use App\Models\TestUserTwo;
 use Exception;
 use Lucent\Application;
 use Lucent\Facades\App;
@@ -31,7 +34,7 @@ class RouteGroupTest extends TestCase
                 'SecondRestController.php',
                 'UserController.php',
             ],
-            'Middleware' => 'AuthMiddleware.php',
+            'Middleware' => ['AuthMiddleware.php', 'JaneDoeScope.php'],
             'Route'      => 'web.php',
         ]);
 
@@ -153,7 +156,7 @@ class RouteGroupTest extends TestCase
     public function test_route_get_model_id_raw($driver, $config): void
     {
         FixtureLoader::copyModel('TestUser.php');
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+        self::setupDatabase($driver, $config, [TestUser::class]);
 
         $response = $this->get('/user/99');
 
@@ -165,18 +168,13 @@ class RouteGroupTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id($driver, $config): void
+    public function test_bind_resolves_by_primary_key($driver, $config): void
     {
         FixtureLoader::copyModel('TestUser.php');
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+        self::setupDatabase($driver, $config, [TestUser::class]);
 
-        // These tests exercise implicit binding, which is opt-in since the
-        // default flipped to explicit (MODEL_BINDING defaults to explicit).
-        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
-
-        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
-
-        $this->assertTrue($user->create());
+        $user = new TestUser("john@doe.com", "password", "John Doe");
+        $user->save();
 
         $response = $this->get('/user/object/1');
 
@@ -187,12 +185,10 @@ class RouteGroupTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_by_id_not_found($driver, $config): void
+    public function test_bind_returns_404_when_not_found($driver, $config): void
     {
         FixtureLoader::copyModel('TestUser.php');
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
+        self::setupDatabase($driver, $config, [TestUser::class]);
 
         $response = $this->get('/user/object/100');
 
@@ -203,16 +199,101 @@ class RouteGroupTest extends TestCase
     }
 
     #[DataProvider('databaseDriverProvider')]
-    public function test_route_get_user_model_with_middleware($driver, $config): void
+    public function test_bind_resolves_by_non_pk_column($driver, $config): void
+    {
+        FixtureLoader::copyModel('SluggedModel.php');
+        self::setupDatabase($driver, $config, [SluggedModel::class]);
+
+        $model = new SluggedModel("hello-world", "Hello World");
+        $model->save();
+
+        $response = $this->get('/user/slug/hello-world');
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
+
+        $this->assertEquals("Hello World", $decodedResponse["content"]["name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_bind_scope_filters_to_404($driver, $config): void
     {
         FixtureLoader::copyModel('TestUser.php');
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
+        self::setupDatabase($driver, $config, [TestUser::class]);
 
-        Application::getInstance()->setEnv(['MODEL_BINDING' => 'implicit']);
+        // The scope only matches full_name = 'Jane Doe'; the stored row is
+        // 'John Doe', so the scoped lookup must 404 even though the PK exists.
+        $user = new TestUser("john@doe.com", "password", "John Doe");
+        $user->save();
 
-        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
+        $response = $this->get('/user/scoped/1');
 
-        $this->assertTrue($user->create());
+        $this->assertEquals(404, $response->getStatusCode());
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_bind_scope_passes_when_matching($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [TestUser::class]);
+
+        $user = new TestUser("jane@doe.com", "password", "Jane Doe");
+        $user->save();
+
+        $response = $this->get('/user/scoped/1');
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
+
+        $this->assertEquals("Jane Doe", $decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_bind_scope_accepts_class_method_array($driver, $config): void
+    {
+        // [Class::class, 'method'] arrays of constants are legal attribute
+        // arguments — the second supported callable form.
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [TestUser::class]);
+
+        $user = new TestUser("jane@doe.com", "password", "Jane Doe");
+        $user->save();
+
+        $response = $this->get('/user/scoped-array/1');
+
+        $this->assertEquals(200, $response->getStatusCode());
+        $decodedResponse = json_decode((string) $response->getBody(), true);
+
+        $this->assertEquals("Jane Doe", $decodedResponse["content"]["full_name"]);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_no_bind_attribute_means_no_auto_binding($driver, $config): void
+    {
+        // Regression test: a Model type-hint WITHOUT #[Bind] is never
+        // auto-resolved from the URL (the IDOR fix). The container cannot
+        // resolve TestUser from the route variable, so the response must
+        // not contain the user's name.
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [TestUser::class]);
+
+        $user = new TestUser("john@doe.com", "password", "John Doe");
+        $user->save();
+
+        $response = $this->get('/user/unbound/1');
+        $body = (string) $response->getBody();
+
+        $this->assertStringNotContainsString('John Doe', $body);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_bind_with_middleware($driver, $config): void
+    {
+        FixtureLoader::copyModel('TestUser.php');
+        self::setupDatabase($driver, $config, [TestUser::class]);
+
+        $user = new TestUser("john@doe.com", "password", "John Doe");
+        $user->save();
 
         $response = $this->get('/user2/object/1');
 
@@ -220,28 +301,6 @@ class RouteGroupTest extends TestCase
         $decodedResponse = json_decode((string) $response->getBody(), true);
 
         $this->assertEquals("John Doe", $decodedResponse["content"]["full_name"]);
-    }
-
-    #[DataProvider('databaseDriverProvider')]
-    public function test_model_binding_explicit_mode_disables_auto_binding($driver, $config): void
-    {
-        // Regression test: explicit binding is the DEFAULT. A Model type-hint
-        // is NOT auto-resolved from the URL (no unscoped PK lookup), so the
-        // controller never receives an auto-bound row unless the app opts
-        // back into implicit mode.
-        FixtureLoader::copyModel('TestUser.php');
-        self::setupDatabase($driver, $config, [\App\Models\TestUser::class]);
-
-        $user = new \App\Models\TestUser("john@doe.com", "password", "John Doe");
-        $this->assertTrue($user->create());
-
-        $response = $this->get('/user/object/1');
-        $body = (string) $response->getBody();
-
-        // The auto-bound user must NOT be present. The container cannot
-        // resolve TestUser from the route variable, so the response should
-        // not contain the user's name.
-        $this->assertStringNotContainsString('John Doe', $body);
     }
 
     public function test_invalid_route_file(): void

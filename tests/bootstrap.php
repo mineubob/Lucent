@@ -17,7 +17,6 @@
  */
 
 use Lucent\Application;
-use Lucent\Database;
 use Lucent\Facades\FileSystem;
 use Lucent\Facades\Log;
 use Lucent\Logging\Channel;
@@ -41,7 +40,15 @@ $isMainProcess = !getenv('LUCENT_TEST_BOOTSTRAPPED');
 
 if ($isMainProcess) {
     putenv('LUCENT_TEST_BOOTSTRAPPED=1');
+}
 
+// Force the sync commands' non-interactive path: when phpunit runs attached
+// to a terminal, STDIN is a TTY and the destructive-change prompts would
+// block on fgets() forever (max_execution_time does not fire — on Linux it
+// counts CPU time, not time blocked in I/O). Tests never answer prompts.
+putenv('LUCENT_NON_INTERACTIVE=1');
+
+if ($isMainProcess) {
     // Clean up any leftover files from a previous test run so each run starts
     // fresh. This prevents stale fixtures (models, routes, .env) from causing
     // false failures or masking bugs.
@@ -99,13 +106,6 @@ if ($isMainProcess) {
     $app->addLoggingChannel(new Channel('lucent.filesystem', new TeeDriver(new CliDriver(), new FileDriver('filesystem.log'))));
     $app->addLoggingChannel(new Channel('lucent.http', new TeeDriver(new CliDriver(), new FileDriver('http.log'))));
     $app->addLoggingChannel(new Channel('lucent.commandline', new TeeDriver(new CliDriver(), new FileDriver('commandline.log'))));
-
-    // Wire the database logger to the lucent.db channel. Application::boot()
-    // does this in production, but tests that use DatabaseTesting never call
-    // boot(), so without this the DB logger stays null and Database::log()
-    // silently drops every query. Database::reset() does not clear the logger,
-    // so this persists across all setupDatabase() calls.
-    Database::setLogger(Log::channel("lucent.db"));
 }
 
 // Register a PSR-4 autoloader for the user's App\ namespace pointing at the

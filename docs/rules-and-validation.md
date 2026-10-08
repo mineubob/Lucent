@@ -271,23 +271,28 @@ string, empty array) always pass — presence is the responsibility of
 ```php
 use Lucent\Validation\Constraints\Unique;
 
-new Unique(fn (mixed $value) => User::where('email', $value)->count() > 0);
+new Unique(fn (mixed $value) => User::where('email', '=', $value)->count() > 0);
 ```
 
-For model-backed uniqueness, prefer the `Model::uniqueConstraint()` factory,
-which builds the callable from a model and column. Pass the current record's
-primary key as the second argument to exclude it from the check when updating
-an existing row:
+For model-backed uniqueness, prefer Radiant's `#[Unique]` attribute on the
+model's column — the schema layer enforces it at the database level. To
+validate uniqueness at the request layer, build the existence callable from
+a Radiant query, passing the current record's primary key to exclude it when
+updating an existing row:
 
 ```php
 // Create: reject an email already in use.
 $request->validate([
-    'email' => User::uniqueConstraint('email'),
+    'email' => new Unique(fn (mixed $value) => User::where('email', '=', $value)->count() > 0),
 ]);
 
 // Update: allow the user to keep their own email.
 $request->validate([
-    'email' => User::uniqueConstraint('email', $user->id),
+    'email' => new Unique(
+        fn (mixed $value) => User::where('email', '=', $value)
+            ->where('id', '!=', $user->id)
+            ->count() > 0
+    ),
 ]);
 ```
 

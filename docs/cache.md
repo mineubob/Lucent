@@ -54,58 +54,14 @@ driver) is invisible through the cache interface.
 
 ## Query Cache
 
-Lucent ships with an opt-in query cache for model collections. When a query
-cache store is injected, `Database::select()` caches raw result rows and
-re-hydrates them on subsequent identical queries, avoiding repeated database
-queries.
+**Removed.** The query cache was dropped — Radiant removed query caching for
+security reasons (the previous implementation cached raw result rows keyed
+only by connection+query, which leaked data across tenants sharing a
+connection and had no invalidation on writes). It may return as an opt-in
+`->remember($ttl)` on the query builder in a future release.
 
-The query cache is **off by default** — no store is injected until you enable
-it. It uses its **own** dedicated store, separate from the main cache, so each
-can use a different driver.
-
-### Enabling
-
-The application auto-injects its dedicated query cache store into `Database`
-when the `QUERY_CACHE` environment variable is truthy:
-
-```dotenv
-QUERY_CACHE=true
-```
-
-The query cache store is built from its own environment variables:
-
-| Variable               | Default          | Description                                        |
-|------------------------|------------------|----------------------------------------------------|
-| `QUERY_CACHE`          | `false`          | Master on/off switch for the query cache            |
-| `QUERY_CACHE_DRIVER`   | `array`          | Driver for the query cache store                    |
-| `QUERY_CACHE_PATH`     | `storage/cache`  | Directory used by the `file` query cache driver     |
-
-When `QUERY_CACHE` is truthy, `Application::queryCache()` builds the store and
-passes it to `Database::setQueryCache()`, so SELECT results are cached. When
-`QUERY_CACHE` is falsy (or unset), no query cache is injected and queries run
-directly.
-
-You can also inject a store manually via `Database::setQueryCache()`:
-
-```php
-use Lucent\Cache\Drivers\ArrayDriver;
-use Lucent\Database;
-
-Database::setQueryCache(new ArrayDriver());
-```
-
-Pass `null` to disable query caching again:
-
-```php
-Database::setQueryCache(null);
-```
-
-The store is owned by the application and injected into `Database`, so the ORM
-never constructs a cache driver itself.
-
-> **Note:** the query cache has no invalidation on model writes. Cached
-> results may be stale until the TTL expires, so only enable it when that
-> trade-off is acceptable.
+The cache package itself is unaffected — it remains available for
+application-level caching (computed values, rendered fragments, config).
 
 ## Usage
 
@@ -181,5 +137,5 @@ CACHE_DRIVER=MyRedisCache
 The `cache:clear` command wipes the entire cache store:
 
 ```bash
-php cli cache:clear
+vendor/bin/lucent cache:clear
 ```

@@ -20,9 +20,8 @@ use Override;
  * new Unique(fn (mixed $value) => User::where('email', $value)->count() > 0);
  * ```
  *
- * For model-backed uniqueness, prefer the convenience factory
- * {@see \Lucent\Model\Model::uniqueConstraint()}, which builds the callable
- * from a model and column and handles ignoring the current row on updates.
+ * For model-backed uniqueness, prefer the Radiant `#[Unique]` attribute on
+ * the model's column — the schema layer enforces it at the database level.
  *
  * Empty values (null, empty string, empty array) always pass — presence is the
  * responsibility of the {@see \Lucent\Validation\Constraints\Required}
