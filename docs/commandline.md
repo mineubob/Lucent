@@ -353,16 +353,23 @@ These components can be used individually or combined to create rich, interactiv
 
 ### Command Groups
 
-You can organize related commands into groups for better structure:
+Use colon prefixes to group related commands visually — the router collapses
+`:` to a space, so `cache:clear` registers and dispatches as the flat command
+`cache clear`. The commands shipped with the framework follow this pattern:
 
 ```php
-// Database group
-CommandLine::register("db:migrate", "migrate", DatabaseCommand::class);
-CommandLine::register("db:seed", "seed", DatabaseCommand::class);
+// Built into Lucent — registered by the framework itself
+CommandLine::register("cache:clear", "handle", ClearCacheCommand::class);
+CommandLine::register("sync:legacy", "run", SyncLegacyCommand::class);
+CommandLine::register("serve", "run", ServeCommand::class);
+```
 
-// User management group
-CommandLine::register("user:create {name}", "create", UserCommand::class);
-CommandLine::register("user:delete {id}", "delete", UserCommand::class);
+Your application commands follow the same convention:
+
+```php
+// App/Commands/ReportCommand.php
+CommandLine::register("report:daily {date?}", "run", ReportCommand::class);
+CommandLine::register("report:cleanup {--days=30}", "run", ReportCommand::class);
 ```
 
 ### Error Handling

@@ -79,7 +79,7 @@ The backfill value fills the rows that exist when the column is added; it is not
 vendor/bin/lucent sync
 ```
 
-Output:
+Example plan output:
 
 ```
 Planned schema changes:
@@ -89,27 +89,20 @@ Planned schema changes:
 Apply this destructive change? (yes/no)
 ```
 
-- **Non-destructive changes** (creates, adds, renames) apply automatically.
-- **Destructive changes** (drops, nullability tightening) prompt per change.
-- **`--force`** skips all prompts.
-- **`--dry-run`** displays the plan and exits without applying anything.
-- **`--no-drop-tables`** makes the plan additive-only: tables no model declares (orphans, other tools' tables) are left untouched instead of offered for drop. Note this suppresses *table-level* drops only — a live column missing from the model still diffs as a destructive `DropColumn` and goes through the confirm gate.
-- **Transactional apply** runs by default when the dialect supports transactional DDL (SQLite, PostgreSQL) — a mid-apply failure rolls the whole plan back. MySQL DDL auto-commits, so a warning is shown and the apply is non-transactional; opt out explicitly with `--no-transactional`.
+The full option table (`--filter`, `--exclude-filter`, `--dir`, `--force`,
+`--dry-run`, `--no-drop-tables`, `--no-transactional`), the destructive-change
+prompt gate, and the transactional-apply behavior are documented in
+[Command Line](../commandline.md#the-sync-command) — that page is the single
+source for the CLI surface.
 
 ### Filters
 
-`--filter` and `--exclude-filter` are matched against fully-qualified class names; exclude wins. A pattern that is a valid regular expression is used verbatim; anything else is treated as a case-insensitive literal substring:
+`--filter` and `--exclude-filter` are matched against fully-qualified class
+names; exclude wins (pattern-matching rules and examples:
+[Command Line](../commandline.md#the-sync-command)).
 
 ```bash
-# Only the User model (regex)
-vendor/bin/lucent sync --filter='/App\\Models\\User$/'
-
-# Literal substring — no regex escaping needed
-vendor/bin/lucent sync --filter=User
-
-# Everything except legacy models
-vendor/bin/lucent sync --exclude-filter='/Legacy/'
-
+```bash
 # Both — exclude wins
 vendor/bin/lucent sync --filter='/App\\Models\\/' --exclude-filter='/Legacy/'
 ```
@@ -118,7 +111,8 @@ With filters active, excluded models' tables are **protected**: the differ itsel
 
 ### Custom Directories
 
-By default Lucent scans the PSR-4 directories registered with the Composer ClassLoader. Override with `--dir` (comma-separated):
+By default Lucent scans the PSR-4 directories registered with the Composer
+ClassLoader. Override with `--dir` (comma-separated):
 
 ```bash
 vendor/bin/lucent sync --dir=app/Models,modules/Billing/Models
@@ -141,7 +135,7 @@ vendor/bin/lucent sync --dir=app/Models,modules/Billing/Models
 
 ## Rename Detection
 
-The differ flags **possible renames** rather than guessing: a create/drop pair whose columns overlap by ≥50% is annotated `POSSIBLE RENAME` in the plan. When `sync` sees a flagged pair it prompts:
+The differ flags **possible renames** rather than guessing: a create/drop pair whose columns overlap by ≥50% is annotated `POSSIBLE RENAME` in the plan. When `sync` sees a flagged pair it prompts (auto-accepted with `--force`, kept as-is without a TTY — see [Command Line](../commandline.md#rename-suggestions)):
 
 ```
 POSSIBLE RENAME: [old_table] → [new_table]. Treat as a rename? (yes/no)
@@ -151,8 +145,6 @@ Confirming declares the rename on the blueprint (`renamedFrom`) and re-plans —
 
 A declared rename and its column drift land in **one plan**: the differ emits the `RenameTable` change first, then diffs the desired columns against the old table's live shape and emits the follow-up `AddColumn`/`ModifyColumn`/`DropColumn` changes targeting the new name. Applying the plan leaves the schema fully in sync — a renamed column that also changed shape sequences `RenameColumn` first, then `ModifyColumn`.
 
-With `--force` every suggestion is auto-accepted. Without a TTY (or an injected input stream) the flagged pair is kept as-is (the plan shows the annotation and the destructive gate handles it).
-
 To declare a rename deterministically instead of relying on the prompt, declare it (the new `#[Table]`/`#[Column(name:)]` value against the existing table) and re-run — the declared rename is verified against the live schema and data travels with it.
 
 ## The Schema Lock
@@ -161,4 +153,4 @@ The whole plan → display → apply flow runs under Radiant's `radiant:schema` 
 
 ## First Run
 
-On a fresh database, `sync` creates every discovered model's table. On an existing database built by a pre-Radiant version of Lucent, run [`sync:legacy`](commandline.md) once first to rename the old-style tables.
+On a fresh database, `sync` creates every discovered model's table. On an existing database built by a pre-Radiant version of Lucent, run [`sync:legacy`](../commandline.md#the-synclegacy-command) once first to rename the old-style tables.

@@ -137,5 +137,5 @@ CACHE_DRIVER=MyRedisCache
 The `cache:clear` command wipes the entire cache store:
 
 ```bash
-php cli cache:clear
+vendor/bin/lucent cache:clear
 ```

@@ -1,6 +1,6 @@
-# PSR-7 HTTP Messages Migration Guide
+# PSR-7 HTTP Messages
 
-Lucent now implements **PSR-7** (`psr/http-message`), **PSR-15** (`psr/http-server-handler`, `psr/http-server-middleware`), and **PSR-17** (`psr/http-factory`) standards. This guide explains the new API and how to migrate from the legacy HTTP classes.
+Lucent implements **PSR-7** (`psr/http-message`), **PSR-15** (`psr/http-server-handler`, `psr/http-server-middleware`), and **PSR-17** (`psr/http-factory`) standards. This page is the reference for Lucent's HTTP message classes; see the [HTTP Client guide](./http-client.md) for the PSR-18 client.
 
 ---
 
@@ -58,9 +58,14 @@ class AuthMiddleware implements MiddlewareInterface
 
 ## New Classes
 
-| PSR Standard | New Class | Replaces |
+> **Coming from pre-PSR-7 Lucent?** The legacy classes (`HttpResponse`,
+> `JsonResponse`, `RedirectResponse`, `Request`, `Lucent\Middleware`) were
+> removed — see the [migration guide](./migrating-to-radiant.md) and the
+> mappings below.
+
+| PSR Standard | Class | Legacy equivalent |
 |---|---|---|
-| PSR-7 Message | `Lucent\Http\Message\Response` | `Lucent\Http\HttpResponse`, `JsonResponse`, `RedirectResponse` |
+| PSR-7 Message | `Lucent\Http\Message\Response` | `HttpResponse`, `JsonResponse`, `RedirectResponse` |
 | PSR-7 Message | `Lucent\Http\Message\ServerRequest` | `Lucent\Http\Request` |
 | PSR-7 Message | `Lucent\Http\Message\Request` | (client-side requests) |
 | PSR-7 Message | `Lucent\Http\Message\Stream` | — |
@@ -71,7 +76,7 @@ class AuthMiddleware implements MiddlewareInterface
 | PSR-15 Middleware | `Lucent\Http\Middleware\MiddlewarePipeline` | — |
 | PSR-17 Factory | `Lucent\Http\Message\Factory\HttpFactory` | — |
 | Convenience | `Lucent\Http\Message\Factory\LucentResponseFactory` | — |
-| PSR-18 Client | `Lucent\Http\Client\Client` | (new — see [HTTP Client guide](./http-client.md)) |
+| PSR-18 Client | `Lucent\Http\Client\Client` | (see [HTTP Client guide](./http-client.md)) |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\NetworkException` | — |
 | PSR-18 Exception | `Lucent\Http\Client\Exception\RequestException` | — |
 | URI Resolution | `Lucent\Http\Message\UriResolver` | — |
@@ -90,22 +95,10 @@ $response = Http::get('https://api.example.com/users');
 
 ---
 
-## Migration Guide
+## Common Tasks
 
-### 1. Controllers: Return `Response` instead of `HttpResponse`/`JsonResponse`
+### JSON responses
 
-**Before:**
-```php
-public function index(): JsonResponse
-{
-    return (new JsonResponse($data))
-        ->setMessage('Users retrieved')
-        ->setOutcome(true)
-        ->setStatusCode(200);
-}
-```
-
-**After:**
 ```php
 use Lucent\Http\Message\Response;
 
@@ -113,42 +106,41 @@ public function index(): Response
 {
     return Response::json($data, 200);
 }
-```
 
-Or with the envelope format:
-```php
+// Or with the envelope format:
 return (new Response())->withJsonEnvelope($data, 'Users retrieved', true, 200);
 ```
 
-### 2. Redirects
+### Redirects
 
-**Before:**
-```php
-return new RedirectResponse('/new-url', 301);
-```
-
-**After:**
 ```php
 return (new Response())->withRedirect('/new-url', 301);
 ```
 
-### 3. Server-Sent Events (SSE) / Streaming
+### Request data
 
-**Before:**
+Controllers type-hint Lucent's own `ServerRequest` (no PSR-7 import needed):
+
 ```php
-class EventController extends StreamController
+use Lucent\Http\Message\Response;
+use Lucent\Http\Message\ServerRequest;
+
+public function store(ServerRequest $request): Response
 {
-    protected function stream(): Generator
-    {
-        while (true) {
-            yield Event::data('update', ['time' => time()]);
-            sleep(1);
-        }
-    }
+    $body = $request->getParsedBody();
+    $name = $body['name'] ?? '';
+    $email = $request->getHeaderLine('X-Email');
 }
 ```
 
-**After:**
+Or use the Slim convention (alias PSR-7 interfaces):
+```php
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+```
+
+### Server-Sent Events (SSE) / Streaming
+
 ```php
 use Lucent\Http\Message\Response;
 
@@ -217,18 +209,10 @@ return (new Response())->withEventStream(filterEvents($runner->run($pipeline, $i
 > return value — keep your own reference to the generator if you need the final
 > payload via `getReturn()`.
 
-### 4. Accessing Request Data
+### Accessing Request Data
 
-**Before:**
-```php
-public function store(Request $request): JsonResponse
-{
-    $name = $request->input('name');
-    $email = $request->header('X-Email');
-}
-```
+Controllers type-hint Lucent's own `ServerRequest` (no PSR-7 import needed):
 
-**After — using Lucent's own ServerRequest (no PSR-7 import needed):**
 ```php
 use Lucent\Http\Message\Response;
 use Lucent\Http\Message\ServerRequest;
@@ -241,13 +225,13 @@ public function store(ServerRequest $request): Response
 }
 ```
 
-**Or use the Slim convention (alias PSR-7 interfaces):**
+Or use the Slim convention (alias PSR-7 interfaces):
 ```php
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 ```
 
-### 5. Route Info and URL Variables
+### Route Info and URL Variables
 
 Lucent-specific data is stored as PSR-7 attributes, with convenience getters on `ServerRequest`:
 
@@ -256,61 +240,29 @@ $routeInfo = $request->getRouteInfo();  // RouteInfo object
 $urlVars   = $request->getUrlVars();    // array
 ```
 
-### 6. Validation
+### Validation
 
-Rules can be used with PSR-7 requests via the static `Rule::validateRequest()` helper.
-The request is passed by reference, so `setContext()` updates propagate back
-automatically:
+Use the convenience method on `ServerRequest`, which passes the parsed body
+and uploaded files through unchanged — the same constraints work on plain
+arrays without a request. See [Rules & Validation](./rules-and-validation.md)
+for the full constraint reference:
 
 ```php
-use Lucent\Http\Message\ServerRequest;
+use Lucent\Validation\Constraints\Email;
 
-$errors = Rule::validateRequest($request, MyRule::class);
-```
+$result = $request->validate([
+    'email' => new Email(),
+]);
 
-With explicit data (overrides parsed body):
-```php
-$errors = Rule::validateRequest($request, MyRule::class, $customData);
-```
-
-For plain data without a request:
-```php
-$errors = Rule::validateData($input, MyRule::class);
-```
-
-In a custom rule that stores context:
-```php
-class MyRule extends Rule
-{
-    private function custom_rule(string $table, string $column, string $value): bool
-    {
-        $model = Model::where($column, $value)->getFirst();
-        if ($model !== null) {
-            $this->setContext($table, $model); // auto-updates caller's $request
-        }
-        return $model === null;
-    }
+if ($result->hasErrors()) {
+    // handle errors
 }
 ```
 
-### 7. Middleware
+### Middleware
 
-**Before (old Lucent Middleware):**
-```php
-use Lucent\Middleware;
-
-class AuthMiddleware extends Middleware
-{
-    public function handle(): void
-    {
-        // ...
-    }
-}
-```
-
-**After (PSR-15):**
-
-Middleware requires PSR-15 interfaces directly (unavoidable — the `process()` signature is dictated by `Psr\Http\Server\MiddlewareInterface`):
+Middleware implements the PSR-15 interfaces directly — the `process()`
+signature is dictated by `Psr\Http\Server\MiddlewareInterface`:
 
 ```php
 use Psr\Http\Server\MiddlewareInterface;
@@ -509,20 +461,6 @@ use Lucent\Http\Message\ServerRequest;
 $request = ServerRequest::create('POST', '/users', body: ['name' => 'John'], headers: ['X-Auth' => 'token']);
 $body = $request->getParsedBody(); // ['name' => 'John']
 ```
-
-### Unit Tests
-
-New test files are available in `tests/Unit/Message/`:
-
-- `StreamTest.php` — `Stream` implementation
-- `Stream/LazyStreamTest.php` — Lazy one-shot bodies (deferred execution)
-- `Stream/IteratorStreamTest.php` — Iterator-based streaming
-- `UriTest.php` — URI parsing and manipulation
-- `ResponseTest.php` — Response creation and convenience methods
-- `ServerRequestTest.php` — Server request creation and attributes
-- `Factory/HttpFactoryTest.php` — PSR-17 factory
-- `Factory/LucentResponseFactoryTest.php` — Convenience factory
-- `Middleware/MiddlewarePipelineTest.php` — PSR-15 pipeline
 
 ---
 

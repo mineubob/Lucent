@@ -80,7 +80,7 @@ composer update blueprintau/lucent
 ## Requirements
 
 - PHP >= 8.4
-- ext-curl, ext-pdo, ext-fileinfo, ext-zip
+- ext-curl, ext-pdo, ext-fileinfo, ext-zip, ext-mbstring
 - A PDO driver for your database: `pdo_mysql`, `pdo_sqlite`, or `pdo_pgsql`
 - PSR packages: `psr/http-message`, `psr/http-factory`, `psr/http-client`, `psr/http-server-handler`, `psr/http-server-middleware`, `psr/log` (installed automatically via Composer)
 

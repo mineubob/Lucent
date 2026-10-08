@@ -113,6 +113,22 @@ $user->save(); // UPDATE of the dirty columns only
 $user->delete(); // DELETE (or soft delete when SoftDeletes is used)
 ```
 
+## Dates & Time
+
+Lucent uses [`nesbot/carbon`](https://carbon.nesbot.com/) as its canonical
+date and time library — [`Carbon\CarbonImmutable`](https://carbon.nesbot.com/docs/)
+is an immutable `DateTimeImmutable` with formatting, relative-time
+(`diffForHumans()`) and arithmetic helpers, plus `setTestNow()` for
+deterministic tests. See Carbon's documentation for the full API.
+
+In Lucent, Carbon appears in:
+
+- **Model columns** — `ColumnType::Date`, `ColumnType::DateTime` and
+  `ColumnType::Timestamp` hydrate as `Carbon` instances (see the column-type
+  table above).
+- **Validation** — the `Date` constraint normalizes a date string to a
+  `Carbon` instance (see [Rules & Validation](rules-and-validation.md)).
+
 ## Soft Deletes
 
 Use the `SoftDeletes` trait — a nullable `deleted_at` column is added and every query auto-applies a `deleted_at IS NULL` scope:
@@ -136,50 +152,21 @@ Post::withTrashed()->get();  // include soft-deleted rows
 Post::onlyTrashed()->get();  // only soft-deleted rows
 ```
 
-## Timestamps
+## Timestamps, Relationships & MTI
 
-Use the `Timestamps` trait to add `created_at` / `updated_at` maintenance:
+Radiant also ships:
 
-```php
-use BlueprintAU\Radiant\Timestamps;
+- **`Timestamps`** — `created_at` / `updated_at` maintenance:
+  `class Post extends Model { use Timestamps; }`
+- **Relationships** — `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`, and
+  polymorphic relations, declared as methods returning a `Relation` object
+  (`public function author(): BelongsTo { return $this->belongsTo(User::class); }`),
+  with lazy (`$post->author`) and eager (`Post::with('author')`) loading.
+- **Multi-table inheritance (MTI)** — extend a table-owning model to split
+  columns across tables; reads join the ancestor chain transparently.
 
-class Post extends Model
-{
-    use Timestamps;
-    // ...
-}
-```
-
-## Relationships
-
-Radiant supports `BelongsTo`, `HasOne`, `HasMany`, `BelongsToMany`, and polymorphic relations. A relation is a method returning a `Relation` object:
-
-```php
-class Post extends Model
-{
-    public function author(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-}
-
-$post->author;          // lazy load
-Post::with('author');   // eager load (one extra query, no N+1)
-```
-
-## Multi-Table Inheritance (MTI)
-
-Extend a table-owning model to split columns across tables — the child table holds its own columns plus a derived key, and reads join the ancestor chain transparently:
-
-```php
-class Admin extends User
-{
-    #[Column(default: false)]
-    public bool $can_reset_passwords;
-}
-```
-
-The `admins` table holds `can_reset_passwords` + a foreign key to `users`; querying `Admin` joins both tables and hydrates a single virtual row.
+See [Radiant's documentation](https://github.com/blueprintau/radiant) for the
+full guides on relationships, MTI, and model lifecycle.
 
 ## Route Model Binding
 

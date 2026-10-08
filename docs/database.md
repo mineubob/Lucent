@@ -159,54 +159,9 @@ This is the recommended approach for tenant queries inside middleware or service
 
 ## Real-World Example: Multi-Tenant Middleware
 
-The following example shows how connection switching integrates cleanly into a request lifecycle using middleware.
-
-### 1. Tenant Model (on the central database)
-
-```php
-<?php
-
-namespace App\Models;
-
-use BlueprintAU\Radiant\Attributes\Column;
-use BlueprintAU\Radiant\Attributes\ColumnType;
-use BlueprintAU\Radiant\Model;
-
-class Tenant extends Model
-{
-    #[Column(ColumnType::BigInt, primaryKey: true, autoIncrement: true)]
-    public int $id;
-
-    #[Column(ColumnType::String, length: 100)]
-    public string $subdomain;
-
-    #[Column(ColumnType::String, length: 255)]
-    public string $db_host;
-
-    #[Column(ColumnType::String, length: 100)]
-    public string $db_name;
-
-    #[Column(ColumnType::String, length: 100)]
-    public string $db_user;
-
-    #[Column(ColumnType::String, length: 255)]
-    public string $db_password;
-
-    public function dbConfig(): array
-    {
-        return [
-            'driver'   => 'mysql',
-            'host'     => $this->db_host,
-            'port'     => 3306,
-            'database' => $this->db_name,
-            'username' => $this->db_user,
-            'password' => $this->db_password,
-        ];
-    }
-}
-```
-
-### 2. Tenant Middleware
+The typical multi-tenant setup resolves the tenant in middleware, registers
+its credentials as a named connection, and scopes controller queries with
+`usingConnection()`:
 
 ```php
 <?php
@@ -225,80 +180,36 @@ class TenantMiddleware implements MiddlewareInterface
 {
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Resolve the tenant from the subdomain (queries the central/default DB)
-        $subdomain = $request->getHeaderLine('X-Tenant');
-        $tenant = Tenant::where('subdomain', '=', $subdomain)->first();
+        // 1. Resolve the tenant from the central (default) DB
+        $tenant = Tenant::where('subdomain', '=', $request->getHeaderLine('X-Tenant'))->first();
 
         if (!$tenant) {
-            // Short-circuit with a 404 if the tenant doesn't exist
             return (new Response())->withStatus(404);
         }
 
-        // Register the tenant's database connection
+        // 2. Register the tenant's credentials as a named connection
         Database::manager()->addConnection('tenant', $tenant->dbConfig());
 
-        // Store the tenant on the request for use in controllers
-        $request = $request->withAttribute('tenant', $tenant);
-
-        return $handler->handle($request);
+        // 3. Stash the tenant for controllers
+        return $handler->handle($request->withAttribute('tenant', $tenant));
     }
 }
 ```
 
-### 3. Lead Controller
+Controllers then scope queries — everything inside the callback hits the
+tenant's database, and `'default'` is restored afterwards (even on error).
+Route model binding (`#[Bind]`) composes with this too — see
+[Route Model Binding](route-model-binding.md) for scoping bindings to the
+active tenant:
 
 ```php
-<?php
-
-namespace App\Controllers;
-
-use App\Models\Lead;
-use BlueprintAU\Radiant\Database;
-use Lucent\Http\Message\Response;
-use Lucent\Http\Message\ServerRequest;
-
-class LeadController
-{
-    public function index(ServerRequest $request): Response
-    {
-        // All queries inside this block run against the tenant DB
-        $leads = Database::usingConnection('tenant', fn() => Lead::all());
-
-        return Response::json(['leads' => $leads], 200);
-    }
-
-    public function show(ServerRequest $request, #[Bind] Lead $lead): Response
-    {
-        return Database::usingConnection('tenant', function () use ($lead) {
-            return Response::json(['lead' => $lead], 200);
-        });
-    }
-}
+// All queries inside this block run against the tenant DB
+$leads = Database::usingConnection('tenant', fn() => Lead::all());
 ```
 
-### 4. Route Definitions
-
-```php
-<?php
-
-use App\Controllers\LeadController;
-use App\Middleware\TenantMiddleware;
-use Lucent\Facades\Route;
-
-Route::rest()->group('leads')
-    ->prefix('/leads')
-    ->defaultController(LeadController::class)
-    ->middleware([TenantMiddleware::class])
-    ->get(path: '/', method: 'index')
-    ->get(path: '/{lead}', method: 'show');
-```
-
-### How It All Works Together
-
-1. **Request arrives** at `/leads` with an `X-Tenant: acme` header.
-2. **TenantMiddleware runs** — queries the central (default) DB to find the `acme` tenant record, then registers its database config as the `'tenant'` connection.
-3. **Controller executes** — `usingConnection('tenant', ...)` scopes all model queries to the tenant's database and automatically restores `'default'` when done.
-4. **Next request** starts clean — `'default'` is always the active connection at the start of every request.
+The full flow: the request arrives → middleware resolves the tenant from the
+central DB and registers its connection → the controller runs against the
+tenant DB → the next request starts clean on `'default'`.
 
 ---
 
