@@ -77,6 +77,7 @@ Options:
 | `--dry-run` | Display the plan and exit without applying anything |
 | `--no-drop-tables` | Additive-only plan: tables no model declares are left untouched instead of offered for drop (column drops still go through the confirm gate) |
 | `--no-transactional` | Disable the transactional apply (on by default when the dialect supports it) |
+| `--step=file` | Run a hand-authored data step between the plan's ADD-phase changes and its destructive drops. Repeatable — command-line order is preserved |
 
 ```bash
 # Only the User model (regex)
@@ -117,6 +118,58 @@ POSSIBLE RENAME: [old_table] → [new_table]. Treat as a rename? (yes/no)
 ```
 
 Confirming declares the rename on the blueprint and re-plans — nothing touches the database until the plan is final. The differ emits the real `RenameTable` change (data travels with it) instead of a drop + create, together with any column shape drift in the same plan — so the schema is fully in sync after one apply. Each old table can only be claimed by one rename (highest overlap wins). With `--force` suggestions are auto-accepted; without a TTY (or an injected input stream) they are kept as-is. To declare a rename deterministically instead of relying on the prompt, use `renamedFrom()` in host code (see [Schema](database/schema.md)).
+
+#### Data steps (`--step`)
+
+Some migrations need a data transform *between* schema phases: ADD the new columns, backfill them from the old ones, then DROP the old ones. Raw SQL between two `sync` runs has no lock, no confirmation, and no transactional discipline. `--step` splices a hand-authored SQL file into the plan itself:
+
+```bash
+vendor/bin/lucent sync --step=morph-backfill.sql
+```
+
+The motivating case — a `medias` table with legacy nullable FKs (`post_id`, `event_id`, `profile_id`) migrating to a synthetic morph pair (`attachable_type`/`attachable_id`): the plan adds the morph pair, the step backfills it from the legacy FKs, then the plan drops the legacy FKs — one lock, one confirmation discipline, one apply.
+
+**Ordering.** `--step` is repeatable and the command-line order is preserved — you name the files in the order they run; nothing is inferred:
+
+```bash
+vendor/bin/lucent sync --step=split-names.sql --step=backfill-slugs.sql
+```
+
+Each step is spliced after the plan's LAST ADD-class change (creates, column adds, FK/CHECK adds) and before its FIRST DROP-class change. Steps **always run before destructive drops**. When the plan carries no add-class change, the steps lead the alter section.
+
+**Statement splitting.** A step file is split on `;\n`:
+
+- Every statement must end with a semicolon followed by a newline; a bare trailing semicolon at EOF is tolerated.
+- **There is no semicolons-in-strings handling** — a semicolon inside a string literal followed by a newline splits the statement.
+- A file with no `;\n`-terminated statement aborts the run before the lock — nothing is planned, nothing applied. All step files are read and validated up front, so a bad file fails the whole run before ANY DDL.
+
+A statement that fails at execution surfaces from the first failing statement; on dialects with transactional DDL (SQLite, PostgreSQL) the plan rolls back.
+
+**Non-destructive steps.** A step is classified destructive by default (it mutates rows) and prompts once per file through the same gate as other destructive changes. A file whose first line is exactly `-- non-destructive` opts out — the gate is skipped. The marker line stays in the SQL (it is a no-op comment in every dialect):
+
+```sql
+-- non-destructive
+UPDATE medias SET attachable_type = 'post', attachable_id = post_id WHERE post_id IS NOT NULL;
+UPDATE medias SET attachable_type = 'event', attachable_id = event_id WHERE event_id IS NOT NULL;
+UPDATE medias SET attachable_type = 'profile', attachable_id = profile_id WHERE profile_id IS NOT NULL;
+```
+
+**Display.** Steps appear in the planned-changes listing with a distinct marker, one preview line per statement:
+
+```
+Planned schema changes:
+    add column [attachable_type] to [medias]
+    add column [attachable_id] to [medias]
+~ data step [morph-backfill.sql]: 3 statement(s)
+      UPDATE medias SET attachable_type = 'post', attachable_id = post_id WHERE post_id IS NOT NULL;
+      UPDATE medias SET attachable_type = 'event', attachable_id = event_id WHERE event_id IS NOT NULL;
+      UPDATE medias SET attachable_type = 'profile', attachable_id = profile_id WHERE profile_id IS NOT NULL;
+  ! drop column [post_id] from [medias]
+  ! drop column [event_id] from [medias]
+  ! drop column [profile_id] from [medias]
+```
+
+A destructive step shows the red `!` instead of `~`. `--dry-run` prints the full step file contents alongside the plan and applies nothing.
 
 ### The `sync:legacy` Command
 

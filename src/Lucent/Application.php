@@ -1139,7 +1139,7 @@ class Application
         }
 
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
-        CommandLine::register(SyncCommand::$command, "run", SyncCommand::class, "Sync the discovered models' schema to the database (diff-based, destructive prompts). Options: --filter= --exclude-filter= --dir= --force --dry-run --no-transactional --no-drop-tables");
+        CommandLine::register(SyncCommand::$command, "run", SyncCommand::class, "Sync the discovered models' schema to the database (diff-based, destructive prompts). Options: --filter= --exclude-filter= --dir= --force --dry-run --no-transactional --no-drop-tables --step=<file> (repeatable, ordered — data step run between the plan's adds and its drops; first line '-- non-destructive' opts out of the destructive gate)");
         CommandLine::register(SyncLegacyCommand::$command, "run", SyncLegacyCommand::class, "DEPRECATED one-time migration: rename legacy table names to the Radiant naming. Options: --filter= --exclude-filter= --dir= --dry-run");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");
@@ -1327,6 +1327,13 @@ class Application
      * Options are arguments that start with '--'
      * Options can also have values like --file=/test.php
      *
+     * A valued option may be REPEATED (e.g. `sync --step=a.sql --step=b.sql`):
+     * each occurrence appends to a list<string> in command-line order, and the
+     * option's value becomes a list. A single occurrence stays a scalar string,
+     * so existing commands are unaffected — consumers normalize with
+     * is_array(). Repeat accumulation matches the planned ArgvParser grammar
+     * (restructure-plan §5), so the future CLI rewrite absorbs it unchanged.
+     *
      * @param array $argv Command line arguments array
      * @return array Associative array with 'args' and 'options' keys
      */
@@ -1346,7 +1353,16 @@ class Application
                 // Check if it has a value with '='
                 if (str_contains($option, '=')) {
                     list($key, $value) = explode('=', $option, 2);
-                    $options[$key] = $value;
+
+                    // Repeat accumulation: a second (or later) valued
+                    // occurrence promotes the scalar to a list and appends.
+                    if (isset($options[$key])) {
+                        $options[$key] = is_array($options[$key])
+                            ? [...$options[$key], $value]
+                            : [$options[$key], $value];
+                    } else {
+                        $options[$key] = $value;
+                    }
                 } else {
                     // Option without value
                     $options[$option] = true;

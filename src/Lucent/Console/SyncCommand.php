@@ -59,10 +59,49 @@ use Lucent\Logging\ConsoleColors;
  * POSSIBLE RENAME, the command prompts — confirming declares the rename on
  * the blueprint (renamedFrom) and re-plans, so the differ emits the real
  * RenameTable change together with any column shape drift in one plan.
+ *
+ * Data steps: --step=<file> (repeatable, ordered — command-line order is
+ * preserved) splices hand-authored SQL between the plan's ADD-phase changes
+ * and its destructive drops, so the migration sequence ADD columns → run a
+ * data transform → DROP the sources runs in one lock/confirmation
+ * discipline. Each file becomes one SchemaOperation::DataStep change; the
+ * user names the files in order — nothing is inferred. Files are loaded and
+ * validated BEFORE any planning or DDL: a failure (unreadable, empty, no
+ * `;\n`-terminated statement) errors out pre-lock, so nothing applies.
+ *
+ * Statement splitting restriction: statements must end with a semicolon
+ * followed by a newline (`;\n`); a trailing semicolon at EOF is tolerated.
+ * There is NO semicolons-in-strings handling — a semicolon inside a string
+ * literal followed by a newline splits the statement. A file whose FIRST
+ * line is exactly `-- non-destructive` is classified non-destructive (the
+ * marker line stays in the SQL — it is a no-op comment in every dialect);
+ * unmarked steps are destructive and hit the confirm gate once per file.
+ *
+ * Splice position: after the LAST ADD-class change (create/add/add FK/add
+ * CHECK) and before the FIRST DROP-class change (drops are ordered
+ * positionally, never analyzed) — steps ALWAYS run before destructive
+ * drops. With no ADD-class changes the steps lead the alter section. When
+ * the plan defers past the lock (an FK-involved SQLite rebuild), the steps
+ * defer with it in position: they were authored relative to that plan, and
+ * the whole plan is the deferred unit — a DataStep never routes through a
+ * rebuild, so it can never trigger the deferral itself.
  */
 final class SyncCommand
 {
     public static string $command = "sync";
+
+    /**
+     * The placeholder table a DataStep carries when its dominant table
+     * cannot be determined from the SQL. Cosmetic only — DataStep's table
+     * feeds display, never dispatch.
+     */
+    private const DATA_STEP_PLACEHOLDER_TABLE = '__data_step__';
+
+    /**
+     * The first-line marker that classifies a step file non-destructive.
+     * Comparison is exact (case, spacing); the line stays in the SQL.
+     */
+    private const NON_DESTRUCTIVE_MARKER = '-- non-destructive';
 
     /**
      * The stream prompts read answers from. Injectable so tests can feed
@@ -85,11 +124,25 @@ final class SyncCommand
      *
      * @param array<string, mixed> $options CLI options (--filter,
      *        --exclude-filter, --dir, --force, --dry-run, --no-transactional,
-     *        --no-drop-tables)
+     *        --no-drop-tables, --step: repeatable — repeat occurrences arrive
+     *        as a list<string> in command-line order, a single occurrence as
+     *        a scalar string)
      * @return string Always '' — output is echoed progressively
      */
     public function run(array $options = []): string
     {
+        // ---- Load and validate data steps BEFORE any planning or DDL ----
+        // A bad step file must abort before the lock: nothing may apply
+        // when the user asked for an interleaved sequence it cannot be
+        // built. Steps keep command-line order — they run in the order
+        // named.
+        try {
+            $steps = self::loadSteps($options['step'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            self::error(ExceptionChain::render($e, ''));
+            return '';
+        }
+
         // ---- Discover models ----
         $dirs = isset($options['dir'])
             ? array_map(trim(...), explode(',', (string) $options['dir']))
@@ -196,6 +249,7 @@ final class SyncCommand
                 $transactional,
                 $confirm,
                 $onChange,
+                $steps,
                 &$progress,
                 &$deferred,
                 &$applied,
@@ -237,9 +291,33 @@ final class SyncCommand
                     return;
                 }
 
+                // ---- Splice the data steps into the final plan ----
+                // After the rename-convergence loop so EVERY converged
+                // re-plan gets the steps — they were authored relative to
+                // the final plan's add/drop shape, and splicing into an
+                // intermediate plan would lose them on the next re-plan.
+                $changes = self::spliceSteps($changes, $steps);
+
                 // ---- The blueprints are complete — display the final plan ----
                 self::line(ConsoleColors::FG_CYAN . "Planned schema changes:" . ConsoleColors::RESET);
                 foreach ($changes as $change) {
+                    if ($change->operation === SchemaOperation::DataStep) {
+                        // Distinct marker for data steps — the red `!` is
+                        // reserved for destructive items, and a step may be
+                        // either. Preview: each statement's first meaningful
+                        // line, indented under the step.
+                        $marker = $change->destructive
+                            ? ConsoleColors::FG_RED . "  ! " . ConsoleColors::RESET
+                            : ConsoleColors::FG_CYAN . "  ~ " . ConsoleColors::RESET;
+                        self::line($marker . $change->description);
+
+                        foreach ($change->statements as $statement) {
+                            self::line("      " . self::statementPreview($statement));
+                        }
+
+                        continue;
+                    }
+
                     $marker = $change->destructive
                         ? ConsoleColors::FG_RED . "  ! " . ConsoleColors::RESET
                         : "    ";
@@ -247,6 +325,15 @@ final class SyncCommand
                 }
 
                 if ($dryRun) {
+                    if ($steps !== []) {
+                        self::line(ConsoleColors::FG_CYAN . "Data steps:" . ConsoleColors::RESET);
+
+                        foreach ($steps as $step) {
+                            self::line("  " . $step['path'] . ":");
+                            self::line(file_get_contents($step['path']) ?? '');
+                        }
+                    }
+
                     self::line(ConsoleColors::FG_CYAN . "Dry run — no changes applied." . ConsoleColors::RESET);
                     return;
                 }
@@ -276,7 +363,14 @@ final class SyncCommand
                 // back with it anyway. The race window is fenced by the
                 // rebuild itself: it re-reads the live table per change and
                 // its foreign_key_check gate fails loud on drift it cannot
-                // reconcile.
+                // reconcile. Re-checked AFTER splicing: the predicate is
+                // plan-aware, and the steps are now plan items. A DataStep
+                // never routes through a rebuild (its dispatch is plain
+                // statements), so steps can never trigger the deferral —
+                // but a rebuild elsewhere in the plan defers the steps WITH
+                // it, in position: they were authored relative to that
+                // plan, and re-ordering them into the deferred leg would
+                // run them against a schema the in-lock adds never built.
                 if (array_any(
                     $changes,
                     fn (SchemaChange $c): bool => $connection->changeRequiresStandaloneTransaction($c, $changes),
@@ -321,6 +415,263 @@ final class SyncCommand
         }
 
         return '';
+    }
+
+    /**
+     * Load and validate the --step files. Runs BEFORE the lock — any
+     * failure here aborts the whole run with nothing planned, nothing
+     * applied.
+     *
+     * The value arrives from processArguments(): absent (no --step given),
+     * `true` (a bare `--step` flag with no value), a scalar string (one
+     * occurrence), or a list<string> in command-line order (repeat
+     * occurrences — processArguments appends in encounter order).
+     *
+     * Each file is read, split on `;\n` (the documented restriction:
+     * statements must end with a semicolon followed by a newline; a
+     * trailing semicolon at EOF is tolerated; no semicolons-in-strings
+     * handling), and classified destructive-by-default unless the FIRST
+     * line is exactly `-- non-destructive` (the marker line stays in the
+     * SQL — a no-op comment in every dialect).
+     *
+     * @param  mixed  $value  The raw --step option value
+     * @return list<array{path: string, statements: list<string>, destructive: bool, table: string}>
+     * @throws \InvalidArgumentException On any file failure — the message
+     *         names the offending file (and line, for split failures)
+     */
+    private static function loadSteps(mixed $value): array
+    {
+        if ($value === null) {
+            return []; // no --step given
+        }
+
+        // A bare `--step` flag (no `=value`) is a usage error, not a
+        // silent no-op — the user meant to name a file.
+        if ($value === true) {
+            throw new \InvalidArgumentException(
+                'The --step option expects a file path (--step=<file>).'
+            );
+        }
+
+        $paths = is_array($value) ? array_values($value) : [$value];
+
+        $steps = [];
+
+        foreach ($paths as $path) {
+            if (!is_string($path) || $path === '') {
+                throw new \InvalidArgumentException(
+                    'The --step option expects a file path (--step=<file>).'
+                );
+            }
+
+            if (!is_readable($path)) {
+                throw new \InvalidArgumentException(
+                    "Step file is not readable: [{$path}]."
+                );
+            }
+
+            $contents = file_get_contents($path);
+
+            if ($contents === false) {
+                throw new \InvalidArgumentException(
+                    "Step file could not be read: [{$path}]."
+                );
+            }
+
+            if (trim($contents) === '') {
+                throw new \InvalidArgumentException(
+                    "Step file is empty: [{$path}]."
+                );
+            }
+
+            // The termination guard: under the documented restriction every
+            // statement ends with `;\n`, except possibly the last, which
+            // may end with a bare trailing semicolon. So the file MUST end
+            // with a semicolon — anything else has an unterminated
+            // statement, which is rejected (never guessed at). The error
+            // names the file and the offending line.
+            $normalized = str_replace("\r\n", "\n", $contents);
+            $normalized = rtrim($normalized);
+
+            if (!str_ends_with($normalized, ';')) {
+                $line = substr_count($normalized, "\n") + 1;
+
+                throw new \InvalidArgumentException(
+                    "Step file [{$path}] line {$line}: statement is not terminated — "
+                    . 'statements must end with a semicolon followed by a newline '
+                    . '(a bare trailing semicolon at EOF is tolerated).'
+                );
+            }
+
+            // Split on `;\n` and re-append the terminator the split
+            // consumed — every surviving fragment is a complete statement.
+            $fragments = explode(";\n", substr($normalized, 0, -1));
+
+            $statements = [];
+
+            foreach ($fragments as $fragment) {
+                $statement = trim($fragment);
+
+                if ($statement === '') {
+                    continue;
+                }
+
+                $statements[] = $statement . ';';
+            }
+
+            if ($statements === []) {
+                throw new \InvalidArgumentException(
+                    "Step file [{$path}] yielded no statements."
+                );
+            }
+
+            // First line exactly `-- non-destructive` → the user opted out
+            // of the destructive classification (insert-only steps). The
+            // marker line stays in the statements — it is a no-op comment.
+            $firstLine = strtok($contents, "\n");
+            $destructive = $firstLine !== self::NON_DESTRUCTIVE_MARKER;
+
+            $steps[] = [
+                'path' => $path,
+                'statements' => $statements,
+                'destructive' => $destructive,
+                'table' => self::dominantTable($statements),
+            ];
+        }
+
+        return $steps;
+    }
+
+    /**
+     * Splice the loaded steps into the plan as DataStep changes — after
+     * the LAST ADD-class change and before the FIRST DROP-class change.
+     *
+     * Drop-class changes are ordered positionally, never analyzed: the
+     * user authored the steps against the plan's shape, so "after the
+     * adds, before the drops" is a placement rule, not a dependency
+     * analysis. With no ADD-class change the steps lead the alter section;
+     * with neither (an empty/unknown plan) they append at the end. The
+     * invariant that survives every placement: steps ALWAYS run before
+     * destructive drops.
+     *
+     * Multiple steps keep command-line order at the same splice point.
+     *
+     * @param  list<SchemaChange> $changes  The converged plan
+     * @param  list<array{path: string, statements: list<string>, destructive: bool, table: string}> $steps
+     * @return list<SchemaChange>
+     */
+    private static function spliceSteps(array $changes, array $steps): array
+    {
+        if ($steps === []) {
+            return $changes;
+        }
+
+        $stepChanges = [];
+
+        foreach ($steps as $step) {
+            $count = count($step['statements']);
+            $filename = basename($step['path']);
+
+            $stepChanges[] = new SchemaChange(
+                $step['table'],
+                SchemaOperation::DataStep,
+                new Blueprint($step['table']),
+                $step['destructive'],
+                "data step [{$filename}]: {$count} statement(s)",
+                statements: $step['statements'],
+            );
+        }
+
+        // Insert position: after the last ADD-class change...
+        $position = null;
+
+        foreach ($changes as $index => $change) {
+            if (in_array($change->operation, [
+                SchemaOperation::CreateTable,
+                SchemaOperation::AddColumn,
+                SchemaOperation::AddForeignKey,
+                SchemaOperation::AddCheck,
+            ], true)) {
+                $position = $index + 1;
+            }
+        }
+
+        // ...else before the first DROP-class change...
+        if ($position === null) {
+            foreach ($changes as $index => $change) {
+                if (in_array($change->operation, [
+                    SchemaOperation::DropColumn,
+                    SchemaOperation::DropTable,
+                    SchemaOperation::DropForeignKey,
+                    SchemaOperation::DropCheck,
+                ], true)) {
+                    $position = $index;
+                    break;
+                }
+            }
+        }
+
+        // ...else append at the end.
+        $position ??= count($changes);
+
+        array_splice($changes, $position, 0, $stepChanges);
+
+        return $changes;
+    }
+
+    /**
+     * The step's dominant table, if determinable from the SQL.
+     *
+     * First hit of UPDATE / INSERT INTO / DELETE FROM / REPLACE INTO
+     * across the statements — the table feeds display only (DataStep
+     * dispatch reads the statements, never the table), so a first-hit
+     * guess beats no guess, and no hit falls back to the placeholder.
+     *
+     * @param  list<string> $statements
+     * @return string
+     */
+    private static function dominantTable(array $statements): string
+    {
+        foreach ($statements as $statement) {
+            if (preg_match(
+                '/(?:UPDATE|INSERT\s+INTO|DELETE\s+FROM|REPLACE\s+INTO)\s+([A-Za-z_][A-Za-z0-9_]*)/i',
+                $statement,
+                $matches,
+            ) === 1) {
+                return $matches[1];
+            }
+        }
+
+        return self::DATA_STEP_PLACEHOLDER_TABLE;
+    }
+
+    /**
+     * One-line display preview of a step statement: the first non-empty
+     * line, skipping a single leading `--` comment line (display only —
+     * the statements keep their comments).
+     *
+     * @param  string $statement
+     * @return string
+     */
+    private static function statementPreview(string $statement): string
+    {
+        foreach (explode("\n", $statement) as $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            if (str_starts_with($line, '--')) {
+                continue; // leading comment (incl. the non-destructive
+                          // marker, which stays in the SQL) — show the
+                          // SQL beneath it
+            }
+
+            return $line;
+        }
+
+        return $statement;
     }
 
     /**
