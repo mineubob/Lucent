@@ -143,6 +143,29 @@ class FixtureLoader
     }
 
     /**
+     * Copy a `sync --step` fixture file into temp_install/steps/ and return
+     * its ABSOLUTE path — the form the --step option consumes on the command
+     * line.
+     *
+     * Note: only STATIC step fixtures live in tests/Fixtures/Steps/ (pure
+     * `.sql` files, plus `.php` files with no class declaration — e.g. the
+     * wrong-return fail-fast case). Callable `.php` step fixtures declaring
+     * a SyncStep class must be generated at runtime with a unique class
+     * name instead: tests share one PHP process, and requiring a second
+     * file declaring the same global class is an uncatchable
+     * "Cannot redeclare class" fatal.
+     *
+     * @param string $name Filename, e.g. 'morph-backfill.sql'
+     * @return string Absolute path of the copied step file.
+     */
+    public static function copyStep(string $name): string
+    {
+        $file = self::copy('Steps', $name, 'steps');
+
+        return $file->path;
+    }
+
+    /**
      * Copy the CLI entrypoint template into temp_install/cli.
      *
      * The template contains a REPO_ROOT placeholder that is replaced with the

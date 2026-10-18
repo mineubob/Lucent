@@ -31,6 +31,7 @@ trait CopiesFixtures
         'Service'    => 'copyService',
         'Route'      => 'copyRoutes',
         'View'       => 'copyView',
+        'Step'       => 'copyStep',
         'Cli'        => 'copyCliTemplate',
     ];
 

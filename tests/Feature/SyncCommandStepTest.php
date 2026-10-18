@@ -41,6 +41,23 @@ class SyncCommandStepTest extends TestCase
 
         self::copyFixtures([
             'Model' => ['Medias.php', 'RebuildTarget.php'],
+            // Static `.sql` step files + the no-class `.php` fail-fast
+            // fixtures. Callable `.php` steps declaring a SyncStep class
+            // are generated at runtime instead (writePhpStepFile) — tests
+            // share one PHP process, and a second require of a file
+            // declaring the same global class is an uncatchable fatal.
+            'Step' => [
+                'morph-backfill.sql',
+                'a-first.sql',
+                'b-second.sql',
+                'audit-insert.sql',
+                'broken.sql',
+                'explodes.sql',
+                'gate-check.sql',
+                'touch.sql',
+                'wrong-return.php',
+                'broken-php.php',
+            ],
         ]);
     }
 
@@ -97,7 +114,10 @@ class SyncCommandStepTest extends TestCase
     }
 
     /**
-     * Write a step file under TEMP_ROOT/steps and return its absolute path.
+     * Write a runtime-generated step file under TEMP_ROOT/steps and return
+     * its absolute path. Only for content that cannot be a committed
+     * fixture: the generated-SyncStep-class templates (unique class name
+     * per write) and the load-counter marker step.
      */
     private static function writeStepFile(string $filename, string $contents): string
     {
@@ -113,11 +133,159 @@ class SyncCommandStepTest extends TestCase
         return $path;
     }
 
-    private const BACKFILL_STEP = <<<'SQL'
-        UPDATE medias SET attachable_type = 'post', attachable_id = post_id WHERE post_id IS NOT NULL;
-        UPDATE medias SET attachable_type = 'event', attachable_id = event_id WHERE event_id IS NOT NULL;
-        UPDATE medias SET attachable_type = 'profile', attachable_id = profile_id WHERE profile_id IS NOT NULL;
-        SQL;
+    /**
+     * Absolute path of a committed step fixture copied by
+     * setUpBeforeClass (FixtureLoader::copyStep → temp_install/steps/).
+     */
+    private static function stepPath(string $filename): string
+    {
+        return TEMP_ROOT . 'steps' . DIRECTORY_SEPARATOR . $filename;
+    }
+
+    private const BACKFILL_STEP_PHP = <<<'PHP'
+        <?php
+
+        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+        use Lucent\Support\SyncStep;
+
+        final class %s implements SyncStep
+        {
+            public function describe(): string
+            {
+                return 'Backfill the morph pair from the legacy FK columns (post/event/profile)';
+            }
+
+            public function destructive(): bool
+            {
+                return false; // rewrites rows, loses none
+            }
+
+            public function table(): string
+            {
+                return 'medias';
+            }
+
+            public function run(SqlConnection $conn): void
+            {
+                // Veto gate: a plain throw aborts the plan with the same
+                // rollback semantics a failing SQL statement has.
+                $orphans = $conn->selectColumnSql(
+                    'SELECT COUNT(*) FROM medias WHERE post_id IS NULL AND event_id IS NULL AND profile_id IS NULL',
+                    []
+                );
+
+                if ((int) $orphans[0] > 1) {
+                    throw new DomainException('More than one orphan media row — refusing to guess');
+                }
+
+                $conn->statement(
+                    "UPDATE medias SET attachable_type = ?, attachable_id = post_id WHERE post_id IS NOT NULL",
+                    ['post']
+                );
+                $conn->statement(
+                    "UPDATE medias SET attachable_type = ?, attachable_id = event_id WHERE event_id IS NOT NULL",
+                    ['event']
+                );
+                $conn->statement(
+                    "UPDATE medias SET attachable_type = ?, attachable_id = profile_id WHERE profile_id IS NOT NULL",
+                    ['profile']
+                );
+            }
+        }
+
+        return new %s();
+        PHP;
+
+    /**
+     * A destructive callable step — exercises the confirm gate exactly as
+     * an unmarked `.sql` step does. Unique class per write (see
+     * BACKFILL_STEP_PHP).
+     */
+    private const DESTRUCTIVE_STEP_PHP = <<<'PHP'
+        <?php
+
+        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+        use Lucent\Support\SyncStep;
+
+        final class %s implements SyncStep
+        {
+            public function describe(): string
+            {
+                return 'Rewrite every morph row destructively';
+            }
+
+            public function destructive(): bool
+            {
+                return true;
+            }
+
+            public function table(): string
+            {
+                return 'medias';
+            }
+
+            public function run(SqlConnection $conn): void
+            {
+                $conn->statement("UPDATE medias SET attachable_type = 'post'");
+            }
+        }
+
+        return new %s();
+        PHP;
+
+    /**
+     * A callable step whose veto gate fires mid-run: one UPDATE lands,
+     * then a DomainException aborts the plan — the rollback semantics
+     * under test. Unique class per write (see BACKFILL_STEP_PHP).
+     */
+    private const VETO_STEP_PHP = <<<'PHP'
+        <?php
+
+        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+        use Lucent\Support\SyncStep;
+
+        final class %s implements SyncStep
+        {
+            public function describe(): string
+            {
+                return 'Veto the plan via a thrown gate';
+            }
+
+            public function destructive(): bool
+            {
+                return false;
+            }
+
+            public function table(): string
+            {
+                return 'medias';
+            }
+
+            public function run(SqlConnection $conn): void
+            {
+                $conn->statement("UPDATE medias SET attachable_type = 'post' WHERE post_id IS NOT NULL");
+
+                throw new DomainException('Refusing to continue: sanity gate tripped');
+            }
+        }
+
+        return new %s();
+        PHP;
+
+    /**
+     * Write a `.php` step fixture with a globally-unique step class name —
+     * tests share one PHP process and cannot redeclare a class, so every
+     * generated step file gets its own name (unique across the whole run,
+     * not just the test).
+     */
+    private static function writePhpStepFile(string $template, string $filename): string
+    {
+        static $counter = 0;
+
+        $class = 'SyncStepFixture' . (++$counter) . '_' . bin2hex(random_bytes(4));
+
+        return self::writeStepFile($filename, sprintf($template, $class, $class));
+    }
 
     // ---- Tests -------------------------------------------------------------
 
@@ -127,7 +295,7 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $stepPath = self::writeStepFile('morph-backfill.sql', self::BACKFILL_STEP);
+        $stepPath = self::stepPath('morph-backfill.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
@@ -182,8 +350,8 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $first = self::writeStepFile('a-first.sql', self::BACKFILL_STEP);
-        $second = self::writeStepFile('b-second.sql', self::BACKFILL_STEP);
+        $first = self::stepPath('a-first.sql');
+        $second = self::stepPath('b-second.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$first} --step={$second} --force"
@@ -205,10 +373,7 @@ class SyncCommandStepTest extends TestCase
 
         // No `;\n` anywhere — no statement is terminated under the
         // documented restriction.
-        $stepPath = self::writeStepFile(
-            'broken.sql',
-            "UPDATE medias SET attachable_type = 'post'\n"
-        );
+        $stepPath = self::stepPath('broken.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
@@ -279,11 +444,7 @@ class SyncCommandStepTest extends TestCase
         // it must run WITHOUT --force and WITHOUT an input stream — the
         // LUCENT_NON_INTERACTIVE fail-fast gate ("no TTY available") must
         // NOT fire for it.
-        $stepPath = self::writeStepFile(
-            'audit-insert.sql',
-            "-- non-destructive\n"
-            . "INSERT INTO medias (attachable_type, attachable_id) VALUES ('post', 99);\n"
-        );
+        $stepPath = self::stepPath('audit-insert.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath}"
@@ -306,10 +467,10 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase('sqlite', ['driver' => 'sqlite', 'database' => ':memory:'], []);
         self::createLegacyMediasTable();
 
-        // The SAME file without the marker is destructive — with no TTY
+        // The SAME unmarked UPDATEs are destructive — with no TTY
         // and no input stream, the run must fail fast before applying
         // anything.
-        $stepPath = self::writeStepFile('gate-check.sql', self::BACKFILL_STEP);
+        $stepPath = self::stepPath('gate-check.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath}"
@@ -331,7 +492,7 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $stepPath = self::writeStepFile('morph-backfill.sql', self::BACKFILL_STEP);
+        $stepPath = self::stepPath('morph-backfill.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --dry-run"
@@ -371,11 +532,7 @@ class SyncCommandStepTest extends TestCase
         // NOT exist in the plan's order of operations at step time — a
         // data-step syntax/runtime error. The whole plan fails; the
         // transaction rolls back: no morph columns, legacy columns intact.
-        $stepPath = self::writeStepFile(
-            'explodes.sql',
-            "UPDATE medias SET attachable_type = 'post';\n"
-            . "UPDATE medias SET no_such_column = 1;\n"
-        );
+        $stepPath = self::stepPath('explodes.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
@@ -420,10 +577,7 @@ class SyncCommandStepTest extends TestCase
             "INSERT INTO rebuild_targets (label) VALUES ('one'), ('two')"
         );
 
-        $stepPath = self::writeStepFile(
-            'touch.sql',
-            "UPDATE rebuild_targets SET status = 'migrated' WHERE label = 'one';\n"
-        );
+        $stepPath = self::stepPath('touch.sql');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/RebuildTarget$/' --step={$stepPath} --force"
@@ -454,5 +608,302 @@ class SyncCommandStepTest extends TestCase
 
         $this->assertStringContainsString('--step=', $result);
         $this->assertStringContainsString('repeatable', $result);
+    }
+
+    // ---- Callable (.php) step tests ----------------------------------------
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_php_step_splices_between_adds_and_drops_and_backfills($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyMediasTable();
+
+        $stepPath = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'morph-backfill.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
+        );
+
+        // The callable step renders with its description (prefixed with the
+        // same "data step [file]:" shape as its SQL sibling).
+        $this->assertStringContainsString(
+            'data step [morph-backfill.php]: Backfill the morph pair from the legacy FK columns',
+            $result
+        );
+
+        // Splice position: same placement rule as .sql steps.
+        $addPos = strpos($result, 'attachable_type');
+        $stepPos = strpos($result, 'data step [morph-backfill.php]');
+        $dropPos = strpos($result, 'drop column(s) [post_id');
+
+        $this->assertNotFalse($addPos, 'Plan must list the add of attachable_type');
+        $this->assertNotFalse($stepPos, 'Plan must list the callable step');
+        $this->assertNotFalse($dropPos, 'Plan must list the drop of post_id');
+        $this->assertLessThan($stepPos, $addPos, 'Step must run after the adds');
+        $this->assertLessThan($dropPos, $stepPos, 'Step must run before the drops');
+
+        // The step ran: morph pair populated via the bound writes.
+        $connection = Database::sqlConnection();
+        $rows = $connection->selectSql(
+            'SELECT attachable_type, attachable_id FROM medias ORDER BY id',
+            []
+        );
+
+        $this->assertCount(3, $rows);
+        $this->assertSame('post', $rows[0]->attachable_type);
+        $this->assertSame('event', $rows[1]->attachable_type);
+        $this->assertSame('profile', $rows[2]->attachable_type);
+
+        // The drops ran after the step.
+        $columns = array_column(
+            $connection->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertNotContains('post_id', $columns);
+        $this->assertNotContains('profile_id', $columns);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_sql_and_php_steps_keep_command_line_order($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyMediasTable();
+
+        $first = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'a-first.php');
+        $second = self::stepPath('b-second.sql');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$first} --step={$second} --force"
+        );
+
+        $firstPos = strpos($result, 'data step [a-first.php]');
+        $secondPos = strpos($result, 'data step [b-second.sql]');
+
+        $this->assertNotFalse($firstPos, 'Callable step must appear in the plan');
+        $this->assertNotFalse($secondPos, 'SQL step must appear in the plan');
+        $this->assertLessThan($secondPos, $firstPos, 'Steps must run in command-line order regardless of form');
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_php_step_not_returning_syncstep_fails_fast($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyMediasTable();
+
+        $stepPath = self::stepPath('wrong-return.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
+        );
+
+        $this->assertStringContainsString('wrong-return.php', $result);
+        $this->assertStringContainsString(
+            'must return a Lucent\Support\SyncStep instance; got string',
+            $result
+        );
+
+        // Nothing applied — the load failed before the lock.
+        $columns = array_column(
+            Database::sqlConnection()->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertContains('post_id', $columns);
+        $this->assertNotContains('attachable_type', $columns);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_php_step_that_throws_on_require_fails_fast($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyMediasTable();
+
+        // A parse error at require time — the wrapped-throw path.
+        $stepPath = self::stepPath('broken-php.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
+        );
+
+        $this->assertStringContainsString('broken-php.php', $result);
+        $this->assertStringContainsString('could not be loaded', $result);
+
+        // Nothing applied.
+        $columns = array_column(
+            Database::sqlConnection()->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertContains('post_id', $columns);
+        $this->assertNotContains('attachable_type', $columns);
+    }
+
+    public function test_duplicate_php_step_require_runs_once_but_records_twice(): void
+    {
+        self::setupDatabase('sqlite', ['driver' => 'sqlite', 'database' => ':memory:'], []);
+        self::createMinimalMediasTable();
+
+        // The step records its executions to a file OUTSIDE the step
+        // definition: load-time state (a counter) vs run-time effect must
+        // be distinguishable. The file's top-level code runs once (the
+        // require-once guard) even though the step appears twice on the
+        // command line — and each occurrence still becomes its own ordered
+        // step record, so the RUN fires twice.
+        $marker = TEMP_ROOT . 'steps/load-counter.txt';
+        $markerVar = var_export($marker, true);
+
+        $stepPath = self::writeStepFile('audit-insert.php', <<<PHP
+            <?php
+
+            use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+            use Lucent\Support\SyncStep;
+
+            \\file_put_contents({$markerVar}, "L", \\FILE_APPEND);
+
+            final class AuditInsertStep implements SyncStep
+            {
+                public function describe(): string
+                {
+                    return 'Insert one audit row';
+                }
+
+                public function destructive(): bool
+                {
+                    return false;
+                }
+
+                public function table(): string
+                {
+                    return 'medias';
+                }
+
+                public function run(SqlConnection \$conn): void
+                {
+                    \\file_put_contents({$markerVar}, "R", \\FILE_APPEND);
+
+                    \$conn->statement(
+                        'INSERT INTO medias (attachable_type, attachable_id) VALUES (?, ?)',
+                        ['audit', 7]
+                    );
+                }
+            }
+
+            return new AuditInsertStep();
+            PHP);
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' "
+            . "--step={$stepPath} --step={$stepPath} --force"
+        );
+
+        // Both occurrences rendered, in order.
+        $firstPos = strpos($result, 'data step [audit-insert.php]');
+        $secondPos = strrpos($result, 'data step [audit-insert.php]');
+        $this->assertNotFalse($firstPos);
+        $this->assertNotFalse($secondPos);
+        $this->assertLessThan($secondPos, $firstPos, 'Both occurrences must appear in the plan');
+
+        // Load side effect once ("L"), run side effect per occurrence ("RR").
+        $this->assertSame('LRR', file_get_contents($marker));
+
+        // Each run inserted its row.
+        $rows = Database::sqlConnection()->selectSql(
+            "SELECT COUNT(*) AS c FROM medias WHERE attachable_type = 'audit'",
+            []
+        );
+        $this->assertSame(2, (int) $rows[0]->c);
+    }
+
+    #[DataProvider('databaseDriverProvider')]
+    public function test_dry_run_shows_callable_step_description_only($driver, $config): void
+    {
+        self::setupDatabase($driver, $config, []);
+        self::createLegacyMediasTable();
+
+        $stepPath = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'morph-backfill.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --dry-run"
+        );
+
+        $this->assertStringContainsString('Planned schema changes', $result);
+        $this->assertStringContainsString(
+            'data step [morph-backfill.php]: Backfill the morph pair',
+            $result
+        );
+
+        // The callable step's dry-run line: description + source pointer.
+        $this->assertStringContainsString('Data steps:', $result);
+        $this->assertStringContainsString(
+            '(callable step — review the source at',
+            $result
+        );
+
+        // No source dump — the PHP body must not appear (veto-gate source
+        // line; the generated class name is random, so the body is what we
+        // can assert on).
+        $this->assertStringNotContainsString('More than one orphan media row', $result);
+        $this->assertStringContainsString('Dry run — no changes applied', $result);
+
+        // Nothing applied.
+        $columns = array_column(
+            Database::sqlConnection()->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertContains('post_id', $columns);
+        $this->assertNotContains('attachable_type', $columns);
+    }
+
+    public function test_destructive_php_step_hits_the_no_tty_gate(): void
+    {
+        self::setupDatabase('sqlite', ['driver' => 'sqlite', 'database' => ':memory:'], []);
+        self::createLegacyMediasTable();
+
+        // destructive(): true — the gate must treat the callable step
+        // exactly as it treats an unmarked .sql step. Runtime-generated:
+        // the class declaration cannot live in a committed fixture
+        // (require-once-per-process, see setUpBeforeClass).
+        $stepPath = self::writePhpStepFile(self::DESTRUCTIVE_STEP_PHP, 'gate-check.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath}"
+        );
+
+        $this->assertStringContainsString('no TTY available', $result);
+
+        // Nothing applied.
+        $columns = array_column(
+            Database::sqlConnection()->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertNotContains('attachable_type', $columns);
+    }
+
+    public function test_throwing_php_step_rolls_the_plan_back(): void
+    {
+        // SQLite only: the rollback guarantee (transactional DDL) is the
+        // assertion's subject.
+        self::setupDatabase('sqlite', ['driver' => 'sqlite', 'database' => ':memory:'], []);
+        self::createLegacyMediasTable();
+
+        // The veto gate fires: the first UPDATE ran, then the DomainException
+        // aborts the plan — the identical rollback semantics a failing SQL
+        // statement has. The add before the step must roll back with it.
+        // Runtime-generated (require-once-per-process, see setUpBeforeClass).
+        $stepPath = self::writePhpStepFile(self::VETO_STEP_PHP, 'gate-explodes.php');
+
+        $result = CommandLine::execute(
+            "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
+        );
+
+        // The veto surfaced through the exception chain.
+        $this->assertStringContainsString('DomainException', $result);
+        $this->assertStringContainsString('Refusing to continue', $result);
+
+        // The transaction rolled back: the add before the step is undone.
+        $columns = array_column(
+            Database::sqlConnection()->schemaInspector->table('medias')->columns,
+            'name',
+        );
+        $this->assertContains('post_id', $columns, 'Legacy column must survive the rollback');
+        $this->assertNotContains('attachable_type', $columns, 'Add before the vetoed step must roll back');
     }
 }

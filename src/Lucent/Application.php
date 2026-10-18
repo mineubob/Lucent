@@ -1139,7 +1139,7 @@ class Application
         }
 
         CommandLine::register(GenerateDocumentationCommand::$command, "generateApi", GenerateDocumentationCommand::class, "Generates API documentation based on your controller attributes");
-        CommandLine::register(SyncCommand::$command, "run", SyncCommand::class, "Sync the discovered models' schema to the database (diff-based, destructive prompts). Options: --filter= --exclude-filter= --dir= --force --dry-run --no-transactional --no-drop-tables --step=<file> (repeatable, ordered — data step run between the plan's adds and its drops; first line '-- non-destructive' opts out of the destructive gate)");
+        CommandLine::register(SyncCommand::$command, "run", SyncCommand::class, "Sync the discovered models' schema to the database (diff-based, destructive prompts). Options: --filter= --exclude-filter= --dir= --force --dry-run --no-transactional --no-drop-tables --step=<file> (repeatable, ordered — data step run between the plan's adds and its drops; .sql files, or .php files returning a Lucent\\Support\\SyncStep; first line '-- non-destructive' opts out of the destructive gate)");
         CommandLine::register(SyncLegacyCommand::$command, "run", SyncLegacyCommand::class, "DEPRECATED one-time migration: rename legacy table names to the Radiant naming. Options: --filter= --exclude-filter= --dir= --dry-run");
         CommandLine::register(StartDevServerCommand::$command, "start", StartDevServerCommand::class, "Start the built-in PHP development server");
         CommandLine::register(DeploymentController::$command_latest,   "latest",   DeploymentController::class, "Downloads and deploys the latest project release");

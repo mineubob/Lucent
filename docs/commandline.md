@@ -121,10 +121,11 @@ Confirming declares the rename on the blueprint and re-plans — nothing touches
 
 #### Data steps (`--step`)
 
-Some migrations need a data transform *between* schema phases: ADD the new columns, backfill them from the old ones, then DROP the old ones. Raw SQL between two `sync` runs has no lock, no confirmation, and no transactional discipline. `--step` splices a hand-authored SQL file into the plan itself:
+Some migrations need a data transform *between* schema phases: ADD the new columns, backfill them from the old ones, then DROP the old ones. Raw SQL between two `sync` runs has no lock, no confirmation, and no transactional discipline. `--step` splices a hand-authored step file into the plan itself — either raw SQL (`.sql`) or a PHP class (`.php`):
 
 ```bash
 vendor/bin/lucent sync --step=morph-backfill.sql
+vendor/bin/lucent sync --step=20261018-medias-morph-backfillStep.php
 ```
 
 The motivating case — a `medias` table with legacy nullable FKs (`post_id`, `event_id`, `profile_id`) migrating to a synthetic morph pair (`attachable_type`/`attachable_id`): the plan adds the morph pair, the step backfills it from the legacy FKs, then the plan drops the legacy FKs — one lock, one confirmation discipline, one apply.
@@ -135,9 +136,9 @@ The motivating case — a `medias` table with legacy nullable FKs (`post_id`, `e
 vendor/bin/lucent sync --step=split-names.sql --step=backfill-slugs.sql
 ```
 
-Each step is spliced after the plan's LAST ADD-class change (creates, column adds, FK/CHECK adds) and before its FIRST DROP-class change. Steps **always run before destructive drops**. When the plan carries no add-class change, the steps lead the alter section.
+Each step is spliced after the plan's LAST ADD-class change (creates, column adds, FK/CHECK adds) and before its FIRST DROP-class change. Steps **always run before destructive drops**. When the plan carries no add-class change, the steps lead the alter section. `.sql` and `.php` steps mix freely — ordering is command-line position, nothing else.
 
-**Statement splitting.** A step file is split on `;\n`:
+**Statement splitting (.sql files).** A step file is split on `;\n`:
 
 - Every statement must end with a semicolon followed by a newline; a bare trailing semicolon at EOF is tolerated.
 - **There is no semicolons-in-strings handling** — a semicolon inside a string literal followed by a newline splits the statement.
@@ -169,7 +170,68 @@ Planned schema changes:
   ! drop column [profile_id] from [medias]
 ```
 
-A destructive step shows the red `!` instead of `~`. `--dry-run` prints the full step file contents alongside the plan and applies nothing.
+A destructive step shows the red `!` instead of `~`. `--dry-run` prints the full `.sql` step file contents alongside the plan and applies nothing.
+
+**Callable steps (.php files).** When the transform's intelligence lives in PHP — class-string constants (morph aliases), parameter-bound writes, conditionals, sanity gates — write the step as a class implementing `Lucent\Support\SyncStep` instead of raw SQL:
+
+```php
+<?php
+
+use BlueprintAU\Radiant\Database\Connections\SqlConnection;
+use Lucent\Support\SyncStep;
+
+final class MediasMorphBackfillStep implements SyncStep
+{
+    public function describe(): string
+    {
+        return 'Backfill the morph pair from the legacy FK columns';
+    }
+
+    public function destructive(): bool
+    {
+        return false; // rewrites rows, loses none
+    }
+
+    public function table(): string
+    {
+        return 'medias'; // cosmetic display label
+    }
+
+    public function run(SqlConnection $conn): void
+    {
+        // Bound writes instead of escaping commentary:
+        $conn->statement(
+            'UPDATE medias SET attachable_type = ?, attachable_id = post_id WHERE post_id IS NOT NULL',
+            ['post'],
+        );
+    }
+}
+
+return new MediasMorphBackfillStep();
+```
+
+The contract:
+
+- `describe()` — the human description; the plan line and (if destructive) the confirm prompt display it.
+- `destructive()` — routes through the same confirm gate (`--force` bypasses it) as destructive schema changes; declare `false` only for steps that lose no data.
+- `table()` — cosmetic display/lock-scoping label, like an SQL step's dominant-table guess; never used for dispatch.
+- `run(SqlConnection $conn)` — the transform, run inside the plan's lock and transaction. **A throw vetoes the plan** with the identical rollback semantics a failing SQL statement has — use plain exceptions as precondition gates instead of dialect forks (`RAISE` / `SIGNAL`).
+
+Conventions:
+
+- **One file, one step** — the class is defined in the same file, and the file ends with `return new MediasMorphBackfillStep();`. Name files `<date>-<description>Step.php` under `database/steps/`, e.g. `20261018-medias-morph-backfillStep.php`.
+- The file is `require`d **once per run** — a repeated `--step=<same.php>` occurrence reuses the instance (no class redeclaration) but still records a second, separately-run step.
+- A file that does not `return` a `SyncStep` instance, or throws while loading, aborts the run before the lock — nothing planned, nothing applied.
+
+**The visibility trade.** An SQL step is reviewable by default — the dry run prints every statement. A callable step carries its behavior as code, so the dry run can show nothing but its description, pointing at the source:
+
+```
+Data steps:
+  database/steps/20261018-medias-morph-backfillStep.php:
+        Backfill the morph pair from the legacy FK columns (callable step — review the source at database/steps/20261018-medias-morph-backfillStep.php)
+```
+
+That trade is inherent to the callable form — review happens at the definition site, not the plan. SQL remains the reviewable default; choose the callable form when the step genuinely needs PHP.
 
 ### The `sync:legacy` Command
 

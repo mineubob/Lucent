@@ -69,12 +69,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/blueprintau/radiant.git",
-                "reference": "f406806bcb5fa9fa633b0fcc2aea7dac87b16dfd"
+                "reference": "c87e96d09d9ac9a75601a6a2f09a4508afd7b839"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/blueprintau/radiant/zipball/f406806bcb5fa9fa633b0fcc2aea7dac87b16dfd",
-                "reference": "f406806bcb5fa9fa633b0fcc2aea7dac87b16dfd",
+                "url": "https://api.github.com/repos/blueprintau/radiant/zipball/c87e96d09d9ac9a75601a6a2f09a4508afd7b839",
+                "reference": "c87e96d09d9ac9a75601a6a2f09a4508afd7b839",
                 "shasum": ""
             },
             "require": {
@@ -133,7 +133,7 @@
                 "issues": "https://github.com/blueprintau/radiant/issues",
                 "source": "https://github.com/blueprintau/radiant"
             },
-            "time": "2026-10-17T13:12:10+00:00"
+            "time": "2026-10-18T09:14:14+00:00"
         },
         {
             "name": "carbonphp/carbon-doctrine-types",

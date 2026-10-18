@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Lucent\Console;
 
 use BlueprintAU\Radiant\Database;
+use BlueprintAU\Radiant\Database\Connections\SqlConnection;
 use BlueprintAU\Radiant\Database\Schema\Blueprint;
+use BlueprintAU\Radiant\Database\Schema\DataStep;
 use BlueprintAU\Radiant\Database\Schema\Enums\SchemaOperation;
 use BlueprintAU\Radiant\Database\Schema\SchemaChange;
 use BlueprintAU\Radiant\Database\Schema\SchemaSynchronizer;
@@ -15,6 +17,7 @@ use Lucent\Console\Support\ExceptionChain;
 use Lucent\Console\Support\ModelDiscovery;
 use Lucent\Console\Support\ModelFilter;
 use Lucent\Logging\ConsoleColors;
+use Lucent\Support\SyncStep;
 
 /**
  * The `sync` command — diff the discovered models' desired schema against
@@ -61,13 +64,24 @@ use Lucent\Logging\ConsoleColors;
  * RenameTable change together with any column shape drift in one plan.
  *
  * Data steps: --step=<file> (repeatable, ordered — command-line order is
- * preserved) splices hand-authored SQL between the plan's ADD-phase changes
- * and its destructive drops, so the migration sequence ADD columns → run a
- * data transform → DROP the sources runs in one lock/confirmation
- * discipline. Each file becomes one SchemaOperation::DataStep change; the
- * user names the files in order — nothing is inferred. Files are loaded and
- * validated BEFORE any planning or DDL: a failure (unreadable, empty, no
- * `;\n`-terminated statement) errors out pre-lock, so nothing applies.
+ * preserved) splices hand-authored transforms between the plan's ADD-phase
+ * changes and its destructive drops, so the migration sequence ADD columns →
+ * run a data transform → DROP the sources runs in one lock/confirmation
+ * discipline. Each file becomes one data step change; the user names the
+ * files in order — nothing is inferred. Files are loaded and validated
+ * BEFORE any planning or DDL: a failure (unreadable, empty, no `;\n`
+ * -terminated statement, a .php file that does not return a SyncStep)
+ * errors out pre-lock, so nothing applies.
+ *
+ * Step forms: an `.sql` file carries its transform as statement text —
+ * reviewable in the dry run, statement by statement. A `.php` file must
+ * `return` a {@see Lucent\Support\SyncStep} instance (one file, one step;
+ * the class defined in the same file; required once per run — a repeated
+ * occurrence reuses the instance rather than re-declaring the class) and
+ * runs as a callable {@see DataStep}: the plan holds only the step's
+ * description and destructiveness flag. The visibility trade is inherent —
+ * a dry run can show a callable step nothing but its description, pointing
+ * at the source file instead; SQL remains the reviewable default.
  *
  * Statement splitting restriction: statements must end with a semicolon
  * followed by a newline (`;\n`); a trailing semicolon at EOF is tolerated.
@@ -83,8 +97,8 @@ use Lucent\Logging\ConsoleColors;
  * drops. With no ADD-class changes the steps lead the alter section. When
  * the plan defers past the lock (an FK-involved SQLite rebuild), the steps
  * defer with it in position: they were authored relative to that plan, and
- * the whole plan is the deferred unit — a DataStep never routes through a
- * rebuild, so it can never trigger the deferral itself.
+ * the whole plan is the deferred unit — a step (SQL or callable) never
+ * routes through a rebuild, so it can never trigger the deferral itself.
  */
 final class SyncCommand
 {
@@ -195,8 +209,10 @@ final class SyncCommand
         $synchronizer = new SchemaSynchronizer($connection);
 
         // The destructive-change gate — shared by the apply under the lock and
-        // by a deferred apply outside it.
-        $confirm = function (SchemaChange $change) use ($force): bool {
+        // by a deferred apply outside it. Callable steps (DataStep instances
+        // spliced from .php step files) gate identically: they carry the same
+        // readonly description/destructive pair the prompt reads.
+        $confirm = function (SchemaChange|DataStep $change) use ($force): bool {
             if ($force) {
                 return true;
             }
@@ -211,13 +227,13 @@ final class SyncCommand
         // after it. Created once the plan is known, assigned through the
         // reference so the deferred leg can finish it.
         $progress = null;
-        $onChange = function (SchemaChange $change) use (&$progress): void {
+        $onChange = function (SchemaChange|DataStep $change) use (&$progress): void {
             if ($progress !== null) {
                 $progress->advance();
             }
         };
 
-        /** @var list<SchemaChange>|null $deferred The plan must apply outside the lock transaction. */
+        /** @var list<SchemaChange|DataStep>|null $deferred The plan must apply outside the lock transaction. */
         $deferred = null;
         $applied = [];
         $total = 0;
@@ -301,6 +317,18 @@ final class SyncCommand
                 // ---- The blueprints are complete — display the final plan ----
                 self::line(ConsoleColors::FG_CYAN . "Planned schema changes:" . ConsoleColors::RESET);
                 foreach ($changes as $change) {
+                    if ($change instanceof DataStep) {
+                        // Callable step — checked FIRST: a DataStep carries
+                        // no `operation` to inspect. Same marker discipline
+                        // as an SQL step; the description is all there is.
+                        $marker = $change->destructive
+                            ? ConsoleColors::FG_RED . "  ! " . ConsoleColors::RESET
+                            : ConsoleColors::FG_CYAN . "  ~ " . ConsoleColors::RESET;
+                        self::line($marker . $change->description);
+
+                        continue;
+                    }
+
                     if ($change->operation === SchemaOperation::DataStep) {
                         // Distinct marker for data steps — the red `!` is
                         // reserved for destructive items, and a step may be
@@ -330,6 +358,21 @@ final class SyncCommand
 
                         foreach ($steps as $step) {
                             self::line("  " . $step['path'] . ":");
+
+                            if ($step['statements'] === null) {
+                                // Callable step — nothing to dump. The dry
+                                // run shows the description and points at
+                                // the source; review happens at the
+                                // definition site (the visibility trade is
+                                // inherent to the callable form).
+                                self::line(
+                                    "      " . $step['description']
+                                    . " (callable step — review the source at " . $step['path'] . ")"
+                                );
+
+                                continue;
+                            }
+
                             self::line(file_get_contents($step['path']) ?? '');
                         }
                     }
@@ -339,7 +382,10 @@ final class SyncCommand
                 }
 
                 // ---- Confirm gate ----
-                $destructive = array_filter($changes, fn(SchemaChange $c): bool => $c->destructive);
+                // Callable steps ride the same gate as schema changes —
+                // both classes expose the readonly destructive/description
+                // pair the filter and prompt read.
+                $destructive = array_filter($changes, fn (SchemaChange|DataStep $c): bool => $c->destructive);
 
                 // Interactive when a TTY is present OR an input stream is
                 // injected (tests feed scripted answers through the seam —
@@ -373,7 +419,20 @@ final class SyncCommand
                 // run them against a schema the in-lock adds never built.
                 if (array_any(
                     $changes,
-                    fn (SchemaChange $c): bool => $connection->changeRequiresStandaloneTransaction($c, $changes),
+                    // Callable steps carry no analyzable operation — they can
+                    // never defer (a Radiant guarantee: the predicate only
+                    // ever inspects SchemaChange items). Filtering them out
+                    // here keeps the predicate's $plan argument a
+                    // list<SchemaChange>, which the rename-aware FK reads
+                    // require.
+                    fn (SchemaChange|DataStep $c): bool => $c instanceof SchemaChange
+                        && $connection->changeRequiresStandaloneTransaction(
+                            $c,
+                            array_values(array_filter(
+                                $changes,
+                                fn (SchemaChange|DataStep $i): bool => $i instanceof SchemaChange,
+                            )),
+                        ),
                 )) {
                     $deferred = $changes;
                     return;
@@ -427,15 +486,28 @@ final class SyncCommand
      * occurrence), or a list<string> in command-line order (repeat
      * occurrences — processArguments appends in encounter order).
      *
-     * Each file is read, split on `;\n` (the documented restriction:
-     * statements must end with a semicolon followed by a newline; a
-     * trailing semicolon at EOF is tolerated; no semicolons-in-strings
-     * handling), and classified destructive-by-default unless the FIRST
-     * line is exactly `-- non-destructive` (the marker line stays in the
-     * SQL — a no-op comment in every dialect).
+     * Each `.sql` file is read, split on `;\n` (the documented
+     * restriction: statements must end with a semicolon followed by a
+     * newline; a trailing semicolon at EOF is tolerated; no
+     * semicolons-in-strings handling), and classified
+     * destructive-by-default unless the FIRST line is exactly
+     * `-- non-destructive` (the marker line stays in the SQL — a no-op
+     * comment in every dialect).
+     *
+     * A `.php` file is `require`d ONCE (a path→instance guard means a
+     * repeated --step occurrence reuses the instance instead of
+     * re-declaring the file's class) and must `return` a
+     * {@see SyncStep} instance — anything else fails fast, pre-lock.
+     * The interface's describe/destructive/table become the step
+     * record's description/destructive flag/table label; `run()` is
+     * deferred into a closure adapted onto a callable
+     * {@see DataStep} at splice time.
      *
      * @param  mixed  $value  The raw --step option value
-     * @return list<array{path: string, statements: list<string>, destructive: bool, table: string}>
+     * @return list<array{path: string, statements: list<string>|null, destructive: bool, table: string, description: string|null, run: \Closure(SqlConnection): void|null}>
+     *         `.sql` records carry `statements` (list<string>) and a null
+     *         `run`; `.php` records carry `statements: null` plus the
+     *         step's `description` and `run` closure.
      * @throws \InvalidArgumentException On any file failure — the message
      *         names the offending file (and line, for split failures)
      */
@@ -457,6 +529,11 @@ final class SyncCommand
 
         $steps = [];
 
+        // Path → SyncStep instance for `.php` steps already required this
+        // run. The guard makes a repeated --step occurrence reuse the
+        // instance (the file executes — and its class declares — once).
+        $loadedSteps = [];
+
         foreach ($paths as $path) {
             if (!is_string($path) || $path === '') {
                 throw new \InvalidArgumentException(
@@ -468,6 +545,17 @@ final class SyncCommand
                 throw new \InvalidArgumentException(
                     "Step file is not readable: [{$path}]."
                 );
+            }
+
+            // ---- `.php` step: require-once a SyncStep instance ----
+            // Everything below this branch is SQL-specific (statement
+            // splitting, the non-destructive marker) — a callable step
+            // carries none of that. Readability is the one check both
+            // forms share.
+            if (str_ends_with($path, '.php')) {
+                $steps[] = self::loadPhpStep($path, $loadedSteps);
+
+                continue;
             }
 
             $contents = file_get_contents($path);
@@ -536,6 +624,8 @@ final class SyncCommand
                 'statements' => $statements,
                 'destructive' => $destructive,
                 'table' => self::dominantTable($statements),
+                'description' => null,
+                'run' => null,
             ];
         }
 
@@ -543,8 +633,77 @@ final class SyncCommand
     }
 
     /**
-     * Splice the loaded steps into the plan as DataStep changes — after
+     * Require a `.php` step file and validate its return value.
+     *
+     * The file is executed at most once per run — `$loadedSteps` maps
+     * each path to the instance its first require returned, so a
+     * repeated --step occurrence reuses it instead of re-declaring the
+     * file's class (a PHP fatal) or re-running its side effects. Each
+     * occurrence still yields its own ordered step record: repeating a
+     * step on the command line runs it twice, by declaration.
+     *
+     * @param  string  $path
+     * @param  array<string, SyncStep>  $loadedSteps  Path → instance guard, mutated in place.
+     * @return array{path: string, statements: null, destructive: bool, table: string, description: string, run: \Closure(SqlConnection): void}
+     * @throws \InvalidArgumentException When the require throws (parse
+     *         error, missing class — chained) or the file does not
+     *         return a {@see SyncStep} instance.
+     */
+    private static function loadPhpStep(string $path, array &$loadedSteps): array
+    {
+        if (isset($loadedSteps[$path])) {
+            $step = $loadedSteps[$path];
+        } else {
+            // The require runs inside a wrapper so the step file cannot
+            // see — or clobber — this method's locals. A throw (parse
+            // error, missing class, an eager constructor veto) is
+            // wrapped with the same fail-fast philosophy as every other
+            // load failure: the message names the file, the cause chain
+            // survives for ExceptionChain::render().
+            try {
+                $step = (static function () use ($path): mixed {
+                    return require $path;
+                })();
+            } catch (\Throwable $e) {
+                throw new \InvalidArgumentException(
+                    "Step file [{$path}] could not be loaded: {$e->getMessage()}",
+                    0,
+                    $e,
+                );
+            }
+
+            if (!$step instanceof SyncStep) {
+                throw new \InvalidArgumentException(
+                    "Step file [{$path}] must return a Lucent\\Support\\SyncStep instance; got "
+                    . get_debug_type($step)
+                    . '.',
+                );
+            }
+
+            $loadedSteps[$path] = $step;
+        }
+
+        $run = $step->run(...);
+
+        return [
+            'path' => $path,
+            'statements' => null,
+            'destructive' => $step->destructive(),
+            'table' => $step->table(),
+            'description' => $step->describe(),
+            'run' => $run,
+        ];
+    }
+
+    /**
+     * Splice the loaded steps into the plan as data steps — after
      * the LAST ADD-class change and before the FIRST DROP-class change.
+     *
+     * `.sql` steps become SchemaOperation::DataStep changes (statements
+     * as readonly plan data); `.php` steps become callable {@see DataStep}
+     * instances (description + destructive flag + run closure) — the
+     * synchronizer and the connection apply both forms through the same
+     * dispatch, confirm gate, and rollback semantics.
      *
      * Drop-class changes are ordered positionally, never analyzed: the
      * user authored the steps against the plan's shape, so "after the
@@ -554,11 +713,12 @@ final class SyncCommand
      * invariant that survives every placement: steps ALWAYS run before
      * destructive drops.
      *
-     * Multiple steps keep command-line order at the same splice point.
+     * Multiple steps keep command-line order at the same splice point —
+     * `.sql` and `.php` steps interleave by argv position, nothing else.
      *
      * @param  list<SchemaChange> $changes  The converged plan
-     * @param  list<array{path: string, statements: list<string>, destructive: bool, table: string}> $steps
-     * @return list<SchemaChange>
+     * @param  list<array{path: string, statements: list<string>|null, destructive: bool, table: string, description: string|null, run: \Closure(SqlConnection): void|null}> $steps
+     * @return list<SchemaChange|DataStep>
      */
     private static function spliceSteps(array $changes, array $steps): array
     {
@@ -569,8 +729,22 @@ final class SyncCommand
         $stepChanges = [];
 
         foreach ($steps as $step) {
-            $count = count($step['statements']);
             $filename = basename($step['path']);
+
+            if ($step['statements'] === null) {
+                // Callable step: no statements to preview, nothing to
+                // count — the description IS the plan's whole knowledge.
+                $stepChanges[] = new DataStep(
+                    $step['table'],
+                    "data step [{$filename}]: {$step['description']}",
+                    $step['destructive'],
+                    $step['run'],
+                );
+
+                continue;
+            }
+
+            $count = count($step['statements']);
 
             $stepChanges[] = new SchemaChange(
                 $step['table'],
