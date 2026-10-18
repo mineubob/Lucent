@@ -41,11 +41,13 @@ class SyncCommandStepTest extends TestCase
 
         self::copyFixtures([
             'Model' => ['Medias.php', 'RebuildTarget.php'],
-            // Static `.sql` step files + the no-class `.php` fail-fast
-            // fixtures. Callable `.php` steps declaring a SyncStep class
-            // are generated at runtime instead (writePhpStepFile) — tests
-            // share one PHP process, and a second require of a file
-            // declaring the same global class is an uncatchable fatal.
+            // Step fixtures — all committed now. Callable `.php` fixtures
+            // declare their SyncStep class behind a class_exists guard so
+            // the same file can be re-required across this PHPUnit
+            // process's tests (a bare second declaration is an uncatchable
+            // "Cannot redeclare class" fatal); see the guard comment in
+            // morph-backfill.php. The duplicate-run test's marker step is
+            // the only runtime-authored step (writeStepFile).
             'Step' => [
                 'morph-backfill.sql',
                 'a-first.sql',
@@ -57,6 +59,10 @@ class SyncCommandStepTest extends TestCase
                 'touch.sql',
                 'wrong-return.php',
                 'broken-php.php',
+                'morph-backfill.php',
+                'a-first.php',
+                'gate-check.php',
+                'gate-explodes.php',
             ],
         ]);
     }
@@ -114,10 +120,10 @@ class SyncCommandStepTest extends TestCase
     }
 
     /**
-     * Write a runtime-generated step file under TEMP_ROOT/steps and return
-     * its absolute path. Only for content that cannot be a committed
-     * fixture: the generated-SyncStep-class templates (unique class name
-     * per write) and the load-counter marker step.
+     * Write the duplicate-run test's marker step under TEMP_ROOT/steps and
+     * return its absolute path. The ONLY runtime-authored step left: this
+     * fixture's correctness depends on a load-time side effect pointing at
+     * a per-run temp path, which a committed fixture cannot carry.
      */
     private static function writeStepFile(string $filename, string $contents): string
     {
@@ -140,151 +146,6 @@ class SyncCommandStepTest extends TestCase
     private static function stepPath(string $filename): string
     {
         return TEMP_ROOT . 'steps' . DIRECTORY_SEPARATOR . $filename;
-    }
-
-    private const BACKFILL_STEP_PHP = <<<'PHP'
-        <?php
-
-        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
-        use Lucent\Support\SyncStep;
-
-        final class %s implements SyncStep
-        {
-            public function describe(): string
-            {
-                return 'Backfill the morph pair from the legacy FK columns (post/event/profile)';
-            }
-
-            public function destructive(): bool
-            {
-                return false; // rewrites rows, loses none
-            }
-
-            public function table(): string
-            {
-                return 'medias';
-            }
-
-            public function run(SqlConnection $conn): void
-            {
-                // Veto gate: a plain throw aborts the plan with the same
-                // rollback semantics a failing SQL statement has.
-                $orphans = $conn->selectColumnSql(
-                    'SELECT COUNT(*) FROM medias WHERE post_id IS NULL AND event_id IS NULL AND profile_id IS NULL',
-                    []
-                );
-
-                if ((int) $orphans[0] > 1) {
-                    throw new DomainException('More than one orphan media row — refusing to guess');
-                }
-
-                $conn->statement(
-                    "UPDATE medias SET attachable_type = ?, attachable_id = post_id WHERE post_id IS NOT NULL",
-                    ['post']
-                );
-                $conn->statement(
-                    "UPDATE medias SET attachable_type = ?, attachable_id = event_id WHERE event_id IS NOT NULL",
-                    ['event']
-                );
-                $conn->statement(
-                    "UPDATE medias SET attachable_type = ?, attachable_id = profile_id WHERE profile_id IS NOT NULL",
-                    ['profile']
-                );
-            }
-        }
-
-        return new %s();
-        PHP;
-
-    /**
-     * A destructive callable step — exercises the confirm gate exactly as
-     * an unmarked `.sql` step does. Unique class per write (see
-     * BACKFILL_STEP_PHP).
-     */
-    private const DESTRUCTIVE_STEP_PHP = <<<'PHP'
-        <?php
-
-        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
-        use Lucent\Support\SyncStep;
-
-        final class %s implements SyncStep
-        {
-            public function describe(): string
-            {
-                return 'Rewrite every morph row destructively';
-            }
-
-            public function destructive(): bool
-            {
-                return true;
-            }
-
-            public function table(): string
-            {
-                return 'medias';
-            }
-
-            public function run(SqlConnection $conn): void
-            {
-                $conn->statement("UPDATE medias SET attachable_type = 'post'");
-            }
-        }
-
-        return new %s();
-        PHP;
-
-    /**
-     * A callable step whose veto gate fires mid-run: one UPDATE lands,
-     * then a DomainException aborts the plan — the rollback semantics
-     * under test. Unique class per write (see BACKFILL_STEP_PHP).
-     */
-    private const VETO_STEP_PHP = <<<'PHP'
-        <?php
-
-        use BlueprintAU\Radiant\Database\Connections\SqlConnection;
-        use Lucent\Support\SyncStep;
-
-        final class %s implements SyncStep
-        {
-            public function describe(): string
-            {
-                return 'Veto the plan via a thrown gate';
-            }
-
-            public function destructive(): bool
-            {
-                return false;
-            }
-
-            public function table(): string
-            {
-                return 'medias';
-            }
-
-            public function run(SqlConnection $conn): void
-            {
-                $conn->statement("UPDATE medias SET attachable_type = 'post' WHERE post_id IS NOT NULL");
-
-                throw new DomainException('Refusing to continue: sanity gate tripped');
-            }
-        }
-
-        return new %s();
-        PHP;
-
-    /**
-     * Write a `.php` step fixture with a globally-unique step class name —
-     * tests share one PHP process and cannot redeclare a class, so every
-     * generated step file gets its own name (unique across the whole run,
-     * not just the test).
-     */
-    private static function writePhpStepFile(string $template, string $filename): string
-    {
-        static $counter = 0;
-
-        $class = 'SyncStepFixture' . (++$counter) . '_' . bin2hex(random_bytes(4));
-
-        return self::writeStepFile($filename, sprintf($template, $class, $class));
     }
 
     // ---- Tests -------------------------------------------------------------
@@ -618,7 +479,7 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $stepPath = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'morph-backfill.php');
+        $stepPath = self::stepPath('morph-backfill.php');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
@@ -669,7 +530,7 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $first = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'a-first.php');
+        $first = self::stepPath('a-first.php');
         $second = self::stepPath('b-second.sql');
 
         $result = CommandLine::execute(
@@ -818,7 +679,7 @@ class SyncCommandStepTest extends TestCase
         self::setupDatabase($driver, $config, []);
         self::createLegacyMediasTable();
 
-        $stepPath = self::writePhpStepFile(self::BACKFILL_STEP_PHP, 'morph-backfill.php');
+        $stepPath = self::stepPath('morph-backfill.php');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --dry-run"
@@ -858,10 +719,11 @@ class SyncCommandStepTest extends TestCase
         self::createLegacyMediasTable();
 
         // destructive(): true — the gate must treat the callable step
-        // exactly as it treats an unmarked .sql step. Runtime-generated:
-        // the class declaration cannot live in a committed fixture
-        // (require-once-per-process, see setUpBeforeClass).
-        $stepPath = self::writePhpStepFile(self::DESTRUCTIVE_STEP_PHP, 'gate-check.php');
+        // exactly as it treats an unmarked .sql step. The fixture carries
+        // the class_exists guard: this file is re-required across the
+        // PHPUnit process's tests, and a bare second class declaration is
+        // an uncatchable fatal (real step files never need it).
+        $stepPath = self::stepPath('gate-check.php');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath}"
@@ -887,8 +749,7 @@ class SyncCommandStepTest extends TestCase
         // The veto gate fires: the first UPDATE ran, then the DomainException
         // aborts the plan — the identical rollback semantics a failing SQL
         // statement has. The add before the step must roll back with it.
-        // Runtime-generated (require-once-per-process, see setUpBeforeClass).
-        $stepPath = self::writePhpStepFile(self::VETO_STEP_PHP, 'gate-explodes.php');
+        $stepPath = self::stepPath('gate-explodes.php');
 
         $result = CommandLine::execute(
             "sync --dir=" . TEMP_ROOT . "App/Models --filter='/Medias$/' --step={$stepPath} --force"
