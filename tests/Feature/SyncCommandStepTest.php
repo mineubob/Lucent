@@ -55,17 +55,22 @@ class SyncCommandStepTest extends TestCase
     /**
      * Create the live `medias` table in the legacy shape (morph columns
      * absent, legacy FK-shaped columns present) and populate it.
+     *
+     * Built via a Radiant blueprint rather than raw SQLite DDL — the test
+     * runs against both dialects, and AUTOINCREMENT / quoted-identifier
+     * DDL is SQLite-only (see DatabaseTesting::createLegacyTable()).
      */
     private static function createLegacyMediasTable(): void
     {
-        $connection = Database::sqlConnection();
+        $blueprint = (new Blueprint('medias'))
+            ->column(ColumnType::BigInt, 'id', primaryKey: true, autoIncrement: true)
+            ->column(ColumnType::BigInt, 'post_id', nullable: true)
+            ->column(ColumnType::BigInt, 'event_id', nullable: true)
+            ->column(ColumnType::BigInt, 'profile_id', nullable: true);
 
-        $connection->statement('CREATE TABLE medias (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            post_id INTEGER,
-            event_id INTEGER,
-            profile_id INTEGER
-        )');
+        Database::sqlConnection()->create($blueprint);
+
+        $connection = Database::sqlConnection();
 
         $connection->statement(
             "INSERT INTO medias (post_id, event_id, profile_id) VALUES (11, NULL, NULL)"
