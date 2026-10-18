@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Code Coverage for /home/runner/work/Lucent/Lucent/src/Lucent/Support/SyncStep.php</title>
+  <link rel="stylesheet" href="../../_css/style.css?v=14.4.1">
+  <link rel="stylesheet" href="../../_css/custom.css">
+ </head>
+ <body>
+  <header class="masthead">
+   <nav aria-label="Breadcrumb">
+    <ol class="breadcrumbs">
+     <li><a href="../../index.html">/home/runner/work/Lucent/Lucent/src</a></li>
+     <li><a href="../index.html">Lucent</a></li>
+     <li><a href="index.html">Support</a></li>
+     <li class="current">SyncStep.php</li>
+    </ol>
+   </nav>
+   <ul class="tabs">
+    <li><a href="../../index.html" aria-current="page">Files</a></li>
+    <li><a href="../../_classes/index.html">Classes</a></li>
+   </ul>
+  </header>
+  <main>
+   <div class="summary" data-coverage="{&quot;linesTotal&quot;:0,&quot;linesAll&quot;:0,&quot;methodsTotal&quot;:0,&quot;methodsAll&quot;:0,&quot;classesTotal&quot;:0,&quot;classesAll&quot;:0,&quot;linesSmall&quot;:0,&quot;methodsSmall&quot;:0,&quot;classesSmall&quot;:0,&quot;linesMedium&quot;:0,&quot;methodsMedium&quot;:0,&quot;classesMedium&quot;:0,&quot;linesLarge&quot;:0,&quot;methodsLarge&quot;:0,&quot;classesLarge&quot;:0,&quot;linesSM&quot;:0,&quot;methodsSM&quot;:0,&quot;classesSM&quot;:0,&quot;linesSL&quot;:0,&quot;methodsSL&quot;:0,&quot;classesSL&quot;:0,&quot;linesML&quot;:0,&quot;methodsML&quot;:0,&quot;classesML&quot;:0,&quot;linesSML&quot;:0,&quot;methodsSML&quot;:0,&quot;classesSML&quot;:0}">
+    <div class="metric" data-metric="lines-card" data-level="">
+     <span class="metric-name">Lines</span>
+     <span class="metric-percentage" data-metric="lines-percent" data-level="">n/a</span>
+     <span class="metric-bar" data-metric="lines-bar" data-level=""></span>
+     <span class="metric-count" data-metric="lines-number" data-level="">0 / 0</span>
+    </div>
+    <div class="metric" data-metric="methods-card" data-level="">
+     <span class="metric-name">Functions and Methods</span>
+     <span class="metric-percentage" data-metric="methods-percent" data-level="">n/a</span>
+     <span class="metric-bar" data-metric="methods-bar" data-level=""></span>
+     <span class="metric-count" data-metric="methods-number" data-level="">0 / 0</span>
+    </div>
+    <div class="metric" data-metric="classes-card" data-level="">
+     <span class="metric-name">Classes and Traits</span>
+     <span class="metric-percentage" data-metric="classes-percent" data-level="">n/a</span>
+     <span class="metric-bar" data-metric="classes-bar" data-level=""></span>
+     <span class="metric-count" data-metric="classes-number" data-level="">0 / 0</span>
+    </div>
+   </div>
+   <div class="table-scroll">
+    <table class="coverage">
+     <thead>
+      <tr>
+       <th scope="col" class="name">Name</th>
+       <th scope="colgroup" colspan="3">Lines</th>
+       <th scope="colgroup" colspan="3">Functions and Methods</th>
+       <th scope="col" class="crap"><abbr title="Change Risk Anti-Patterns (CRAP) Index">CRAP</abbr></th>
+       <th scope="colgroup" colspan="3">Classes and Traits</th>
+      </tr>
+     </thead>
+     <tbody>
+     </tbody>
+    </table>
+   </div>
+   <table class="source">
+    <tbody>
+     <tr><td class="line-number"><a id="1" href="#1">1</a></td><td class="hit-count"></td><td class="code"><span class="default">&lt;?php</span></td></tr>
+     <tr><td class="line-number"><a id="2" href="#2">2</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="3" href="#3">3</a></td><td class="hit-count"></td><td class="code"><span class="keyword">declare</span><span class="keyword">(</span><span class="default">strict_types</span><span class="keyword">=</span><span class="default">1</span><span class="keyword">)</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="4" href="#4">4</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="5" href="#5">5</a></td><td class="hit-count"></td><td class="code"><span class="keyword">namespace</span><span class="default">&nbsp;</span><span class="default">Lucent\Support</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="6" href="#6">6</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="7" href="#7">7</a></td><td class="hit-count"></td><td class="code"><span class="keyword">use</span><span class="default">&nbsp;</span><span class="default">BlueprintAU\Radiant\Database\Connections\SqlConnection</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="8" href="#8">8</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="9" href="#9">9</a></td><td class="hit-count"></td><td class="code"><span class="comment">/**</span></td></tr>
+     <tr><td class="line-number"><a id="10" href="#10">10</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;A&nbsp;hand-authored&nbsp;callable&nbsp;sync&nbsp;step&nbsp;—&nbsp;the&nbsp;PHP&nbsp;sibling&nbsp;of&nbsp;a&nbsp;`--step=.sql`</span></td></tr>
+     <tr><td class="line-number"><a id="11" href="#11">11</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;file.&nbsp;Where&nbsp;an&nbsp;SQL&nbsp;step&nbsp;carries&nbsp;its&nbsp;transform&nbsp;as&nbsp;reviewable&nbsp;statement</span></td></tr>
+     <tr><td class="line-number"><a id="12" href="#12">12</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;text&nbsp;(the&nbsp;dry&nbsp;run&nbsp;prints&nbsp;every&nbsp;statement),&nbsp;a&nbsp;callable&nbsp;step&nbsp;carries&nbsp;it&nbsp;as</span></td></tr>
+     <tr><td class="line-number"><a id="13" href="#13">13</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;runtime&nbsp;behavior:&nbsp;the&nbsp;plan&nbsp;holds&nbsp;only&nbsp;what&nbsp;this&nbsp;interface&nbsp;declares,&nbsp;and</span></td></tr>
+     <tr><td class="line-number"><a id="14" href="#14">14</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;the&nbsp;dry&nbsp;run&nbsp;shows&nbsp;nothing&nbsp;but&nbsp;the&nbsp;description&nbsp;—&nbsp;review&nbsp;happens&nbsp;at&nbsp;the</span></td></tr>
+     <tr><td class="line-number"><a id="15" href="#15">15</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;definition&nbsp;site,&nbsp;not&nbsp;the&nbsp;plan.</span></td></tr>
+     <tr><td class="line-number"><a id="16" href="#16">16</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*</span></td></tr>
+     <tr><td class="line-number"><a id="17" href="#17">17</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;Convention:&nbsp;one&nbsp;file,&nbsp;one&nbsp;step.&nbsp;Steps&nbsp;live&nbsp;in&nbsp;`database/steps/`&nbsp;named</span></td></tr>
+     <tr><td class="line-number"><a id="18" href="#18">18</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;`&lt;date&gt;-&lt;description&gt;Step.php`&nbsp;(e.g.</span></td></tr>
+     <tr><td class="line-number"><a id="19" href="#19">19</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;`20261018-medias-morph-backfillStep.php`),&nbsp;the&nbsp;class&nbsp;defined&nbsp;in&nbsp;the&nbsp;same</span></td></tr>
+     <tr><td class="line-number"><a id="20" href="#20">20</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;file,&nbsp;and&nbsp;the&nbsp;file&nbsp;ends&nbsp;with&nbsp;`return&nbsp;new&nbsp;MediasMorphBackfillStep();`&nbsp;—</span></td></tr>
+     <tr><td class="line-number"><a id="21" href="#21">21</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;the&nbsp;command&nbsp;`require`s&nbsp;the&nbsp;file&nbsp;once&nbsp;and&nbsp;uses&nbsp;the&nbsp;returned&nbsp;instance.</span></td></tr>
+     <tr><td class="line-number"><a id="22" href="#22">22</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*</span></td></tr>
+     <tr><td class="line-number"><a id="23" href="#23">23</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;The&nbsp;closure's&nbsp;connection&nbsp;discipline&nbsp;is&nbsp;identical&nbsp;to&nbsp;an&nbsp;SQL&nbsp;statement</span></td></tr>
+     <tr><td class="line-number"><a id="24" href="#24">24</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;step's:&nbsp;the&nbsp;run&nbsp;happens&nbsp;inside&nbsp;the&nbsp;plan's&nbsp;lock&nbsp;and&nbsp;transaction,&nbsp;and&nbsp;a</span></td></tr>
+     <tr><td class="line-number"><a id="25" href="#25">25</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;throw&nbsp;vetoes&nbsp;the&nbsp;plan&nbsp;with&nbsp;the&nbsp;same&nbsp;rollback&nbsp;semantics&nbsp;a&nbsp;failing</span></td></tr>
+     <tr><td class="line-number"><a id="26" href="#26">26</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;statement&nbsp;already&nbsp;has.&nbsp;Use&nbsp;throws&nbsp;as&nbsp;veto&nbsp;gates&nbsp;(precondition&nbsp;checks,</span></td></tr>
+     <tr><td class="line-number"><a id="27" href="#27">27</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;row-count&nbsp;sanity&nbsp;limits)&nbsp;instead&nbsp;of&nbsp;dialect&nbsp;forks&nbsp;(`RAISE`&nbsp;/&nbsp;`SIGNAL`).</span></td></tr>
+     <tr><td class="line-number"><a id="28" href="#28">28</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*</span></td></tr>
+     <tr><td class="line-number"><a id="29" href="#29">29</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;Choose&nbsp;the&nbsp;callable&nbsp;form&nbsp;when&nbsp;the&nbsp;transform's&nbsp;intelligence&nbsp;lives&nbsp;in&nbsp;PHP:</span></td></tr>
+     <tr><td class="line-number"><a id="30" href="#30">30</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;class-string&nbsp;constants&nbsp;(morph&nbsp;aliases),&nbsp;parameter-bound&nbsp;writes,</span></td></tr>
+     <tr><td class="line-number"><a id="31" href="#31">31</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;conditionals.&nbsp;Choose&nbsp;the&nbsp;SQL&nbsp;step&nbsp;for&nbsp;pure&nbsp;row&nbsp;transforms&nbsp;—&nbsp;the</span></td></tr>
+     <tr><td class="line-number"><a id="32" href="#32">32</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;visible-by-default&nbsp;form&nbsp;stays&nbsp;the&nbsp;default.</span></td></tr>
+     <tr><td class="line-number"><a id="33" href="#33">33</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*</span></td></tr>
+     <tr><td class="line-number"><a id="34" href="#34">34</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*&nbsp;@see&nbsp;\BlueprintAU\Radiant\Database\Schema\DataStep&nbsp;The&nbsp;plan&nbsp;vehicle&nbsp;the&nbsp;command&nbsp;adapts&nbsp;instances&nbsp;into.</span></td></tr>
+     <tr><td class="line-number"><a id="35" href="#35">35</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;*/</span></td></tr>
+     <tr><td class="line-number"><a id="36" href="#36">36</a></td><td class="hit-count"></td><td class="code"><span class="keyword">interface</span><span class="default">&nbsp;</span><span class="default">SyncStep</span></td></tr>
+     <tr><td class="line-number"><a id="37" href="#37">37</a></td><td class="hit-count"></td><td class="code"><span class="keyword">{</span></td></tr>
+     <tr><td class="line-number"><a id="38" href="#38">38</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment">/**</span></td></tr>
+     <tr><td class="line-number"><a id="39" href="#39">39</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;The&nbsp;human&nbsp;description&nbsp;of&nbsp;the&nbsp;step's&nbsp;effects&nbsp;—&nbsp;all&nbsp;a&nbsp;dry&nbsp;run&nbsp;can</span></td></tr>
+     <tr><td class="line-number"><a id="40" href="#40">40</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;show&nbsp;for&nbsp;a&nbsp;callable&nbsp;step,&nbsp;and&nbsp;the&nbsp;prompt&nbsp;line&nbsp;the&nbsp;destructive</span></td></tr>
+     <tr><td class="line-number"><a id="41" href="#41">41</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;confirm&nbsp;gate&nbsp;displays.</span></td></tr>
+     <tr><td class="line-number"><a id="42" href="#42">42</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span></td></tr>
+     <tr><td class="line-number"><a id="43" href="#43">43</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword">public</span><span class="default">&nbsp;</span><span class="keyword">function</span><span class="default">&nbsp;</span><span class="default">describe</span><span class="keyword">(</span><span class="keyword">)</span><span class="keyword">:</span><span class="default">&nbsp;</span><span class="default">string</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="44" href="#44">44</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="45" href="#45">45</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment">/**</span></td></tr>
+     <tr><td class="line-number"><a id="46" href="#46">46</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Whether&nbsp;the&nbsp;step&nbsp;can&nbsp;lose&nbsp;or&nbsp;rewrite&nbsp;existing&nbsp;data.&nbsp;Destructive</span></td></tr>
+     <tr><td class="line-number"><a id="47" href="#47">47</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;steps&nbsp;route&nbsp;through&nbsp;the&nbsp;same&nbsp;confirm&nbsp;gate&nbsp;(`--force`&nbsp;bypasses&nbsp;it)</span></td></tr>
+     <tr><td class="line-number"><a id="48" href="#48">48</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;as&nbsp;destructive&nbsp;schema&nbsp;changes;&nbsp;declare&nbsp;false&nbsp;only&nbsp;for&nbsp;insert-only</span></td></tr>
+     <tr><td class="line-number"><a id="49" href="#49">49</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;transforms.</span></td></tr>
+     <tr><td class="line-number"><a id="50" href="#50">50</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span></td></tr>
+     <tr><td class="line-number"><a id="51" href="#51">51</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword">public</span><span class="default">&nbsp;</span><span class="keyword">function</span><span class="default">&nbsp;</span><span class="default">destructive</span><span class="keyword">(</span><span class="keyword">)</span><span class="keyword">:</span><span class="default">&nbsp;</span><span class="default">bool</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="52" href="#52">52</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="53" href="#53">53</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment">/**</span></td></tr>
+     <tr><td class="line-number"><a id="54" href="#54">54</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;The&nbsp;table&nbsp;the&nbsp;step&nbsp;primarily&nbsp;targets&nbsp;—&nbsp;a&nbsp;cosmetic&nbsp;display&nbsp;and</span></td></tr>
+     <tr><td class="line-number"><a id="55" href="#55">55</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;lock-scoping&nbsp;label,&nbsp;exactly&nbsp;like&nbsp;an&nbsp;SQL&nbsp;step's&nbsp;dominant-table</span></td></tr>
+     <tr><td class="line-number"><a id="56" href="#56">56</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;guess.&nbsp;Never&nbsp;used&nbsp;for&nbsp;dispatch.</span></td></tr>
+     <tr><td class="line-number"><a id="57" href="#57">57</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span></td></tr>
+     <tr><td class="line-number"><a id="58" href="#58">58</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword">public</span><span class="default">&nbsp;</span><span class="keyword">function</span><span class="default">&nbsp;</span><span class="default">table</span><span class="keyword">(</span><span class="keyword">)</span><span class="keyword">:</span><span class="default">&nbsp;</span><span class="default">string</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="59" href="#59">59</a></td><td class="hit-count"></td><td class="code"></td></tr>
+     <tr><td class="line-number"><a id="60" href="#60">60</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="comment">/**</span></td></tr>
+     <tr><td class="line-number"><a id="61" href="#61">61</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Run&nbsp;the&nbsp;transform&nbsp;against&nbsp;the&nbsp;live&nbsp;connection.</span></td></tr>
+     <tr><td class="line-number"><a id="62" href="#62">62</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*</span></td></tr>
+     <tr><td class="line-number"><a id="63" href="#63">63</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@param&nbsp;&nbsp;SqlConnection&nbsp;&nbsp;$conn&nbsp;&nbsp;The&nbsp;plan's&nbsp;connection&nbsp;—&nbsp;use&nbsp;its</span></td></tr>
+     <tr><td class="line-number"><a id="64" href="#64">64</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;statement/parameter-binding&nbsp;API&nbsp;rather&nbsp;than&nbsp;reaching&nbsp;for&nbsp;a</span></td></tr>
+     <tr><td class="line-number"><a id="65" href="#65">65</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;second&nbsp;connection,&nbsp;so&nbsp;the&nbsp;run&nbsp;stays&nbsp;inside&nbsp;the&nbsp;plan's</span></td></tr>
+     <tr><td class="line-number"><a id="66" href="#66">66</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transaction&nbsp;and&nbsp;lock&nbsp;discipline.</span></td></tr>
+     <tr><td class="line-number"><a id="67" href="#67">67</a></td><td class="hit-count"></td><td class="code"><span class="comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</span></td></tr>
+     <tr><td class="line-number"><a id="68" href="#68">68</a></td><td class="hit-count"></td><td class="code"><span class="default">&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="keyword">public</span><span class="default">&nbsp;</span><span class="keyword">function</span><span class="default">&nbsp;</span><span class="default">run</span><span class="keyword">(</span><span class="default">SqlConnection</span><span class="default">&nbsp;</span><span class="default">$conn</span><span class="keyword">)</span><span class="keyword">:</span><span class="default">&nbsp;</span><span class="default">void</span><span class="keyword">;</span></td></tr>
+     <tr><td class="line-number"><a id="69" href="#69">69</a></td><td class="hit-count"></td><td class="code"><span class="keyword">}</span></td></tr>
+    </tbody>
+   </table>
+  </main>
+  <a class="to-top" href="#" title="Back to the top" hidden>
+   <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M8 3.5 14 11H2z"/></svg>
+   <span class="visually-hidden">Back to the top</span>
+  </a>
+  <footer>
+   <ul class="legend">
+    <li class="covered-by-small-tests">Covered by small (and larger) tests</li>
+    <li class="covered-by-medium-tests">Covered by medium (and large) tests</li>
+    <li class="covered-by-large-tests">Covered by large tests (and tests of unknown size)</li>
+    <li class="not-covered">Not covered</li>
+    <li class="not-coverable">Not coverable</li>
+   </ul>
+   <p class="credits">Generated by <a href="https://github.com/sebastianbergmann/php-code-coverage" target="_top">php-code-coverage 14.4.1</a> using <a href="https://www.php.net/" target="_top">PHP 8.4.26</a> and <a href="https://phpunit.de/">PHPUnit 13.4.3</a> at Sun Oct 18 10:47:42 UTC 2026.</p>
+  </footer>
+  <script src="../../_js/coverage-table.js?v=14.4.1" defer></script>
+  <script src="../../_js/source-view.js?v=14.4.1" defer></script>
+ </body>
+</html>
