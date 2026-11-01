@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lucent\Validation\Combinators;
 
 use Closure;
+use Lucent\Application;
 use Lucent\Validation\Concerns\RecordsConstraintFailure;
 use Lucent\Validation\Constraint;
 use Lucent\Validation\FieldContext;
@@ -74,11 +75,11 @@ final class Shape extends Constraint
     #[Override]
     protected function defaultMessage(): string|\Closure|null
     {
-        return fn(FieldContext $ctx) => $ctx->childFailed
-            ? null
-            : ($this->isTuple
-                ? "The {$ctx->field} must be an array with exactly " . count($this->constraints) . ' elements.'
-                : "The {$ctx->field} must be an object.");
+        // A child failure suppresses this message via Constraint::message()'s
+        // childFailed check — the specific child error stands.
+        return fn(FieldContext $ctx) => $this->isTuple
+            ? "The {$ctx->field} must be an array with exactly " . count($this->constraints) . ' elements.'
+            : "The {$ctx->field} must be an object.";
     }
 
     /**
@@ -164,6 +165,22 @@ final class Shape extends Constraint
     /**
      * Validate an object value against its named sub-constraints.
      *
+     * Children are scheduled so cross-field dependencies are validated after
+     * the fields they reference, regardless of declaration order:
+     *
+     * - Independent children (no declared references) run first, in
+     *   declaration order.
+     * - Dependent children then run in **reference order** — repeatedly, the
+     *   children whose referenced fields have all been scheduled run next, so
+     *   a dependent referencing another dependent declared after it still
+     *   waits. Cycles fall back to declaration order (see
+     *   {@see scheduleChildren()}).
+     *
+     * The field is declared as a container, then each present declared
+     * sub-field is seeded with its raw value. Undeclared keys are never
+     * written, so they are excluded from the result. Each present sub-field
+     * is then validated and may overwrite its value via normalization.
+     *
      * @param FieldContext $ctx The context of the field being validated.
      * @param array<int|string, mixed> $value The object value.
      * @return bool False when a child fails, true otherwise.
@@ -176,19 +193,125 @@ final class Shape extends Constraint
         // validated and may overwrite its value via normalization.
         $ctx->result->ensureContainer($ctx->field);
 
+        $childFailed = false;
+
+        foreach ($this->scheduleChildren() as $name) {
+            $childFailed = !$this->validateChild($ctx, $value, $name) || $childFailed;
+        }
+
+        return !$childFailed;
+    }
+
+    /**
+     * Order the declared sub-fields so references are validated first.
+     *
+     * Independent children (no declared references) run first in declaration
+     * order. Dependent children then run in **reference order**: repeatedly,
+     * the children whose referenced fields have all been scheduled run next,
+     * so a dependent that references another dependent declared after it
+     * still waits for it.
+     *
+     * When no progress is possible — a reference cycle, or a reference to a
+     * field that is not declared — the remaining children run in declaration
+     * order (correctness is preserved by the raw-value fallback in
+     * cross-field reads and the enum instance matching), and a warning is
+     * logged through the application's logging channel: a cycle is almost
+     * certainly a specification mistake and should not degrade silently.
+     *
+     * @return list<int|string> The child names in scheduled order.
+     */
+    private function scheduleChildren(): array
+    {
+        $order = [];
+        $scheduled = [];
+        $pending = [];
+
         foreach ($this->constraints as $name => $constraint) {
-            $present = array_key_exists($name, $value);
-            $child = $ctx->child($name, $present ? $value[$name] : null, $present);
-
-            if ($present) {
-                $child->seedRaw();
-            }
-
-            if (!$this->recordConstraintFailure($constraint, $child)) {
-                $ctx->childFailed = true;
+            if ($constraint->referencedFields() === []) {
+                $order[] = $name;
+                $scheduled[$name] = true;
+            } else {
+                $pending[$name] = $constraint->referencedFields();
             }
         }
 
-        return !$ctx->childFailed;
+        while ($pending !== []) {
+            $ready = [];
+
+            foreach ($pending as $name => $refs) {
+                $unscheduled = array_filter($refs, fn (string $ref): bool => !isset($scheduled[$ref]));
+
+                if ($unscheduled === []) {
+                    $ready[] = $name;
+                }
+            }
+
+            // No progress: a cycle or a reference to a field that is neither
+            // declared nor independent. Run the remainder in declaration
+            // order rather than looping forever, and surface the problem —
+            // a dependent may now read a raw value where it expected a
+            // normalized one.
+            if ($ready === []) {
+                $this->warnUnresolvable(array_keys($pending));
+                foreach (array_keys($pending) as $name) {
+                    $order[] = $name;
+                }
+                break;
+            }
+
+            foreach ($ready as $name) {
+                $order[] = $name;
+                $scheduled[$name] = true;
+                unset($pending[$name]);
+            }
+        }
+
+        return $order;
+    }
+
+    /**
+     * Validate one declared sub-field.
+     *
+     * @param FieldContext $ctx The parent field's context.
+     * @param array<int|string, mixed> $value The parent object value.
+     * @param int|string $name The sub-field name to validate.
+     * @return bool True if the child constraint passed, false otherwise.
+     */
+    private function validateChild(FieldContext $ctx, array $value, int|string $name): bool
+    {
+        $present = array_key_exists($name, $value);
+        $child = $ctx->child($name, $present ? $value[$name] : null, $present);
+
+        if ($present) {
+            $child->seedRaw();
+        }
+
+        if ($this->recordConstraintFailure($this->constraints[$name], $child)) {
+            return true;
+        }
+
+        $ctx->childFailed = true;
+
+        return false;
+    }
+
+    /**
+     * Log a warning about children whose references could not be scheduled.
+     *
+     * The message goes to the application's logging channel (a no-op null
+     * channel when none is configured), so the degradation is observable
+     * without coupling validation to a concrete logger or throwing.
+     *
+     * @param list<int|string> $names The children run in declaration order.
+     */
+    private function warnUnresolvable(array $names): void
+    {
+        $app = Application::getInstance();
+
+        $app->getLoggingChannel('validation')->warning(
+            'Validation scheduling fell back to declaration order; '
+            . 'a reference cycle or an undeclared referenced field exists '
+            . 'among: ' . implode(', ', array_map(strval(...), $names)) . '.',
+        );
     }
 }

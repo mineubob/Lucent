@@ -88,6 +88,18 @@ final class FieldContext
      */
     public array $segments;
 
+    /**
+     * The parent context, when this context was derived via {@see child()}.
+     *
+     * Null at the root. Used by conditional constraints (e.g.
+     * {@see \Lucent\Validation\Combinators\Cases}) whose branch constraints
+     * target the *enclosing object's* fields rather than the anchor field's
+     * own value: a `Cases` anchored at `payment` validates `card_number` — a
+     * sibling of `type` — so the branch must run against the parent context
+     * for errors to land at the right dotted path.
+     */
+    private readonly ?self $parent;
+
     public function __construct(
         public readonly string $field,
         public private(set) mixed $value,
@@ -97,14 +109,91 @@ final class FieldContext
         private readonly mixed $body,
         array $context = [],
         public string $name = '',
+        ?self $parent = null,
     ) {
         $this->context = $context;
+        $this->parent = $parent;
 
         if ($this->name === '') {
             $this->name = $this->field;
         }
 
         $this->segments = $this->segments($this->field);
+    }
+
+    /**
+     * Get the parent context, or null at the root.
+     *
+     * Contexts derived via {@see child()} return the context that created
+     * them; the root context created by the {@see Validator} returns null.
+     *
+     * @return self|null The parent context, or null when this is the root.
+     */
+    public function parent(): ?self
+    {
+        return $this->parent;
+    }
+
+    /**
+     * Derive a context for a sibling field at this field's level.
+     *
+     * Builds the sibling's dotted path relative to this field's **parent**
+     * (e.g. from inside `payment`, sibling `type` resolves to the top-level
+     * `type`), reusing the parent context when one exists so the sibling's
+     * parent links stay consistent. Used by conditional constraints whose
+     * matchers must evaluate another field — {@see child()} cannot express
+     * this, since it only extends a path downward.
+     *
+     * A name containing a dot is treated as an absolute path (the same rule
+     * the cross-field getter applies).
+     *
+     * @param string $name The sibling's leaf name, or an absolute dotted path.
+     * @return self A context for the sibling field (presence derived from the
+     *         stored value, since the raw parent array is not retained).
+     */
+    public function sibling(string $name): self
+    {
+        $path = $this->siblingPath($name);
+
+        // Mirror the cross-field getter's resolution: prefer a normalized
+        // value already stored in the result, fall back to the raw body (an
+        // undeclared sibling is never seeded into the result).
+        [$found, $value] = $this->result->tryValue($path);
+
+        if (!$found) {
+            [$found, $value] = $this->tryValueAtPath($this->body, $path);
+        }
+
+        if ($this->parent === null) {
+            if ($this->field === $name) {
+                return $this;
+            }
+
+            return new self($path, $found ? $value : null, $found, $this->result, $this->files, $this->body, $this->context, $name);
+        }
+
+        return $this->parent->child($name, $found ? $value : null, $found);
+    }
+
+    /**
+     * Resolve a sibling name to its dotted path relative to this field's parent.
+     *
+     * @param string $name The sibling's leaf name or absolute dotted path.
+     * @return string The sibling's dotted path.
+     */
+    private function siblingPath(string $name): string
+    {
+        if (str_contains($name, '.')) {
+            return $name;
+        }
+
+        $dot = strrpos($this->field, '.');
+
+        if ($dot === false) {
+            return $name;
+        }
+
+        return substr($this->field, 0, $dot) . '.' . $name;
     }
 
     /**
@@ -134,6 +223,7 @@ final class FieldContext
             $this->body,
             $this->context,
             $name,
+            $this,
         );
 
         // Reuse the parent's cached segments to avoid re-splitting the shared
@@ -183,11 +273,11 @@ final class FieldContext
      * Derive a copy of this context that writes to a different result.
      *
      * Returns a context with the same field, value, presence, files, body,
-     * and context bag, but a fresh {@see Result}. Used by combinators such as
-     * {@see \Lucent\Validation\Combinators\One} to validate each alternative
-     * in isolation against a throwaway result, then commit only the winning
-     * branch via {@see Result::merge()} — so a losing branch's errors *and*
-     * values never leak into the final result.
+     * context bag, and parent, but a fresh {@see Result}. Used by combinators
+     * such as {@see \Lucent\Validation\Combinators\One} to validate each
+     * alternative in isolation against a throwaway result, then commit only
+     * the winning branch via {@see Result::merge()} — so a losing branch's
+     * errors *and* values never leak into the final result.
      *
      * @param Result $result The result the new context should write to.
      * @return self A new context sharing everything but the result.
@@ -203,6 +293,7 @@ final class FieldContext
             $this->body,
             $this->context,
             $this->name,
+            $this->parent,
         );
 
         $copy->segments = $this->segments;

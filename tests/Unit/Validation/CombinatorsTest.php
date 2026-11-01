@@ -855,6 +855,41 @@ class CombinatorsTest extends TestCase
 
     // ─── shared-instance reuse (AUD-CNC-001) ──────────────────────────────
 
+    public function test_custom_message_does_not_mask_child_error(): void
+    {
+        // A custom message on a combinator replaces its own generic wording;
+        // it must never override the specific error a child recorded.
+        $validator = new Validator([
+            'user' => Shape::object(['name' => new Required()])
+                ->withMessage('Custom object message.'),
+        ]);
+
+        $result = $validator->validate(['user' => []]);
+
+        $this->assertSame(
+            ['The user.name is required.'],
+            $result->errors()['user.name'],
+        );
+        $this->assertArrayNotHasKey('user', $result->errors());
+    }
+
+    public function test_custom_message_applies_on_own_failure(): void
+    {
+        // When the combinator itself fails (not a child), the custom
+        // message stands.
+        $validator = new Validator([
+            'user' => Shape::object(['name' => new Required()])
+                ->withMessage('Custom object message.'),
+        ]);
+
+        $result = $validator->validate(['user' => 'not-an-array']);
+
+        $this->assertSame(
+            ['Custom object message.'],
+            $result->errors()['user'],
+        );
+    }
+
     public function test_shape_reused_across_validations_does_not_leak_state(): void
     {
         // Regression test for AUD-CNC-001: per-validation failure state is

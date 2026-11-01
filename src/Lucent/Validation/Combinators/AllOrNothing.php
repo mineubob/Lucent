@@ -55,9 +55,9 @@ final class AllOrNothing extends Constraint
     #[Override]
     protected function defaultMessage(): string|\Closure|null
     {
-        return fn(FieldContext $ctx) => $ctx->childFailed
-            ? null
-            : "The {$ctx->field} fields must be provided together.";
+        // A child failure suppresses this message via Constraint::message()'s
+        // childFailed check.
+        return fn(FieldContext $ctx) => "The {$ctx->field} fields must be provided together.";
     }
 
     /**

@@ -38,6 +38,17 @@ final class SameAs extends Constraint
     }
 
     /**
+     * Declare the referenced field, for scheduler ordering.
+     *
+     * @return list<string> The referenced sibling field names.
+     */
+    #[Override]
+    public function referencedFields(): array
+    {
+        return [$this->otherField];
+    }
+
+    /**
      * Validate that the value strictly equals the other field's value.
      *
      * @param FieldContext $ctx The context of the field being validated.

@@ -26,18 +26,34 @@ abstract class Constraint
     private string|\Closure|null $customMessage = null;
 
     /**
+     * Whether the custom message overrides child-recorded errors.
+     *
+     * @var bool
+     */
+    private bool $overridesChildErrors = false;
+
+    /**
      * Override the default error message for this constraint.
      *
      * The message may be a plain string or a closure that receives the
      * {@see FieldContext} and returns the message string, allowing messages
      * to be built dynamically from the field name or value.
      *
+     * For combinators ({@see \Lucent\Validation\Combinators\Shape},
+     * {@see \Lucent\Validation\Combinators\Cases}, …) the message replaces
+     * the combinator's own generic wording. It does **not** mask the
+     * specific error a child already recorded — unless `override` is true,
+     * which forces the custom message in every failure path.
+     *
      * @param string|\Closure(FieldContext): string $message The custom message or a closure producing it.
+     * @param bool $override When true, the message is used even when a child
+     *        constraint already recorded its specific error.
      * @return static The current instance for method chaining.
      */
-    final public function withMessage(string|\Closure $message): static
+    final public function withMessage(string|\Closure $message, bool $override = false): static
     {
         $this->customMessage = $message;
+        $this->overridesChildErrors = $override;
         return $this;
     }
 
@@ -46,15 +62,28 @@ abstract class Constraint
      *
      * Returns the custom message if one was set via {@see withMessage()},
      * otherwise falls back to {@see defaultMessage()}. Closures are invoked
-     * with the supplied context. Returns null when there is no message to
-     * report — used by combinators whose child constraints already recorded
-     * their specific errors on the result.
+     * with the supplied context and may themselves return null to signal
+     * "no message".
+     *
+     * When the context's {@see FieldContext::$childFailed} flag is set, a
+     * child constraint already recorded its specific error, so this
+     * constraint's message is suppressed — the child's pinpointed error
+     * stands alone. The suppression is bypassed only by a custom message
+     * that explicitly requested the override.
      *
      * @param FieldContext $ctx The context of the field being validated.
      * @return string|null The resolved error message, or null to skip.
      */
     final public function message(FieldContext $ctx): ?string
     {
+        // When a child failed, its specific error stands: this constraint's
+        // message is suppressed unless a custom message explicitly requested
+        // the override. The override needs a custom message to substitute;
+        // the fall-through path below resolves closures uniformly.
+        if ($ctx->childFailed && !($this->overridesChildErrors && $this->customMessage !== null)) {
+            return null;
+        }
+
         $message = $this->customMessage ?? $this->defaultMessage();
 
         if ($message === null) {
@@ -79,6 +108,27 @@ abstract class Constraint
      * @return string|\Closure(FieldContext): ?string|null The default message, a closure producing it, or null to skip.
      */
     abstract protected function defaultMessage(): string|\Closure|null;
+
+    /**
+     * Declare the fields this constraint reads from its siblings.
+     *
+     * Advisory metadata used by container constraints (notably
+     * {@see \Lucent\Validation\Combinators\Shape}) to order validation: any
+     * child that declares references is validated **after** children with no
+     * references, so a referenced field is always validated — and normalized —
+     * before a constraint that depends on it, regardless of declaration
+     * order.
+     *
+     * Names are bare leaf names resolved relative to the constraint's own
+     * level (the same naming the cross-field getter accepts). The default is
+     * an empty array: most constraints are single-field.
+     *
+     * @return list<string> The referenced sibling field names.
+     */
+    public function referencedFields(): array
+    {
+        return [];
+    }
 
     /**
      * Validate a field value.

@@ -168,6 +168,23 @@ final class Result
     }
 
     /**
+     * Determine whether a field has any recorded validation error.
+     *
+     * Used by conditional constraints (e.g.
+     * {@see \Lucent\Validation\Combinators\Cases}) as a skip guard: when the
+     * field a condition reads has already failed (e.g. its `Enum` membership
+     * check), branch matching would only pile a spurious second error on top
+     * of the real one, so the constraint passes silently instead.
+     *
+     * @param string $field The dotted path of the field.
+     * @return bool True if at least one error is recorded for the field.
+     */
+    public function hasError(string $field): bool
+    {
+        return isset($this->errors[$field]) && $this->errors[$field] !== [];
+    }
+
+    /**
      * Capture the current error state.
      *
      * Used by combinators such as {@see \Lucent\Validation\Combinators\Any}

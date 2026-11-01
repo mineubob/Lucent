@@ -33,6 +33,15 @@ Lucent provides a constraint-based validation system built around the `Constrain
     - [Optional](#optional)
     - [Shape](#shape)
     - [Each](#each)
+- [Conditional Validation](#conditional-validation)
+    - [Cases](#cases)
+    - [Branch targeting](#branch-targeting)
+    - [No match behavior](#no-match-behavior)
+    - [RequiredIf](#requiredif)
+    - [ProhibitedIf](#prohibitedif)
+    - [Equals and In](#equals-and-in)
+    - [Condition forms](#condition-forms)
+    - [Referenced fields and ordering](#referenced-fields-and-ordering)
 - [Nested Validation](#nested-validation)
 - [Normalizers](#normalizers)
 - [Context Bag](#context-bag)
@@ -678,6 +687,268 @@ $result = $validator->validate(['items' => ['1', '2', '3']]);
 $result->value('items');   // [1, 2, 3] (normalized)
 ```
 
+## Conditional Validation
+
+Conditional constraints switch which rules apply based on another field's
+value — the classic case being a payment payload whose required fields depend
+on the payment type.
+
+### Cases
+
+`Cases` reads as: "when the anchor field's value is X, these constraints must
+hold." Branches are evaluated in declaration order and the **first match
+wins**.
+
+Three entry modes:
+
+- **Own-value mode** — `Cases::own($matcher, $constraint)` matches the
+  field's own value and constrains the field itself (see
+  [Scalar if/else and type branching](#scalar-ifelse-and-type-branching)):
+
+```php
+'amount' => Cases::own(new Str(), new Length(max: 100))
+    ->case(new Integer(), new Range(min: 0)),
+```
+
+- **Sibling mode** — `Cases::is($matcher, $constraint)` compares the anchor
+  field's **own** value and constrains its sibling fields. Compose it with
+  the normalizing constraint on the same field via `All::of`, so the matcher
+  sees the normalized enum instance:
+
+```php
+use Lucent\Validation\Combinators\All;
+
+$validator = new Validator(Shape::object([
+    'type' => All::of(
+        new Enum(PaymentType::class),
+        Cases::is(PaymentType::Card, Shape::object([
+            'card_number' => new Required(),
+        ]))
+        ->case(PaymentType::Paypal, Shape::object([
+            'paypal_email' => new Required(),
+        ])),
+    ),
+]));
+```
+
+With this form an invalid discriminator produces **only** the `Enum` error:
+`All` stops at the first failure, so the branch logic never runs.
+
+- **Targeted mode** — `Cases::on('type')` evaluates the named field:
+
+```php
+use Lucent\Validation\Combinators\Cases;
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Enum;
+use Lucent\Validation\Constraints\Required;
+use Lucent\Validation\Validator;
+
+$validator = new Validator(Shape::object([
+    'type'    => new Enum(PaymentType::class),
+    'payment' => Cases::on('type')
+        ->case(PaymentType::Card, Shape::object([
+            'card_number' => new Required(),
+            'cvv'         => new Length(min: 3, max: 4),
+        ]))
+        ->case(PaymentType::Paypal, Shape::object([
+            'paypal_email' => new Required(),
+        ]))
+        ->case(PaymentType::Bank, Shape::object([
+            'iban' => new Required(),
+        ])),
+]));
+```
+
+The referenced field is validated (and normalized) before the `Cases` runs,
+regardless of declaration order — see
+[Referenced fields and ordering](#referenced-fields-and-ordering).
+
+Errors from a matched branch land at the fields the branch declares. Which
+fields those are depends on the entry mode — see
+[Branch targeting](#branch-targeting).
+
+### Branch targeting
+
+Which value a branch constrains depends on the entry mode:
+
+- **Own-value mode** (`Cases::own(...)`) — branches constrain the **field
+  itself**; errors land at the field's own path.
+- **Sibling mode** (`Cases::is(...)` composed on the anchor field) —
+  branches constrain the anchor's **siblings** via `All::of`, as shown in
+  the sibling-mode example above; errors land at the sibling fields the
+  branch declares.
+- **Targeted mode** (`Cases::on('type')` declared on field `'payment'`) —
+  branches constrain the **declaring field's value**. This is the natural
+  discriminated-union shape:
+
+```php
+$validator = new Validator(Shape::object([
+    'type' => new Enum(PaymentType::class),
+    'card' => Cases::on('type')
+        ->case(PaymentType::Card, Shape::object([
+            'number' => new Required(),
+        ])),
+]));
+// With type = card and an empty card payload, errors land at `card.number`.
+```
+
+In every mode an absent field passes silently: a targeted or own-value
+`Cases` on a field the payload never provided has nothing to constrain, and
+the field's own `Required`/`Enum` constraints report the absence.
+
+### No match behavior
+
+When the anchor value matches no branch, an error is recorded by default:
+
+```
+The type value does not match any case.
+```
+
+The author declared all valid branches, so silence would hide a forgotten
+one. When intentionally covering only some values, opt out:
+
+```php
+Cases::on('type')
+    ->case(PaymentType::Card, $cardShape)
+    ->passOnNoMatch();
+```
+
+If the referenced field **already failed** (e.g. its `Enum` check), the
+`Cases` passes silently — a broken discriminator must not pile a second,
+confusing error on top of the real one. Likewise, an absent anchor field or
+(in targeted mode) an absent declaring field passes silently and is left to
+the field's own `Required`/`Enum` constraints.
+
+In self-mode a no-match error is reported under the `Cases` field's own path
+(mirroring `Shape`); in targeted mode it is reported under the anchor field's
+path.
+
+### RequiredIf
+
+Requires the field when another field's value matches:
+
+```php
+use Lucent\Validation\Constraints\RequiredIf;
+
+'card_number' => new RequiredIf('type', is: PaymentType::Card),
+```
+
+Passes silently when the referenced field does not match, and when the
+referenced field itself already failed. An empty string or empty array counts
+as missing; `false` and `0` count as present.
+
+### ProhibitedIf
+
+The mirror image — forbids the field when another field's value matches:
+
+```php
+use Lucent\Validation\Constraints\ProhibitedIf;
+
+'iban' => new ProhibitedIf('type', is: PaymentType::Card),
+```
+
+### Equals and In
+
+Standalone equality and membership constraints sharing the same matching
+semantics as `Cases`:
+
+```php
+use Lucent\Validation\Constraints\Equals;
+use Lucent\Validation\Constraints\In;
+
+'status' => new Equals('active'),
+'scheme' => new In(['visa', PaymentType::Card]),
+```
+
+`Equals` composes with other constraints, e.g.
+`All::of(new Enum(PaymentType::class), new Equals(PaymentType::Paypal))`
+validates membership and then exact-case equality.
+
+### Condition forms
+
+All conditional constraints accept the same matcher forms:
+
+| Form | Example | Matching |
+|---|---|---|
+| Scalar | `is: 'card'` | Strict `===`. A scalar also matches an enum instance whose backing value or name equals it. |
+| List | `is: ['a', 'b']` | Matches when the value equals any element. |
+| Enum case | `is: PaymentType::Card` | Matches the case instance, its backing value, **or** its case name — so it works against both raw and normalized values. |
+| Constraint | `is: All::of(new Trim(), new Email())` | Normalize-and-check: the constraint is validated against the field in isolation; only the boolean outcome is used. Errors and normalizations from the condition are discarded. |
+
+**Normalized vs raw values.** A condition sees the *normalized* value when
+the referenced field's normalizing constraint ran first — which the scheduler
+guarantees for declared references (see below). Self-mode inside
+`All::of(new Enum(...), Cases::is(...))` always sees the enum instance.
+Without a normalizer, the raw body value is used. Enum cases bridge raw and
+normalized values automatically; plain numbers do **not** (`is: 5` does not
+match the raw string `'5'` — declare a `Numeric` constraint on the referenced
+field). To compare against a transformed value, compose a normalizer into the
+constraint form: `is: All::of(new Trim(), new Equals('card'))`. Uploaded-file
+fields cannot be used as conditions.
+
+### Scalar if/else and type branching
+
+`Cases` is not limited to objects and enums — the anchor can be a plain
+scalar sibling field, making it a declarative `if/else`:
+
+```php
+'threads' => Cases::on('mode')
+    ->case(Mode::Fast, new Range(min: 2, max: 16))
+    ->case(Mode::Slow, new Range(min: 1, max: 4)),
+```
+
+`Cases` **checks, it does not transform** — a matched branch constrains the
+declaring field but cannot rewrite the input to a different value (value
+mapping is the job of normalizers). It also anchors on an object's fields: a
+bare scalar body (a payload that is just an `int` or `string`) has no field
+to anchor on, so pass a type-switching constraint directly to the
+`Validator` instead.
+
+Branching on a value's **type** works through the constraint condition form —
+`Str`, `Integer`, `Numeric`, etc. are constraints, so they can be the case
+matcher too. Own-value mode is built for exactly this — the field's input
+type decides which rules apply to it:
+
+```php
+'input' => Cases::own(new Integer(), new Range(min: 0))
+    ->case(new Str(), new Length(max: 100)),
+```
+
+Note that a branch never rewrites values, and the anchor and the constrained
+field are always the same field in this mode: matching the field's own value
+while constraining a *different* field is sibling mode (`Cases::is`) or
+targeted mode (`Cases::on`) instead.
+
+Cross-field constraints declare what they read via
+`Constraint::referencedFields()` (overridden by `Cases`, `RequiredIf`,
+`ProhibitedIf`, and `SameAs`). `Shape` uses this metadata to order its
+children: independent children first (declaration order), then dependents,
+repeatedly — each dependent is scheduled once every field it references has
+already been scheduled. Unresolvable references (cycles or fields that were
+never declared) fall back to declaration order, and a warning is logged to
+the `validation` logging channel — a cycle is almost certainly a
+specification mistake, and the fallback means a dependent may read a raw
+value where it expected a normalized one.
+
+This guarantees a referenced sibling is validated and normalized before a
+dependent constraint reads it, regardless of declaration order — including
+chains where a dependent requires another dependent:
+
+```php
+// Works even though 'payment' is declared first:
+$validator = new Validator(Shape::object([
+    'payment' => Cases::on('type')->case(PaymentType::Card, $cardShape),
+    'type'    => new Enum(PaymentType::class),
+]));
+```
+
+Ref-to-ref chains resolve through the same iterative scheduling, so a
+constraint that depends on another dependent still sees normalized values.
+Inside `Each`, cross-field references resolve
+**per element**, so per-element conditional logic works without any path
+syntax. Note that scheduling may regroup errors: independent-field errors
+report before dependent-field errors even when declared interleaved.
+
 ## Nested Validation
 
 `Shape` and `Each` compose to validate arbitrarily nested structures.
@@ -744,6 +1015,25 @@ Matches::email()->withMessage('Please provide a valid email address.');
 use Lucent\Validation\Constraints\Length;
 
 (new Length(min: 8))->withMessage(fn($ctx) => "The {$ctx->field} must be at least 8 characters.");
+```
+
+On combinators (`Shape`, `Cases`, `All`, …), a custom message replaces the
+combinator's **own** generic wording — `"must be an object"` or `"does not
+match any case"`. It never masks a specific error a child already recorded:
+if a branch's shape failed with `payment.cvv is required`, that pinpointed
+error is reported alone and the custom message is suppressed. Run the
+combinator again on a failure of its own (a non-array value, a no-match) to
+see the custom wording.
+
+When the override is genuinely wanted — e.g. a form-level message policy —
+pass `override: true`, which forces the custom message on every failure path:
+
+```php
+use Lucent\Validation\Combinators\Shape;
+use Lucent\Validation\Constraints\Required;
+
+Shape::object(['name' => new Required()])
+    ->withMessage('Please check the highlighted fields.', override: true);
 ```
 
 ## Custom Constraints

@@ -40,9 +40,9 @@ final class None extends Constraint
     #[Override]
     protected function defaultMessage(): string|\Closure|null
     {
-        return fn(FieldContext $ctx) => $ctx->childFailed
-            ? null
-            : "The {$ctx->field} must not match any of the given rules.";
+        // The failure path records its own messages in validate() and flags
+        // childFailed, suppressing this message via Constraint::message().
+        return fn(FieldContext $ctx) => "The {$ctx->field} must not match any of the given rules.";
     }
 
     /**

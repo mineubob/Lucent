@@ -50,11 +50,11 @@ final class Each extends Constraint
     #[Override]
     protected function defaultMessage(): string|\Closure|null
     {
-        return fn(FieldContext $ctx) => $ctx->childFailed
-            ? null
-            : ($this->maxItems !== null && is_array($ctx->value) && count($ctx->value) > $this->maxItems
-                ? "The {$ctx->field} must contain at most {$this->maxItems} items."
-                : "The {$ctx->field} must be an array.");
+        // An element failure suppresses this message via
+        // Constraint::message()'s childFailed check.
+        return fn(FieldContext $ctx) => $this->maxItems !== null && is_array($ctx->value) && count($ctx->value) > $this->maxItems
+            ? "The {$ctx->field} must contain at most {$this->maxItems} items."
+            : "The {$ctx->field} must be an array.";
     }
 
     /**
